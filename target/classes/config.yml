@@ -1,0 +1,43 @@
+# General plugin configurations.
+# This file contains settings for plugin prefix, commands, sounds, time units, softban and database.
+
+prefix: "#FBCD08&l&oC#F5BF06&l&oR#EFB004&l&oO#E8A202&l&oW#E29300&l&oN &8&o➤&r "
+
+commands:
+  ban_command: 'ban {target} {time} {reason}' # Command to ban a player. Placeholders: {target}, {time}, {reason}
+  mute_command: 'mute {target} {time} {reason}' # Command to mute a player. Placeholders: {target}, {time}, {reason}
+  softban_command: ' ' # Softban is managed internally, no external command needed.
+  warn_command: 'warn {target} {reason}' # Command to warn a player. Placeholders: {target}, {reason} - Example command, adjust to your server setup
+  kick_command: 'kick {target} {reason}' # Command to kick a player. Placeholders: {target}, {reason} - Example command, adjust to your server setup
+  unban_command: 'pardon {target}' # Command to unban a player. Placeholders: {target}
+  unmute_command: 'unmute {target}' # Command to unmute a player. Placeholders: {target}
+
+
+sounds:
+  menu_open: 'BLOCK_CHEST_OPEN' # Sound played when a menu opens
+  menu_click: 'UI_BUTTON_CLICK' # Sound played when clicking a menu item
+  punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP' # Sound played when a punishment is confirmed
+
+time_units:
+  default: 's' # Default time unit if not specified, used if unit is missing in time input
+  seconds: 's' # Unit for seconds
+  minutes: 'm' # Unit for minutes
+  hours: 'h' # Unit for hours
+  day: 'd' # Unit for days
+  years: 'y' # Unit for years
+
+softban:
+  blocked_commands: # List of commands blocked for softbanned players. Players with 'crown.softban.bypass' permission are exempt.
+    - daily
+    - vote
+
+database: # Database configuration section for softban data storage.
+  type: 'sqlite' # Type of database: 'sqlite' for local file or 'mysql' for remote MySQL server
+  name: 'crownpunishments' # Database file name (for sqlite) or database name (for mysql)
+  address: 'localhost' # MySQL database address, only needed if type is 'mysql'
+  port: '3306' # MySQL database port, only needed if type is 'mysql'
+  username: 'username' # MySQL username, only needed if type is 'mysql'
+  password: 'password' # MySQL password, only needed if type is 'mysql'
+
+logging:
+  debug: true # Set to 'true' to enable debug logging for detailed plugin output. Useful for development and troubleshooting.

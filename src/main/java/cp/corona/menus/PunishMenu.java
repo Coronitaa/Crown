@@ -1,0 +1,125 @@
+package cp.corona.menus;
+
+import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.menus.items.MenuItem;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.UUID;
+
+/**
+ * Represents the main punishment menu.
+ * Allows selecting different punishment categories: Ban, Mute, SoftBan, Kick, and Warn.
+ */
+public class PunishMenu implements InventoryHolder {
+    private final Inventory inventory;
+    private final UUID targetUUID;
+    private final CrownPunishments plugin;
+
+    // Item keys constants for menu items in PunishMenu
+    private static final String INFO_ITEM_KEY = "info";
+    private static final String BAN_ITEM_KEY = "ban";
+    private static final String MUTE_ITEM_KEY = "mute";
+    private static final String SOFTBAN_ITEM_KEY = "softban"; // New item for softban
+    private static final String KICK_ITEM_KEY = "kick"; // New item for kick
+    private static final String WARN_ITEM_KEY = "warn"; // New item for warn
+    private static final String HISTORY_ITEM_KEY = "history"; // New item for punishment history
+
+
+    /**
+     * Constructor for PunishMenu.
+     *
+     * @param targetUUID UUID of the target player.
+     * @param plugin     Instance of the main plugin class.
+     */
+    public PunishMenu(UUID targetUUID, CrownPunishments plugin) {
+        this.targetUUID = targetUUID;
+        this.plugin = plugin;
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        // Using getMenuText for title to process placeholders and colors
+        String title = plugin.getConfigManager().getMenuText("title", target);
+        inventory = Bukkit.createInventory(this, 54, title); // Using a fixed size inventory (54 slots = 6 rows)
+        initializeItems(target); // Pass target to initializeItems
+    }
+
+    /**
+     * Initializes the items in the menu.
+     *
+     * @param target OfflinePlayer to display player-specific information.
+     */
+    private void initializeItems(OfflinePlayer target) {
+        // Info Item
+        setItemInMenu(INFO_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(INFO_ITEM_KEY), target);
+
+        // Ban Item
+        setItemInMenu(BAN_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(BAN_ITEM_KEY), target);
+
+        // Mute Item
+        setItemInMenu(MUTE_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(MUTE_ITEM_KEY), target);
+
+        // SoftBan Item
+        setItemInMenu(SOFTBAN_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(SOFTBAN_ITEM_KEY), target);
+
+        // Kick Item
+        setItemInMenu(KICK_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(KICK_ITEM_KEY), target);
+
+        // Warn Item
+        setItemInMenu(WARN_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(WARN_ITEM_KEY), target);
+
+        // History Item
+        setItemInMenu(HISTORY_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(HISTORY_ITEM_KEY), target);
+
+        // Example of adding a background fill - assuming you have a 'background_fill' item defined in your punish_menu.yml
+        setItemInMenu("background_fill", plugin.getConfigManager().getPunishMenuItemConfig("background_fill"), target);
+    }
+
+    /**
+     * Sets a MenuItem in the inventory, processing placeholders and applying configuration.
+     *
+     * @param itemKey        Key of the item in the configuration.
+     * @param menuItemConfig MenuItem configuration object.
+     * @param target         OfflinePlayer for placeholder processing.
+     */
+    private void setItemInMenu(String itemKey, MenuItem menuItemConfig, OfflinePlayer target){
+        if (menuItemConfig != null) {
+            ItemStack itemStack = menuItemConfig.toItemStack(target, plugin.getConfigManager());
+            if (itemStack != null && menuItemConfig.getSlots() != null) {
+                for (int slot : menuItemConfig.getSlots()) {
+                    inventory.setItem(slot, itemStack);
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns the Inventory object for this menu.
+     *
+     * @return The inventory of this menu.
+     */
+    @Override
+    public Inventory getInventory() {
+        return inventory;
+    }
+
+    /**
+     * Opens the menu for a player.
+     *
+     * @param player The player to open the menu for.
+     */
+    public void open(Player player) {
+        player.openInventory(inventory);
+    }
+
+    /**
+     * Gets the target player UUID for this menu.
+     *
+     * @return The target player UUID.
+     */
+    public UUID getTargetUUID() {
+        return targetUUID;
+    }
+}

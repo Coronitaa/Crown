@@ -1,0 +1,103 @@
+# punish_menu.yml
+menu:
+  title: '&c&lPunish Menu' # Title for PunishMenu
+  items:
+    info:
+      material: 'PLAYER_HEAD'
+      player_head: '{target}' # Use player head of the target player
+      slot: '10' # Position in the inventory, single slot
+      name: '&bPlayer Information' # Display name of the item
+      lore: # Lore lines of the item, supports color codes and placeholders
+        - '&7Information about'
+        - '&7player &b{target}&7:'
+        - ''
+        - '&7Online: &b{target_online}' # Placeholder for target online status
+        - '&7IP: &b{target_ip}' # Placeholder for target IP address
+        - '&7Coords: &b{target_coords}' # Placeholder for target coordinates
+        - '&7World: &b{target_world}' # Placeholder for target world name
+        - ''
+        - '&7Softban Status: {target_softban_status}' # Placeholder for softban status
+        - '&7Softban Remaining: {target_softban_remaining_time}' # Placeholder for softban remaining time
+        - ''
+        - '&eClick to change player.' # Instruction on click action
+      click_sound: 'UI_BUTTON_CLICK' # Sound played when item is clicked
+      click_volume: 1.0 # Volume of the click sound
+      click_pitch: 1.0 # Pitch of the click sound
+      click_action: 'OPEN_MENU' # Action performed on click
+      click_action_data: 'change_target' # Data associated with the click action
+    ban:
+      material: 'BARRIER' # Material of the item, Barrier block icon
+      slot: '13' # Position in the inventory, single slot
+      name: '&c&lBan' # Display name, red color indicating severity
+      lore: # Lore explaining the action
+        - '&7Click to ban'
+        - '&7player &b{target}&7.'
+      click_sound: 'UI_BUTTON_CLICK' # Click sound
+      click_volume: 1.0 # Sound volume
+      click_pitch: 1.0 # Sound pitch
+      click_action: 'OPEN_MENU' # Open menu action
+      click_action_data: 'ban_details' # Open ban details menu
+    mute: # Configuration for the Mute menu item
+      material: 'NOTE_BLOCK' # Note block icon for mute
+      slot: '31' # Position in the inventory
+      name: '&e&lMute' # Display name, yellow color indicating moderation
+      lore: # Item lore
+        - '&7Click to mute'
+        - '&7player &b{target}&7.'
+      click_sound: 'UI_BUTTON_CLICK' # Click sound
+      click_volume: 1.0 # Sound volume
+      click_pitch: 1.0 # Sound pitch
+      click_action: 'OPEN_MENU' # Action on click
+      click_action_data: 'mute_details' # Open mute details menu
+    softban: # Configuration for the SoftBan menu item - NEW
+      material: 'IRON_DOOR' # Iron door icon, suggesting restriction
+      slot: '23' # Inventory slot position
+      name: '&3&lSoftBan' # Display name, cyan color for softban
+      lore: # Lore for softban item
+        - '&7Click to softban'
+        - '&7player &b{target}&7.'
+      click_sound: 'UI_BUTTON_CLICK' # Click sound
+      click_volume: 1.0 # Sound volume
+      click_pitch: 1.0 # Sound pitch
+      click_action: 'OPEN_MENU' # Action on click
+      click_action_data: 'softban_details' # Open softban details menu
+    kick: # Configuration for the Kick menu item - NEW
+      material: 'LEATHER_BOOTS' # Leather boots icon, suggesting kick
+      slot: '15' # Inventory slot
+      name: '&9&lKick' # Display name, blue color for kick
+      lore: # Lore for kick item
+        - '&7Click to kick'
+        - '&7player &b{target}&7.'
+      click_sound: 'UI_BUTTON_CLICK' # Click sound
+      click_volume: 1.0 # Sound volume
+      click_pitch: 1.0 # Sound pitch
+      click_action: 'OPEN_MENU' # Action on click - Direct confirm for kick
+      click_action_data: 'kick_details' # Using 'kick_details' actionData to trigger direct kick confirm in listener
+    warn: # Configuration for the Warn menu item - NEW
+      material: 'PAPER' # Paper icon, similar to a note or warning
+      slot: '33' # Inventory slot
+      name: '&6&lWarn' # Display name, gold color for warn
+      lore: # Lore for warn item
+        - '&7Click to warn'
+        - '&7player &b{target}&7.'
+      click_sound: 'UI_BUTTON_CLICK' # Click sound
+      click_volume: 1.0 # Sound volume
+      click_pitch: 1.0 # Sound pitch
+      click_action: 'OPEN_MENU' # Action on click
+      click_action_data: 'warn_details' # Open warn details menu (reason input)
+    history: # Configuration for the History menu item - NEW
+      material: 'BOOK' # Book icon, representing history or logs
+      slot: '37' # Inventory slot
+      name: '&a&lHistory' # Display name, green color for informational/positive action
+      lore: # Lore for history item
+        - '&7View punishment'
+        - '&7history for &b{target}&7.'
+      click_sound: 'UI_BUTTON_CLICK' # Click sound
+      click_volume: 1.0 # Sound volume
+      click_pitch: 1.0 # Sound pitch
+      click_action: 'OPEN_MENU' # Action on click
+      click_action_data: 'history_menu' # Action data for history menu - placeholder for future implementation
+    background_fill: # Background fill item configuration
+      material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
+      name: ' ' # Empty name for background item
+      slot: '0-2,9,11,18-20,27-29,45-47,36,38' # Slot range for background fill - Adjusted to 45-53

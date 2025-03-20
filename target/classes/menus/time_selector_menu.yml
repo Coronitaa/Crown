@@ -1,0 +1,152 @@
+# Configuration for the time selector menu.
+# Defines the title and items for selecting punishment time durations.
+
+menu:
+  time_selector_title: '&9&lSelect Punishment Time' # Title for TimeSelectorMenu
+  time_selector_items:
+    minus_5_min: #renamed from minus_5_min for clarity, functionality remains the same
+      material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
+      slot: '12'
+      name: '&c- 5 Minutes'
+      lore:
+        - '&7Click to subtract'
+        - '&c5 minutes.'
+      click_action: 'ADJUST_TIME'
+      click_action_data: 'minus_5_min'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    minus_2_hour: #new, replaces minus_30_min
+      material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
+      slot: '11'
+      name: '&c- 2 Hours'
+      lore:
+        - '&7Click to subtract'
+        - '&c2 hours.'
+      click_action: 'ADJUST_TIME'
+      click_action_data: 'minus_2_hour'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    minus_1_day:
+      material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
+      slot: '10'
+      name: '&c- 1 Day'
+      lore:
+        - '&7Click to subtract'
+        - '&c1 day.'
+      click_action: 'ADJUST_TIME'
+      click_action_data: 'minus_1_day'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    minus_5_day: #renamed from minus_7_day for clarity, functionality remains the same
+      material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
+      slot: '9'
+      name: '&c- 5 Days'
+      lore:
+        - '&7Click to subtract'
+        - '&c5 days.'
+      click_action: 'ADJUST_TIME'
+      click_action_data: 'minus_5_day'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    time_display: # Center time display button
+      material: 'WHITE_STAINED_GLASS_PANE'
+      slot: '13'
+      name: '&bCurrent Time: &eClick to Confirm'
+      lore:
+        - '&7Current Punishment Time:'
+        - '&b{time}' # Placeholder for current time - FIXED: Placeholder added
+        - ''
+        - '&aClick here to confirm'
+        - '&aand return to details menu.'
+      click_action: 'SET_PUNISHMENT_TYPE'
+      click_action_data: 'confirm_time'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    plus_15_min: #renamed from plus_5_min for clarity, functionality remains the same
+      material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
+      slot: '14'
+      name: '&a+ 15 Minutes'
+      lore:
+        - '&7Click to add'
+        - '&a15 minutes.'
+      click_action: 'ADJUST_TIME'
+      click_action_data: 'plus_15_min'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    plus_6_hour: #new, replaces plus_30_min
+      material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
+      slot: '15'
+      name: '&a+ 6 Hours'
+      lore:
+        - '&7Click to add'
+        - '&a6 hours.'
+      click_action: 'ADJUST_TIME'
+      click_action_data: 'plus_6_hour'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    plus_1_day:
+      material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
+      slot: '16'
+      name: '&a+ 1 Day'
+      lore:
+        - '&7Click to add'
+        - '&a1 day.'
+      click_action: 'ADJUST_TIME'
+      click_action_data: 'plus_1_day'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    plus_7_day: #renamed from plus_7_day, functionality remains the same
+      material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
+      slot: '17'
+      name: '&a+ 7 Days'
+      lore:
+        - '&7Click to add'
+        - '&a7 days.'
+      click_action: 'ADJUST_TIME'
+      click_action_data: 'plus_7_day'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    permanent:
+      material: 'LAVA_BUCKET'
+      slot: '32'
+      name: '&4Permanent'
+      lore:
+        - '&7Punish permanently.' # Updated lore to be more generic
+      click_action: 'SET_PUNISHMENT_TYPE'
+      click_action_data: 'permanent_time'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    custom:
+      material: 'PAPER'
+      slot: '31'
+      name: '&bCustom Time'
+      lore:
+        - '&7Enter a custom'
+        - '&7punishment duration.' # Updated lore to be more generic
+      click_action: 'REQUEST_INPUT'
+      click_action_data: 'custom_time_input'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
+    back_button: # New: Back button item configuration
+      material: 'ARROW'
+      slot: '30' # Example slot, adjust as needed
+      name: '&cBack'
+      lore:
+        - '&7Go back to the'
+        - '&7Punishment Details Menu.'
+      click_action: 'OPEN_MENU'
+      click_action_data: 'punish_details'
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0

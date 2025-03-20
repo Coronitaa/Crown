@@ -1,0 +1,62 @@
+# messages.yml
+messages:
+  plugin_enabled: '{prefix}&dPlugin enabled.'
+  plugin_disabled: '{prefix}&dPlugin disabled.'
+  player_only: '{prefix}&cOnly players can use this command.'
+  player_only_console_punish: '{prefix}&cFor console usage, specify target and punishment type and more arguments.'
+  no_permission: '{prefix}&cYou do not have permission to use this command.'
+  reload_success: '{prefix}&aConfiguration reloaded successfully.'
+  invalid_player: '{prefix}&cInvalid player name. Usage: {usage}'
+  never_played: '{prefix}&cPlayer &b{input}&c has never played before or is not online.'
+  player_not_online: '{prefix}&cPlayer &b{input}&c is not online.' # New message for when a player is not online
+  help_header: '&6&lCrownPunishments Commands:'
+  help_punish: '&b/crown punish <player> &7- Open punishment menu'
+  help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Quick punish command. Types: ban, mute, softban, kick, warn' # Extended help, including kick and warn in types
+  help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban)'
+  help_reload: '&b/crown reload &7- Reload configuration'
+  prompt_new_target: '&aEnter a new player name (or type ''cancel'' to cancel):'
+  prompt_ban_reason: '&aEnter the ban reason (or type ''cancel'' to cancel):'
+  prompt_mute_reason: '&aEnter the mute reason (or type ''cancel'' to cancel):'
+  prompt_softban_reason: '&aEnter the softban reason (or type ''cancel'' to cancel):'
+  prompt_kick_reason: '&aEnter the kick reason (or type ''cancel'' to cancel):' # New prompt for kick reason
+  prompt_warn_reason: '&aEnter the warn reason (or type ''cancel'' to cancel):' # New prompt for warn reason
+  prompt_custom_time: '&aEnter custom ban time (e.g., 1d, 2h, 30min, cancel):'
+  input_timeout: '&cTime expired. Input cancelled.'
+  input_cancelled: '&cInput cancelled.'
+  player_never_played: '{prefix}&cPlayer ''{input}'' has never played before.'
+  invalid_time_format: '{prefix}&cInvalid time format. Please use like 1d, 2h, 30min.'
+  target_player_not_found: '{prefix}&cTarget player not found.'
+  punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_type}d for &b{time}&a with reason: &b{reason}' # Generic confirmation
+  punishment_softban_confirmed: '{prefix}&aPlayer &b{target}&a has been softbanned for &b{time}&a with reason: &b{reason}' # Keeping it for specific softban confirmation if needed in future
+  not_set: '&7Not Set'
+  set_time_reason_before_confirm: '{prefix}&cPlease set both time and reason before confirming.'
+  set_time_before_confirm: '{prefix}&cPlease set time before confirming.'
+  set_reason_before_confirm: '{prefix}&cPlease set reason before confirming.'
+  set_valid_time_confirm: '{prefix}&cPlease set a valid time before confirming.'
+  permanent_time_display: 'Permanent' # Configurable text for permanent time
+  softban_received: '&c&lSoftBan Alert!&r&c You have received a SoftBan for: &e{reason}&c.'
+  softban_command_blocked: '{prefix}&cYou can''t execute this command due to your behavior!'
+  no_active_softban: '{prefix}&cThe player is not currently softbanned.'
+  unsoftban_success: '{prefix}&aSuccessfully removed softban from &b{target}&a.'
+  you_are_softbanned: | # Multiline message for when a player receives a softban
+    &c&lYou have been SoftBanned!
+    &cDuration: &e{time}
+    &cReason: &e{reason}
+    &7Blocked commands will not work during this time.
+  invalid_punishment_type: '{prefix}&cInvalid punishment type. Available types: {types}'
+  direct_punishment_confirmed: '{prefix}&aDirect {punishment_type} for &b{target}&a confirmed. Time: &b{time}&a, Reason: &b{reason}'
+  softban_direct_command_not_supported: '{prefix}&cDirect command execution is not supported for softban, please use the menu.'
+  unpunish_usage: '{prefix}&cUsage: {usage}'
+  direct_unpunishment_confirmed: '{prefix}&aDirect un{punishment_type} for &b{target}&a confirmed.'
+  direct_unsoftban_confirmed: '{prefix}&aDirect unsoftban for &b{target}&a confirmed.'
+  default_kick_reason: 'Kicked by moderator.' # Default reason for kicks, configurable
+  direct_kick_confirmed: '{prefix}&aPlayer &b{target}&a has been kicked. Reason: &b{reason}' # Confirmation for kick
+  direct_warn_confirmed: '{prefix}&aPlayer &b{target}&a has been warned. Reason: &b{reason}' # Confirmation for warn
+  unpunish_not_supported: '{prefix}&cUnpunish command is not supported for {punishment_type}.' # Message for unsupported unpunish types
+  direct_command_not_supported: '{prefix}&cDirect command is not supported for {punishment_type}, please use the menu.' # Message for unsupported direct commands
+  history_entry_format: "&eType: &b{type}&7, &eReason: &b{reason}&7, &eTime: &b{timestamp}&7, &eBy: &b{punisher}" # Format for history entries
+  history_menu_title: '&7&lPunishment History for &b{target}&7' # Title for history menu
+  history_menu_back_button: '&cBack to Punish Menu'
+  history_menu_next_page: '&aNext Page'
+  history_menu_previous_page: '&cPrevious Page'
+  history_menu_entry_name: '&ePunishment Entry' # Default name for history entry item

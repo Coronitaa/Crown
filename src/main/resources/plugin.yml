@@ -1,0 +1,35 @@
+name: CrownPunishments
+version: '1.0.1'
+main: cp.corona.crownpunishments.CrownPunishments
+api-version: '1.18'
+softdepend: [PlaceholderAPI]
+
+commands:
+  crown:
+    description: Main command for CrownPunishments.
+    usage: /<command> [punish|reload|help|unpunish]
+    aliases: [cp, crownpunish]
+    permission: crown.use
+    permission-message: You do not have permission to use this command.
+  punish: # Alias command for direct /punish usage
+    description: Alias for /crown punish command.
+    usage: /<command> <player> [type] [time] [reason]
+    permission: crown.use
+    permission-message: You do not have permission to use this command.
+  crownpunishments: # Added another alias example, for consistency and discoverability
+    description: Alias for /crown command - full name alias
+    usage: /<command> [punish|reload|help|unpunish]
+    aliases: [crown]
+    permission: crown.use
+    permission-message: You do not have permission to use this command.
+
+permissions:
+  crown.use:
+    description: Allows players to use the /crown and /punish commands to access punishment menus.
+    default: op # or true if you want everyone to use it by default, consider 'op' for moderation tools
+  crown.admin:
+    description: Allows access to administrative commands like /crown reload and /crown unpunish.
+    default: op
+  crown.softban.bypass:
+    description: Allows players to bypass softban command blocking.
+    default: op

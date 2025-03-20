@@ -1,0 +1,59 @@
+# menus/history_menu.yml
+menu:
+  title: '&7&lPunishment History for &b{target}' # Title for HistoryMenu - Corrected placeholder to {target}
+  items:
+    background_fill: # Background fill item configuration
+      material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
+      name: ' ' # Empty name for background item
+      slot: '0-9,17,18-26,35,36-44,45-53' # Slot range for background fill - Adjusted to 45-53
+
+    history_entry:
+      material: 'BOOK' # Will be dynamically changed based on punishment type
+      name: '&e{punishment_type}' # Placeholder here for name
+      lore:
+        - '&7Reason: &b{reason}'
+        - '&7Date: &b{date}'
+        - '&7Punisher: &b{punisher}'
+        - '&7Duration: {duration}' # Duration line for warns - now shown
+      slot: '' # Slot will be set dynamically
+
+    warn_history_entry: # New entry type for warns to customize lore
+      material: 'PAPER' # Paper icon for warns specifically
+      name: '&e{punishment_type}' # Placeholder here for name
+      lore:
+        - '&7Reason: &b{reason}'
+        - '&7Date: &b{date}'
+        - '&7Punisher: &b{punisher}'
+        - '&7Duration: {duration}' # Duration line for warns - now shown
+      slot: '' # Slot will be set dynamically
+
+
+    next_page_button:
+      material: 'ARROW'
+      slot: '52'
+      name: '&aNext Page'
+      lore:
+        - '&7Click to view'
+        - '&anext page'
+      click_action: 'ADJUST_PAGE'
+      click_action_data: 'next_page'
+
+    previous_page_button:
+      material: 'ARROW'
+      slot: '51'
+      name: '&cPrevious Page'
+      lore:
+        - '&7Click to view'
+        - '&cprevious page'
+      click_action: 'ADJUST_PAGE'
+      click_action_data: 'previous_page'
+
+    back_button:
+      material: 'BARRIER'
+      slot: '53'
+      name: '&cBack'
+      lore:
+        - '&7Return to'
+        - '&7Punish Menu'
+      click_action: 'OPEN_MENU'
+      click_action_data: 'punish_menu'
