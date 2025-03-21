@@ -524,6 +524,15 @@ public class MainConfigManager {
     }
 
     /**
+     * Gets the unwarn command from config.yml.
+     *
+     * @return The unmute command string.
+     */
+    public String getUnwarnCommand() {
+        return pluginConfig.getConfig().getString("commands.unwarn_command", "");
+    }
+
+    /**
      * Gets the unmute command from config.yml.
      *
      * @return The unmute command string.

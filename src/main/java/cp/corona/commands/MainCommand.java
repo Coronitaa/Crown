@@ -26,7 +26,8 @@ import java.util.logging.Level;
  * ////////////////////////////////////////////////
  *
  * Handles the main command and subcommands for the CrownPunishments plugin.
- * Implements CommandExecutor and TabCompleter for command handling and tab completion.
+ * Implements CommandExecutor and TabCompleter for command handling and tab completion, ONLY for /crown base command and its subcommands.
+ * Top-level /softban and /unpunish commands are removed.
  */
 public class MainCommand implements CommandExecutor, TabCompleter {
     private final CrownPunishments plugin;
@@ -37,7 +38,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String UNPUNISH_SUBCOMMAND = "unpunish";
     private static final String HELP_SUBCOMMAND = "help";
     private static final String ADMIN_PERMISSION = "crown.admin";
-    private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn"); // Registered punishment types, including kick and warn
+    private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn"); // Registered punishment types
+    private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn"); // Registered unpunishment types, including warn
 
     /**
      * Constructor for MainCommand.
@@ -48,7 +50,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Executes commands when players type them in-game.
+     * Executes commands when players type them in-game, handling ONLY /crown base command and its subcommands.
+     * /softban and /unpunish top-level commands are removed.
      *
      * @param sender Source of the command.
      * @param command Command which was executed.
@@ -58,33 +61,36 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      */
     @Override
     public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 0 && (alias.equalsIgnoreCase("crown") || alias.equalsIgnoreCase("punish"))) { // Help for /crown or /punish without args
+        if (args.length == 0 && alias.equalsIgnoreCase("crown")) { // Help for /crown base command without args
             help(sender);
             return true;
         }
 
-        String subcommand = args.length > 0 ? args[0].toLowerCase() : ""; // Subcommand or empty if no args
-
         if (alias.equalsIgnoreCase("crown")) {
-            switch (subcommand) {
-                case RELOAD_SUBCOMMAND:
-                    return handleReloadCommand(sender);
-                case PUNISH_SUBCOMMAND:
-                    return handlePunishCommand(sender, Arrays.copyOfRange(args, 1, args.length)); // Pass args without subcommand
-                case UNPUNISH_SUBCOMMAND:
-                    return handleUnpunishCommand(sender, Arrays.copyOfRange(args, 1, args.length)); // Pass args without subcommand
-                case HELP_SUBCOMMAND:
-                    help(sender);
-                    return true;
-                default:
-                    help(sender);
-                    return true;
+            if (args.length > 0) {
+                String subcommand = args[0].toLowerCase();
+                switch (subcommand) {
+                    case RELOAD_SUBCOMMAND:
+                        return handleReloadCommand(sender);
+                    case PUNISH_SUBCOMMAND:
+                        return handlePunishCommand(sender, Arrays.copyOfRange(args, 1, args.length)); // Pass args without subcommand
+                    case UNPUNISH_SUBCOMMAND:
+                        return handleUnpunishCommand(sender, Arrays.copyOfRange(args, 1, args.length)); // Pass args without subcommand
+                    case HELP_SUBCOMMAND:
+                        help(sender);
+                        return true;
+                    default:
+                        help(sender);
+                        return true;
+                }
+            } else {
+                help(sender);
+                return true;
             }
-        } else if (alias.equalsIgnoreCase("punish")) { // /punish alias
-            return handlePunishCommand(sender, args); // Treat all args as punish command args
         }
-        return false; // Should not reach here, but to satisfy compiler
+        return false; // If alias is not "crown", or no valid subcommand, it's unhandled.
     }
+
 
     /**
      * Handles the reload subcommand to reload plugin configurations.
@@ -102,20 +108,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handles the punish subcommand to open the punishment menu or execute direct punishment.
+     * Handles the punish subcommand to open the punishment menu or execute direct punishment, now ONLY accessible via /crown punish ...
      *
      * @param sender Command sender.
      * @param args Command arguments.
      * @return true if handled successfully.
      */
     private boolean handlePunishCommand(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player) && args.length < 2) { // Console usage check
+        if (!(sender instanceof Player) && args.length < 2) { // Console usage check for /crown punish <player> ...
             sendConfigMessage(sender, "messages.player_only_console_punish"); // Specific message for console
             return false;
         }
 
-        if (args.length == 0) { // Only /crown punish or /punish -> help
-            help(sender);
+        if (args.length == 0) { // Only /crown punish -> help (though ideally, /crown alone should show help)
+            help(sender); // Consider more specific help for /crown punish if needed
             return true;
         }
 
@@ -127,7 +133,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length == 1) {
+        if (args.length == 1) { // /crown punish <target> - Open main menu
             if (!(sender instanceof Player)) {
                 sendConfigMessage(sender, "messages.player_only");
                 return true;
@@ -139,7 +145,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
                 return true;
             }
-            if (args.length == 2) {
+            if (args.length == 2) { // /crown punish <target> <type> - Open details menu
                 if (!(sender instanceof Player)) {
                     sendConfigMessage(sender, "messages.player_only");
                     return true;
@@ -166,7 +172,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Handles the unpunish subcommand to remove a punishment from a player.
+     * Handles the unpunish subcommand to remove a punishment from a player, now ONLY accessible via /crown unpunish ...
      *
      * @param sender Command sender.
      * @param args Command arguments.
@@ -177,7 +183,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             sendConfigMessage(sender, "messages.no_permission");
             return true;
         }
-        if (args.length < 2) {
+
+        if (args.length == 0) { // Only /crown unpunish -> help message (consider specific help)
+            help(sender); // Reusing main help, consider specific /crown unpunish help
+            return true;
+        }
+
+        if (args.length < 2) { // /crown unpunish <player> <type> is minimum required
             sendConfigMessage(sender, "messages.unpunish_usage", "{usage}", "/crown unpunish <player> <type>");
             return true;
         }
@@ -185,8 +197,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         String targetName = args[0];
         String punishType = args[1].toLowerCase();
 
-        if (!PUNISHMENT_TYPES.contains(punishType)) {
-            sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
+        if (!UNPUNISHMENT_TYPES.contains(punishType)) { // Validate against UNPUNISHMENT_TYPES
+            sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
             return true;
         }
 
@@ -199,6 +211,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         confirmDirectUnpunish(sender, target, punishType);
         return true;
     }
+
 
     /**
      * Confirms and executes a direct punishment command (ban, mute, softban, kick, warn).
@@ -280,7 +293,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Confirms and executes a direct unpunish command (unban, unmute, unsoftban).
+     * Confirms and executes a direct unpunish command (unban, unmute, unsoftban, unwarn).
      *
      * @param sender Command sender.
      * @param target Target player.
@@ -301,12 +314,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName()); // Passing punisher name
                 sendConfigMessage(sender, "messages.direct_unsoftban_confirmed", "{target}", target.getName());
                 return;
+            case "warn": // Handle warn unpunish - execute unwarn command if configured
+                String unwarnCommand = plugin.getConfigManager().getUnwarnCommand();
+                if (unwarnCommand != null && !unwarnCommand.isEmpty()) {
+                    commandToExecute = unwarnCommand.replace("{target}", target.getName());
+                } else {
+                    sendConfigMessage(sender, "messages.unpunish_not_supported", "{punishment_type}", punishType); // Send message if unwarn command is not configured
+                    return; // Exit if no unwarn command configured
+                }
+                break;
             case "kick":
-            case "warn":
                 sendConfigMessage(sender, "messages.unpunish_not_supported", "{punishment_type}", punishType); // Unpunish not supported for kick and warn
                 return;
             default:
-                sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
+                sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
                 return;
         }
 
@@ -330,7 +351,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Provides tab completion options for commands.
+     * Provides tab completion options for commands, handling ONLY /crown base command and its subcommands.
+     * Tab completion for top-level /softban and /unpunish commands are removed.
      *
      * @param sender Command sender.
      * @param command Command being typed.
@@ -342,10 +364,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
 
-        if (alias.equalsIgnoreCase("crown")) { // Tab completion for /crown
+        if (alias.equalsIgnoreCase("crown")) { // Tab completion for /crown base command ONLY
             if (args.length == 1) { // Subcommands for /crown
                 StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND), completions);
-            } else if (args.length == 2 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) { // Player names for /crown punish
+            } else if (args.length == 2 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) { // Player names for /crown punish <player>
                 Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
             } else if (args.length == 3 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) { // Punishment types for /crown punish <player>
                 StringUtil.copyPartialMatches(args[2], PUNISHMENT_TYPES, completions);
@@ -353,32 +375,15 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 String punishType = args[2].toLowerCase();
                 if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) { // Time relevant for ban, mute, softban
                     StringUtil.copyPartialMatches(args[3], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent"), completions);
-                } else if (punishType.equalsIgnoreCase("kick") || punishType.equalsIgnoreCase("warn")) { // No time for kick/warn, suggest reason
-                    completions.add("reason here...");
                 }
             } else if (args.length >= 5 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) { // Reason suggestion for /crown punish <player> <type> <time>
                 completions.add("reason here...");
             } else if (args.length == 2 && args[0].equalsIgnoreCase(UNPUNISH_SUBCOMMAND)) { // Player names for /crown unpunish
                 Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
             } else if (args.length == 3 && args[0].equalsIgnoreCase(UNPUNISH_SUBCOMMAND)) { // Punishment types for /crown unpunish <player>
-                StringUtil.copyPartialMatches(args[2], Arrays.asList("ban", "mute", "softban"), completions); // Only ban, mute, softban are unpunishable
+                StringUtil.copyPartialMatches(args[2], UNPUNISHMENT_TYPES, completions); // Use UNPUNISHMENT_TYPES for crown unpunish
             }
-        } else if (alias.equalsIgnoreCase("punish")) { // Tab completion for /punish alias (separate logic)
-            if (args.length == 1) { // Player names for /punish
-                Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
-            } else if (args.length == 2) { // Punishment types for /punish <player>
-                StringUtil.copyPartialMatches(args[1], PUNISHMENT_TYPES, completions);
-            } else if (args.length == 3) { // Time suggestions for /punish <player> <type>
-                String punishType = args[1].toLowerCase();
-                if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) { // Time relevant for ban, mute, softban
-                    StringUtil.copyPartialMatches(args[2], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent"), completions);
-                } else if (punishType.equalsIgnoreCase("kick") || punishType.equalsIgnoreCase("warn")) { // No time for kick/warn, suggest reason
-                    completions.add("reason here...");
-                }
-            } else if (args.length >= 4) { // Reason suggestion for /punish <player> <type> <time>
-                completions.add("reason here...");
-            }
-        }
+        } // No more else if blocks for 'punish', 'unpunish', 'softban' aliases
 
         Collections.sort(completions);
         return completions;
@@ -395,6 +400,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_punish")));
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_punish_extended"))); // New help line
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish"))); // New help line
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish_command"))); // New help line for /crown unpunish command (adjust message if needed)
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_softban_command"))); // Keep help for softban subcommand under /crown punish
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_reload")));
     }
 }
