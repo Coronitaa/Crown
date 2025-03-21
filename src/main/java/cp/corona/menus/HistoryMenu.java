@@ -1,3 +1,4 @@
+// menus/HistoryMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -15,10 +16,19 @@ import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
  * Represents the History Menu for displaying a player's punishment history.
  * The menu displays up to 28 entries per page (using slots 10 to 43) and includes navigation buttons.
  * A next page is only created if the total number of entries exceeds (page × 28).
@@ -32,6 +42,10 @@ public class HistoryMenu implements InventoryHolder {
     // Number of history entries per page: 28 (4 rows of 7 entries)
     private final int entriesPerPage = 28;
     private List<MenuItem> historyEntryItems = new ArrayList<>();
+    private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
+            BACK_BUTTON_KEY, NEXT_PAGE_BUTTON_KEY, PREVIOUS_PAGE_BUTTON_KEY,
+            BACKGROUND_FILL_KEY
+    ));
 
     // Configuration keys for items
     private static final String BACK_BUTTON_KEY = "back_button";
@@ -169,7 +183,7 @@ public class HistoryMenu implements InventoryHolder {
     private void updatePageButtons(OfflinePlayer target) {
         // Query the total count of entries for this player
         int totalCount = plugin.getSoftBanDatabaseManager().getPunishmentHistoryCount(targetUUID);
-        // Only show a next page if total entries exceed (page * entriesPerPage)
+        // Only show a next page if total entries exceed the current page capacity
         boolean hasNextPage = totalCount > (page * entriesPerPage);
 
         // Previous page button: only show if current page is greater than 1
@@ -345,5 +359,15 @@ public class HistoryMenu implements InventoryHolder {
      */
     public List<MenuItem> getHistoryEntryItems() {
         return historyEntryItems;
+    }
+
+    /**
+     * Gets the set of MenuItem keys used in this menu.
+     * This is used for dynamic item loading in MenuListener.
+     *
+     * @return A Set of item keys (String).
+     */
+    public Set<String> getMenuItemKeys() {
+        return menuItemKeys;
     }
 }

@@ -1,4 +1,4 @@
-//CustomConfig.java
+// CustomConfig.java
 package cp.corona.config;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -11,6 +11,12 @@ import java.io.IOException;
 import java.util.logging.Level;
 
 /**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
  * Manages custom configuration files for the plugin.
  * Handles file creation, loading, and reloading of YAML configurations.
  */
@@ -42,16 +48,18 @@ public class CustomConfig {
      * Handles creation in specified folder or plugin's data folder root.
      */
     public void registerConfig() {
+        // Determine file location based on folderName
         if (folderName != null) {
             File folder = new File(plugin.getDataFolder(), folderName);
             if (!folder.exists()) {
-                folder.mkdirs();
+                folder.mkdirs(); // Create folder if it doesn't exist
             }
             file = new File(folder, fileName);
         } else {
             file = new File(plugin.getDataFolder(), fileName);
         }
 
+        // Create new file if it doesn't exist and newFile is true
         if (!file.exists()) {
             if (newFile) {
                 try {
@@ -63,6 +71,7 @@ public class CustomConfig {
                     plugin.getLogger().log(Level.SEVERE, "Error creating new file: " + fileName, e);
                 }
             } else {
+                // Save resource from plugin's jar if newFile is false
                 if (folderName != null) {
                     plugin.saveResource(folderName + File.separator + fileName, false);
                 } else {
@@ -71,6 +80,7 @@ public class CustomConfig {
             }
         }
 
+        // Load configuration from file
         fileConfiguration = new YamlConfiguration();
         try {
             fileConfiguration.load(file);
@@ -87,6 +97,7 @@ public class CustomConfig {
      * @return true if reload was successful.
      */
     public boolean reloadConfig() {
+        // Ensure file is not null, re-resolve if necessary
         if (fileConfiguration == null) {
             if (folderName != null) {
                 File folder = new File(plugin.getDataFolder(), folderName);
@@ -95,8 +106,9 @@ public class CustomConfig {
                 file = new File(plugin.getDataFolder(), fileName);
             }
         }
-        fileConfiguration = YamlConfiguration.loadConfiguration(file);
+        fileConfiguration = YamlConfiguration.loadConfiguration(file); // Load configuration
 
+        // Set defaults from file, if file exists
         if (file != null) {
             YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(file);
             fileConfiguration.setDefaults(defConfig);
@@ -111,7 +123,7 @@ public class CustomConfig {
      */
     public FileConfiguration getConfig() {
         if (fileConfiguration == null) {
-            reloadConfig();
+            reloadConfig(); // Reload config if it's null
         }
         return fileConfiguration;
     }

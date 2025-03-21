@@ -1,16 +1,18 @@
 // MenuListener.java
 package cp.corona.listeners;
 
+import cp.corona.config.MainConfigManager;
 import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.*;
 import cp.corona.menus.actions.ClickAction;
 import cp.corona.menus.items.MenuItem;
-import cp.corona.config.MainConfigManager;
+import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -28,13 +30,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import static cp.corona.menus.PunishDetailsMenu.*;
 
 /**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
  * Listener for handling menu interactions in the CrownPunishments plugin.
  * Manages inventory click events, chat input for reasons and times,
  * and interactions with PunishMenu, PunishDetailsMenu, and TimeSelectorMenu.
+ *
+ * Updated to handle refactored MenuItem actions and console commands with placeholders and colors.
  */
 public class MenuListener implements Listener {
     private final CrownPunishments plugin;
@@ -80,7 +91,7 @@ public class MenuListener implements Listener {
 
     /**
      * Handles inventory click events.
-     * Determines the clicked MenuItem and performs the corresponding action.
+     * Determines the clicked MenuItem and performs the corresponding action based on click type (LEFT or RIGHT).
      *
      * @param event The InventoryClickEvent.
      */
@@ -99,12 +110,28 @@ public class MenuListener implements Listener {
         if (clickedMenuItem != null) {
             clickedMenuItem.playClickSound(player);
 
-            ClickAction action = clickedMenuItem.getClickAction();
-            String actionData = clickedMenuItem.getClickActionData();
+            // Handle left click actions
+            if (event.getClick().isLeftClick()) {
+                List<MenuItem.ClickActionData> leftClickActions = clickedMenuItem.getLeftClickActions();
+                if (!leftClickActions.isEmpty()) {
+                    for (MenuItem.ClickActionData actionData : leftClickActions) {
+                        handleMenuItemClick(player, holder, actionData.getAction(), actionData.getActionData(), event, clickedMenuItem);
+                    }
+                }
+            }
 
-            handleMenuItemClick(player, holder, action, actionData, event, clickedMenuItem);
+            // Handle right click actions
+            if (event.getClick().isRightClick()) {
+                List<MenuItem.ClickActionData> rightClickActions = clickedMenuItem.getRightClickActions();
+                if (!rightClickActions.isEmpty()) {
+                    for (MenuItem.ClickActionData actionData : rightClickActions) {
+                        handleMenuItemClick(player, holder, actionData.getAction(), actionData.getActionData(), event, clickedMenuItem);
+                    }
+                }
+            }
         }
     }
+
 
     /**
      * Retrieves the MenuItem clicked based on the inventory holder and slot.
@@ -119,7 +146,7 @@ public class MenuListener implements Listener {
             return getPunishDetailsMenuItem(slot, (PunishDetailsMenu) holder);
         } else if (holder instanceof TimeSelectorMenu) {
             return getTimeSelectorMenuItem(slot, (TimeSelectorMenu) holder);
-        } else if (holder instanceof HistoryMenu) {
+        }  else if (holder instanceof HistoryMenu) {
             return getHistoryMenuItem(slot, (HistoryMenu) holder);
         }
         return null;
@@ -134,33 +161,11 @@ public class MenuListener implements Listener {
     private MenuItem getPunishMenuItem(int slot, PunishMenu menu) {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
-        MenuItem infoItem = configManager.getPunishMenuItemConfig(INFO_ITEM_KEY);
-        if (infoItem != null && infoItem.getSlots().contains(slot)){
-            return infoItem;
-        }
-        MenuItem banItem = configManager.getPunishMenuItemConfig(BAN_ITEM_MENU_KEY);
-        if (banItem != null && banItem.getSlots().contains(slot)){
-            return banItem;
-        }
-        MenuItem muteItem = configManager.getPunishMenuItemConfig(MUTE_ITEM_MENU_KEY);
-        if (muteItem != null && muteItem.getSlots().contains(slot)){
-            return muteItem;
-        }
-        MenuItem softbanItem = configManager.getPunishMenuItemConfig(SOFTBAN_ITEM_MENU_KEY);
-        if (softbanItem != null && softbanItem.getSlots().contains(slot)){
-            return softbanItem;
-        }
-        MenuItem kickItem = configManager.getPunishMenuItemConfig(KICK_ITEM_MENU_KEY);
-        if (kickItem != null && kickItem.getSlots().contains(slot)){
-            return kickItem;
-        }
-        MenuItem warnItem = configManager.getPunishMenuItemConfig(WARN_ITEM_MENU_KEY);
-        if (warnItem != null && warnItem.getSlots().contains(slot)){
-            return warnItem;
-        }
-        MenuItem historyItem = configManager.getPunishMenuItemConfig(HISTORY_ITEM_MENU_KEY);
-        if (historyItem != null && historyItem.getSlots().contains(slot)){
-            return historyItem;
+        for (String itemKey : menu.getMenuItemKeys()) { // Loop through item keys from menu
+            MenuItem menuItem = configManager.getPunishMenuItemConfig(itemKey);
+            if (menuItem != null && menuItem.getSlots().contains(slot)) {
+                return menuItem;
+            }
         }
         return null;
     }
@@ -175,26 +180,10 @@ public class MenuListener implements Listener {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
         String punishmentType = menu.getPunishmentType();
-        MenuItem setTimeItem = configManager.getDetailsMenuItemConfig(punishmentType, SET_TIME_KEY);
-        if (setTimeItem != null && setTimeItem.getSlots().contains(slot)){
-            return setTimeItem;
-        }
-        MenuItem setReasonItem = configManager.getDetailsMenuItemConfig(punishmentType, SET_REASON_KEY);
-        if (setReasonItem != null && setReasonItem.getSlots().contains(slot)){
-            return setReasonItem;
-        }
-        MenuItem confirmPunishItem = configManager.getDetailsMenuItemConfig(punishmentType, CONFIRM_PUNISH_KEY);
-        if (confirmPunishItem != null && confirmPunishItem.getSlots().contains(slot)){
-            return confirmPunishItem;
-        }
-        MenuItem backButtonItem = configManager.getDetailsMenuItemConfig(punishmentType, BACK_BUTTON_KEY);
-        if (backButtonItem != null && backButtonItem.getSlots().contains(slot)){
-            return backButtonItem;
-        }
-        if (punishmentType.equalsIgnoreCase("softban")){
-            MenuItem unSoftbanItem = configManager.getDetailsMenuItemConfig("softban", UNSOFTBAN_BUTTON_KEY);
-            if (unSoftbanItem != null && unSoftbanItem.getSlots().contains(slot)){
-                return unSoftbanItem;
+        for (String itemKey : menu.getMenuItemKeys()) { // Loop through item keys from menu
+            MenuItem menuItem = configManager.getDetailsMenuItemConfig(punishmentType, itemKey);
+            if (menuItem != null && menuItem.getSlots().contains(slot)) {
+                return menuItem;
             }
         }
         return null;
@@ -209,53 +198,11 @@ public class MenuListener implements Listener {
     private MenuItem getTimeSelectorMenuItem(int slot, TimeSelectorMenu menu) {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
-        MenuItem customTimeItem = configManager.getTimeSelectorMenuItemConfig(CUSTOM_TIME_KEY);
-        if (customTimeItem != null && customTimeItem.getSlots().contains(slot)){
-            return customTimeItem;
-        }
-        MenuItem permanentTimeItem = configManager.getTimeSelectorMenuItemConfig(PERMANENT_TIME_KEY);
-        if (permanentTimeItem != null && permanentTimeItem.getSlots().contains(slot)){
-            return permanentTimeItem;
-        }
-        MenuItem timeDisplayItem = configManager.getTimeSelectorMenuItemConfig(TIME_DISPLAY_KEY);
-        if (timeDisplayItem != null && timeDisplayItem.getSlots().contains(slot)){
-            return timeDisplayItem;
-        }
-        MenuItem minus5MinItem = configManager.getTimeSelectorMenuItemConfig(MINUS_5_MIN_KEY);
-        if (minus5MinItem != null && minus5MinItem.getSlots().contains(slot)){
-            return minus5MinItem;
-        }
-        MenuItem minus2HourItem = configManager.getTimeSelectorMenuItemConfig(MINUS_2_HOUR_KEY);
-        if (minus2HourItem != null && minus2HourItem.getSlots().contains(slot)){
-            return minus2HourItem;
-        }
-        MenuItem minus1DayItem = configManager.getTimeSelectorMenuItemConfig(MINUS_1_DAY_KEY);
-        if (minus1DayItem != null && minus1DayItem.getSlots().contains(slot)){
-            return minus1DayItem;
-        }
-        MenuItem minus5DayItem = configManager.getTimeSelectorMenuItemConfig(MINUS_5_DAY_KEY);
-        if (minus5DayItem != null && minus5DayItem.getSlots().contains(slot)){
-            return minus5DayItem;
-        }
-        MenuItem plus15MinItem = configManager.getTimeSelectorMenuItemConfig(PLUS_15_MIN_KEY);
-        if (plus15MinItem != null && plus15MinItem.getSlots().contains(slot)){
-            return plus15MinItem;
-        }
-        MenuItem plus6HourItem = configManager.getTimeSelectorMenuItemConfig(PLUS_6_HOUR_KEY);
-        if (plus6HourItem != null && plus6HourItem.getSlots().contains(slot)){
-            return plus6HourItem;
-        }
-        MenuItem plus1DayItem = configManager.getTimeSelectorMenuItemConfig(PLUS_1_DAY_KEY);
-        if (plus1DayItem != null && plus1DayItem.getSlots().contains(slot)){
-            return plus1DayItem;
-        }
-        MenuItem plus7DayItem = configManager.getTimeSelectorMenuItemConfig(PLUS_7_DAY_KEY);
-        if (plus7DayItem != null && plus7DayItem.getSlots().contains(slot)){
-            return plus7DayItem;
-        }
-        MenuItem backButtonItem = configManager.getTimeSelectorMenuItemConfig(BACK_BUTTON_KEY);
-        if (backButtonItem != null && backButtonItem.getSlots().contains(slot)){
-            return backButtonItem;
+        for (String itemKey : menu.getTimeSelectorItemKeys()) { // Loop through item keys from menu
+            MenuItem menuItem = configManager.getTimeSelectorMenuItemConfig(itemKey);
+            if (menuItem != null && menuItem.getSlots().contains(slot)) {
+                return menuItem;
+            }
         }
         return null;
     }
@@ -269,17 +216,11 @@ public class MenuListener implements Listener {
     private MenuItem getHistoryMenuItem(int slot, HistoryMenu menu) {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
-        MenuItem backButtonItem = configManager.getHistoryMenuItemConfig(BACK_BUTTON_KEY);
-        if (backButtonItem != null && backButtonItem.getSlots().contains(slot)){
-            return backButtonItem;
-        }
-        MenuItem nextPageItem = configManager.getHistoryMenuItemConfig(NEXT_PAGE_BUTTON_KEY);
-        if (nextPageItem != null && nextPageItem.getSlots().contains(slot)) {
-            return nextPageItem;
-        }
-        MenuItem previousPageItem = configManager.getHistoryMenuItemConfig(PREVIOUS_PAGE_BUTTON_KEY);
-        if (previousPageItem != null && previousPageItem.getSlots().contains(slot)) {
-            return previousPageItem;
+        for (String itemKey : menu.getMenuItemKeys()) { // Loop through item keys from menu
+            MenuItem menuItem = configManager.getHistoryMenuItemConfig(itemKey);
+            if (menuItem != null && menuItem.getSlots().contains(slot)) {
+                return menuItem;
+            }
         }
         // Check if the clicked slot corresponds to a punishment history item slot range.
         for (MenuItem historyEntryItem : menu.getHistoryEntryItems()) {
@@ -291,82 +232,162 @@ public class MenuListener implements Listener {
     }
 
     /**
-     * Handles menu item clicks based on the inventory holder.
+     * Handles menu item clicks based on the inventory holder and ClickAction.
+     * Executes actions based on ClickAction type such as opening menus, requesting input, or confirming punishments.
+     *
      * @param player The player who clicked.
-     * @param holder The InventoryHolder.
-     * @param action The ClickAction of the clicked item.
-     * @param actionData The data associated with the ClickAction.
+     * @param holder The InventoryHolder representing the menu.
+     * @param action The ClickAction enum value representing the action to take.
+     * @param actionData The data associated with the ClickAction, used for specifying menu names or commands.
      * @param event The InventoryClickEvent.
      * @param clickedMenuItem The MenuItem that was clicked.
      */
     private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
+        // Log entry to debug menu item click handling, including action, data, item name and holder type
+        plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName() + ", Holder Type: " + holder.getClass().getSimpleName());
+
+        // Handle actions based on the type of menu holder
         if (holder instanceof PunishMenu punishMenu) {
-            handlePunishMenuActions(player, punishMenu, action, actionData, clickedMenuItem, event); // Pass event here
+            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishMenu"); // Debug log to identify PunishMenu holder
+            handlePunishMenuActions(player, punishMenu, action, actionData, clickedMenuItem); // Delegate action handling to PunishMenuActions
         } else if (holder instanceof PunishDetailsMenu punishDetailsMenu) {
-            handlePunishDetailsMenuActions(player, punishDetailsMenu, action, actionData, event, clickedMenuItem);
+            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishDetailsMenu"); // Debug log for PunishDetailsMenu
+            handlePunishDetailsMenuActions(player, punishDetailsMenu, action, actionData, clickedMenuItem); // Delegate action handling to PunishDetailsMenuActions
         } else if (holder instanceof TimeSelectorMenu timeSelectorMenu) {
-            handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData, event, clickedMenuItem);
+            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is TimeSelectorMenu"); // Debug log for TimeSelectorMenu
+            handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData, clickedMenuItem); // Delegate action handling to TimeSelectorMenuActions
         } else if (holder instanceof HistoryMenu historyMenu) {
-            handleHistoryMenuActions(player, historyMenu, action, actionData, clickedMenuItem, event);
+            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is HistoryMenu"); // Debug log for HistoryMenu
+            handleHistoryMenuActions(player, historyMenu, action, actionData, clickedMenuItem); // Delegate action handling to HistoryMenuActions
+        } else {
+            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is UNKNOWN Type: " + holder.getClass().getSimpleName()); // Log unknown holder types
+        }
+
+        // Handle actions that are common to all menus, regardless of the holder type
+        if (action == ClickAction.CONSOLE_COMMAND) {
+            executeConsoleCommand(player, actionData, holder); // Execute console command action
+        }
+        if (action == ClickAction.CLOSE_MENU) {
+            plugin.getLogger().info("[DEBUG] handleMenuItemClick - CLOSE_MENU action detected."); // Debug log for CLOSE_MENU action
+            player.closeInventory(); // Close the player's inventory
+        }
+
+        // Log exit from menu item click handling
+        plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + actionData);
+    }
+
+
+    /**
+     * Executes a console command, replacing placeholders and handling colors.
+     *
+     * @param player     The player who triggered the command (for player-specific placeholders).
+     * @param commandData The command string from the configuration.
+     * @param holder      The InventoryHolder, providing context for placeholder replacement.
+     */
+    private void executeConsoleCommand(Player player, String commandData, InventoryHolder holder) {
+        if (commandData != null && !commandData.isEmpty()) {
+            String rawCommand = commandData.startsWith("command:") ? commandData.substring("command:".length()).trim() : commandData;
+            String commandToExecute = replacePlaceholders(player, rawCommand, holder);
+            commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
+
+            plugin.getLogger().info("[DEBUG] Executing CONSOLE_COMMAND: " + commandToExecute);
+            final String finalCommand = commandToExecute; // Finalize for lambda
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
+        } else {
+            plugin.getLogger().warning("Invalid CONSOLE_COMMAND action data: " + commandData);
         }
     }
 
+
     /**
-     * Handles actions for clicks in the PunishMenu.
-     * @param player The player who clicked.
-     * @param punishMenu The PunishMenu instance.
-     * @param action The ClickAction.
-     * @param actionData The action data.
-     * @param clickedMenuItem The clickedMenuItem.
-     * @param event The InventoryClickEvent.
+     * Replaces placeholders in a command string.
+     *
+     * @param player    The player context for placeholders.
+     * @param command   The command string with placeholders.
+     * @param holder    The InventoryHolder, providing context for menu-specific placeholders.
+     * @return The command string with placeholders replaced.
      */
-    private void handlePunishMenuActions(Player player, PunishMenu punishMenu, ClickAction action, String actionData, MenuItem clickedMenuItem, InventoryClickEvent event) {
-        UUID targetUUID = punishMenu.getTargetUUID();
+    private String replacePlaceholders(Player player, String command, InventoryHolder holder) {
+        String processedCommand = command.replace("{player}", player.getName());
+
+        OfflinePlayer target = null;
+        if (holder instanceof PunishMenu) {
+            target = Bukkit.getOfflinePlayer(((PunishMenu) holder).getTargetUUID());
+        } else if (holder instanceof PunishDetailsMenu) {
+            target = Bukkit.getOfflinePlayer(((PunishDetailsMenu) holder).getTargetUUID());
+        } else if (holder instanceof TimeSelectorMenu) {
+            target = Bukkit.getOfflinePlayer(((TimeSelectorMenu) holder).getPunishDetailsMenu().getTargetUUID());
+        } else if (holder instanceof  HistoryMenu){
+            target = Bukkit.getOfflinePlayer(((HistoryMenu) holder).getTargetUUID());
+        }
+
+        if (target != null) {
+            processedCommand = plugin.getConfigManager().processPlaceholders(processedCommand, target); // Use MainConfigManager's placeholder processing
+        }
+        return processedCommand;
+    }
+
+
+    private void handlePunishMenuActions(Player player, PunishMenu punishMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) {
+        // Log entry to debug PunishMenu action handling, including action, data, and item name
+        plugin.getLogger().info("[DEBUG] handlePunishMenuActions - START - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName());
+
+        UUID targetUUID = punishMenu.getTargetUUID(); // Get the UUID of the target player for this PunishMenu
         switch (action) {
             case OPEN_MENU:
-                if (actionData.equalsIgnoreCase("ban_details")) {
-                    new PunishDetailsMenu(targetUUID, plugin, BAN_PUNISHMENT_TYPE).open(player);
-                } else if (actionData.equalsIgnoreCase("mute_details")) {
-                    new PunishDetailsMenu(targetUUID, plugin, MUTE_PUNISHMENT_TYPE).open(player);
-                } else if (actionData.equalsIgnoreCase("softban_details")) {
-                    new PunishDetailsMenu(targetUUID, plugin, SOFTBAN_PUNISHMENT_TYPE).open(player);
-                } else if (actionData.equalsIgnoreCase("kick_details")) {
-                    new PunishDetailsMenu(targetUUID, plugin, KICK_PUNISHMENT_TYPE).open(player);
-                } else if (actionData.equalsIgnoreCase("warn_details")) {
-                    new PunishDetailsMenu(targetUUID, plugin, WARN_PUNISHMENT_TYPE).open(player);
-                } else if (actionData.equalsIgnoreCase("change_target")) {
-                    player.closeInventory();
-                    requestNewTargetName(player);
-                } else if (actionData.equalsIgnoreCase("history_menu")) {
-                    new HistoryMenu(targetUUID, plugin).open(player);
+                plugin.getLogger().info("[DEBUG] handlePunishMenuActions - OPEN_MENU case entered - ActionData: " + actionData); // Debug log when OPEN_MENU action is detected
+                if (actionData != null) {
+                    // Handle different OPEN_MENU action data to open specific sub-menus
+                    if (actionData.equalsIgnoreCase("ban_details")) {
+                        new PunishDetailsMenu(targetUUID, plugin, BAN_PUNISHMENT_TYPE).open(player); // Open Ban details menu
+                    } else if (actionData.equalsIgnoreCase("mute_details")) {
+                        new PunishDetailsMenu(targetUUID, plugin, MUTE_PUNISHMENT_TYPE).open(player); // Open Mute details menu
+                    } else if (actionData.equalsIgnoreCase("softban_details")) {
+                        new PunishDetailsMenu(targetUUID, plugin, SOFTBAN_PUNISHMENT_TYPE).open(player); // Open Softban details menu
+                    } else if (actionData.equalsIgnoreCase("kick_details")) {
+                        new PunishDetailsMenu(targetUUID, plugin, KICK_ITEM_MENU_KEY).open(player); // Open Kick details menu
+                    } else if (actionData.equalsIgnoreCase("warn_details")) {
+                        new PunishDetailsMenu(targetUUID, plugin, WARN_PUNISHMENT_TYPE).open(player); // Open Warn details menu
+                    } else if (actionData.equalsIgnoreCase("history_menu")) {
+                        new HistoryMenu(targetUUID, plugin).open(player); // Open History menu
+                    } else if (actionData.equalsIgnoreCase("punish_menu")) { // Handle reopening of the PunishMenu
+                        plugin.getLogger().info("[DEBUG] handlePunishMenuActions - Opening PunishMenu AGAIN - ActionData: punish_menu"); // Specific log for reopen action
+                        new PunishMenu(targetUUID, plugin).open(player); // Re-open the PunishMenu
+                    } else if (actionData.equalsIgnoreCase("change_target")) {
+                        player.closeInventory(); // Close the current inventory
+                        requestNewTargetName(player); // Request a new target player name from the player
+                    } else {
+                        plugin.getLogger().info("[DEBUG] handlePunishMenuActions - OPEN_MENU case - No Matching ActionData: " + actionData); // Log if actionData doesn't match expected values
+                    }
+                } else {
+                    plugin.getLogger().warning("[DEBUG] handlePunishMenuActions - OPEN_MENU case - ActionData is NULL, which is unexpected for OPEN_MENU action."); // Warning log if actionData is unexpectedly null
                 }
                 break;
             case NO_ACTION:
+                plugin.getLogger().info("[DEBUG] handlePunishMenuActions - NO_ACTION case entered"); // Debug log for NO_ACTION case
+                break;
             default:
+                plugin.getLogger().info("[DEBUG] handlePunishMenuActions - DEFAULT case entered - Action: " + action); // Log for any unhandled action types
                 break;
         }
+        // Log exit from PunishMenu action handling
+        plugin.getLogger().info("[DEBUG] handlePunishMenuActions - END - Action: " + action + ", ActionData: " + actionData);
     }
 
-    /**
-     * Handles actions for clicks in the PunishDetailsMenu.
-     * @param player The player who clicked.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     * @param action The ClickAction.
-     * @param actionData The action data.
-     * @param event The InventoryClickEvent.
-     * @param clickedMenuItem The clickedMenuItem.
-     */
-    private void handlePunishDetailsMenuActions(Player player, PunishDetailsMenu punishDetailsMenu, ClickAction action, String actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
+    private void handlePunishDetailsMenuActions(Player player, PunishDetailsMenu punishDetailsMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
+        plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Log action details
         switch (action) {
             case OPEN_MENU:
-                if (actionData.equalsIgnoreCase("time_selector")) {
-                    new TimeSelectorMenu(punishDetailsMenu, plugin).open(player);
-                } else if (actionData.equalsIgnoreCase("punish_menu")) {
-                    new PunishMenu(punishDetailsMenu.getTargetUUID(), plugin).open(player);
+                if (actionData != null) { // Null check for actionData
+                    if (actionData.equalsIgnoreCase("time_selector")) {
+                        new TimeSelectorMenu(punishDetailsMenu, plugin).open(player);
+                    } else if (actionData.equalsIgnoreCase("punish_menu")) {
+                        new PunishMenu(punishDetailsMenu.getTargetUUID(), plugin).open(player);
+                    }
                 }
                 break;
             case REQUEST_INPUT:
-                if (actionData.equalsIgnoreCase("reason_input")) {
+                if (actionData != null && actionData.equalsIgnoreCase("reason_input")) { // Null and value check for actionData
                     requestReasonInput(player, punishDetailsMenu);
                 }
                 break;
@@ -382,53 +403,50 @@ public class MenuListener implements Listener {
         }
     }
 
-    /**
-     * Handles actions for clicks in the TimeSelectorMenu.
-     * @param player The player who clicked.
-     * @param timeSelectorMenu The TimeSelectorMenu instance.
-     * @param action The ClickAction.
-     * @param actionData The action data.
-     * @param event The InventoryClickEvent.
-     * @param clickedMenuItem The clickedMenuItem.
-     */
-    private void handleTimeSelectorMenuActions(Player player, TimeSelectorMenu timeSelectorMenu, ClickAction action, String actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
+
+    private void handleTimeSelectorMenuActions(Player player, TimeSelectorMenu timeSelectorMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
+        plugin.getLogger().info("[DEBUG] handleTimeSelectorMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
         PunishDetailsMenu detailsMenu = timeSelectorMenu.getPunishDetailsMenu();
         switch (action) {
             case ADJUST_TIME:
-                if (actionData.equalsIgnoreCase("minus_5_min")) {
-                    timeSelectorMenu.adjustTime(-300);
-                } else if (actionData.equalsIgnoreCase("minus_2_hour")) {
-                    timeSelectorMenu.adjustTime(-7200);
-                } else if (actionData.equalsIgnoreCase("minus_1_day")) {
-                    timeSelectorMenu.adjustTime(-86400);
-                } else if (actionData.equalsIgnoreCase("minus_5_day")) {
-                    timeSelectorMenu.adjustTime(-432000);
-                } else if (actionData.equalsIgnoreCase("plus_15_min")) {
-                    timeSelectorMenu.adjustTime(900);
-                } else if (actionData.equalsIgnoreCase("plus_6_hour")) {
-                    timeSelectorMenu.adjustTime(21600);
-                } else if (actionData.equalsIgnoreCase("plus_1_day")) {
-                    timeSelectorMenu.adjustTime(86400);
-                } else if (actionData.equalsIgnoreCase("plus_7_day")) {
-                    timeSelectorMenu.adjustTime(604800);
+                if (actionData != null) { // Null check for actionData
+                    if (actionData.equalsIgnoreCase("minus_5_min")) {
+                        timeSelectorMenu.adjustTime(-300);
+                    } else if (actionData.equalsIgnoreCase("minus_2_hour")) {
+                        timeSelectorMenu.adjustTime(-7200);
+                    } else if (actionData.equalsIgnoreCase("minus_1_day")) {
+                        timeSelectorMenu.adjustTime(-86400);
+                    } else if (actionData.equalsIgnoreCase("minus_5_day")) {
+                        timeSelectorMenu.adjustTime(-432000);
+                    } else if (actionData.equalsIgnoreCase("plus_15_min")) {
+                        timeSelectorMenu.adjustTime(900);
+                    } else if (actionData.equalsIgnoreCase("plus_6_hour")) {
+                        timeSelectorMenu.adjustTime(21600);
+                    } else if (actionData.equalsIgnoreCase("plus_1_day")) {
+                        timeSelectorMenu.adjustTime(86400);
+                    } else if (actionData.equalsIgnoreCase("plus_7_day")) {
+                        timeSelectorMenu.adjustTime(604800);
+                    }
+                    timeSelectorMenu.updateTimeDisplayItem(player);
                 }
-                timeSelectorMenu.updateTimeDisplayItem(player);
                 break;
             case REQUEST_INPUT:
-                if (actionData.equalsIgnoreCase("custom_time_input")) {
+                if (actionData != null && actionData.equalsIgnoreCase("custom_time_input")) { // Null and value check for actionData
                     player.closeInventory();
                     requestCustomTimeInput(player, detailsMenu);
                 }
                 break;
             case SET_PUNISHMENT_TYPE:
-                if (actionData.equalsIgnoreCase("permanent_time")) {
-                    setPermanentTime(detailsMenu, player);
-                } else if (actionData.equalsIgnoreCase("confirm_time")) {
-                    handleTimeDisplayClick(timeSelectorMenu, detailsMenu, player);
+                if (actionData != null) { // Null check for actionData
+                    if (actionData.equalsIgnoreCase("permanent_time")) {
+                        setPermanentTime(detailsMenu, player);
+                    } else if (actionData.equalsIgnoreCase("confirm_time")) {
+                        handleTimeDisplayClick(timeSelectorMenu, detailsMenu, player);
+                    }
                 }
                 break;
             case OPEN_MENU:
-                if (actionData.equalsIgnoreCase("punish_details")) {
+                if (actionData != null && actionData.equalsIgnoreCase("punish_details")) { // Null and value check for actionData
                     detailsMenu.open(player);
                 }
                 break;
@@ -438,29 +456,23 @@ public class MenuListener implements Listener {
         }
     }
 
-    /**
-     * Handles actions for clicks in the HistoryMenu.
-     * @param player The player who clicked.
-     * @param historyMenu The HistoryMenu instance.
-     * @param action The ClickAction.
-     * @param actionData The action data.
-     * @param clickedMenuItem The clickedMenuItem.
-     * @param event The InventoryClickEvent.
-     */
-    private void handleHistoryMenuActions(Player player, HistoryMenu historyMenu, ClickAction action, String actionData, MenuItem clickedMenuItem, InventoryClickEvent event) {
+    private void handleHistoryMenuActions(Player player, HistoryMenu historyMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
+        plugin.getLogger().info("[DEBUG] handleHistoryMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
         switch (action) {
             case OPEN_MENU:
-                if (actionData.equalsIgnoreCase("punish_menu")) {
+                if (actionData != null && actionData.equalsIgnoreCase("punish_menu")) { // Null and value check for actionData
                     new PunishMenu(historyMenu.getTargetUUID(), plugin).open(player);
                 }
                 break;
             case ADJUST_PAGE:
-                if (actionData.equalsIgnoreCase("next_page")) {
-                    historyMenu.nextPage(player);
-                } else if (actionData.equalsIgnoreCase("previous_page")) {
-                    historyMenu.previousPage(player);
-                } else if (actionData.equalsIgnoreCase("no_action")) { // Prevent click action when button is "disabled"
-                    // Do nothing, effectively cancelling the click
+                if (actionData != null) { // Null check for actionData
+                    if (actionData.equalsIgnoreCase("next_page")) {
+                        historyMenu.nextPage(player);
+                    } else if (actionData.equalsIgnoreCase("previous_page")) {
+                        historyMenu.previousPage(player);
+                    } else if (actionData.equalsIgnoreCase("no_action")) { // Prevent click action when button is "disabled"
+                        // Do nothing, effectively cancelling the click
+                    }
                 }
                 break;
             case NO_ACTION:

@@ -1,3 +1,4 @@
+// database/SoftBanDatabaseManager.java
 package cp.corona.database;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -30,6 +31,7 @@ public class SoftBanDatabaseManager {
      */
     public SoftBanDatabaseManager(CrownPunishments plugin) {
         this.plugin = plugin;
+        // Retrieve database configuration from MainConfigManager
         String dbType = plugin.getConfigManager().getDatabaseType();
         String dbName = plugin.getConfigManager().getDatabaseName();
         String dbAddress = plugin.getConfigManager().getDatabaseAddress();
@@ -37,16 +39,17 @@ public class SoftBanDatabaseManager {
         String dbUsername = plugin.getConfigManager().getDatabaseUsername();
         String dbPassword = plugin.getConfigManager().getDatabasePassword();
 
+        // Construct database URL based on database type (MySQL or SQLite)
         if ("mysql".equalsIgnoreCase(dbType)) {
             this.dbURL = String.format("jdbc:mysql://%s:%s/%s?autoReconnect=true&useSSL=false", dbAddress, dbPort, dbName);
-        } else {
+        } else { // Default to SQLite
             File dataFolder = plugin.getDataFolder();
-            if (!dataFolder.exists()) dataFolder.mkdirs();
+            if (!dataFolder.exists()) dataFolder.mkdirs(); // Ensure data folder exists
             File dbFile = new File(dataFolder, dbName + ".db");
             this.dbURL = "jdbc:sqlite:" + dbFile.getAbsolutePath();
         }
-        initializeDatabase();
-        startExpiryCheckTask();
+        initializeDatabase(); // Initialize database tables
+        startExpiryCheckTask(); // Start task to periodically check for expired softbans
     }
 
     /**
@@ -56,11 +59,12 @@ public class SoftBanDatabaseManager {
      */
     private Connection getConnection() throws SQLException {
         String dbType = plugin.getConfigManager().getDatabaseType();
+        // Get connection based on database type, including MySQL credentials if needed
         if ("mysql".equalsIgnoreCase(dbType)) {
             return DriverManager.getConnection(dbURL,
                     plugin.getConfigManager().getDatabaseUsername(),
                     plugin.getConfigManager().getDatabasePassword());
-        } else {
+        } else { // SQLite connection
             return DriverManager.getConnection(dbURL);
         }
     }
@@ -71,10 +75,12 @@ public class SoftBanDatabaseManager {
     private void initializeDatabase() {
         try (Connection connection = getConnection();
              Statement statement = connection.createStatement()) {
+            // SQL to create softbans table if it doesn't exist
             statement.execute("CREATE TABLE IF NOT EXISTS softbans (" +
                     "uuid VARCHAR(36) PRIMARY KEY," +
                     "endTime BIGINT NOT NULL," +
                     "reason TEXT)");
+            // SQL to create punishment_history table if it doesn't exist
             statement.execute("CREATE TABLE IF NOT EXISTS punishment_history (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                     "player_uuid VARCHAR(36) NOT NULL," +
@@ -95,11 +101,11 @@ public class SoftBanDatabaseManager {
     private void startExpiryCheckTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             try {
-                removeExpiredSoftBans();
+                removeExpiredSoftBans(); // Check and remove expired softbans
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.WARNING, "Error checking for expired soft bans.", e);
             }
-        }, 0L, 20L * 60 * 5); // Check every 5 minutes
+        }, 0L, 20L * 60 * 5); // Run task every 5 minutes (in ticks)
     }
 
     /**
@@ -112,7 +118,7 @@ public class SoftBanDatabaseManager {
              PreparedStatement ps = connection.prepareStatement(
                      "DELETE FROM softbans WHERE endTime <= ? AND endTime != ?")) {
             ps.setLong(1, currentTime);
-            ps.setLong(2, Long.MAX_VALUE); // Don't delete permanent softbans
+            ps.setLong(2, Long.MAX_VALUE); // Exclude permanent softbans from expiry check
             ps.executeUpdate();
         }
     }
@@ -127,7 +133,7 @@ public class SoftBanDatabaseManager {
      * @param punisherName Name of the punisher, can be console or player name.
      */
     public void softBanPlayer(UUID uuid, long endTime, String reason, String punisherName) {
-        long currentEndTime = getSoftBanEndTime(uuid);
+        long currentEndTime = getSoftBanEndTime(uuid); // Get current softban end time, if any
         long finalEndTime = endTime;
         String logMessage;
         String durationString = TimeUtils.formatTime((int) ((endTime - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
@@ -135,17 +141,18 @@ public class SoftBanDatabaseManager {
             durationString = "permanent";
         }
 
-        // Logic for permanent softbans: Overwrite existing time, do not extend
+        // Logic for handling permanent and extending softbans
         if (endTime == Long.MAX_VALUE) {
-            finalEndTime = Long.MAX_VALUE;
+            finalEndTime = Long.MAX_VALUE; // Set to permanent
             logMessage = "Setting PERMANENT softban";
         } else if (currentEndTime > System.currentTimeMillis() && currentEndTime != Long.MAX_VALUE) {
-            finalEndTime = currentEndTime + (endTime - System.currentTimeMillis());
+            finalEndTime = currentEndTime + (endTime - System.currentTimeMillis()); // Extend existing softban
             logMessage = "Extending existing softban";
         } else {
-            logMessage = "Adding new softban";
+            logMessage = "Adding new softban"; // New softban
         }
 
+        // Debug logging for softban actions
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().log(Level.INFO,
                     logMessage + " - UUID: " + uuid +
@@ -161,7 +168,7 @@ public class SoftBanDatabaseManager {
             ps.setString(3, reason);
             ps.executeUpdate();
 
-            // Send softban received message to the player
+            // Send softban received message to the player if they are online
             Player targetPlayer = Bukkit.getPlayer(uuid);
             if (targetPlayer != null) {
                 String formattedTime = (endTime == Long.MAX_VALUE) ? plugin.getConfigManager().getMessage("messages.permanent_time_display") : TimeUtils.formatTime((int) ((endTime - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
@@ -170,7 +177,7 @@ public class SoftBanDatabaseManager {
                         "{reason}", reason);
                 targetPlayer.sendMessage(softbanMessage);
             }
-            logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString);
+            logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString); // Log punishment in history
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database operation failed!", e);
         }
@@ -187,7 +194,7 @@ public class SoftBanDatabaseManager {
                      "DELETE FROM softbans WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             ps.executeUpdate();
-            logPunishment(uuid, "unsoftban", "Softban Removed", punisherName, 0L, "permanent");
+            logPunishment(uuid, "unsoftban", "Softban Removed", punisherName, 0L, "permanent"); // Log un-softban action
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not un-soft ban player!", e);
         }
@@ -206,12 +213,12 @@ public class SoftBanDatabaseManager {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 long endTime = rs.getLong("endTime");
-                return endTime == Long.MAX_VALUE || endTime > System.currentTimeMillis();
+                return endTime == Long.MAX_VALUE || endTime > System.currentTimeMillis(); // Check if permanent or not expired
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error!", e);
         }
-        return false;
+        return false; // Player not found in softban database or database error
     }
 
     /**
@@ -225,11 +232,11 @@ public class SoftBanDatabaseManager {
                      "SELECT reason FROM softbans WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getString("reason");
+            if (rs.next()) return rs.getString("reason"); // Return reason from database
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error!", e);
         }
-        return null;
+        return null; // No reason found or database error
     }
 
     /**
@@ -243,11 +250,11 @@ public class SoftBanDatabaseManager {
                      "SELECT endTime FROM softbans WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getLong("endTime");
+            if (rs.next()) return rs.getLong("endTime"); // Return end time from database
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error!", e);
         }
-        return 0;
+        return 0; // No end time found or database error
     }
 
     /**
@@ -270,6 +277,7 @@ public class SoftBanDatabaseManager {
             ps.setLong(5, punishmentEndTime);
             ps.setString(6, durationString);
             ps.executeUpdate();
+            // Debug logging for punishment logging
             if (plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().log(Level.INFO, "[SoftBanDatabaseManager] Logging punishment: UUID=" + playerUUID + ", Type=" + punishmentType + ", Reason=" + reason + ", Punisher=" + punisherName + ", EndTime=" + punishmentEndTime + ", DurationString=" + durationString);
             }
@@ -297,6 +305,7 @@ public class SoftBanDatabaseManager {
             ps.setInt(2, entriesPerPage);
             ps.setInt(3, offset);
             ResultSet rs = ps.executeQuery();
+            // Process each row in the result set to create PunishmentEntry objects
             while (rs.next()) {
                 String type = rs.getString("punishment_type");
                 String reason = rs.getString("reason");
@@ -365,6 +374,7 @@ public class SoftBanDatabaseManager {
             this.durationString = durationString;
         }
 
+        // Getters for all fields
         public String getType() {
             return type;
         }

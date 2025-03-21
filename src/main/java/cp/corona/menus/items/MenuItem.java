@@ -19,10 +19,24 @@ import org.bukkit.profile.PlayerTextures;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
+ * Represents a menu item with configurable properties loaded from configuration files.
+ * Includes material, display name, lore, player head, custom model data, click action, and sound.
+ *
+ * Refactored to support multiple actions for left and right clicks.
+ * Replaced single click actions with lists of ClickActionData for left and right clicks.
+ */
 public class MenuItem {
 
     private String material;
@@ -36,8 +50,10 @@ public class MenuItem {
     private String clickSound;
     private Float clickVolume = 1.0f;
     private Float clickPitch = 1.0f;
-    private ClickAction clickAction = ClickAction.NO_ACTION; // Default to NO_ACTION
-    private String clickActionData;
+
+    // Refactored actions to support multiple actions per click type
+    private List<ClickActionData> leftClickActions = Collections.emptyList();
+    private List<ClickActionData> rightClickActions = Collections.emptyList();
 
 
     public MenuItem() {
@@ -142,24 +158,33 @@ public class MenuItem {
         this.clickPitch = clickPitch;
     }
 
-    // Click Action
-    public ClickAction getClickAction() {
-        return clickAction;
+    // Left Click Actions - List of actions to be performed on left click
+    public List<ClickActionData> getLeftClickActions() {
+        return leftClickActions;
     }
 
-    public void setClickAction(ClickAction clickAction) {
-        this.clickAction = clickAction;
+    public void setLeftClickActions(List<ClickActionData> leftClickActions) {
+        this.leftClickActions = leftClickActions;
     }
 
-    // Click Action Data
-    public String getClickActionData() {
-        return clickActionData;
+    // Right Click Actions - List of actions to be performed on right click
+    public List<ClickActionData> getRightClickActions() {
+        return rightClickActions;
     }
 
-    public void setClickActionData(String clickActionData) {
-        this.clickActionData = clickActionData;
+    public void setRightClickActions(List<ClickActionData> rightClickActions) {
+        this.rightClickActions = rightClickActions;
     }
 
+
+    /**
+     * Converts the MenuItem configuration to an ItemStack for display in menus.
+     * Processes placeholders in name and lore, and sets item meta properties.
+     *
+     * @param target        The target player for placeholder replacement (can be null).
+     * @param configManager MainConfigManager instance for placeholder processing.
+     * @return The ItemStack representing this MenuItem.
+     */
     public ItemStack toItemStack(OfflinePlayer target, MainConfigManager configManager) {
         Material itemMaterial = Material.matchMaterial(this.material.toUpperCase());
         if (itemMaterial == null) {
@@ -207,6 +232,14 @@ public class MenuItem {
         return itemStack;
     }
 
+    /**
+     * Processes text for placeholders, using MainConfigManager and PlaceholderAPI if available.
+     *
+     * @param text          The text to process.
+     * @param target        The target player for placeholders.
+     * @param configManager MainConfigManager instance for placeholder processing.
+     * @return The processed text.
+     */
     private String processText(String text, OfflinePlayer target, MainConfigManager configManager) {
         if (text == null) return null;
         String processedText = text;
@@ -220,6 +253,14 @@ public class MenuItem {
     }
 
     private static CrownPunishments plugin = (CrownPunishments) Bukkit.getPluginManager().getPlugin("CrownPunishments");
+
+    /**
+     * Plays the configured click sound for this MenuItem to a player.
+     * Sound details (name, volume, pitch) are taken from the MenuItem's configuration.
+     * Handles invalid sound names gracefully by logging a warning.
+     *
+     * @param player The player to play the click sound for.
+     */
     public void playClickSound(Player player) {
         if (this.clickSound != null) {
             try {
@@ -228,6 +269,42 @@ public class MenuItem {
             } catch (IllegalArgumentException e) {
                 plugin.getLogger().warning("Invalid sound configured: " + this.clickSound);
             }
+        }
+    }
+
+    /**
+     * Inner class to represent a Click Action with its associated data.
+     * This allows for multiple actions per click and cleaner configuration.
+     */
+    public static class ClickActionData {
+        private ClickAction action;
+        private String actionData;
+
+        public ClickActionData(ClickAction action, String actionData) {
+            this.action = action;
+            this.actionData = actionData;
+        }
+
+        public ClickAction getAction() {
+            return action;
+        }
+
+        public String getActionData() {
+            return actionData;
+        }
+
+        /**
+         * Parses a configuration string to create a ClickActionData object.
+         * Handles cases where action data is present or absent.
+         *
+         * @param configString The configuration string in the format "ACTION:data" or just "ACTION".
+         * @return ClickActionData object.
+         */
+        public static ClickActionData fromConfigString(String configString) {
+            String[] parts = configString.split(":", 2); // Split into action and data at the first ":"
+            ClickAction action = ClickAction.safeValueOf(parts[0]); // Get action, default to NO_ACTION if invalid
+            String actionData = parts.length > 1 ? parts[1] : null; // Action data is null if not provided
+            return new ClickActionData(action, actionData);
         }
     }
 }

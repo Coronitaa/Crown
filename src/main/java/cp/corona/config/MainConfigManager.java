@@ -25,10 +25,19 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
  * Manages all plugin configurations, including messages, plugin settings, and menu configurations.
  * Provides methods to load, reload, and access configuration values, as well as process placeholders.
+ *
+ * Updated to load multiple click actions for menu items and handle console commands.
  */
 public class MainConfigManager {
     private final CustomConfig messagesConfig;
@@ -350,71 +359,64 @@ public class MainConfigManager {
         if (config.isDouble(configPath + ".click_pitch")) {
             menuItem.setClickPitch((float) config.getDouble(configPath + ".click_pitch"));
         }
-        // Load Click Action and Data
-        String actionStr = config.getString(configPath + ".click_action", "NO_ACTION"); // Default to NO_ACTION
-        menuItem.setClickAction(ClickAction.safeValueOf(actionStr));
-        menuItem.setClickActionData(config.getString(configPath + ".click_action_data"));
 
+        // Load Click Actions for left click - Updated to load multiple actions
+        List<String> leftClickActionConfigs = config.getStringList(configPath + ".left_click_actions");
+        if (leftClickActionConfigs != null && !leftClickActionConfigs.isEmpty()) {
+            List<MenuItem.ClickActionData> leftClickActions = leftClickActionConfigs.stream()
+                    .map(MenuItem.ClickActionData::fromConfigString)
+                    .collect(Collectors.toList());
+            menuItem.setLeftClickActions(leftClickActions);
+        }
+
+        // Load Click Actions for right click - Updated to load multiple actions
+        List<String> rightClickActionConfigs = config.getStringList(configPath + ".right_click_actions");
+        if (rightClickActionConfigs != null && !rightClickActionConfigs.isEmpty()) {
+            List<MenuItem.ClickActionData> rightClickActions = rightClickActionConfigs.stream()
+                    .map(MenuItem.ClickActionData::fromConfigString)
+                    .collect(Collectors.toList());
+            menuItem.setRightClickActions(rightClickActions);
+        }
 
         return menuItem;
     }
 
 
     /**
-     * Parses a slot string that can be a single number or a range (e.g., "10", "10-15").
+     * Parses a slot string that can be a single number, a range (e.g., "10-15"), or multiple ranges/numbers comma-separated (e.g., "1,3,5-10").
+     * Supports multiple background items by splitting configuration and processing each part.
      *
-     * @param slotConfig The slot configuration string.
+     * @param slotConfig The slot configuration string, can contain comma-separated values and ranges.
      * @return A list of slots.
      */
     private List<Integer> parseSlots(String slotConfig) {
         List<Integer> slots = new ArrayList<>();
         if (slotConfig == null) return slots;
 
-        if (slotConfig.contains("-")) {
-            String[] parts = slotConfig.split("-");
-            if (parts.length == 2) {
-                try {
-                    int start = Integer.parseInt(parts[0]);
-                    int end = Integer.parseInt(parts[1]);
-                    for (int i = start; i <= end; i++) {
-                        slots.add(i);
-                    }
-                } catch (NumberFormatException e) {
-                    plugin.getLogger().warning("Invalid slot range: " + slotConfig);
-                }
-            }
-        } else if (slotConfig.contains(",")) { // Handling comma-separated ranges and singles
-            String[] ranges = slotConfig.split(",");
-            for (String range : ranges) {
-                if (range.contains("-")) {
-                    String[] parts = range.split("-");
-                    if (parts.length == 2) {
-                        try {
-                            int start = Integer.parseInt(parts[0]);
-                            int end = Integer.parseInt(parts[1]);
-                            for (int i = start; i <= end; i++) {
-                                slots.add(i);
-                            }
-                        } catch (NumberFormatException e) {
-                            plugin.getLogger().warning("Invalid slot range in comma separated list: " + slotConfig);
+        String[] parts = slotConfig.split(","); // Split by comma to handle multiple ranges/slots
+        for (String part : parts) {
+            part = part.trim(); // Trim each part to remove leading/trailing spaces
+            if (part.contains("-")) {
+                String[] range = part.split("-");
+                if (range.length == 2) {
+                    try {
+                        int start = Integer.parseInt(range[0]);
+                        int end = Integer.parseInt(range[1]);
+                        for (int i = start; i <= end; i++) {
+                            slots.add(i);
                         }
+                    } catch (NumberFormatException e) {
+                        plugin.getLogger().warning("Invalid slot range: " + part + " in " + slotConfig);
                     }
                 } else {
-                    try {
-                        slots.add(Integer.parseInt(range));
-                    } catch (NumberFormatException e) {
-                        plugin.getLogger().warning("Invalid slot number in comma separated list: " + slotConfig);
-                    }
+                    plugin.getLogger().warning("Invalid slot range format: " + part + " in " + slotConfig);
                 }
-            }
-
-
-        }
-        else {
-            try {
-                slots.add(Integer.parseInt(slotConfig));
-            } catch (NumberFormatException e) {
-                plugin.getLogger().warning("Invalid slot number: " + slotConfig);
+            } else {
+                try {
+                    slots.add(Integer.parseInt(part));
+                } catch (NumberFormatException e) {
+                    plugin.getLogger().warning("Invalid slot number: " + part + " in " + slotConfig);
+                }
             }
         }
         return slots;

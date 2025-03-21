@@ -1,3 +1,4 @@
+// menus/PunishDetailsMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -12,11 +13,21 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
  * Represents the dynamic punishment details menu, versatile for Ban, Mute, SoftBan, Kick, and Warn.
  * Allows setting specific details for a punishment like time and reason, adaptable by punishment type.
  */
@@ -30,6 +41,8 @@ public class PunishDetailsMenu implements InventoryHolder {
     private boolean timeSet = false;
     private boolean reasonSet = false;
     private boolean timeRequired = true; // Flag to indicate if time is required for the punishment type
+    private final OfflinePlayer target; // Target player for menu
+
 
     // Constants for item keys in PunishDetailsMenu
     public static final String SET_TIME_KEY = "set_time";
@@ -37,6 +50,19 @@ public class PunishDetailsMenu implements InventoryHolder {
     public static final String CONFIRM_PUNISH_KEY = "confirm_punish";
     public static final String BACK_BUTTON_KEY = "back_button";
     public static final String UNSOFTBAN_BUTTON_KEY = "unsoftban_button";
+    private static final String BACKGROUND_FILL_1_KEY = "background_fill_1"; // Background fill item key 1
+    private static final String BACKGROUND_FILL_2_KEY = "background_fill_2"; // Background fill item key 2
+
+
+    /**
+     * Stores the item keys in a Set for easy access and iteration in MenuListener.
+     */
+    private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
+            SET_TIME_KEY, SET_REASON_KEY, CONFIRM_PUNISH_KEY, BACK_BUTTON_KEY,
+            UNSOFTBAN_BUTTON_KEY, // Include unsoftban button key
+            BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY // Background items
+    ));
+
 
     /**
      * Constructor for PunishDetailsMenu.
@@ -48,11 +74,11 @@ public class PunishDetailsMenu implements InventoryHolder {
         this.targetUUID = targetUUID;
         this.plugin = plugin;
         this.punishmentType = punishmentType;
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        this.target = Bukkit.getOfflinePlayer(targetUUID); // Initialize target here
         String title = plugin.getConfigManager().getDetailsMenuText("title", target, punishmentType);
         inventory = Bukkit.createInventory(this, 36, title);
         setTimeRequiredBasedOnType(punishmentType); // Set if time is required based on punishment type
-        initializeItems(target);
+        initializeItems(); // Initialize menu items
     }
 
     /**
@@ -70,46 +96,64 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     /**
      * Initializes the items in the menu based on the punishment type.
-     *
-     * @param target Target player for item placeholders.
      */
-    private void initializeItems(OfflinePlayer target) {
-
-        if (punishmentType.equalsIgnoreCase("ban") || punishmentType.equalsIgnoreCase("mute") || punishmentType.equalsIgnoreCase("softban")) {
-            setItemInMenu(SET_TIME_KEY, getSetTimeItem(target));
-        } else if (punishmentType.equalsIgnoreCase("kick") || punishmentType.equalsIgnoreCase("warn")) {
-            // Kick and Warn do not have set time item
+    private void initializeItems() {
+        // Iterate through the common item keys and set them in the menu
+        for (String itemKey : menuItemKeys) {
+            // Note: UNSOFTBAN_BUTTON_KEY is handled separately as it's softban-specific
+            if (!itemKey.equals(UNSOFTBAN_BUTTON_KEY)) { // Avoid processing unsoftban button here
+                setItemInMenu(itemKey, getItemStack(itemKey));
+            }
         }
 
-        setItemInMenu(SET_REASON_KEY, getSetReasonItem(target));
-        setItemInMenu(CONFIRM_PUNISH_KEY, getConfirmPunishItem(target));
-        setItemInMenu(BACK_BUTTON_KEY, getBackButton(target));
-
+        // Handle softban-specific button separately
         if (punishmentType.equalsIgnoreCase("softban")) {
-            setItemInMenu(UNSOFTBAN_BUTTON_KEY, getUnSoftBanButton(target));
+            setItemInMenu(UNSOFTBAN_BUTTON_KEY, getUnSoftBanButton());
         }
     }
 
     /**
+     * Gets the ItemStack for a given item key, handling null MenuItem configurations.
+     * @param itemKey The key of the item configuration.
+     * @return The ItemStack or null if configuration is missing.
+     */
+    private ItemStack getItemStack(String itemKey) {
+        switch (itemKey) {
+            case SET_TIME_KEY:         return getSetTimeItem();
+            case SET_REASON_KEY:       return getSetReasonItem();
+            case CONFIRM_PUNISH_KEY:   return getConfirmPunishItem();
+            case BACK_BUTTON_KEY:      return getBackButton();
+            case BACKGROUND_FILL_1_KEY:
+            case BACKGROUND_FILL_2_KEY:
+                return plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, itemKey).toItemStack(target, plugin.getConfigManager());
+            default:                     return null; // Handle unknown keys or return null
+        }
+    }
+
+
+    /**
      * Sets an item in the menu at the slots defined in the configuration.
      * @param itemKey Key of the item in the configuration.
-     * @param itemStack ItemStack to set in the menu.
+     * @param currentItemStack ItemStack to set in the menu.
      */
-    private void setItemInMenu(String itemKey, ItemStack itemStack){
+    private void setItemInMenu(String itemKey, ItemStack currentItemStack){
         MenuItem menuItemConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, itemKey);
-        if (menuItemConfig != null && itemStack != null && menuItemConfig.getSlots() != null) {
+        if (menuItemConfig != null && currentItemStack != null && menuItemConfig.getSlots() != null) {
             for (int slot : menuItemConfig.getSlots()) {
-                inventory.setItem(slot, itemStack);
+                if (slot >= 0 && slot < inventory.getSize()) { // Check if slot is valid
+                    inventory.setItem(slot, currentItemStack);
+                } else {
+                    plugin.getLogger().warning("Invalid slot " + slot + " for item " + itemKey + " in punish_details_menu.yml, must be between 0-" + (inventory.getSize() - 1));
+                }
             }
         }
     }
 
     /**
      * Gets the "Set Time" item stack, updating lore with current time if set.
-     * @param target Target player for item placeholders.
      * @return ItemStack for set time item.
      */
-    private ItemStack getSetTimeItem(OfflinePlayer target) {
+    private ItemStack getSetTimeItem() {
         MenuItem setTimeConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, SET_TIME_KEY);
         if (setTimeConfig == null) return null;
         ItemStack item = setTimeConfig.toItemStack(target, plugin.getConfigManager());
@@ -125,10 +169,9 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     /**
      * Gets the "Set Reason" item stack, updating lore with current reason if set.
-     * @param target Target player for item placeholders.
      * @return ItemStack for set reason item.
      */
-    private ItemStack getSetReasonItem(OfflinePlayer target) {
+    private ItemStack getSetReasonItem() {
         MenuItem setReasonConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, SET_REASON_KEY);
         if (setReasonConfig == null) return null;
         ItemStack item = setReasonConfig.toItemStack(target, plugin.getConfigManager());
@@ -144,10 +187,9 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     /**
      * Creates the "Confirm Punish" item, disabled if time or reason are not set (depending on punishment type).
-     * @param target Target player for item placeholders.
      * @return ItemStack for confirm punish item.
      */
-    private ItemStack getConfirmPunishItem(OfflinePlayer target) {
+    private ItemStack getConfirmPunishItem() {
         MenuItem confirmPunishConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, CONFIRM_PUNISH_KEY);
         if (confirmPunishConfig == null) return null;
         ItemStack item = confirmPunishConfig.toItemStack(target, plugin.getConfigManager());
@@ -173,10 +215,9 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     /**
      * Gets the "Back Button" item.
-     * @param target Target player for item placeholders.
      * @return ItemStack for back button item.
      */
-    private ItemStack getBackButton(OfflinePlayer target) {
+    private ItemStack getBackButton() {
         MenuItem backButtonConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, BACK_BUTTON_KEY);
         if (backButtonConfig == null) return null;
         return backButtonConfig.toItemStack(target, plugin.getConfigManager());
@@ -184,10 +225,9 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     /**
      * Creates the "Unsoftban" button, specifically for the SoftBanDetailsMenu.
-     * @param target Target player for item placeholders.
      * @return ItemStack for unsoftban button item.
      */
-    private ItemStack getUnSoftBanButton(OfflinePlayer target) {
+    private ItemStack getUnSoftBanButton() {
         MenuItem unSoftbanButtonConfig = plugin.getConfigManager().getDetailsMenuItemConfig("softban", UNSOFTBAN_BUTTON_KEY);
         if (unSoftbanButtonConfig == null) return null;
         return unSoftbanButtonConfig.toItemStack(target, plugin.getConfigManager());
@@ -312,32 +352,58 @@ public class PunishDetailsMenu implements InventoryHolder {
      * Updates the "Set Time" item in the menu.
      */
     public void updateSetTimeItem() {
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        ItemStack setTimeItem = getSetTimeItem(target);
+        ItemStack setTimeItem = getSetTimeItem();
         if (setTimeItem != null) {
             setItemInMenu(SET_TIME_KEY, setTimeItem);
         }
+        updateInventory();
     }
 
     /**
      * Updates the "Set Reason" item in the menu.
      */
     public void updateSetReasonItem() {
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        ItemStack setReasonItem = getSetReasonItem(target);
+        ItemStack setReasonItem = getSetReasonItem();
         if (setReasonItem != null) {
             setItemInMenu(SET_REASON_KEY, setReasonItem);
         }
+        updateInventory();
     }
 
     /**
      * Updates the "Confirm Punish" button based on whether time and reason are set (and if time is required).
      */
     public void updateConfirmButtonStatus() {
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        ItemStack confirmPunishItem = getConfirmPunishItem(target);
+        ItemStack confirmPunishItem = getConfirmPunishItem();
         if (confirmPunishItem != null) {
             setItemInMenu(CONFIRM_PUNISH_KEY, confirmPunishItem);
         }
+        updateInventory();
+    }
+
+    /**
+     * Updates the inventory for players viewing the menu.
+     * This is necessary to reflect changes made to menu items.
+     */
+    private void updateInventory() {
+        // Get all viewers of the inventory and update their view
+        List<Player> viewers = inventory.getViewers().stream()
+                .filter(Player.class::isInstance)
+                .map(Player.class::cast)
+                .collect(Collectors.toList());
+
+        for (Player viewer : viewers) {
+            viewer.updateInventory();
+        }
+    }
+
+    /**
+     * Gets the set of MenuItem keys used in this menu.
+     * This is used for dynamic item loading in MenuListener.
+     *
+     * @return A Set of item keys (String).
+     */
+    public Set<String> getMenuItemKeys() {
+        return menuItemKeys;
     }
 }

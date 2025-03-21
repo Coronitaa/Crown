@@ -1,11 +1,18 @@
-# Configuration for punishment details menus.
-# Defines the titles and items for Ban, Mute, Softban, Kick, and Warn detail menus.
-
 menu:
   punish_details:
     ban: # Ban details menu configuration
       title: '&4&lBan Details' # Title for BanDetailsMenu
       items:
+        background_fill_1: # Background fill item configuration - Example 1
+          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
+          name: ' ' # Empty name for background item
+          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
+        background_fill_2: # Background fill item configuration - Example 2
+          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+          name: ' '
+          slot: '10,12,14,16' # Another slot range
+
+
         set_time: # Configuration for Set Time item
           material: 'CLOCK' # Clock icon for time
           slot: '11' # Inventory slot
@@ -13,13 +20,17 @@ menu:
           lore: # Item lore
             - '&7Current Time: &b{time}' # Placeholder for current set time
             - ''
-            - '&7Click to set the'
+            - '&7Left-Click to set the'
             - '&7duration of the ban.'
-          click_action: 'OPEN_MENU' # Action on click
-          click_action_data: 'time_selector' # Open time selector menu
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'OPEN_MENU:time_selector' # Open time selector menu
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
+
         set_reason: # Configuration for Set Reason item
           material: 'WRITABLE_BOOK' # Writable book icon for setting reason
           slot: '13' # Inventory slot
@@ -27,24 +38,29 @@ menu:
           lore: # Item lore
             - '&7Current Reason: &b{reason}' # Placeholder for current reason
             - ''
-            - '&7Click to set the'
+            - '&7Left-Click to set the'
             - '&7reason for the ban.'
-          click_action: 'REQUEST_INPUT' # Action on click
-          click_action_data: 'reason_input' # Request reason input from player
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'REQUEST_INPUT:reason_input' # Request reason input from player
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
+
         confirm_punish: # Configuration for Confirm Punish item
           material: 'EMERALD_BLOCK' # Emerald block icon, positive confirmation
           slot: '15' # Inventory slot
           name: '&a&lConfirm Ban' # Default name when ready
           lore: # Item lore when ready
-            - '&7Click to confirm and'
+            - '&7Left-Click to confirm and'
             - '&7apply the ban to &b{target}&7.'
             - ''
             - '&7Requires:'
             - '&7- Time: {time_status}' # Placeholder for time set status
             - '&7- Reason: {reason_status}' # Placeholder for reason set status
+            - '&7Right-Click for example command.'
           disabled_name: '&c&lConfirm Ban (Not Ready)' # Name when not ready (time/reason unset)
           disabled_lore: # Item lore when not ready
             - '&cSet time and reason'
@@ -53,10 +69,15 @@ menu:
             - '&cRequires:'
             - '&c- Time: &c\u274c Not Set' # Red cross unicode for not set
             - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-          click_action: 'CONFIRM_PUNISHMENT' # Action on click
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
+
         back_button: # Configuration for Back Button item
           material: 'ARROW' # Arrow icon for back action
           slot: '31' # Inventory slot
@@ -64,14 +85,23 @@ menu:
           lore: # Item lore
             - '&7Go back to the'
             - '&7Punishment Menu.'
-          click_action: 'OPEN_MENU' # Action on click
-          click_action_data: 'punish_menu' # Open punish menu
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu' # Open punish menu
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
     mute: # Mute details menu configuration
       title: '&e&lMute Details' # Title for MuteDetailsMenu
       items:
+        background_fill_1: # Background fill item configuration - Example 1
+          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
+          name: ' ' # Empty name for background item
+          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
+        background_fill_2: # Background fill item configuration - Example 2
+          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+          name: ' '
+          slot: '10,12,14,16' # Another slot range
         set_time: # Set Time item configuration for Mute
           material: 'CLOCK' # Clock icon
           slot: '11' # Inventory slot
@@ -79,13 +109,16 @@ menu:
           lore: # Item lore
             - '&7Current Time: &b{time}' # Placeholder for current time
             - ''
-            - '&7Click to set the'
+            - '&7Left-Click to set the'
             - '&7duration of the mute.'
-          click_action: 'OPEN_MENU' # Action on click
-          click_action_data: 'time_selector' # Open time selector menu
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'OPEN_MENU:time_selector' # Open time selector menu
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
         set_reason: # Set Reason item configuration for Mute
           material: 'WRITABLE_BOOK' # Writable book icon
           slot: '13' # Inventory slot
@@ -93,24 +126,28 @@ menu:
           lore: # Item lore
             - '&7Current Reason: &b{reason}' # Placeholder for current reason
             - ''
-            - '&7Click to set the'
+            - '&7Left-Click to set the'
             - '&7reason for the mute.'
-          click_action: 'REQUEST_INPUT' # Action on click
-          click_action_data: 'reason_input' # Request reason input
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'REQUEST_INPUT:reason_input' # Request reason input
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
         confirm_punish: # Confirm Punish item configuration for Mute
           material: 'EMERALD_BLOCK' # Emerald block icon
           slot: '15' # Inventory slot
           name: '&a&lConfirm Mute' # Display name when ready
           lore: # Item lore when ready
-            - '&7Click to confirm and'
+            - '&7Left-Click to confirm and'
             - '&7apply the mute to &b{target}&7.'
             - ''
             - '&7Requires:'
             - '&7- Time: {time_status}' # Placeholder for time status
             - '&7- Reason: {reason_status}' # Placeholder for reason status
+            - '&7Right-Click for example command.'
           disabled_name: '&c&lConfirm Mute (Not Ready)' # Display name when not ready
           disabled_lore: # Item lore when not ready
             - '&cSet time and reason'
@@ -119,10 +156,14 @@ menu:
             - '&cRequires:'
             - '&c- Time: &c\u274c Not Set' # Red cross unicode for not set
             - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-          click_action: 'CONFIRM_PUNISHMENT' # Action on click
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item configuration for Mute
           material: 'ARROW' # Arrow icon
           slot: '31' # Inventory slot
@@ -130,14 +171,23 @@ menu:
           lore: # Item lore
             - '&7Go back to the'
             - '&7Punishment Menu.'
-          click_action: 'OPEN_MENU' # Action on click
-          click_action_data: 'punish_menu' # Open punish menu
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu' # Open punish menu
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
     softban: # SoftBan details menu configuration - NEW
       title: '&3&lSoftBan Details' # Title for SoftBanDetailsMenu
       items:
+        background_fill_1: # Background fill item configuration - Example 1
+          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
+          name: ' ' # Empty name for background item
+          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
+        background_fill_2: # Background fill item configuration - Example 2
+          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+          name: ' '
+          slot: '10,12,14' # Another slot range
         set_time: # Set Time item for SoftBan
           material: 'CLOCK' # Clock icon
           slot: '11' # Inventory slot
@@ -145,13 +195,16 @@ menu:
           lore: # Item lore
             - '&7Current Time: &b{time}' # Placeholder for current time
             - ''
-            - '&7Click to set the'
+            - '&7Left-Click to set the'
             - '&7duration of the softban.'
-          click_action: 'OPEN_MENU' # Action on click
-          click_action_data: 'time_selector' # Open time selector menu
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'OPEN_MENU:time_selector' # Open time selector menu
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
         set_reason: # Set Reason item for SoftBan
           material: 'WRITABLE_BOOK' # Writable book icon
           slot: '13' # Inventory slot
@@ -159,40 +212,48 @@ menu:
           lore: # Item lore
             - '&7Current Reason: &b{reason}' # Placeholder for current reason
             - ''
-            - '&7Click to set the'
+            - '&7Left-Click to set the'
             - '&7reason for the softban.'
-          click_action: 'REQUEST_INPUT' # Action on click
-          click_action_data: 'reason_input' # Request reason input
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'REQUEST_INPUT:reason_input' # Request reason input
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
         unsoftban_button: # Unsoftban Button item - NEW
           material: 'LIME_DYE' # Lime dye icon for positive action (unsoftban)
           slot: '16' # Inventory slot
           name: '&a&lRemover SoftBan' # Display name
           lore: # Item lore
-            - '&7Click para eliminar'
+            - '&7Left-Click para eliminar'
             - '&7el softban de &b{target}&7.'
             - ''
             - '&eEstado actual:'
             - '{target_softban_status}' # Placeholder for softban status
             - '&7Tiempo restante:'
             - '&e{target_softban_remaining_time}' # Placeholder for remaining time
-          click_action: 'UN_SOFTBAN' # Action on click
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'UN_SOFTBAN:' # Action on Left-Click
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Unsoftban Button!"' # Example command
         confirm_punish: # Confirm Punish item for SoftBan
           material: 'EMERALD_BLOCK' # Emerald block icon
           slot: '15' # Inventory slot
           name: '&a&lConfirm SoftBan' # Display name when ready
           lore: # Item lore when ready
-            - '&7Click to confirm and'
+            - '&7Left-Click to confirm and'
             - '&7apply the softban to &b{target}&7.'
             - ''
             - '&7Requires:'
             - '&7- Time: {time_status}' # Placeholder for time status
             - '&7- Reason: {reason_status}' # Placeholder for reason status
+            - '&7Right-Click for example command.'
           disabled_name: '&c&lConfirm SoftBan (Not Ready)' # Display name when not ready
           disabled_lore: # Item lore when not ready
             - '&cSet time and reason'
@@ -201,10 +262,14 @@ menu:
             - '&cRequires:'
             - '&c- Time: &c\u274c Not Set' # Red cross unicode for not set
             - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-          click_action: 'CONFIRM_PUNISHMENT' # Action on click
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for SoftBan
           material: 'ARROW' # Arrow icon
           slot: '31' # Inventory slot
@@ -212,14 +277,23 @@ menu:
           lore: # Item lore
             - '&7Go back to the'
             - '&7Punishment Menu.'
-          click_action: 'OPEN_MENU' # Action on click
-          click_action_data: 'punish_menu' # Open punish menu
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu' # Open punish menu
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
     kick: # Kick details menu configuration - NEW
       title: '&9&lKick Details' # Title for KickDetailsMenu
       items:
+        background_fill_1: # Background fill item configuration - Example 1
+          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
+          name: ' ' # Empty name for background item
+          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
+        background_fill_2: # Background fill item configuration - Example 2
+          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+          name: ' '
+          slot: '10,12,14,16' # Another slot range
         set_reason: # Set Reason item for Kick
           material: 'WRITABLE_BOOK' # Writable book icon
           slot: '13' # Inventory slot
@@ -227,23 +301,27 @@ menu:
           lore: # Item lore
             - '&7Current Reason: &b{reason}' # Placeholder for current reason
             - ''
-            - '&7Click to set the'
+            - '&7Left-Click to set the'
             - '&7reason for the kick.'
-          click_action: 'REQUEST_INPUT' # Action on click
-          click_action_data: 'reason_input' # Request reason input
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'REQUEST_INPUT:reason_input' # Request reason input
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
         confirm_punish: # Confirm Punish item for Kick
           material: 'EMERALD_BLOCK' # Emerald block icon
           slot: '15' # Inventory slot
           name: '&a&lConfirm Kick' # Display name when ready
           lore: # Item lore when ready
-            - '&7Click to confirm and'
+            - '&7Left-Click to confirm and'
             - '&7apply the kick to &b{target}&7.'
             - ''
             - '&7Requires:'
             - '&7- Reason: {reason_status}' # Placeholder for reason status
+            - '&7Right-Click for example command.'
           disabled_name: '&c&lConfirm Kick (Not Ready)' # Display name when not ready
           disabled_lore: # Item lore when not ready
             - '&cSet reason'
@@ -251,10 +329,14 @@ menu:
             - ''
             - '&cRequires:'
             - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-          click_action: 'CONFIRM_PUNISHMENT' # Action on click
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for Kick
           material: 'ARROW' # Arrow icon
           slot: '31' # Inventory slot
@@ -262,14 +344,23 @@ menu:
           lore: # Item lore
             - '&7Go back to the'
             - '&7Punishment Menu.'
-          click_action: 'OPEN_MENU' # Action on click
-          click_action_data: 'punish_menu' # Open punish menu
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu' # Open punish menu
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
     warn: # Warn details menu configuration - NEW
       title: '&6&lWarn Details' # Title for WarnDetailsMenu
       items:
+        background_fill_1: # Background fill item configuration - Example 1
+          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
+          name: ' ' # Empty name for background item
+          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
+        background_fill_2: # Background fill item configuration - Example 2
+          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+          name: ' '
+          slot: '10,12,14,16' # Another slot range
         set_reason: # Set Reason item for Warn
           material: 'WRITABLE_BOOK' # Writable book icon
           slot: '13' # Inventory slot
@@ -277,23 +368,27 @@ menu:
           lore: # Item lore
             - '&7Current Reason: &b{reason}' # Placeholder for current reason
             - ''
-            - '&7Click to set the'
+            - '&7Left-Click to set the'
             - '&7reason for the warn.'
-          click_action: 'REQUEST_INPUT' # Action on click
-          click_action_data: 'reason_input' # Request reason input
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'REQUEST_INPUT:reason_input' # Request reason input
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
         confirm_punish: # Confirm Punish item for Warn
           material: 'EMERALD_BLOCK' # Emerald block icon
           slot: '15' # Inventory slot
           name: '&a&lConfirm Warn' # Display name when ready
           lore: # Item lore when ready
-            - '&7Click to confirm and'
+            - '&7Left-Click to confirm and'
             - '&7apply the warn to &b{target}&7.'
             - ''
             - '&7Requires:'
             - '&7- Reason: {reason_status}' # Placeholder for reason status
+            - '&7Right-Click for example command.'
           disabled_name: '&c&lConfirm Warn (Not Ready)' # Display name when not ready
           disabled_lore: # Item lore when not ready
             - '&cSet reason'
@@ -301,10 +396,14 @@ menu:
             - ''
             - '&cRequires:'
             - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-          click_action: 'CONFIRM_PUNISHMENT' # Action on click
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           click_sound: 'UI_BUTTON_CLICK' # Click sound
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch
+          right_click_actions:
+            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for Warn
           material: 'ARROW' # Arrow icon
           slot: '31' # Inventory slot
@@ -312,8 +411,9 @@ menu:
           lore: # Item lore
             - '&7Go back to the'
             - '&7Punishment Menu.'
-          click_action: 'OPEN_MENU' # Action on click
-          click_action_data: 'punish_menu' # Open punish menu
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
+            - '&7Right-Click for example command.'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu'
+          click_sound: 'UI_BUTTON_CLICK'
           click_volume: 1.0 # Sound volume
           click_pitch: 1.0 # Sound pitch

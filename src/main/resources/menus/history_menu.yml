@@ -1,11 +1,10 @@
-# menus/history_menu.yml
 menu:
   title: '&7&lPunishment History for &b{target}' # Title for HistoryMenu - Corrected placeholder to {target}
   items:
     background_fill: # Background fill item configuration
       material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
       name: ' ' # Empty name for background item
-      slot: '0-9,17,18-26,35,36-44,45-53' # Slot range for background fill - Adjusted to 45-53
+      slot: '0-9,17,18-26,35,36-44,45-52' # Slot range for background fill - Adjusted to 45-53
 
     history_entry:
       material: 'BOOK' # Will be dynamically changed based on punishment type
@@ -35,8 +34,8 @@ menu:
       lore:
         - '&7Click to view'
         - '&anext page'
-      click_action: 'ADJUST_PAGE'
-      click_action_data: 'next_page'
+      left_click_actions:
+        - 'ADJUST_PAGE:next_page'
 
     previous_page_button:
       material: 'ARROW'
@@ -45,8 +44,8 @@ menu:
       lore:
         - '&7Click to view'
         - '&cprevious page'
-      click_action: 'ADJUST_PAGE'
-      click_action_data: 'previous_page'
+      left_click_actions:
+        - 'ADJUST_PAGE:previous_page'
 
     back_button:
       material: 'BARRIER'
@@ -55,5 +54,5 @@ menu:
       lore:
         - '&7Return to'
         - '&7Punish Menu'
-      click_action: 'OPEN_MENU'
-      click_action_data: 'punish_menu'
+      left_click_actions:
+        - 'OPEN_MENU:punish_menu'

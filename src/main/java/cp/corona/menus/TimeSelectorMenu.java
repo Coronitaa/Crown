@@ -1,4 +1,4 @@
-// TimeSelectorMenu.java
+// menus/TimeSelectorMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;

@@ -1,4 +1,4 @@
-// TimeUtils.java
+// utils/TimeUtils.java
 package cp.corona.utils;
 
 import cp.corona.config.MainConfigManager;
@@ -30,15 +30,20 @@ public class TimeUtils {
 
         StringBuilder formattedTime = new StringBuilder();
 
+        // Append years if greater than 0
         if (years > 0) formattedTime.append(years).append(configManager.getYearsTimeUnit()).append(" ");
+        // Append days if greater than 0
         if (days > 0) formattedTime.append(days).append(configManager.getDayTimeUnit()).append(" ");
+        // Append hours if greater than 0
         if (hours > 0) formattedTime.append(hours).append(configManager.getHoursTimeUnit()).append(" ");
+        // Append minutes if greater than 0
         if (minutes > 0) formattedTime.append(minutes).append(configManager.getMinutesTimeUnit()).append(" ");
+        // Always show seconds if no other unit is shown or seconds > 0
         if (seconds > 0 || formattedTime.length() == 0)
-            formattedTime.append(seconds).append(configManager.getSecondsTimeUnit()); // Always show seconds if no other unit is shown or seconds > 0
+            formattedTime.append(seconds).append(configManager.getSecondsTimeUnit());
 
 
-        return formattedTime.toString().trim();
+        return formattedTime.toString().trim(); // Trim to remove trailing space
     }
 
     /**
@@ -50,21 +55,24 @@ public class TimeUtils {
      */
     public static int parseTime(String timeString, MainConfigManager configManager) {
         int totalSeconds = 0;
+        // Get time units from config for flexible unit parsing
         String yearsUnit = configManager.getYearsTimeUnit();
         String dayUnit = configManager.getDayTimeUnit();
         String hoursUnit = configManager.getHoursTimeUnit();
         String minutesUnit = configManager.getMinutesTimeUnit();
         String secondsUnit = configManager.getSecondsTimeUnit();
 
-        // Regex pattern to capture time values and units
-        String pattern = "(\\d+)([y" + dayUnit + "h" + minutesUnit + secondsUnit + "]\\s*)"; // e.g., (\d+)([y|d|h|m|s]\s*)
+        // Regex pattern to capture time values and units, supporting flexible units from config
+        String pattern = "(\\d+)([y" + yearsUnit + "d" + dayUnit + "h" + hoursUnit + "m" + minutesUnit + "s" + secondsUnit + "]\\s*)"; // e.g., (\d+)([y|d|h|m|s]\s*)
         Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
         Matcher matcher = r.matcher(timeString);
 
+        // Iterate through all matches to sum up total seconds
         while (matcher.find()) {
-            int value = Integer.parseInt(matcher.group(1));
-            String unit = matcher.group(2).trim().toLowerCase();
+            int value = Integer.parseInt(matcher.group(1)); // Parse numeric value
+            String unit = matcher.group(2).trim().toLowerCase(); // Get and normalize unit
 
+            // Determine time unit and add corresponding seconds
             if (unit.startsWith("y")) {
                 totalSeconds += value * 60 * 60 * 24 * 365;
             } else if (unit.startsWith("d")) {
@@ -73,10 +81,10 @@ public class TimeUtils {
                 totalSeconds += value * 60 * 60;
             } else if (unit.startsWith("m")) {
                 totalSeconds += value * 60;
-            } else if (unit.startsWith("s") || unit.isEmpty()) { // handles cases like "30" (default seconds)
+            } else if (unit.startsWith("s") || unit.isEmpty()) { // handles cases like "30" (default seconds if no unit)
                 totalSeconds += value;
             }
         }
-        return totalSeconds;
+        return totalSeconds; // Return total seconds calculated
     }
 }

@@ -1,4 +1,4 @@
-// ColorUtils.java
+// utils/ColorUtils.java
 package cp.corona.utils;
 
 import net.md_5.bungee.api.ChatColor;
@@ -18,7 +18,7 @@ public final class ColorUtils {
 
     /**
      * Private constructor to prevent instantiation of this utility class.
-     * Utility classes should not be instantiated.
+     * Utility classes should not be instantiated as they are meant to provide static utility methods.
      */
     private ColorUtils() {}
 
@@ -32,16 +32,21 @@ public final class ColorUtils {
      * @return The translated message with color codes applied.
      */
     public static String translateRGBColors(String message) {
+        if (message == null || message.isEmpty()) {
+            return message; // Return original message if null or empty
+        }
         Matcher matcher = HEX_PATTERN.matcher(message);
         StringBuffer buffer = new StringBuffer();
 
+        // Find all hex color codes and replace them with actual ChatColors
         while (matcher.find()) {
-            String hexCode = matcher.group();
-            String replacement = ChatColor.of(hexCode).toString();
-            matcher.appendReplacement(buffer, replacement);
+            String hexColorCode = matcher.group();
+            // Replace hex color code with Bungee's ChatColor RGB format
+            matcher.appendReplacement(buffer, ChatColor.of(hexColorCode).toString());
         }
-        matcher.appendTail(buffer);
+        matcher.appendTail(buffer); // Append the rest of the message
 
+        // Translate legacy color codes and return the final colored string
         return ChatColor.translateAlternateColorCodes('&', buffer.toString());
     }
 }

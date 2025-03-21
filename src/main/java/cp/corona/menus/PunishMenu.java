@@ -1,3 +1,4 @@
+// menus/PunishMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -8,10 +9,23 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
  * Represents the main punishment menu.
  * Allows selecting different punishment categories: Ban, Mute, SoftBan, Kick, and Warn.
  */
@@ -28,7 +42,18 @@ public class PunishMenu implements InventoryHolder {
     private static final String KICK_ITEM_KEY = "kick"; // New item for kick
     private static final String WARN_ITEM_KEY = "warn"; // New item for warn
     private static final String HISTORY_ITEM_KEY = "history"; // New item for punishment history
+    private static final String BACKGROUND_FILL_1_KEY = "background_fill_1"; // Background fill item key 1
+    private static final String BACKGROUND_FILL_2_KEY = "background_fill_2"; // Background fill item key 2
 
+
+    /**
+     * Stores the item keys in a Set for easy access and iteration.
+     */
+    private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
+            INFO_ITEM_KEY, BAN_ITEM_KEY, MUTE_ITEM_KEY, SOFTBAN_ITEM_KEY,
+            KICK_ITEM_KEY, WARN_ITEM_KEY, HISTORY_ITEM_KEY,
+            BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY // Include background fill keys if you have them listed as items
+    ));
 
     /**
      * Constructor for PunishMenu.
@@ -52,29 +77,10 @@ public class PunishMenu implements InventoryHolder {
      * @param target OfflinePlayer to display player-specific information.
      */
     private void initializeItems(OfflinePlayer target) {
-        // Info Item
-        setItemInMenu(INFO_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(INFO_ITEM_KEY), target);
-
-        // Ban Item
-        setItemInMenu(BAN_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(BAN_ITEM_KEY), target);
-
-        // Mute Item
-        setItemInMenu(MUTE_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(MUTE_ITEM_KEY), target);
-
-        // SoftBan Item
-        setItemInMenu(SOFTBAN_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(SOFTBAN_ITEM_KEY), target);
-
-        // Kick Item
-        setItemInMenu(KICK_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(KICK_ITEM_KEY), target);
-
-        // Warn Item
-        setItemInMenu(WARN_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(WARN_ITEM_KEY), target);
-
-        // History Item
-        setItemInMenu(HISTORY_ITEM_KEY, plugin.getConfigManager().getPunishMenuItemConfig(HISTORY_ITEM_KEY), target);
-
-        // Example of adding a background fill - assuming you have a 'background_fill' item defined in your punish_menu.yml
-        setItemInMenu("background_fill", plugin.getConfigManager().getPunishMenuItemConfig("background_fill"), target);
+        // Iterate through item keys and set items in menu
+        for (String itemKey : menuItemKeys) {
+            setItemInMenu(itemKey, plugin.getConfigManager().getPunishMenuItemConfig(itemKey), target);
+        }
     }
 
     /**
@@ -121,5 +127,15 @@ public class PunishMenu implements InventoryHolder {
      */
     public UUID getTargetUUID() {
         return targetUUID;
+    }
+
+    /**
+     * Gets the set of MenuItem keys used in this menu.
+     * This is used for dynamic item loading in MenuListener.
+     *
+     * @return A Set of item keys (String).
+     */
+    public Set<String> getMenuItemKeys() {
+        return menuItemKeys;
     }
 }

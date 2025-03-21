@@ -19,7 +19,12 @@ import java.util.*;
 import java.util.logging.Level;
 
 /**
- * /**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
  * Handles the main command and subcommands for the CrownPunishments plugin.
  * Implements CommandExecutor and TabCompleter for command handling and tab completion.
  */
