@@ -28,9 +28,9 @@ import java.util.stream.Collectors;
  *
  * Handles the main command and subcommands for the CrownPunishments plugin.
  * Implements CommandExecutor and TabCompleter for command handling and tab completion,
- * for /crown base command, its subcommands, and the top-level /unpunish command.
- * The /punish alias is correctly re-integrated to point to /crown punish functionality.
- * Top-level /softban command is removed. /unpunish is now both top-level and subcommand, treated distinctly.
+ * treating /crown, /punish, /softban, and /unpunish as COMPLETELY SEPARATE top-level commands.
+ * This approach prioritizes clarity and robustness over minimal code duplication for command handling.
+ * Top-level /softban and /unpunish commands are now treated separately, and /punish mirrors /crown punish.
  */
 public class MainCommand implements CommandExecutor, TabCompleter {
     private final CrownPunishments plugin;
@@ -40,6 +40,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String PUNISH_SUBCOMMAND = "punish";
     private static final String UNPUNISH_SUBCOMMAND = "unpunish";
     private static final String HELP_SUBCOMMAND = "help";
+    private static final String SOFTBAN_COMMAND = "softban"; // Constant for softban command alias
     private static final String ADMIN_PERMISSION = "crown.admin";
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn"); // Registered punishment types
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn"); // Registered unpunishment types, including warn
@@ -54,68 +55,57 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     /**
      * Executes commands when players type them in-game, handling:
-     * - /crown base command and its subcommands.
-     * - /punish alias command to /crown punish subcommand.
-     * - /unpunish top-level command as a SEPARATE command.
-     * /softban top-level command is removed.
-     *
-     * @param sender Source of the command.
-     * @param command Command which was executed.
-     * @param alias Alias of the command which was used.
-     * @param args Passed command arguments.
-     * @return true if command was handled correctly, false otherwise.
+     * - /crown base command and its subcommands (punish, reload, help, unpunish).
+     * - /punish command (alias for /crown punish).
+     * - /softban top-level command.
+     * - /unpunish top-level command.
+     * Each command is handled in a separate block for clarity and to avoid complex argument processing.
+     * Top-level /softban and /unpunish commands are now treated separately, and /punish is a direct alias for /crown punish.
      */
     @Override
     public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
-        // Handling for /crown and /punish (alias) commands and their subcommands
-        if (alias.equalsIgnoreCase("crown") || alias.equalsIgnoreCase("punish")) { // <---- AQUI LA CORRECCIÓN! Incluimos 'punish' aquí
-            if (args.length == 0 && alias.equalsIgnoreCase("crown")) { // Help for /crown base command only
+        // Handling for /crown command and its subcommands
+        if (alias.equalsIgnoreCase("crown")) {
+            if (args.length == 0) { // /crown with no arguments: show help
                 help(sender);
                 return true;
             }
 
-            if (args.length == 0 && alias.equalsIgnoreCase("punish")) { // Help for /punish base command (alias)
-                help(sender);
-                return true;
-            }
-
-
-            if (args.length > 0) {
-                String subcommand = args[0].toLowerCase();
-                // For /punish alias, we need to prepend "punish" subcommand to args for handlePunishCommand
-                String[] processedArgs = args;
-                if (alias.equalsIgnoreCase("punish")) { // Prepend "punish" for /punish alias
-                    processedArgs = new String[args.length + 1];
-                    processedArgs[0] = PUNISH_SUBCOMMAND;
-                    System.arraycopy(args, 0, processedArgs, 1, args.length);
-                    subcommand = PUNISH_SUBCOMMAND; // Ensure subcommand is set to "punish" for alias
-                }
-
-
-                switch (subcommand) {
-                    case RELOAD_SUBCOMMAND:
-                        return handleReloadCommand(sender);
-                    case PUNISH_SUBCOMMAND:
-                        return handlePunishCommand(sender, Arrays.copyOfRange(processedArgs, 1, processedArgs.length)); // Pass arguments without the subcommand
-                    case UNPUNISH_SUBCOMMAND:
-                        return handleUnpunishCommand(sender, Arrays.copyOfRange(processedArgs, 1, processedArgs.length)); // Pass arguments without the subcommand
-                    case HELP_SUBCOMMAND:
-                        help(sender);
-                        return true;
-                    default:
-                        help(sender); // Help for invalid subcommands
-                        return true;
-                }
-            } else {
-                help(sender); // Help for /crown or /punish with no subcommands
-                return true;
+            String subcommand = args[0].toLowerCase();
+            switch (subcommand) {
+                case RELOAD_SUBCOMMAND:
+                    return handleReloadCommand(sender);
+                case PUNISH_SUBCOMMAND:
+                    return handlePunishCommand(sender, Arrays.copyOfRange(args, 1, args.length)); // Pass arguments without the subcommand
+                case UNPUNISH_SUBCOMMAND:
+                    return handleUnpunishCommand(sender, Arrays.copyOfRange(args, 1, args.length)); // Pass arguments without the subcommand
+                case HELP_SUBCOMMAND:
+                    help(sender);
+                    return true;
+                default:
+                    help(sender); // Show help for invalid subcommands
+                    return true;
             }
         }
+
+        // Handling for /punish command (alias for /crown punish) - SEPARATE HANDLING BLOCK
+        if (alias.equalsIgnoreCase("punish")) {
+            // Directly call handlePunishCommand, treating /punish as if it was /crown punish
+            return handlePunishCommand(sender, args); // Pass all arguments directly to handlePunishCommand for /punish
+        }
+
 
         // Handling for /unpunish command as a SEPARATE top-level command
         if (alias.equalsIgnoreCase("unpunish")) {
             return handleUnpunishCommand(sender, args); // Directly handle /unpunish command
         }
+
+        // Handling for /softban command as a SEPARATE top-level command
+        if (alias.equalsIgnoreCase("softban")) {
+            // Process /softban command directly - arguments are already in correct order for handlePunishCommand
+            return handlePunishCommand(sender, new String[]{SOFTBAN_COMMAND, args.length > 0 ? args[0] : "", args.length > 1 ? args[1] : "", args.length > 2 ? args[2] : ""});
+        }
+
 
         return false; // Command or alias not handled by this executor
     }
@@ -140,7 +130,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     /**
      * Handles the punish subcommand, opening the punishment menu or executing direct punishment.
-     * Only accessible via /crown punish ... or /punish ... (alias).
+     * Accessible via /crown punish ... or /punish ... (alias).
      *
      * @param sender CommandSender who sent the command.
      * @param args Command arguments.
@@ -398,44 +388,55 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * Provides tab completion options for commands, handling:
      * - /crown base command and its subcommands.
      * - /punish alias command to /crown punish subcommand.
+     * - /softban top-level command mirroring /crown punish softban.
      * - /unpunish top-level command as a SEPARATE command.
-     * Tab completion for top-level /softban command is removed.
-     *
-     * @param sender Command sender.
-     * @param command Command being typed.
-     * @param alias Command alias used.
-     * @param args Current command arguments.
-     * @return List of tab completion options.
+     * Tab completion for all commands is now handled in separate blocks for clarity and correctness.
      */
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
 
-        // Tab completion for /crown command and its subcommands AND /punish ALIAS
-        if (alias.equalsIgnoreCase("crown") || alias.equalsIgnoreCase("punish")) { // <---- AQUI LA CORRECCIÓN! Incluimos 'punish' aquí
-            if (args.length == 1) { // Subcommands for /crown or first arg for /punish
-                List<String> subcommandsList = Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND);
-                if (alias.equalsIgnoreCase("punish")) { // For /punish alias, suggest player names directly
-                    Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
-                    StringUtil.copyPartialMatches(args[0], Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), completions);
-                } else { // For /crown, suggest subcommands
-                    StringUtil.copyPartialMatches(args[0], subcommandsList, completions);
-                }
-            } else if (args.length == 2 && (args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND) || alias.equalsIgnoreCase("punish"))) { // Player names for /crown punish <player> OR /punish <player>
+        // Tab completion for /crown command and its subcommands - SEPARATE BLOCK
+        if (alias.equalsIgnoreCase("crown")) {
+            if (args.length == 1) { // Subcommands for /crown
+                StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND), completions);
+            } else if (args.length == 2 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) { // Player names for /crown punish <player>
                 Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
-            } else if (args.length == 3 && (args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND) || alias.equalsIgnoreCase("punish"))) { // Punishment types for /crown punish <player> <type> OR /punish <player> <type>
+            } else if (args.length == 3 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) { // Punishment types for /crown punish <player> <type>
                 StringUtil.copyPartialMatches(args[2], PUNISHMENT_TYPES, completions);
-            } else if (args.length == 4 && (args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND) || alias.equalsIgnoreCase("punish"))) { // Time suggestions for /crown punish <player> <type> OR /punish <player> <type>
+            } else if (args.length == 4 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) { // Time suggestions for /crown punish <player> <type>
                 String punishType = args[2].toLowerCase();
                 if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) { // Time relevant for ban, mute, softban
                     StringUtil.copyPartialMatches(args[3], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent"), completions);
                 }
-            } else if (args.length >= 5 && (args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND) || alias.equalsIgnoreCase("punish"))) { // Reason suggestion for /crown punish <player> <type> <time> OR /punish <player> <type> <time>
+            } else if (args.length >= 5 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) { // Reason suggestion for /crown punish <player> <type> <time>
+                completions.add("reason here...");
+            } else if (args.length == 2 && args[0].equalsIgnoreCase(UNPUNISH_SUBCOMMAND)) { // Player names for /crown unpunish <player>
+                Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
+            } else if (args.length == 3 && args[0].equalsIgnoreCase(UNPUNISH_SUBCOMMAND)) { // Unpunishment types for /crown unpunish <player> <type>
+                StringUtil.copyPartialMatches(args[2], UNPUNISHMENT_TYPES, completions);
+            }
+        }
+
+        // Tab completion for /punish command (alias) - SEPARATE BLOCK - [CORRECTED TAB COMPLETE FOR /PUNISH!]
+        if (alias.equalsIgnoreCase("punish")) {
+            if (args.length == 1) { // Player names for /punish <player>
+                Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
+                StringUtil.copyPartialMatches(args[0], Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), completions);
+            } else if (args.length == 2) { // Punishment types for /punish <player> <type>
+                StringUtil.copyPartialMatches(args[1], PUNISHMENT_TYPES, completions);
+            } else if (args.length == 3) { // Time suggestions for /punish <player> <type> <time>
+                String punishType = args[1].toLowerCase(); // Use args[1] here, as args[0] is player name
+                if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) { // Time relevant for ban, mute, softban
+                    StringUtil.copyPartialMatches(args[2], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent"), completions);
+                }
+            } else if (args.length >= 4) { // Reason suggestion for /punish <player> <type> <time> <reason...>
                 completions.add("reason here...");
             }
         }
 
-        // Tab completion for /unpunish command as a SEPARATE top-level command
+
+        // Tab completion for /unpunish command - SEPARATE BLOCK - [CORRECTED TAB COMPLETE for /crown unpunish AND /unpunish]
         if (alias.equalsIgnoreCase("unpunish")) {
             if (args.length == 1) { // Player name completion for /unpunish <player>
                 StringUtil.copyPartialMatches(args[0], Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), completions);
@@ -443,6 +444,18 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 StringUtil.copyPartialMatches(args[1], UNPUNISHMENT_TYPES, completions); // Use UNPUNISHMENT_TYPES for /unpunish
             }
         }
+
+        // Tab completion for /softban command - SEPARATE BLOCK
+        if (alias.equalsIgnoreCase("softban")) {
+            if (args.length == 1) { // Player name completion for /softban <player>
+                StringUtil.copyPartialMatches(args[0], Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), completions);
+            } else if (args.length == 2) { // Time suggestions for /softban <player> <time>
+                StringUtil.copyPartialMatches(args[1], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent"), completions);
+            } else if (args.length >= 3) { // Reason suggestion for /softban <player> <time> <reason...>
+                completions.add("reason here...");
+            }
+        }
+
 
         Collections.sort(completions);
         return completions;

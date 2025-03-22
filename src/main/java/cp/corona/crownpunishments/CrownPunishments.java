@@ -130,6 +130,17 @@ public final class CrownPunishments extends JavaPlugin {
         } else {
             getLogger().warning("[COMMAND DEBUG] Command 'unpunish' is NULL! Registration FAILED. Check plugin.yml for 'unpunish' command definition.");
         }
+
+        // Register 'softban' command - TOP LEVEL COMMAND, mirroring /crown punish softban
+        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'softban'");
+        PluginCommand softbanCommand = getCommand("softban");
+        if (softbanCommand != null) {
+            getLogger().info("[COMMAND DEBUG] Command 'softban' found. Setting executor and tab completer.");
+            softbanCommand.setExecutor(mainCommand); // Set executor
+            softbanCommand.setTabCompleter(mainCommand); // Set tab completer
+        } else {
+            getLogger().warning("[COMMAND DEBUG] Command 'softban' is NULL! Registration FAILED. Check plugin.yml for 'softban' command definition.");
+        }
     }
 
     /**

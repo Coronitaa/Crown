@@ -27,6 +27,12 @@ commands:
     usage: /<command> <player> <type>
     permission: crown.admin
     permission-message: You do not have permission to use this command.
+  softban: # Top level command for softbanning players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /CROWN PUNISH SOFTBAN
+    description: Command to directly softban players.
+    usage: /<command> <player> [time] [reason]
+    permission: crown.use # or crown.admin if you want to restrict it to admins only
+    permission-message: You do not have permission to use this command.
+
 
 permissions:
   crown.use:
