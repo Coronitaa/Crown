@@ -25,7 +25,7 @@ public final class CrownPunishments extends JavaPlugin {
 
     /**
      * Called when the plugin is enabled.
-     * Initializes configuration, database, commands, and event listeners.
+     * Initializes configuration, database, commands, and event listeners, and PlaceholderAPI.
      */
     @Override
     public void onEnable() {
@@ -33,8 +33,15 @@ public final class CrownPunishments extends JavaPlugin {
         this.configManager = new MainConfigManager(this);
         // Initialize database manager, setting up database connection and tables
         this.softBanDatabaseManager = new SoftBanDatabaseManager(this);
-        // Check if PlaceholderAPI is installed and enabled
-        placeholderAPIEnabled = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
+
+        // Check if PlaceholderAPI is installed and enabled - Now done in MainConfigManager
+        this.placeholderAPIEnabled = configManager.isPlaceholderAPIEnabled(); // Get status from config manager
+
+        if (placeholderAPIEnabled) { // Register placeholders only if PlaceholderAPI is enabled
+            configManager.registerPlaceholders(); // Register PlaceholderAPI placeholders via ConfigManager - [CORRECTED CALL]
+        }
+
+
 
         registerCommands(); // Register command handlers
         registerEvents();   // Register event listeners
@@ -46,7 +53,10 @@ public final class CrownPunishments extends JavaPlugin {
         if (configManager.isDebugEnabled()) {
             getLogger().log(Level.INFO, "[CrownPunishments] Debug mode is enabled.");
         }
+        // Log PlaceholderAPI status
+        getLogger().log(Level.INFO, "[CrownPunishments] PlaceholderAPI integration is " + (isPlaceholderAPIEnabled() ? "enabled" : "disabled") + "."); // Log PAPI status
     }
+
 
     /**
      * Called when the plugin is disabled.

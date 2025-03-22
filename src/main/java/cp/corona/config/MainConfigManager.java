@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
  * Provides methods to load, reload, and access configuration values, as well as process placeholders.
  *
  * Updated to load multiple click actions for menu items and handle console commands.
+ * Now also manages PlaceholderAPI integration and placeholder registration.
  */
 public class MainConfigManager {
     private final CustomConfig messagesConfig;
@@ -50,11 +51,13 @@ public class MainConfigManager {
     private final CrownPunishments plugin;
     private final String defaultTimeUnit; // Store default time unit
     private boolean debugEnabled; // Debugging flag
-    private CrownPunishmentsPlaceholders placeholders; // PlaceholderAPI Expansion
+    private boolean placeholderAPIEnabled; // Flag to track PlaceholderAPI status
+    private CrownPunishmentsPlaceholders placeholders; // PlaceholderAPI Expansion instance
+
 
     /**
      * Constructor for MainConfigManager.
-     * Initializes and registers custom configuration files.
+     * Initializes and registers custom configuration files, and PlaceholderAPI placeholders.
      *
      * @param plugin Instance of the main plugin class.
      */
@@ -79,11 +82,14 @@ public class MainConfigManager {
         loadConfig();
         this.defaultTimeUnit = getTimeUnit("default"); // Load default time unit on startup
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false); // Load debug config
+
+        // Check for PlaceholderAPI and register placeholders if enabled
+        this.placeholderAPIEnabled = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
         registerPlaceholders(); // Register PlaceholderAPI placeholders
     }
 
     /**
-     * Loads configuration from files.
+     * Loads configuration from files and re-registers placeholders.
      */
     public void loadConfig() {
         messagesConfig.reloadConfig();
@@ -96,7 +102,7 @@ public class MainConfigManager {
         if (isDebugEnabled()) {
             plugin.getLogger().log(Level.INFO, "[MainConfigManager] Configurations reloaded and debug mode is " + (isDebugEnabled() ? "enabled" : "disabled"));
         }
-        if (placeholders != null) {
+        if (placeholders != null && placeholderAPIEnabled) { // Only unregister if placeholders are registered and PAPI is enabled
             placeholders.unregister(); // Unregister old placeholders
             placeholders.register();   // Re-register placeholders after config reload
         }
@@ -112,12 +118,23 @@ public class MainConfigManager {
     }
 
     /**
-     * Registers custom placeholders for PlaceholderAPI.
+     * Checks if PlaceholderAPI is enabled.
+     *
+     * @return true if PlaceholderAPI is enabled, false otherwise.
      */
-    private void registerPlaceholders() {
-        if (plugin.isPlaceholderAPIEnabled()) {
+    public boolean isPlaceholderAPIEnabled() {
+        return placeholderAPIEnabled;
+    }
+
+
+    /**
+     * Registers custom placeholders for PlaceholderAPI if PlaceholderAPI is enabled.
+     * Made public to be accessible from CrownPunishments main class.
+     */
+    public void registerPlaceholders() { // Changed to public access modifier
+        if (placeholderAPIEnabled) {
             if (placeholders == null) {
-                placeholders = new CrownPunishmentsPlaceholders();
+                placeholders = new CrownPunishmentsPlaceholders(plugin); // Pass plugin instance to placeholder class
             }
             boolean registered = placeholders.register(); // Capture registration result
             if (registered) {
@@ -742,9 +759,19 @@ public class MainConfigManager {
     //</editor-fold>
 
     /**
-     * Inner class to handle PlaceholderAPI placeholders with enhanced logging.
+     * Inner class to handle PlaceholderAPI placeholders.
      */
     private class CrownPunishmentsPlaceholders extends PlaceholderExpansion {
+
+        private final CrownPunishments plugin;
+
+        /**
+         * Constructor for CrownPunishmentsPlaceholders.
+         * @param plugin Main plugin instance.
+         */
+        public CrownPunishmentsPlaceholders(CrownPunishments plugin) {
+            this.plugin = plugin;
+        }
 
         @Override
         public boolean persist() {
@@ -767,43 +794,26 @@ public class MainConfigManager {
         }
 
         @Override
-        public boolean register(){
-            boolean registered = super.register();
-            if(registered) {
-                plugin.getLogger().info("[PlaceholderAPI DEBUG] CrownPunishments placeholders REGISTERED with PlaceholderAPI.");
-            } else {
-                plugin.getLogger().warning("[PlaceholderAPI DEBUG] CrownPunishments placeholders FAILED to register with PlaceholderAPI.");
-            }
-            return registered;
-        }
-
-        @Override
         public String onRequest(OfflinePlayer player, String params) {
             if (player == null) {
                 return null;
             }
-            plugin.getLogger().info("[PlaceholderAPI DEBUG] onRequest called for player: " + player.getName() + ", params: " + params);
+
             if (params.equalsIgnoreCase("is_softbanned")) {
-                boolean isSoftBanned = plugin.getSoftBanDatabaseManager().isSoftBanned(player.getUniqueId());
-                plugin.getLogger().info("[PlaceholderAPI DEBUG] is_softbanned parameter detected. Returning: " + isSoftBanned);
-                return String.valueOf(isSoftBanned);
+                return String.valueOf(plugin.getSoftBanDatabaseManager().isSoftBanned(player.getUniqueId()));
             }
+
             if (params.equalsIgnoreCase("softban_time_left")) {
                 long endTime = plugin.getSoftBanDatabaseManager().getSoftBanEndTime(player.getUniqueId());
-                if (endTime == 0 || !plugin.getSoftBanDatabaseManager().isSoftBanned(player.getUniqueId())) {
-                    plugin.getLogger().info("[PlaceholderAPI DEBUG] softban_time_left parameter detected, not softbanned or endTime=0. Returning: N/A");
-                    return "N/A";
+                if (endTime == 0) {
+                    return "N/A"; // Or any default value if not soft-banned
                 }
                 if (endTime == Long.MAX_VALUE) {
-                    plugin.getLogger().info("[PlaceholderAPI DEBUG] softban_time_left parameter detected, permanent softban. Returning: permanent_time_display message");
                     return getMessage("messages.permanent_time_display");
                 }
                 int remainingSeconds = (int) ((endTime - System.currentTimeMillis()) / 1000);
-                String formattedTime = TimeUtils.formatTime(remainingSeconds, MainConfigManager.this);
-                plugin.getLogger().info("[PlaceholderAPI DEBUG] softban_time_left parameter detected. Returning formatted time: " + formattedTime);
-                return formattedTime;
+                return TimeUtils.formatTime(remainingSeconds, MainConfigManager.this);
             }
-            plugin.getLogger().warning("[PlaceholderAPI DEBUG] Unknown parameter in onRequest: " + params);
             return null;
         }
     }
