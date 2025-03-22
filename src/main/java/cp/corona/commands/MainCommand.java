@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * Handles the main command and subcommands for the CrownPunishments plugin.
  * Implements CommandExecutor and TabCompleter for command handling and tab completion,
  * treating /crown, /punish, /softban, and /unpunish as COMPLETELY SEPARATE top-level commands.
- * This approach prioritizes clarity and robustness, and this version should finally have all commands and tab completion working correctly.
+ * This version includes robust input validation for time arguments and a correction for the softban time calculation bug.
  * Top-level /softban and /unpunish commands are now fully separate, and /punish mirrors /crown punish.
  */
 public class MainCommand implements CommandExecutor, TabCompleter {
@@ -57,8 +57,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * Executes commands when players type them in-game, handling:
      * - /crown base command and its subcommands (punish, reload, help, unpunish).
      * - /punish alias command to /crown punish subcommand.
-     * - /softban top-level command, now with its own dedicated handler and correct argument processing.
-     * - /unpunish top-level command, now with its own dedicated handler and correct tab completion for /crown unpunish.
+     * - /softban top-level command, now with its own dedicated handler and argument validation.
+     * - /unpunish top-level command, now with its own dedicated handler and correct tab completion.
      * Each command is handled in a separate block for clarity and to avoid complex argument processing.
      * Top-level /softban and /unpunish commands are now treated separately, and /punish is a direct alias for /crown punish.
      */
@@ -139,8 +139,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        if (args.length == 0) { // Only /crown punish -> help (though ideally, /crown alone should show help)
-            help(sender); // Consider more specific help for /crown punish if needed
+        if (args.length == 0) { // /crown punish or /punish with no arguments: show help
+            help(sender);
             return true;
         }
 
@@ -152,7 +152,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length == 1) { // /crown punish <target> - Open main menu
+        if (args.length == 1) { // /crown punish <target> or /punish <target>: Open main menu
             if (!(sender instanceof Player)) {
                 sendConfigMessage(sender, "messages.player_only");
                 return true;
@@ -164,7 +164,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
                 return true;
             }
-            if (args.length == 2) { // /crown punish <target> <type> - Open details menu
+            if (args.length == 2) { // /crown punish <target> <type> or /punish <target> <type>: Open details menu
                 if (!(sender instanceof Player)) {
                     sendConfigMessage(sender, "messages.player_only");
                     return true;
@@ -264,6 +264,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         if (args.length >= 2) {
             time = args[1];
+            // [NEW] Validate time format for /softban command
+            if (TimeUtils.parseTime(time, plugin.getConfigManager()) == 0 && !time.equalsIgnoreCase("permanent")) {
+                sendConfigMessage(sender, "messages.invalid_time_format_command", "{input}", time); // Specific message for invalid time format in commands
+                return false; // Stop command execution if time format is invalid
+            }
         }
         if (args.length >= 3) {
             reason = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
@@ -313,6 +318,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 break;
             case "softban": // Softban handled internally, direct command now supported
                 punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
+                // [BUGFIX] Add 1 second to softban duration to correct the 1-second-short issue
+                if (!time.equalsIgnoreCase("permanent")) {
+                    punishmentEndTime += 1000L; // Add 1 second in milliseconds
+                }
                 if (time.equalsIgnoreCase("permanent")) {
                     punishmentEndTime = Long.MAX_VALUE;
                     durationForLog = "permanent";
@@ -416,7 +425,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * - /crown base command and its subcommands.
      * - /punish alias command to /crown punish subcommand.
      * - /softban top-level command mirroring /crown punish softban - [CORRECTED TAB COMPLETE FOR /SOFTBAN!]
-     * - /unpunish top-level command as a SEPARATE command - [CORRECTED TAB COMPLETE FOR /CROWN UNPUNISH!]
+     * - /unpunish top-level command as a SEPARATE command - [CORRECTED TAB COMPLETE FOR /crown unpunish!]
      * Tab completion for all commands is now handled in separate blocks for clarity and correctness.
      */
     @Override
@@ -462,6 +471,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
+
         // Tab completion for /unpunish command - SEPARATE BLOCK - [CORRECTED TAB COMPLETE for /crown unpunish AND /unpunish - NOW CORRECT!]
         if (alias.equalsIgnoreCase("unpunish")) {
             if (args.length == 1) { // Player name completion for /unpunish <player>
@@ -481,6 +491,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 completions.add("reason here...");
             }
         }
+
 
         Collections.sort(completions);
         return completions;

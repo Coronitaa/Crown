@@ -27,6 +27,7 @@ messages:
   input_cancelled: '&cInput cancelled.'
   player_never_played: '{prefix}&cPlayer ''{input}'' has never played before.'
   invalid_time_format: '{prefix}&cInvalid time format. Please use like 1d, 2h, 30min.'
+  invalid_time_format_command: '{prefix}&cInvalid time format: &b{input}&c. Please use formats like 1s, 2m, 3h, 4d, 5y or "permanent".' # Specific message for invalid time format in commands - [NEW MESSAGE]
   target_player_not_found: '{prefix}&cTarget player not found.'
   punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_type}d for &b{time}&a with reason: &b{reason}' # Generic confirmation
   punishment_softban_confirmed: '{prefix}&aPlayer &b{target}&a has been softbanned for &b{time}&a with reason: &b{reason}' # Keeping it for specific softban confirmation if needed in future
@@ -61,3 +62,4 @@ messages:
   history_menu_next_page: '&aNext Page'
   history_menu_previous_page: '&cPrevious Page'
   history_menu_entry_name: '&ePunishment Entry' # Default name for history entry item
+  softban_usage: '{prefix}&cUsage: /softban <player> [time] [reason]' # Usage message for /softban command - [NEW MESSAGE]
