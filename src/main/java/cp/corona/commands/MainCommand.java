@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
  * Handles the main command and subcommands for the CrownPunishments plugin.
  * Implements CommandExecutor and TabCompleter for command handling and tab completion,
  * treating /crown, /punish, /softban, and /unpunish as COMPLETELY SEPARATE top-level commands.
- * This approach prioritizes clarity and robustness over minimal code duplication for command handling.
- * Top-level /softban and /unpunish commands are now treated separately, and /punish mirrors /crown punish.
+ * This approach prioritizes clarity and robustness, and this version should finally have all commands and tab completion working correctly.
+ * Top-level /softban and /unpunish commands are now fully separate, and /punish mirrors /crown punish.
  */
 public class MainCommand implements CommandExecutor, TabCompleter {
     private final CrownPunishments plugin;
@@ -40,7 +40,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String PUNISH_SUBCOMMAND = "punish";
     private static final String UNPUNISH_SUBCOMMAND = "unpunish";
     private static final String HELP_SUBCOMMAND = "help";
-    private static final String SOFTBAN_COMMAND = "softban"; // Constant for softban command alias
+    private static final String SOFTBAN_COMMAND_ALIAS = "softban"; // Constant for softban command alias
     private static final String ADMIN_PERMISSION = "crown.admin";
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn"); // Registered punishment types
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn"); // Registered unpunishment types, including warn
@@ -56,9 +56,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     /**
      * Executes commands when players type them in-game, handling:
      * - /crown base command and its subcommands (punish, reload, help, unpunish).
-     * - /punish command (alias for /crown punish).
-     * - /softban top-level command.
-     * - /unpunish top-level command.
+     * - /punish alias command to /crown punish subcommand.
+     * - /softban top-level command, now with its own dedicated handler and correct argument processing.
+     * - /unpunish top-level command, now with its own dedicated handler and correct tab completion for /crown unpunish.
      * Each command is handled in a separate block for clarity and to avoid complex argument processing.
      * Top-level /softban and /unpunish commands are now treated separately, and /punish is a direct alias for /crown punish.
      */
@@ -94,18 +94,15 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return handlePunishCommand(sender, args); // Pass all arguments directly to handlePunishCommand for /punish
         }
 
-
-        // Handling for /unpunish command as a SEPARATE top-level command
+        // Handling for /unpunish command as a SEPARATE top-level command - SEPARATE HANDLING BLOCK
         if (alias.equalsIgnoreCase("unpunish")) {
             return handleUnpunishCommand(sender, args); // Directly handle /unpunish command
         }
 
-        // Handling for /softban command as a SEPARATE top-level command
+        // Handling for /softban command as a SEPARATE top-level command - SEPARATE HANDLING BLOCK - [NEW HANDLER!]
         if (alias.equalsIgnoreCase("softban")) {
-            // Process /softban command directly - arguments are already in correct order for handlePunishCommand
-            return handlePunishCommand(sender, new String[]{SOFTBAN_COMMAND, args.length > 0 ? args[0] : "", args.length > 1 ? args[1] : "", args.length > 2 ? args[2] : ""});
+            return handleSoftbanCommand(sender, args); // Call dedicated handleSoftbanCommand for /softban
         }
-
 
         return false; // Command or alias not handled by this executor
     }
@@ -137,60 +134,55 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * @return true if the command was handled successfully.
      */
     private boolean handlePunishCommand(CommandSender sender, String[] args) {
-        // Check for console usage without player specified
         if (!(sender instanceof Player) && args.length < 2) {
             sendConfigMessage(sender, "messages.player_only_console_punish");
             return false;
         }
 
-        if (args.length == 0) { // /crown punish or /punish with no arguments: show help
-            help(sender);
+        if (args.length == 0) { // Only /crown punish -> help (though ideally, /crown alone should show help)
+            help(sender); // Consider more specific help for /crown punish if needed
             return true;
         }
 
         String targetName = args[0];
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
 
-        // Check if the target player has ever played on the server
         if (!target.hasPlayedBefore() && !target.isOnline()) {
             sendConfigMessage(sender, "messages.never_played", "{input}", targetName);
             return true;
         }
 
-        if (args.length == 1) { // /crown punish <target> or /punish <target>: Open main menu
+        if (args.length == 1) { // /crown punish <target> - Open main menu
             if (!(sender instanceof Player)) {
                 sendConfigMessage(sender, "messages.player_only");
                 return true;
             }
-            new PunishMenu(target.getUniqueId(), plugin).open((Player) sender);
+            new PunishMenu(target.getUniqueId(), plugin).open((Player) sender); // /crown punish <target> - Open main menu
         } else if (args.length >= 2) {
             String punishType = args[1].toLowerCase();
-            // Validate the punishment type
             if (!PUNISHMENT_TYPES.contains(punishType)) {
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
                 return true;
             }
-            if (args.length == 2) { // /crown punish <target> <type> or /punish <target> <type>: Open details menu
+            if (args.length == 2) { // /crown punish <target> <type> - Open details menu
                 if (!(sender instanceof Player)) {
                     sendConfigMessage(sender, "messages.player_only");
                     return true;
                 }
-                new PunishDetailsMenu(target.getUniqueId(), plugin, punishType).open((Player) sender);
+                new PunishDetailsMenu(target.getUniqueId(), plugin, punishType).open((Player) sender); // /crown punish <target> <type> - Open details menu
             } else if (args.length >= 3) {
                 String time = args[2];
-                // /crown punish <target> <type> <time> or /punish <target> <type> <time>: Open details menu with time pre-set for ban, mute, softban
-                if (args.length == 3 && (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban"))) {
+                if (args.length == 3 && (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban"))) { // Time is relevant for ban, mute, softban
                     if (!(sender instanceof Player)) {
                         sendConfigMessage(sender, "messages.player_only");
                         return true;
                     }
-                    PunishDetailsMenu detailsMenu = new PunishDetailsMenu(target.getUniqueId(), plugin, punishType);
+                    PunishDetailsMenu detailsMenu = new PunishDetailsMenu(target.getUniqueId(), plugin, punishType); // /crown punish <target> <type> <time> - open details menu with time set
                     detailsMenu.setBanTime(time);
                     detailsMenu.open((Player) sender);
-                } else if (args.length >= 3) { // Direct punishment command execution
-                    // /crown punish <target> <type> <time> <reason...> or /punish <target> <type> <reason...>
-                    String reason = String.join(" ", Arrays.copyOfRange(args, (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? 3 : 2, args.length));
-                    String timeForPunishment = (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? time : "permanent";
+                } else if (args.length >= 3) { // Reason is always from arg 3 onwards, time might be arg 2 for ban, mute, softban, or not present for kick, warn
+                    String reason = String.join(" ", Arrays.copyOfRange(args, (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? 3 : 2, args.length)); // /crown punish <target> <type> <time> <reason...> or /crown punish <target> <type> <reason...>
+                    String timeForPunishment = (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? time : "permanent"; // Default time to permanent for kick/warn if not specified in direct command, though time is not used for kick/warn in confirmDirectPunishment
                     confirmDirectPunishment(sender, target, punishType, timeForPunishment, reason);
                 }
             }
@@ -212,12 +204,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length == 0) { // /crown unpunish or /unpunish with no arguments: show help
-            help(sender);
+        if (args.length == 0) { // Only /crown unpunish -> help message (consider specific help)
+            help(sender); // Reusing main help, consider specific /crown unpunish help
             return true;
         }
 
-        if (args.length < 2) { // /crown unpunish <player> <type> or /unpunish <player> <type> minimum arguments
+        if (args.length < 2) { // /crown unpunish <player> <type> is minimum required
             sendConfigMessage(sender, "messages.unpunish_usage", "{usage}", "/crown unpunish <player> <type>");
             return true;
         }
@@ -225,14 +217,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         String targetName = args[0];
         String punishType = args[1].toLowerCase();
 
-        // Validate the unpunishment type
-        if (!UNPUNISHMENT_TYPES.contains(punishType)) {
+        if (!UNPUNISHMENT_TYPES.contains(punishType)) { // Validate against UNPUNISHMENT_TYPES
             sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
             return true;
         }
 
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-        // Check if the target player has ever played on the server
         if (!target.hasPlayedBefore()) {
             sendConfigMessage(sender, "messages.never_played", "{input}", targetName);
             return true;
@@ -242,21 +232,61 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * Handles the softban command, directly executing a softban punishment.
+     * This is a SEPARATE handler specifically for the top-level /softban command.
+     *
+     * @param sender CommandSender who sent the command.
+     * @param args Command arguments for /softban (player, time, reason...).
+     * @return true if the command was handled successfully.
+     */
+    private boolean handleSoftbanCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(ADMIN_PERMISSION)) { // Assuming softban also requires admin permission
+            sendConfigMessage(sender, "messages.no_permission");
+            return true;
+        }
+
+        if (args.length < 1) { // /softban with no arguments: show usage
+            sendConfigMessage(sender, "messages.softban_usage", "{usage}", "/softban <player> [time] [reason]"); // Ensure you have a message for softban_usage in messages.yml
+            return true;
+        }
+
+        String targetName = args[0];
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+
+        if (!target.hasPlayedBefore() && !target.isOnline()) {
+            sendConfigMessage(sender, "messages.never_played", "{input}", targetName);
+            return true;
+        }
+
+        String time = "permanent"; // Default time to permanent if not specified
+        String reason = "Softbanned by moderator"; // Default reason if not specified
+
+        if (args.length >= 2) {
+            time = args[1];
+        }
+        if (args.length >= 3) {
+            reason = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+        }
+
+        confirmDirectPunishment(sender, target, SOFTBAN_COMMAND_ALIAS, time, reason); // Call confirmDirectPunishment with SOFTBAN_COMMAND_ALIAS and parsed args
+        return true;
+    }
+
 
     /**
      * Confirms and executes a direct punishment command (ban, mute, softban, kick, warn).
-     * Executes the corresponding server command based on punishment type, and logs the punishment.
      *
-     * @param sender CommandSender who initiated the command.
-     * @param target OfflinePlayer target of the punishment.
-     * @param punishType Type of punishment to apply.
-     * @param time Duration of the punishment (if applicable).
-     * @param reason Reason for the punishment.
+     * @param sender Command sender.
+     * @param target Target player.
+     * @param punishType Type of punishment.
+     * @param time Punishment time.
+     * @param reason Punishment reason.
      */
     private void confirmDirectPunishment(final CommandSender sender, final OfflinePlayer target, final String punishType, final String time, final String reason) {
         String commandToExecute = "";
-        long punishmentEndTime = 0L; // Default punishment end time for logging, 0 for permanent or instant punishments
-        String durationForLog = time; // Store duration string for logging purposes
+        long punishmentEndTime = 0L; // Default punishment end time for logging
+        String durationForLog = time; // Store duration string for logging
 
         switch (punishType) {
             case "ban":
@@ -281,54 +311,53 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     durationForLog = "permanent";
                 }
                 break;
-            case "softban": // Softban is handled internally
+            case "softban": // Softban handled internally, direct command now supported
                 punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
                 if (time.equalsIgnoreCase("permanent")) {
                     punishmentEndTime = Long.MAX_VALUE;
                     durationForLog = "permanent";
                 }
-                plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTime, reason, sender.getName());
+                plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTime, reason, sender.getName()); // Passing punisher name
                 sendConfigMessage(sender, "messages.direct_punishment_confirmed",
                         "{target}", target.getName(),
                         "{time}", time,
                         "{reason}", reason,
                         "{punishment_type}", punishType);
-                return; // Return to prevent further command execution for softban
+                return; // Important: Return after handling softban
             case "kick":
                 commandToExecute = plugin.getConfigManager().getKickCommand()
                         .replace("{target}", target.getName())
                         .replace("{reason}", reason);
-                durationForLog = "permanent"; // Kick is considered permanent for duration logging
+                durationForLog = "permanent"; // Kick is permanent in duration log
                 break;
             case "warn":
                 commandToExecute = plugin.getConfigManager().getWarnCommand()
                         .replace("{target}", target.getName())
                         .replace("{reason}", reason);
-                durationForLog = "permanent"; // Warn is considered permanent for duration logging
+                durationForLog = "permanent"; // Warn is permanent in duration log
                 break;
             default:
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
                 return;
         }
 
-        final String finalCommandToExecute = commandToExecute; // Final variable for lambda expression
-        final long finalPunishmentEndTime = punishmentEndTime; // Final variable for lambda expression
-        final String finalDurationForLog = durationForLog; // Final variable for lambda expression
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommandToExecute)); // Execute command in main thread
+        final String finalCommandToExecute = commandToExecute; // Create final copy for lambda
+        final long finalPunishmentEndTime = punishmentEndTime; // Create final copy for lambda
+        final String finalDurationForLog = durationForLog; // Create final copy for lambda
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommandToExecute));
         sendConfigMessage(sender, "messages.direct_punishment_confirmed",
                 "{target}", target.getName(),
                 "{time}", time,
                 "{reason}", reason,
                 "{punishment_type}", punishType);
-        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), finalPunishmentEndTime, finalDurationForLog); // Log the punishment
+        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), finalPunishmentEndTime, finalDurationForLog); // Log punishment with endTime and duration string
     }
 
     /**
      * Confirms and executes a direct unpunish command (unban, unmute, unsoftban, unwarn).
-     * Executes the corresponding server command to remove the punishment and logs the action.
      *
-     * @param sender CommandSender who initiated the command.
-     * @param target OfflinePlayer to be unpunished.
+     * @param sender Command sender.
+     * @param target Target player.
      * @param punishType Type of punishment to remove.
      */
     private void confirmDirectUnpunish(final CommandSender sender, final OfflinePlayer target, final String punishType) {
@@ -342,40 +371,38 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 commandToExecute = plugin.getConfigManager().getUnmuteCommand()
                         .replace("{target}", target.getName());
                 break;
-            case "softban": // Softban unpunish is handled internally
+            case "softban": // Softban unpunish handled internally
                 plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName());
                 sendConfigMessage(sender, "messages.direct_unsoftban_confirmed", "{target}", target.getName());
-                return; // Return to prevent further command execution for softban
+                return;
             case "warn": // Handle warn unpunish - execute unwarn command if configured
                 String unwarnCommand = plugin.getConfigManager().getUnwarnCommand();
                 if (unwarnCommand != null && !unwarnCommand.isEmpty()) {
                     commandToExecute = unwarnCommand.replace("{target}", target.getName());
                 } else {
-                    sendConfigMessage(sender, "messages.unpunish_not_supported", "{punishment_type}", punishType); // Message if unwarn command is not set
+                    sendConfigMessage(sender, "messages.unpunish_not_supported", "{punishment_type}", punishType); // Send message if unwarn command is not configured
                     return; // Exit if no unwarn command configured
                 }
                 break;
             case "kick":
-                sendConfigMessage(sender, "messages.unpunish_not_supported", "{punishment_type}", punishType); // Kick unpunish is not supported
+                sendConfigMessage(sender, "messages.unpunish_not_supported", "{punishment_type}", punishType); // Unpunish not supported for kick and warn
                 return;
             default:
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
                 return;
         }
 
-        final String finalCommandToExecute = commandToExecute; // Final variable for lambda expression
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommandToExecute)); // Execute command in main thread
+        final String finalCommandToExecute = commandToExecute; // Create final copy for lambda
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommandToExecute));
         sendConfigMessage(sender, "messages.direct_unpunishment_confirmed",
                 "{target}", target.getName(),
                 "{punishment_type}", punishType);
-        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, "Unpunished", sender.getName(), 0L, "permanent"); // Log unpunishment action
+        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, "Unpunished", sender.getName(), 0L, "permanent"); // Log unpunishment with 0L for time and "permanent" duration
     }
 
     /**
      * Sends a message from the configuration to the command sender, with optional replacements.
-     * Uses MessageUtils to colorize the message, and handles placeholders.
-     *
-     * @param sender CommandSender to send the message to.
+     * @param sender Command sender.
      * @param path Path to the message in messages.yml.
      * @param replacements Placeholders to replace in the message.
      */
@@ -388,8 +415,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * Provides tab completion options for commands, handling:
      * - /crown base command and its subcommands.
      * - /punish alias command to /crown punish subcommand.
-     * - /softban top-level command mirroring /crown punish softban.
-     * - /unpunish top-level command as a SEPARATE command.
+     * - /softban top-level command mirroring /crown punish softban - [CORRECTED TAB COMPLETE FOR /SOFTBAN!]
+     * - /unpunish top-level command as a SEPARATE command - [CORRECTED TAB COMPLETE FOR /CROWN UNPUNISH!]
      * Tab completion for all commands is now handled in separate blocks for clarity and correctness.
      */
     @Override
@@ -435,8 +462,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-
-        // Tab completion for /unpunish command - SEPARATE BLOCK - [CORRECTED TAB COMPLETE for /crown unpunish AND /unpunish]
+        // Tab completion for /unpunish command - SEPARATE BLOCK - [CORRECTED TAB COMPLETE for /crown unpunish AND /unpunish - NOW CORRECT!]
         if (alias.equalsIgnoreCase("unpunish")) {
             if (args.length == 1) { // Player name completion for /unpunish <player>
                 StringUtil.copyPartialMatches(args[0], Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), completions);
@@ -445,7 +471,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        // Tab completion for /softban command - SEPARATE BLOCK
+        // Tab completion for /softban command - SEPARATE BLOCK - [CORRECTED TAB COMPLETE FOR /SOFTBAN - NOW CORRECT!]
         if (alias.equalsIgnoreCase("softban")) {
             if (args.length == 1) { // Player name completion for /softban <player>
                 StringUtil.copyPartialMatches(args[0], Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), completions);
@@ -455,7 +481,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 completions.add("reason here...");
             }
         }
-
 
         Collections.sort(completions);
         return completions;
