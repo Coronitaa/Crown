@@ -76,7 +76,7 @@ public final class CrownPunishments extends JavaPlugin {
             getLogger().warning("[COMMAND DEBUG] Command 'crown' is NULL! Registration FAILED. Check plugin.yml for 'crown' command definition.");
         }
 
-        // Register 'punish' command alias
+        // Register 'punish' command alias - for direct /punish usage
         getLogger().info("[COMMAND DEBUG] Attempting to get command: 'punish'");
         PluginCommand punishCommand = getCommand("punish");
         if (punishCommand != null) {
@@ -109,7 +109,7 @@ public final class CrownPunishments extends JavaPlugin {
             getLogger().warning("[COMMAND DEBUG] Command 'warn' is NULL! Registration FAILED. Check plugin.yml for 'warn' command definition.");
         }
 
-        // Register 'crownpunishments' command alias
+        // Register 'crownpunishments' command alias - for full command name usage
         getLogger().info("[COMMAND DEBUG] Attempting to get command: 'crownpunishments'");
         PluginCommand crownPunishmentsCommand = getCommand("crownpunishments");
         if (crownPunishmentsCommand != null) {
@@ -118,6 +118,17 @@ public final class CrownPunishments extends JavaPlugin {
             crownPunishmentsCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
             getLogger().warning("[COMMAND DEBUG] Command 'crownpunishments' is NULL! Registration FAILED. Check plugin.yml for 'crownpunishments' command definition.");
+        }
+
+        // Register 'unpunish' command - TOP LEVEL COMMAND, SEPARATE FROM CROWN SUBCOMMAND
+        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'unpunish'");
+        PluginCommand unpunishCommand = getCommand("unpunish");
+        if (unpunishCommand != null) {
+            getLogger().info("[COMMAND DEBUG] Command 'unpunish' found. Setting executor and tab completer.");
+            unpunishCommand.setExecutor(mainCommand); // Set executor
+            unpunishCommand.setTabCompleter(mainCommand); // Set tab completer
+        } else {
+            getLogger().warning("[COMMAND DEBUG] Command 'unpunish' is NULL! Registration FAILED. Check plugin.yml for 'unpunish' command definition.");
         }
     }
 

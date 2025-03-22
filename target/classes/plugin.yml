@@ -11,16 +11,21 @@ commands:
     aliases: [cp, crownpunish]
     permission: crown.use
     permission-message: You do not have permission to use this command.
-  punish: # Alias command for direct /punish usage
+  punish: # Alias command for direct /punish usage - ALIAS OF /CROWN PUNISH
     description: Alias for /crown punish command.
     usage: /<command> <player> [type] [time] [reason]
     permission: crown.use
     permission-message: You do not have permission to use this command.
-  crownpunishments: # Added another alias example, for consistency and discoverability
+  crownpunishments: # Added another alias example, for consistency and discoverability - ALIAS OF /CROWN
     description: Alias for /crown command - full name alias
     usage: /<command> [punish|reload|help|unpunish]
     aliases: [crown]
     permission: crown.use
+    permission-message: You do not have permission to use this command.
+  unpunish: # Top level command for unpunishing players directly - SEPARATE TOP LEVEL COMMAND
+    description: Command to directly unpunish players.
+    usage: /<command> <player> <type>
+    permission: crown.admin
     permission-message: You do not have permission to use this command.
 
 permissions:

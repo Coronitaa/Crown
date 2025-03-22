@@ -13,7 +13,9 @@ messages:
   help_punish: '&b/crown punish <player> &7- Open punishment menu'
   help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Quick punish command. Types: ban, mute, softban, kick, warn' # Extended help, including kick and warn in types
   help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban)'
+  help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban command.' # Help for /softban command
   help_reload: '&b/crown reload &7- Reload configuration'
+  unpunish_not_supported: '{prefix}&cUnpunish command is not supported for {punishment_type}.' # Message for unsupported unpunish types
   prompt_new_target: '&aEnter a new player name (or type ''cancel'' to cancel):'
   prompt_ban_reason: '&aEnter the ban reason (or type ''cancel'' to cancel):'
   prompt_mute_reason: '&aEnter the mute reason (or type ''cancel'' to cancel):'
@@ -52,7 +54,6 @@ messages:
   default_kick_reason: 'Kicked by moderator.' # Default reason for kicks, configurable
   direct_kick_confirmed: '{prefix}&aPlayer &b{target}&a has been kicked. Reason: &b{reason}' # Confirmation for kick
   direct_warn_confirmed: '{prefix}&aPlayer &b{target}&a has been warned. Reason: &b{reason}' # Confirmation for warn
-  unpunish_not_supported: '{prefix}&cUnpunish command is not supported for {punishment_type}.' # Message for unsupported unpunish types
   direct_command_not_supported: '{prefix}&cDirect command is not supported for {punishment_type}, please use the menu.' # Message for unsupported direct commands
   history_entry_format: "&eType: &b{type}&7, &eReason: &b{reason}&7, &eTime: &b{timestamp}&7, &eBy: &b{punisher}" # Format for history entries
   history_menu_title: '&7&lPunishment History for &b{target}&7' # Title for history menu
