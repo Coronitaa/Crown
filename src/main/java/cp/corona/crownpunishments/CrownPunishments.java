@@ -5,12 +5,15 @@ import cp.corona.commands.MainCommand;
 import cp.corona.config.MainConfigManager;
 import cp.corona.database.SoftBanDatabaseManager;
 import cp.corona.listeners.CommandBlockerListener;
+import cp.corona.listeners.FreezeListener; // Import FreezeListener - NEW
 import cp.corona.listeners.MenuListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.HashMap; // Import HashMap - NEW
+import java.util.UUID;
 import java.util.logging.Level;
 
 /**
@@ -22,6 +25,7 @@ public final class CrownPunishments extends JavaPlugin {
     private MainConfigManager configManager;
     private SoftBanDatabaseManager softBanDatabaseManager; // Database Manager
     private boolean placeholderAPIEnabled;
+    private final HashMap<UUID, Boolean> pluginFrozenPlayers = new HashMap<>(); // Track frozen players - NEW
 
     /**
      * Called when the plugin is enabled.
@@ -40,8 +44,6 @@ public final class CrownPunishments extends JavaPlugin {
         if (placeholderAPIEnabled) { // Register placeholders only if PlaceholderAPI is enabled
             configManager.registerPlaceholders(); // Register PlaceholderAPI placeholders via ConfigManager - [CORRECTED CALL]
         }
-
-
 
         registerCommands(); // Register command handlers
         registerEvents();   // Register event listeners
@@ -151,6 +153,17 @@ public final class CrownPunishments extends JavaPlugin {
         } else {
             getLogger().warning("[COMMAND DEBUG] Command 'softban' is NULL! Registration FAILED. Check plugin.yml for 'softban' command definition.");
         }
+
+        // Register 'freeze' command - TOP LEVEL COMMAND - NEW
+        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'freeze'");
+        PluginCommand freezeCommand = getCommand("freeze");
+        if (freezeCommand != null) {
+            getLogger().info("[COMMAND DEBUG] Command 'freeze' found. Setting executor and tab completer.");
+            freezeCommand.setExecutor(mainCommand); // Set executor
+            freezeCommand.setTabCompleter(mainCommand); // Set tab completer
+        } else {
+            getLogger().warning("[COMMAND DEBUG] Command 'freeze' is NULL! Registration FAILED. Check plugin.yml for 'freeze' command definition.");
+        }
     }
 
     /**
@@ -159,6 +172,7 @@ public final class CrownPunishments extends JavaPlugin {
     public void registerEvents() {
         getServer().getPluginManager().registerEvents(new MenuListener(this), this); // Register MenuListener for menu interactions
         getServer().getPluginManager().registerEvents(new CommandBlockerListener(this), this); // Register CommandBlockerListener for softban command blocking
+        getServer().getPluginManager().registerEvents(new FreezeListener(this), this); // Register FreezeListener for freeze punishment - NEW
     }
 
     /**
@@ -186,5 +200,14 @@ public final class CrownPunishments extends JavaPlugin {
      */
     public boolean isPlaceholderAPIEnabled() {
         return placeholderAPIEnabled;
+    }
+
+    /**
+     * Gets the HashMap of frozen players. - NEW
+     *
+     * @return HashMap containing frozen players' UUIDs and their frozen status.
+     */
+    public HashMap<UUID, Boolean> getPluginFrozenPlayers() {
+        return pluginFrozenPlayers;
     }
 }

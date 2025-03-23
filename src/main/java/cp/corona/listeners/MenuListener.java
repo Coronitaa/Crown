@@ -1,4 +1,3 @@
-// MenuListener.java
 package cp.corona.listeners;
 
 import cp.corona.config.MainConfigManager;
@@ -35,17 +34,8 @@ import java.util.stream.Collectors;
 import static cp.corona.menus.PunishDetailsMenu.*;
 
 /**
- * ////////////////////////////////////////////////
- * //             CrownPunishments             //
- * //         Developed with passion by         //
- * //                   Corona                 //
- * ////////////////////////////////////////////////
- *
- * Listener for handling menu interactions in the CrownPunishments plugin.
- * Manages inventory click events, chat input for reasons and times,
- * and interactions with PunishMenu, PunishDetailsMenu, and TimeSelectorMenu.
- *
- * Updated to handle refactored MenuItem actions and console commands with placeholders and colors.
+ * Menu interaction listener for CrownPunishments plugin.
+ * Handles inventory clicks, chat input, and menu actions.
  */
 public class MenuListener implements Listener {
     private final CrownPunishments plugin;
@@ -57,17 +47,19 @@ public class MenuListener implements Listener {
     private static final String BAN_PUNISHMENT_TYPE = "ban";
     private static final String MUTE_PUNISHMENT_TYPE = "mute";
     private static final String SOFTBAN_PUNISHMENT_TYPE = "softban";
-    private static final String KICK_PUNISHMENT_TYPE = "kick"; // New punishment type
-    private static final String WARN_PUNISHMENT_TYPE = "warn"; // New punishment type
+    private static final String KICK_PUNISHMENT_TYPE = "kick";
+    private static final String WARN_PUNISHMENT_TYPE = "warn";
+    private static final String FREEZE_PUNISHMENT_TYPE = "freeze"; // New punishment type - NEW
     private static final String PERMANENT_TIME_KEY = "permanent";
     private static final String CUSTOM_TIME_KEY = "custom";
     private static final String INFO_ITEM_KEY = "info";
     private static final String BAN_ITEM_MENU_KEY = "ban";
     private static final String MUTE_ITEM_MENU_KEY = "mute";
     private static final String SOFTBAN_ITEM_MENU_KEY = "softban";
-    private static final String KICK_ITEM_MENU_KEY = "kick"; // New item key
-    private static final String WARN_ITEM_MENU_KEY = "warn"; // New item key
-    private static final String HISTORY_ITEM_MENU_KEY = "history"; // New item key for history
+    private static final String KICK_ITEM_MENU_KEY = "kick";
+    private static final String WARN_ITEM_MENU_KEY = "warn";
+    private static final String FREEZE_ITEM_MENU_KEY = "freeze"; // New item key - NEW
+    private static final String HISTORY_ITEM_MENU_KEY = "history";
     private static final String TIME_DISPLAY_KEY = "time_display";
     private static final String MINUS_5_MIN_KEY = "minus_5_min";
     private static final String MINUS_2_HOUR_KEY = "minus_2_hour";
@@ -78,8 +70,9 @@ public class MenuListener implements Listener {
     private static final String PLUS_1_DAY_KEY = "plus_1_day";
     private static final String PLUS_7_DAY_KEY = "plus_7_day";
     private static final String BACK_BUTTON_KEY = "back_button";
-    private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button"; // For history menu pagination
-    private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button"; // For history menu pagination
+    private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
+    private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
+    private static final String ADMIN_PERMISSION = "crown.admin"; // ADDED ADMIN_PERMISSION constant here
 
     /**
      * Constructor for MenuListener.
@@ -104,7 +97,7 @@ public class MenuListener implements Listener {
         if (event.getClickedInventory() == null || event.getClickedInventory().getType() == InventoryType.PLAYER || clickedItem == null) return;
 
         playSound(player, "menu_click");
-        event.setCancelled(true);
+        event.setCancelled(true); // IMPORTANT: Cancel the event to prevent item movement
 
         MenuItem clickedMenuItem = getMenuItemClicked(event.getRawSlot(), holder);
         if (clickedMenuItem != null) {
@@ -348,6 +341,8 @@ public class MenuListener implements Listener {
                         new PunishDetailsMenu(targetUUID, plugin, KICK_ITEM_MENU_KEY).open(player); // Open Kick details menu
                     } else if (actionData.equalsIgnoreCase("warn_details")) {
                         new PunishDetailsMenu(targetUUID, plugin, WARN_PUNISHMENT_TYPE).open(player); // Open Warn details menu
+                    } else if (actionData.equalsIgnoreCase("freeze_details")) { // Open Freeze details menu - NEW
+                        new PunishDetailsMenu(targetUUID, plugin, FREEZE_PUNISHMENT_TYPE).open(player); // Open Freeze details menu - NEW
                     } else if (actionData.equalsIgnoreCase("history_menu")) {
                         new HistoryMenu(targetUUID, plugin).open(player); // Open History menu
                     } else if (actionData.equalsIgnoreCase("punish_menu")) { // Handle reopening of the PunishMenu
@@ -396,6 +391,9 @@ public class MenuListener implements Listener {
                 break;
             case UN_SOFTBAN:
                 handleUnsoftbanButtonClick(player, punishDetailsMenu);
+                break;
+            case UN_FREEZE: // Handle unfreeze button click - NEW
+                handleUnfreezeButtonClick(player, punishDetailsMenu); // Call unfreeze handler - NEW
                 break;
             case NO_ACTION:
             default:
@@ -591,6 +589,21 @@ public class MenuListener implements Listener {
         Player player = event.getPlayer();
         if (!inputTimeouts.containsKey(player.getUniqueId())) return;
 
+        // Check if the sender is frozen - NEW
+        if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())) {
+            if (!player.hasPermission(ADMIN_PERMISSION)) {
+                event.setCancelled(true); // Cancel chat message
+                // Send message only to admins - NEW
+                plugin.getServer().getOnlinePlayers().stream()
+                        .filter(p -> p.hasPermission(ADMIN_PERMISSION))
+                        .forEach(admin -> admin.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_player_chat_admin_only", "{player}", player.getName(), "{message}", event.getMessage()))));
+                return; // Stop further processing
+            } else {
+                // Admins can chat even when frozen for monitoring purposes
+                plugin.getServer().getOnlinePlayers().forEach(p -> p.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_player_chat_admin", "{player}", player.getName(), "{message}", event.getMessage()))));
+            }
+        }
+
         event.setCancelled(true);
         handlePlayerInput(player, event.getMessage());
     }
@@ -760,6 +773,9 @@ public class MenuListener implements Listener {
             case WARN_PUNISHMENT_TYPE:
                 confirmWarn(player, punishDetailsMenu);
                 break;
+            case FREEZE_PUNISHMENT_TYPE: // Handle Freeze punishment - NEW
+                confirmFreeze(player, punishDetailsMenu); // Call confirmFreeze method - NEW
+                break;
             default:
                 plugin.getLogger().warning("Unknown punishment type: " + punishDetailsMenu.getPunishmentType());
         }
@@ -803,6 +819,8 @@ public class MenuListener implements Listener {
                 return plugin.getConfigManager().getWarnCommand();
             case SOFTBAN_PUNISHMENT_TYPE: // Added softban type here
                 return plugin.getConfigManager().getSoftBanCommand(); // Although softban is handled internally, added to avoid potential issues
+            case FREEZE_PUNISHMENT_TYPE: // Freeze type - NEW
+                return ""; // Freeze is handled internally, no external command
             default:
                 return "";
         }
@@ -863,6 +881,36 @@ public class MenuListener implements Listener {
         playSound(player, "punish_confirm");
         sendSoftbanConfirmation(player, target, timeInput, reason);
         // Softban is logged inside SoftBanDatabaseManager.softBanPlayer to avoid duplicates.
+    }
+
+    /**
+     * Confirms and executes a freeze punishment. - NEW
+     *
+     * @param player          The player confirming the freeze.
+     * @param punishDetailsMenu The PunishDetailsMenu instance.
+     */
+    private void confirmFreeze(Player player, PunishDetailsMenu punishDetailsMenu) {
+        UUID targetUUID = punishDetailsMenu.getTargetUUID();
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        String reason = punishDetailsMenu.getBanReason(); // Reason is still collected and can be logged even if not displayed in UI
+
+        // Check if player is already frozen - NEW - Added check here for menu freeze
+        if (plugin.getPluginFrozenPlayers().containsKey(target.getUniqueId())) {
+            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.already_frozen", "{target}", target.getName()))); // Send "already_frozen" message - NEW
+            return; // Prevent duplicate freeze
+        }
+
+
+        plugin.getPluginFrozenPlayers().put(target.getUniqueId(), true); // Mark player as frozen in plugin's internal list - NEW
+
+        playSound(player, "punish_confirm");
+        sendFreezeConfirmation(player, target, reason); // Send freeze confirmation message - NEW
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, FREEZE_PUNISHMENT_TYPE, reason, player.getName(), Long.MAX_VALUE, "permanent"); // Log freeze punishment - NEW
+
+        Player onlineTarget = target.getPlayer();
+        if (onlineTarget != null) {
+            sendFreezeReceivedMessage(onlineTarget, reason); // Inform the frozen player - NEW
+        }
     }
 
 
@@ -938,6 +986,49 @@ public class MenuListener implements Listener {
     }
 
     /**
+     * Sends a freeze confirmation message to the punisher. - NEW
+     * @param player    The punisher player.
+     * @param target    The frozen player.
+     * @param reason    The freeze reason.
+     */
+    private void sendFreezeConfirmation(Player player, OfflinePlayer target, String reason) {
+        plugin.getLogger().info("[DEBUG] sendFreezeConfirmation - start"); // Debug log - entry
+        plugin.getLogger().info("[DEBUG] sendFreezeConfirmation - message path: messages.punishment_confirmed"); // Debug log - message path
+
+        // Handle potentially null reason to prevent NullPointerException
+        String actualReason = (reason != null) ? reason : "No reason provided"; // Provide default reason if null
+        // Retrieve disconnect ban time from config for confirmation message - NEW
+        String disconnectBanTime = plugin.getConfigManager().getPluginConfig().getConfig().getString("freeze.disconnect_ban_time", "permanent"); // Get configured time - NEW
+
+        String message = plugin.getConfigManager().getMessage("messages.punishment_confirmed",
+                "{target}", target.getName() != null ? target.getName() : "unknown",
+                "{time}", disconnectBanTime, // Use configured disconnectBanTime here - MODIFIED
+                "{reason}", actualReason, // Use actualReason here - MODIFIED
+                "{punishment_type}", FREEZE_PUNISHMENT_TYPE);
+
+        plugin.getLogger().info("[DEBUG] sendFreezeConfirmation - message retrieved: " + message); // Debug log - message content
+        if (message == null) {
+            plugin.getLogger().warning("[DEBUG] sendFreezeConfirmation - message is NULL for path: messages.punishment_confirmed"); // Warning log if message is null
+        }
+
+
+        player.closeInventory();
+        player.sendMessage(MessageUtils.getColorMessage(message)); // Send processed message
+
+        plugin.getLogger().info("[DEBUG] sendFreezeConfirmation - end"); // Debug log - exit
+
+    }
+
+    /**
+     * Sends a freeze received message to the frozen player. - NEW
+     * @param player    The frozen player.
+     * @param reason    The freeze reason.
+     */
+    private void sendFreezeReceivedMessage(Player player, String reason) {
+        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_frozen")));
+    }
+
+    /**
      * Sends a kick confirmation message to the punisher.
      * @param player The punisher player.
      * @param target The kicked player.
@@ -982,6 +1073,37 @@ public class MenuListener implements Listener {
         player.closeInventory();
         player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.unsoftban_success",
                 "{target}", target.getName() != null ? target.getName() : "unknown")));
+    }
+
+    /**
+     * Confirms and executes an unfreeze operation. - NEW
+     *
+     * @param player          The player confirming the unfreeze. - NEW
+     * @param punishDetailsMenu The PunishDetailsMenu instance. - NEW
+     */
+    private void confirmUnfreeze(Player player, PunishDetailsMenu punishDetailsMenu) { // NEW
+        UUID targetUUID = punishDetailsMenu.getTargetUUID();
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+
+        plugin.getPluginFrozenPlayers().remove(targetUUID); // Remove player from frozen list - NEW
+
+        playSound(player, "punish_confirm");
+
+        player.closeInventory();
+        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.unfreeze_success", // You might want to add this message to messages.yml - NEW
+                "{target}", target.getName() != null ? target.getName() : "unknown")));
+        Player onlineTarget = target.getPlayer();
+        if (onlineTarget != null) {
+            sendUnfreezeMessage(onlineTarget); // Inform the player they are unfrozen - NEW
+        }
+    }
+
+    /**
+     * Sends a unfreeze message to the unfreezed player. - NEW
+     * @param player    The unfreezed player. - NEW
+     */
+    private void sendUnfreezeMessage(Player player) { // NEW
+        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_unfrozen")));
     }
 
 
@@ -1046,8 +1168,8 @@ public class MenuListener implements Listener {
      * @param punishDetailsMenu The PunishDetailsMenu instance.
      */
     private void handleConfirmButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
-        if (punishDetailsMenu.isTimeSet() || (!punishDetailsMenu.isTimeRequired())) { // Time is set OR time is not required (for kick/warn)
-            if (punishDetailsMenu.isReasonSet()) {
+        if (punishDetailsMenu.isTimeSet() || (!punishDetailsMenu.isTimeRequired())) { // Time is set OR time is not required (for kick/warn/freeze) - MODIFIED: Added freeze
+            if (punishDetailsMenu.isReasonSet() || !punishDetailsMenu.isReasonRequiredForConfirmation()) { // MODIFIED: Reason is optional for freeze now, added isReasonRequiredForConfirmation check
                 confirmDynamicPunishment(player, punishDetailsMenu);
             } else {
                 sendValidationMessages(player, punishDetailsMenu);
@@ -1068,6 +1190,20 @@ public class MenuListener implements Listener {
             confirmUnsoftban(player, punishDetailsMenu);
         } else {
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.no_active_softban")));
+        }
+    }
+
+    /**
+     * Handles the unfreeze button click, confirming and executing unfreeze if player is frozen. - NEW
+     * @param player          The player clicking the unfreeze button. - NEW
+     * @param punishDetailsMenu The PunishDetailsMenu instance. - NEW
+     */
+    private void handleUnfreezeButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) { // NEW
+        UUID targetUUID = punishDetailsMenu.getTargetUUID();
+        if (plugin.getPluginFrozenPlayers().containsKey(targetUUID)) { // Check if player is frozen - NEW
+            confirmUnfreeze(player, punishDetailsMenu);
+        } else {
+            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.no_active_freeze"))); // Message if player is not frozen - NEW
         }
     }
 
@@ -1115,7 +1251,7 @@ public class MenuListener implements Listener {
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_time_reason_before_confirm")));
         } else if (!punishDetailsMenu.isTimeSet() && punishDetailsMenu.isTimeRequired()) { // Check if time is required
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_time_before_confirm")));
-        } else if (!punishDetailsMenu.isReasonSet()) {
+        } else if (!punishDetailsMenu.isReasonSet() && punishDetailsMenu.isReasonRequiredForConfirmation()) { // Check if reason is required - MODIFIED: Added reason required check
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_reason_before_confirm")));
         }
     }

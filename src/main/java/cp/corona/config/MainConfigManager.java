@@ -1,4 +1,3 @@
-// MainConfigManager.java
 package cp.corona.config;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -196,6 +195,11 @@ public class MainConfigManager {
         } else {
             text = text.replace("{target_softban_remaining_time}", "N/A");
         }
+        // Freeze Placeholders - NEW
+        boolean isFrozen = plugin.getPluginFrozenPlayers().containsKey(target.getUniqueId()); // Check if player is frozen - NEW
+        String freezeStatus = isFrozen ? "&cFrozen" : "&aNot Frozen"; // Status string based on freeze status - NEW
+        text = text.replace("{target_freeze_status}", ColorUtils.translateRGBColors(freezeStatus)); // Apply ColorUtils to freeze status - NEW
+
 
         if (plugin.isPlaceholderAPIEnabled() && target.isOnline()) {
             text = PlaceholderAPI.setPlaceholders(target.getPlayer(), text);
@@ -214,11 +218,11 @@ public class MainConfigManager {
     public String getMessage(String path, String... replacements) {
         String message = messagesConfig.getConfig().getString(path, "");
         if (message == null) return ""; // Handle null message from config
-        message = processPlaceholders(message, null);
+        message = processPlaceholders(message, null); // <--- Placeholder processing happens here
 
         for (int i = 0; i < replacements.length; i += 2) {
             if (i + 1 >= replacements.length) break;
-            message = message.replace(replacements[i], replacements[i + 1]);
+            message = message.replace(replacements[i], replacements[i + 1]); // <--- NullPointerException likely here if replacement is null
         }
 
         return message;
@@ -497,8 +501,15 @@ public class MainConfigManager {
         for (String line : configLore) {
             String processedLine = processPlaceholders(line, target);
             for (int i = 0; i < replacements.length; i += 2) {
-                if (i + 1 >= replacements.length) break;
-                processedLine = processedLine.replace(replacements[i], replacements[i + 1]);
+                if (i + 1 >= replacements.length) {
+                    break; // prevent index out of bounds
+                }
+                String replacementValue = replacements[i + 1]; // Get replacement value
+                if (replacementValue == null) {
+                    replacementValue = "N/A"; // Default value if replacement is null - NEW: Handle null replacement
+                    plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + replacements[i] + " in history menu lore. Using 'N/A'."); // Log warning - NEW
+                }
+                processedLine = processedLine.replace(replacements[i], replacementValue);
             }
             lore.add(processedLine);
         }
@@ -759,6 +770,16 @@ public class MainConfigManager {
     //</editor-fold>
 
     /**
+     * Gets the CustomConfig instance for the main plugin configuration (config.yml).
+     *
+     * @return The CustomConfig instance for pluginConfig.
+     */
+    public CustomConfig getPluginConfig() {
+        return pluginConfig;
+    }
+
+
+    /**
      * Inner class to handle PlaceholderAPI placeholders.
      */
     private class CrownPunishmentsPlaceholders extends PlaceholderExpansion {
@@ -813,6 +834,9 @@ public class MainConfigManager {
                 }
                 int remainingSeconds = (int) ((endTime - System.currentTimeMillis()) / 1000);
                 return TimeUtils.formatTime(remainingSeconds, MainConfigManager.this);
+            }
+            if (params.equalsIgnoreCase("is_frozen")) { // Placeholder to check if player is frozen - NEW
+                return String.valueOf(plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())); // Return freeze status - NEW
             }
             return null;
         }

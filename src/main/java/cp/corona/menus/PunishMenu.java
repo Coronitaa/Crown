@@ -1,4 +1,4 @@
-// menus/PunishMenu.java
+// PunishMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  * ////////////////////////////////////////////////
  *
  * Represents the main punishment menu.
- * Allows selecting different punishment categories: Ban, Mute, SoftBan, Kick, and Warn.
+ * Allows selecting different punishment categories: Ban, Mute, SoftBan, Kick, Warn, and Freeze. - MODIFIED: Added Freeze
  */
 public class PunishMenu implements InventoryHolder {
     private final Inventory inventory;
@@ -38,12 +38,13 @@ public class PunishMenu implements InventoryHolder {
     private static final String INFO_ITEM_KEY = "info";
     private static final String BAN_ITEM_KEY = "ban";
     private static final String MUTE_ITEM_KEY = "mute";
-    private static final String SOFTBAN_ITEM_KEY = "softban"; // New item for softban
-    private static final String KICK_ITEM_KEY = "kick"; // New item for kick
-    private static final String WARN_ITEM_KEY = "warn"; // New item for warn
-    private static final String HISTORY_ITEM_KEY = "history"; // New item for punishment history
-    private static final String BACKGROUND_FILL_1_KEY = "background_fill_1"; // Background fill item key 1
-    private static final String BACKGROUND_FILL_2_KEY = "background_fill_2"; // Background fill item key 2
+    private static final String SOFTBAN_ITEM_KEY = "softban";
+    private static final String KICK_ITEM_KEY = "kick";
+    private static final String WARN_ITEM_KEY = "warn";
+    private static final String FREEZE_ITEM_KEY = "freeze"; // New item for freeze - NEW
+    private static final String HISTORY_ITEM_KEY = "history";
+    private static final String BACKGROUND_FILL_1_KEY = "background_fill_1";
+    private static final String BACKGROUND_FILL_2_KEY = "background_fill_2";
 
 
     /**
@@ -51,7 +52,8 @@ public class PunishMenu implements InventoryHolder {
      */
     private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
             INFO_ITEM_KEY, BAN_ITEM_KEY, MUTE_ITEM_KEY, SOFTBAN_ITEM_KEY,
-            KICK_ITEM_KEY, WARN_ITEM_KEY, HISTORY_ITEM_KEY,
+            KICK_ITEM_KEY, WARN_ITEM_KEY, FREEZE_ITEM_KEY, // Include FREEZE_ITEM_KEY - NEW
+            HISTORY_ITEM_KEY,
             BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY // Include background fill keys if you have them listed as items
     ));
 

@@ -12,7 +12,7 @@ messages:
   help_header: '&6&lCrownPunishments Commands:'
   help_punish: '&b/crown punish <player> &7- Open punishment menu'
   help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Quick punish command. Types: ban, mute, softban, kick, warn' # Extended help, including kick and warn in types
-  help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban)'
+  help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, softban)'
   help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban command.' # Help for /softban command
   help_reload: '&b/crown reload &7- Reload configuration'
   unpunish_not_supported: '{prefix}&cUnpunish command is not supported for {punishment_type}.' # Message for unsupported unpunish types
@@ -63,3 +63,24 @@ messages:
   history_menu_previous_page: '&cPrevious Page'
   history_menu_entry_name: '&ePunishment Entry' # Default name for history entry item
   softban_usage: '{prefix}&cUsage: /softban <player> [time] [reason]' # Usage message for /softban command - [NEW MESSAGE]
+  help_freeze_command: '&b/freeze <player> &7- Freeze a player for manual review.' # Help message for /freeze command - NEW
+  you_are_frozen: | # Message shown to the frozen player - NEW
+    &c&lYou are FROZEN!
+    &cYou have been frozen by a moderator for review.
+    &cPlease remain in place and await further instructions.
+    &7Admins can still see your chat messages.
+  direct_unfreeze_confirmed: '{prefix}&aDirect unfreeze for &b{target}&a confirmed.' # Confirmation message for unfreeze command - NEW
+  direct_freeze_confirmed: '{prefix}&aDirect freeze for &b{target}&a confirmed. Time: &b{time}&a, Reason: &b{reason}' # Confirmation for freeze - NEW
+  freeze_usage: '{prefix}&cCUsage: /freeze <player> [reason]' # Usage message for /freeze command - NEW
+  freeze_command_blocked: '{prefix}&cYou cannot use commands while frozen.' # Message when frozen player tries to use a command - NEW
+  frozen_player_chat_admin_only: '&7[Frozen Player Chat] &b{player}&7: &e{message}' # Chat format for frozen player messages visible to admins only - NEW
+  frozen_player_chat_admin: '&7[Frozen Player Chat - ALL] &b{player}&7: &e{message}' # Chat format for frozen player messages visible to all (admins) - NEW
+  frozen_player_is_immortal: '&7[Freeze] &b{player}&7 is now immortal.' # Message when player becomes immortal under freeze - NEW
+  frozen_player_is_mortal: '&7[Freeze] &b{player}&7 is no longer immortal.' # Message when player is no longer immortal after unfreeze - NEW
+  no_active_freeze: '{prefix}&cThe player is not currently frozen.' # Message when player is not frozen - NEW
+  unfreeze_success: '{prefix}&aSuccessfully removed freeze from &b{target}&a.' # Message for successful unfreeze - NEW
+  you_are_unfrozen: '{prefix}&aYou are no longer frozen. You can move and chat freely.' # Message when player is unfrozen - NEW
+  freeze_received: '&c&lFreeze Alert!&r&c You have been Frozen for manual review. Reason: &e{reason}&c. Please remain in place and await further instructions.' # Message shown to the frozen player - NEW
+  frozen_chat_admin_info: '&7(Only admins can see your chat while frozen)' # Message to inform frozen player about chat visibility - NEW
+  frozen_player_chat_self: '&7[Frozen Player Chat - YOU] &e{message}' # Chat format for frozen player to see their own messages - NEW
+  already_frozen: '{prefix}&cPlayer &b{target}&c is already frozen.'

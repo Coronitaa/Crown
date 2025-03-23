@@ -41,3 +41,8 @@ database: # Database configuration section for softban data storage.
 
 logging:
   debug: true # Set to 'true' to enable debug logging for detailed plugin output. Useful for development and troubleshooting.
+
+freeze: # Configuration section for freeze punishment - NEW
+  disconnect_ban_command: 'ban {target} permanent Disconnected while frozen' # Command to execute when frozen player disconnects - NEW
+  disconnect_ban_reason: 'Disconnected while frozen for review' # Default reason for disconnect ban - NEW
+  disconnect_ban_time: 'permanent' # Default ban time for disconnect ban - NEW

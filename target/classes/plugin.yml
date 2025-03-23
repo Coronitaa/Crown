@@ -32,6 +32,11 @@ commands:
     usage: /<command> <player> [time] [reason]
     permission: crown.use # or crown.admin if you want to restrict it to admins only
     permission-message: You do not have permission to use this command.
+  freeze: # Top level command for freezing players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /crown punish freeze - NEW
+    description: Command to directly freeze players for manual review. # Description for /freeze command - NEW
+    usage: /<command> <player> [reason] # Usage for /freeze command - NEW - Reason is now optional
+    permission: crown.use # or crown.admin if you want to restrict it to admins only - NEW
+    permission-message: You do not have permission to use this command. # Permission message for /freeze - NEW
 
 
 permissions:
@@ -44,3 +49,6 @@ permissions:
   crown.softban.bypass:
     description: Allows players to bypass softban command blocking.
     default: op
+  crown.freeze.bypass: # Permission to bypass freeze restrictions - NEW
+    description: Allows players to bypass freeze restrictions (movement, commands). # Description for freeze bypass permission - NEW
+    default: op # Default to OP, adjust as needed - NEW

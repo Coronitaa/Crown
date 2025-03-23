@@ -11,7 +11,7 @@ package cp.corona.menus.actions;
  * Enumeration of possible actions that can be triggered when clicking a MenuItem in a menu.
  * Defines actions like opening menus, setting punishment types, requesting input, executing commands and more.
  *
- * Updated to include CONSOLE_COMMAND and CLOSE_MENU actions and reflect the refactored action system.
+ * Updated to include CONSOLE_COMMAND, CLOSE_MENU and UN_FREEZE actions and reflect the refactored action system.
  */
 public enum ClickAction {
     OPEN_MENU,          // Opens another menu
@@ -20,7 +20,8 @@ public enum ClickAction {
     ADJUST_TIME,        // Adjusts the punishment time in the TimeSelectorMenu
     CONFIRM_PUNISHMENT, // Confirms and executes the punishment
     UN_SOFTBAN,         // Executes the un-softban action
-    CLOSE_MENU,         // Closes the current menu - NEW ACTION TYPE
+    UN_FREEZE,          // Executes the un-freeze action - NEW
+    CLOSE_MENU,         // Closes the current menu
     ADJUST_PAGE,        // Changes page in a paginated menu (e.g., HistoryMenu)
     CONSOLE_COMMAND,    // Executes a predefined console command
     NO_ACTION;          // No action is performed - default action

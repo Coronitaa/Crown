@@ -8,7 +8,7 @@ menu:
     background_fill_2: # Background fill item configuration - Example 2 (you can add more)
       material: 'WHITE_STAINED_GLASS_PANE' # Light gray stained glass pane
       name: ' '
-      slot: '48-53,3-8,12,14,16-17,24-26,34,39-44,22,32,21,30,35' # Another slot range
+      slot: '48-53,3-8,12,14,16-17,24,26,34,39-44,22,32,21,30,35' # Another slot range
 
     info:
       material: 'PLAYER_HEAD'
@@ -101,6 +101,19 @@ menu:
       click_pitch: 1.0 # Sound pitch
       left_click_actions:
         - 'OPEN_MENU:warn_details' # Action on Left-Click
+
+    freeze: # Configuration for the Freeze menu item - NEW
+      material: 'ICE' # Ice block icon, suggesting freeze - NEW
+      slot: '25' # Inventory slot - NEW
+      name: '&5&lFreeze' # Display name, purple color for freeze - NEW
+      lore: # Lore for freeze item - NEW
+        - '&7Left-Click to freeze' # Instruction line 1 - NEW
+        - '&7player &b{target}&7 for review.' # Instruction line 2 - NEW
+      click_sound: 'UI_BUTTON_CLICK' # Click sound - NEW
+      click_volume: 1.0 # Sound volume - NEW
+      click_pitch: 1.0 # Sound pitch - NEW
+      left_click_actions: # Left click actions - NEW
+        - 'OPEN_MENU:freeze_details' # Open freeze details menu - NEW
 
     history: # Configuration for the History menu item - NEW
       material: 'BOOK' # Book icon, representing history or logs

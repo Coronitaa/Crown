@@ -1,4 +1,3 @@
-// menus/PunishDetailsMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -28,7 +27,7 @@ import java.util.stream.Collectors;
  * //                   Corona                 //
  * ////////////////////////////////////////////////
  *
- * Represents the dynamic punishment details menu, versatile for Ban, Mute, SoftBan, Kick, and Warn.
+ * Represents the dynamic punishment details menu, versatile for Ban, Mute, SoftBan, Kick, Warn, and Freeze. - MODIFIED: Added Freeze
  * Allows setting specific details for a punishment like time and reason, adaptable by punishment type.
  */
 public class PunishDetailsMenu implements InventoryHolder {
@@ -41,6 +40,7 @@ public class PunishDetailsMenu implements InventoryHolder {
     private boolean timeSet = false;
     private boolean reasonSet = false;
     private boolean timeRequired = true; // Flag to indicate if time is required for the punishment type
+    private boolean reasonRequiredForConfirmation = true; // Flag to indicate if reason is required for confirmation - NEW
     private final OfflinePlayer target; // Target player for menu
 
 
@@ -50,6 +50,7 @@ public class PunishDetailsMenu implements InventoryHolder {
     public static final String CONFIRM_PUNISH_KEY = "confirm_punish";
     public static final String BACK_BUTTON_KEY = "back_button";
     public static final String UNSOFTBAN_BUTTON_KEY = "unsoftban_button";
+    public static final String UNFREEZE_BUTTON_KEY = "unfreeze_button"; // New button for unfreezing - NEW
     private static final String BACKGROUND_FILL_1_KEY = "background_fill_1"; // Background fill item key 1
     private static final String BACKGROUND_FILL_2_KEY = "background_fill_2"; // Background fill item key 2
 
@@ -58,8 +59,9 @@ public class PunishDetailsMenu implements InventoryHolder {
      * Stores the item keys in a Set for easy access and iteration in MenuListener.
      */
     private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
-            SET_TIME_KEY, SET_REASON_KEY, CONFIRM_PUNISH_KEY, BACK_BUTTON_KEY,
+            SET_REASON_KEY, CONFIRM_PUNISH_KEY, BACK_BUTTON_KEY,
             UNSOFTBAN_BUTTON_KEY, // Include unsoftban button key
+            UNFREEZE_BUTTON_KEY, // Include unfreeze button key - NEW
             BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY // Background items
     ));
 
@@ -68,7 +70,7 @@ public class PunishDetailsMenu implements InventoryHolder {
      * Constructor for PunishDetailsMenu.
      * @param targetUUID UUID of the target player.
      * @param plugin Instance of the main plugin class.
-     * @param punishmentType Type of punishment (ban, mute, softban, kick, warn).
+     * @param punishmentType Type of punishment (ban, mute, softban, kick, warn, freeze). - MODIFIED: Added freeze
      */
     public PunishDetailsMenu(UUID targetUUID, CrownPunishments plugin, String punishmentType) {
         this.targetUUID = targetUUID;
@@ -77,17 +79,24 @@ public class PunishDetailsMenu implements InventoryHolder {
         this.target = Bukkit.getOfflinePlayer(targetUUID); // Initialize target here
         String title = plugin.getConfigManager().getDetailsMenuText("title", target, punishmentType);
         inventory = Bukkit.createInventory(this, 36, title);
-        setTimeRequiredBasedOnType(punishmentType); // Set if time is required based on punishment type
+        setTimeRequiredByType(punishmentType); // Set if time is required based on punishment type
+        setReasonRequiredForConfirmationByType(punishmentType); // Set if reason is required based on punishment type - NEW
         initializeItems(); // Initialize menu items
+
+        // For freeze punishment, remove SET_TIME_KEY from menuItemKeys and update initializeItems
+        if (punishmentType.equalsIgnoreCase("freeze")) {
+            menuItemKeys.remove(SET_TIME_KEY); // Remove set_time for freeze
+            this.reasonRequiredForConfirmation = false; // Reason is also NOT required for freeze confirmation - NEW
+        }
     }
 
     /**
      * Sets whether time is required for the current punishment type.
-     * Kick and Warn do not require time.
+     * Kick, Warn, and Freeze do not require time. - MODIFIED: Added Freeze
      * @param punishmentType Type of punishment.
      */
-    private void setTimeRequiredBasedOnType(String punishmentType) {
-        if (punishmentType.equalsIgnoreCase("kick") || punishmentType.equalsIgnoreCase("warn")) {
+    private void setTimeRequiredByType(String punishmentType) {
+        if (punishmentType.equalsIgnoreCase("kick") || punishmentType.equalsIgnoreCase("warn") || punishmentType.equalsIgnoreCase("freeze")) { // MODIFIED: Added freeze
             this.timeRequired = false;
         } else {
             this.timeRequired = true;
@@ -95,20 +104,40 @@ public class PunishDetailsMenu implements InventoryHolder {
     }
 
     /**
+     * Sets whether reason is required for confirmation based on punishment type. - NEW
+     * Reason is optional for Freeze. - NEW
+     * @param punishmentType Type of punishment. - NEW
+     */
+    private void setReasonRequiredForConfirmationByType(String punishmentType) { // NEW
+        if (punishmentType.equalsIgnoreCase("freeze")) { // Reason is optional for FREEZE - NEW
+            this.reasonRequiredForConfirmation = false;
+        } else {
+            this.reasonRequiredForConfirmation = true; // Reason is required for other types
+        }
+    }
+
+
+    /**
      * Initializes the items in the menu based on the punishment type.
      */
     private void initializeItems() {
         // Iterate through the common item keys and set them in the menu
         for (String itemKey : menuItemKeys) {
-            // Note: UNSOFTBAN_BUTTON_KEY is handled separately as it's softban-specific
-            if (!itemKey.equals(UNSOFTBAN_BUTTON_KEY)) { // Avoid processing unsoftban button here
-                setItemInMenu(itemKey, getItemStack(itemKey));
+            // Note: UNSOFTBAN_BUTTON_KEY and UNFREEZE_BUTTON_KEY are handled separately as they're punishment-specific - MODIFIED: Added UNFREEZE_BUTTON_KEY
+            if (!itemKey.equals(UNSOFTBAN_BUTTON_KEY) && !itemKey.equals(UNFREEZE_BUTTON_KEY) ) { // MODIFIED: Added UNFREEZE_BUTTON_KEY check
+                if (!itemKey.equals(SET_TIME_KEY) || !punishmentType.equalsIgnoreCase("freeze")) { // Skip SET_TIME_KEY for freeze punishment
+                    setItemInMenu(itemKey, getItemStack(itemKey));
+                }
             }
         }
 
         // Handle softban-specific button separately
         if (punishmentType.equalsIgnoreCase("softban")) {
             setItemInMenu(UNSOFTBAN_BUTTON_KEY, getUnSoftBanButton());
+        }
+        // Handle freeze-specific button separately - NEW
+        if (punishmentType.equalsIgnoreCase("freeze")) {
+            setItemInMenu(UNFREEZE_BUTTON_KEY, getUnFreezeButton()); // Set unfreeze button for freeze menu - NEW
         }
     }
 
@@ -154,6 +183,7 @@ public class PunishDetailsMenu implements InventoryHolder {
      * @return ItemStack for set time item.
      */
     private ItemStack getSetTimeItem() {
+        if (punishmentType.equalsIgnoreCase("freeze")) return null; // Do not return set time item for freeze
         MenuItem setTimeConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, SET_TIME_KEY);
         if (setTimeConfig == null) return null;
         ItemStack item = setTimeConfig.toItemStack(target, plugin.getConfigManager());
@@ -197,7 +227,7 @@ public class PunishDetailsMenu implements InventoryHolder {
         if (meta != null) {
             // Ensure display name is set from config here as well, to cover all cases
             meta.setDisplayName(MessageUtils.getColorMessage(plugin.getConfigManager().getDetailsMenuText("items." + punishmentType + "." + CONFIRM_PUNISH_KEY + ".name", target, punishmentType)));
-            if ((timeRequired && (!timeSet || !reasonSet)) || (!timeRequired && !reasonSet)) { // Check timeRequired flag
+            if ((timeRequired && !timeSet) || (reasonRequiredForConfirmation && !reasonSet) && !punishmentType.equalsIgnoreCase("freeze")) { // Check timeRequired and reasonRequiredForConfirmation flags - MODIFIED CONDITION - Reason is NOT required for freeze confirmation
                 List<String> lore = plugin.getConfigManager().getDetailsMenuItemLore(punishmentType, CONFIRM_PUNISH_KEY, target,
                         "{time_status}", getTimeStatusText(),
                         "{reason_status}", getReasonStatusText());
@@ -231,6 +261,16 @@ public class PunishDetailsMenu implements InventoryHolder {
         MenuItem unSoftbanButtonConfig = plugin.getConfigManager().getDetailsMenuItemConfig("softban", UNSOFTBAN_BUTTON_KEY);
         if (unSoftbanButtonConfig == null) return null;
         return unSoftbanButtonConfig.toItemStack(target, plugin.getConfigManager());
+    }
+
+    /**
+     * Creates the "Unfreeze" button, specifically for the FreezeDetailsMenu. - NEW
+     * @return ItemStack for unfreeze button item. - NEW
+     */
+    private ItemStack getUnFreezeButton() { // NEW
+        MenuItem unfreezeButtonConfig = plugin.getConfigManager().getDetailsMenuItemConfig("freeze", UNFREEZE_BUTTON_KEY); // Get config for unfreeze button - NEW
+        if (unfreezeButtonConfig == null) return null;
+        return unfreezeButtonConfig.toItemStack(target, plugin.getConfigManager());
     }
 
     /**
@@ -338,6 +378,14 @@ public class PunishDetailsMenu implements InventoryHolder {
      */
     public boolean isReasonSet() {
         return reasonSet;
+    }
+
+    /**
+     * Checks if reason is required for confirmation. - NEW
+     * @return true if reason is required, false otherwise. - NEW
+     */
+    public boolean isReasonRequiredForConfirmation() { // NEW
+        return reasonRequiredForConfirmation;
     }
 
     /**

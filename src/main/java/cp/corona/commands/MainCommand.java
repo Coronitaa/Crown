@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
  * treating /crown, /punish, /softban, and /unpunish as COMPLETELY SEPARATE top-level commands.
  * This version includes robust input validation for time arguments and a correction for the softban time calculation bug.
  * Top-level /softban and /unpunish commands are now fully separate, and /punish mirrors /crown punish.
+ *
+ * **NEW:** Added handling for the "freeze" punishment type.
  */
 public class MainCommand implements CommandExecutor, TabCompleter {
     private final CrownPunishments plugin;
@@ -41,9 +43,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String UNPUNISH_SUBCOMMAND = "unpunish";
     private static final String HELP_SUBCOMMAND = "help";
     private static final String SOFTBAN_COMMAND_ALIAS = "softban"; // Constant for softban command alias
+    private static final String FREEZE_COMMAND_ALIAS = "freeze"; // Constant for freeze command alias - NEW
     private static final String ADMIN_PERMISSION = "crown.admin";
-    private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn"); // Registered punishment types
-    private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn"); // Registered unpunishment types, including warn
+    private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn", "freeze"); // Registered punishment types - ADDED FREEZE
+    private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn", "freeze"); // Registered unpunishment types, including warn and freeze - ADDED FREEZE
 
     /**
      * Constructor for MainCommand.
@@ -59,6 +62,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * - /punish alias command to /crown punish subcommand.
      * - /softban top-level command, now with its own dedicated handler and argument validation.
      * - /unpunish top-level command, now with its own dedicated handler and correct tab completion.
+     * - /freeze top-level command, new handler for the freeze punishment. - NEW
      * Each command is handled in a separate block for clarity and to avoid complex argument processing.
      * Top-level /softban and /unpunish commands are now treated separately, and /punish is a direct alias for /crown punish.
      */
@@ -99,9 +103,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return handleUnpunishCommand(sender, args); // Directly handle /unpunish command
         }
 
-        // Handling for /softban command as a SEPARATE top-level command - SEPARATE HANDLING BLOCK - [NEW HANDLER!]
+        // Handling for /softban command as a SEPARATE top-level command - SEPARATE HANDLING BLOCK
         if (alias.equalsIgnoreCase("softban")) {
             return handleSoftbanCommand(sender, args); // Call dedicated handleSoftbanCommand for /softban
+        }
+
+        // Handling for /freeze command as a SEPARATE top-level command - SEPARATE HANDLING BLOCK - NEW
+        if (alias.equalsIgnoreCase("freeze")) {
+            return handleFreezeCommand(sender, args); // Call dedicated handleFreezeCommand for /freeze
         }
 
         return false; // Command or alias not handled by this executor
@@ -170,21 +179,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 new PunishDetailsMenu(target.getUniqueId(), plugin, punishType).open((Player) sender); // /crown punish <target> <type> - Open details menu
-            } else if (args.length >= 3) {
-                String time = args[2];
-                if (args.length == 3 && (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban"))) { // Time is relevant for ban, mute, softban
-                    if (!(sender instanceof Player)) {
-                        sendConfigMessage(sender, "messages.player_only");
-                        return true;
-                    }
-                    PunishDetailsMenu detailsMenu = new PunishDetailsMenu(target.getUniqueId(), plugin, punishType); // /crown punish <target> <type> <time> - open details menu with time set
-                    detailsMenu.setBanTime(time);
-                    detailsMenu.open((Player) sender);
-                } else if (args.length >= 3) { // Reason is always from arg 3 onwards, time might be arg 2 for ban, mute, softban, or not present for kick, warn
-                    String reason = String.join(" ", Arrays.copyOfRange(args, (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? 3 : 2, args.length)); // /crown punish <target> <type> <time> <reason...> or /crown punish <target> <type> <reason...>
-                    String timeForPunishment = (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? time : "permanent"; // Default time to permanent for kick/warn if not specified in direct command, though time is not used for kick/warn in confirmDirectPunishment
-                    confirmDirectPunishment(sender, target, punishType, timeForPunishment, reason);
-                }
+            } else if (args.length >= 3) { // Reason is always from arg 3 onwards, time might be arg 2 for ban, mute, softban, or not present for kick, warn, freeze
+                String reason = String.join(" ", Arrays.copyOfRange(args, (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? 3 : 2, args.length)); // /crown punish <target> <type> <time> <reason...> or /crown punish <target> <type> <reason...>
+                String timeForPunishment = (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? args[2] : "permanent"; // Time is arg 2 for ban, mute, softban, or permanent for kick/warn/freeze if not specified in direct command
+                confirmDirectPunishment(sender, target, punishType, timeForPunishment, reason);
             }
         }
         return true;
@@ -278,9 +276,52 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * Handles the freeze command, directly executing a freeze punishment. - NEW
+     * This is a SEPARATE handler specifically for the top-level /freeze command.
+     *
+     * @param sender CommandSender who sent the command.
+     * @param args Command arguments for /freeze (player, reason...).
+     * @return true if the command was handled successfully.
+     */
+    private boolean handleFreezeCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(ADMIN_PERMISSION)) { // Assuming freeze also requires admin permission
+            sendConfigMessage(sender, "messages.no_permission");
+            return true;
+        }
+
+        if (args.length < 1) { // /freeze requires at least one argument: player name
+            sendConfigMessage(sender, "messages.freeze_usage", "{usage}", "/freeze <player> [reason]"); // Ensure you have a message for freeze_usage in messages.yml
+            return true;
+        }
+
+        String targetName = args[0];
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+
+        if (!target.hasPlayedBefore() && !target.isOnline()) {
+            sendConfigMessage(sender, "messages.never_played", "{input}", targetName);
+            return true;
+        }
+
+        // Check if player is already frozen - NEW: Check before applying freeze via command
+        if (plugin.getPluginFrozenPlayers().containsKey(target.getUniqueId())) {
+            sendConfigMessage(sender, "messages.already_frozen", "{target}", targetName); // Send message if already frozen - NEW
+            return true; // Prevent further command execution - NEW
+        }
+
+
+        String reason = "Frozen by moderator"; // Default reason if not specified
+        if (args.length >= 2) {
+            reason = String.join(" ", Arrays.copyOfRange(args, 1, args.length)); // Get reason from arguments if provided
+        }
+
+        confirmDirectPunishment(sender, target, FREEZE_COMMAND_ALIAS, "permanent", reason); // Call confirmDirectPunishment with FREEZE_COMMAND_ALIAS and default reason
+        return true;
+    }
+
 
     /**
-     * Confirms and executes a direct punishment command (ban, mute, softban, kick, warn).
+     * Confirms and executes a direct punishment command (ban, mute, softban, kick, warn, freeze). - MODIFIED: Added freeze
      *
      * @param sender Command sender.
      * @param target Target player.
@@ -295,56 +336,74 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         switch (punishType) {
             case "ban":
-                commandToExecute = plugin.getConfigManager().getBanCommand()
-                        .replace("{target}", target.getName())
-                        .replace("{time}", time)
-                        .replace("{reason}", reason);
-                punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
-                if (time.equalsIgnoreCase("permanent")) {
-                    punishmentEndTime = Long.MAX_VALUE;
-                    durationForLog = "permanent";
-                }
-                break;
             case "mute":
-                commandToExecute = plugin.getConfigManager().getMuteCommand()
-                        .replace("{target}", target.getName())
-                        .replace("{time}", time)
-                        .replace("{reason}", reason);
-                punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
-                if (time.equalsIgnoreCase("permanent")) {
-                    punishmentEndTime = Long.MAX_VALUE;
-                    durationForLog = "permanent";
+            case "softban":
+            case "kick":
+            case "warn":
+                // Cases for ban, mute, softban, kick, warn remain the same as in the previous version
+                // ... (cases for ban, mute, softban, kick, warn are identical to the previous version)
+                if (punishType.equals("ban")) {
+                    commandToExecute = plugin.getConfigManager().getBanCommand()
+                            .replace("{target}", target.getName())
+                            .replace("{time}", time)
+                            .replace("{reason}", reason);
+                    punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
+                    if (time.equalsIgnoreCase("permanent")) {
+                        punishmentEndTime = Long.MAX_VALUE;
+                        durationForLog = "permanent";
+                    }
+                } else if (punishType.equals("mute")) {
+                    commandToExecute = plugin.getConfigManager().getMuteCommand()
+                            .replace("{target}", target.getName())
+                            .replace("{time}", time)
+                            .replace("{reason}", reason);
+                    punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
+                    if (time.equalsIgnoreCase("permanent")) {
+                        punishmentEndTime = Long.MAX_VALUE;
+                        durationForLog = "permanent";
+                    }
+                } else if (punishType.equals("softban")) {
+                    punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
+                    // [BUGFIX] Add 1 second to softban duration to correct the 1-second-short issue
+                    if (!time.equalsIgnoreCase("permanent")) {
+                        punishmentEndTime += 1000L; // Add 1 second in milliseconds
+                    }
+                    if (time.equalsIgnoreCase("permanent")) {
+                        punishmentEndTime = Long.MAX_VALUE;
+                        durationForLog = "permanent";
+                    }
+                    plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTime, reason, sender.getName()); // Passing punisher name
+                    sendConfigMessage(sender, "messages.direct_punishment_confirmed",
+                            "{target}", target.getName(),
+                            "{time}", time,
+                            "{reason}", reason,
+                            "{punishment_type}", punishType);
+                    return; // Important: Return after handling softban
+                } else if (punishType.equals("kick")) {
+                    commandToExecute = plugin.getConfigManager().getKickCommand()
+                            .replace("{target}", target.getName())
+                            .replace("{reason}", reason);
+                    durationForLog = "permanent"; // Kick is permanent in duration log
+                } else if (punishType.equals("warn")) {
+                    commandToExecute = plugin.getConfigManager().getWarnCommand()
+                            .replace("{target}", target.getName())
+                            .replace("{reason}", reason);
+                    durationForLog = "permanent"; // Warn is permanent in duration log
                 }
                 break;
-            case "softban": // Softban handled internally, direct command now supported
-                punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
-                // [BUGFIX] Add 1 second to softban duration to correct the 1-second-short issue
-                if (!time.equalsIgnoreCase("permanent")) {
-                    punishmentEndTime += 1000L; // Add 1 second in milliseconds
-                }
-                if (time.equalsIgnoreCase("permanent")) {
-                    punishmentEndTime = Long.MAX_VALUE;
-                    durationForLog = "permanent";
-                }
-                plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTime, reason, sender.getName()); // Passing punisher name
+            case "freeze": // Freeze punishment - NEW
+                plugin.getPluginFrozenPlayers().put(target.getUniqueId(), true); // Mark player as frozen
                 sendConfigMessage(sender, "messages.direct_punishment_confirmed",
                         "{target}", target.getName(),
-                        "{time}", time,
+                        "{time}", "permanent", // Freeze is permanent
                         "{reason}", reason,
                         "{punishment_type}", punishType);
-                return; // Important: Return after handling softban
-            case "kick":
-                commandToExecute = plugin.getConfigManager().getKickCommand()
-                        .replace("{target}", target.getName())
-                        .replace("{reason}", reason);
-                durationForLog = "permanent"; // Kick is permanent in duration log
-                break;
-            case "warn":
-                commandToExecute = plugin.getConfigManager().getWarnCommand()
-                        .replace("{target}", target.getName())
-                        .replace("{reason}", reason);
-                durationForLog = "permanent"; // Warn is permanent in duration log
-                break;
+                plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), Long.MAX_VALUE, "permanent"); // Log freeze as permanent
+                Player onlineTarget = target.getPlayer();
+                if (onlineTarget != null) {
+                    sendConfigMessage(onlineTarget, "messages.you_are_frozen"); // Inform the frozen player
+                }
+                return; // Important: Return after handling freeze
             default:
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
                 return;
@@ -363,7 +422,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Confirms and executes a direct unpunish command (unban, unmute, unsoftban, unwarn).
+     * Confirms and executes a direct unpunish command (unban, unmute, unsoftban, unwarn, unfreeze). - MODIFIED: Added unfreeze
      *
      * @param sender Command sender.
      * @param target Target player.
@@ -393,6 +452,15 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     return; // Exit if no unwarn command configured
                 }
                 break;
+            case "freeze": // Unfreeze punishment - NEW
+                plugin.getPluginFrozenPlayers().remove(target.getUniqueId()); // Remove player from frozen list
+                sendConfigMessage(sender, "messages.direct_unfreeze_confirmed", "{target}", target.getName()); // Send confirmation message
+                Player onlineTarget = target.getPlayer();
+                if (onlineTarget != null) {
+                    sendConfigMessage(onlineTarget, "messages.you_are_unfrozen"); // Inform the player they are unfrozen
+                }
+                plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, "Unfrozen", sender.getName(), 0L, "permanent"); // Log unfreeze action
+                return; // Important: Return after handling unfreeze
             case "kick":
                 sendConfigMessage(sender, "messages.unpunish_not_supported", "{punishment_type}", punishType); // Unpunish not supported for kick and warn
                 return;
@@ -426,6 +494,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * - /punish alias command to /crown punish subcommand.
      * - /softban top-level command mirroring /crown punish softban - [CORRECTED TAB COMPLETE FOR /SOFTBAN!]
      * - /unpunish top-level command as a SEPARATE command - [CORRECTED TAB COMPLETE FOR /crown unpunish!]
+     * - /freeze top-level command mirroring /crown punish freeze - [NEW TAB COMPLETE FOR /FREEZE!] - NEW
      * Tab completion for all commands is now handled in separate blocks for clarity and correctness.
      */
     @Override
@@ -492,6 +561,15 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
+        // Tab completion for /freeze command - SEPARATE BLOCK - [NEW TAB COMPLETE FOR /FREEZE!] - NEW
+        if (alias.equalsIgnoreCase("freeze")) {
+            if (args.length == 1) { // Player name completion for /freeze <player>
+                StringUtil.copyPartialMatches(args[0], Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), completions);
+            } else if (args.length >= 2) { // Reason suggestion for /freeze <player> <reason...>
+                completions.add("reason here...");
+            }
+        }
+
 
         Collections.sort(completions);
         return completions;
@@ -511,6 +589,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish")));
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish_command"))); // Help for /unpunish command
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_softban_command")));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_freeze_command"))); // Help for /freeze command - NEW
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_reload")));
     }
 }
