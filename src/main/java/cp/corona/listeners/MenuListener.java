@@ -374,11 +374,19 @@ public class MenuListener implements Listener {
         switch (action) {
             case OPEN_MENU:
                 if (actionData != null) { // Null check for actionData
+                    plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU ActionData: " + actionData); // <-- DEBUG LOGGING
+
                     if (actionData.equalsIgnoreCase("time_selector")) {
+                        plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Opening TimeSelectorMenu"); // <-- DEBUG LOGGING
                         new TimeSelectorMenu(punishDetailsMenu, plugin).open(player);
                     } else if (actionData.equalsIgnoreCase("punish_menu")) {
+                        plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Opening PunishMenu"); // <-- DEBUG LOGGING
                         new PunishMenu(punishDetailsMenu.getTargetUUID(), plugin).open(player);
+                    } else {
+                        plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU - No matching ActionData: " + actionData); // <-- DEBUG LOGGING
                     }
+                } else {
+                    plugin.getLogger().warning("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU - ActionData is NULL"); // <-- DEBUG LOGGING
                 }
                 break;
             case REQUEST_INPUT:

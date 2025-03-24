@@ -59,9 +59,9 @@ public class PunishDetailsMenu implements InventoryHolder {
      * Stores the item keys in a Set for easy access and iteration in MenuListener.
      */
     private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
+            SET_TIME_KEY,
             SET_REASON_KEY, CONFIRM_PUNISH_KEY, BACK_BUTTON_KEY,
             UNSOFTBAN_BUTTON_KEY, // Include unsoftban button key
-            UNFREEZE_BUTTON_KEY, // Include unfreeze button key - NEW
             BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY // Background items
     ));
 
@@ -121,23 +121,24 @@ public class PunishDetailsMenu implements InventoryHolder {
      * Initializes the items in the menu based on the punishment type.
      */
     private void initializeItems() {
-        // Iterate through the common item keys and set them in the menu
+        // Primero, establecer el item de 'Set Time' si es necesario para este tipo de castigo
+        if (timeRequired) { // timeRequired se define en setTimeRequiredByType()
+            setItemInMenu(SET_TIME_KEY, getItemStack(SET_TIME_KEY));
+        }
+
+        // Luego, iterar sobre los otros item keys comunes y establecerlos en el menú
         for (String itemKey : menuItemKeys) {
-            // Note: UNSOFTBAN_BUTTON_KEY and UNFREEZE_BUTTON_KEY are handled separately as they're punishment-specific - MODIFIED: Added UNFREEZE_BUTTON_KEY
-            if (!itemKey.equals(UNSOFTBAN_BUTTON_KEY) && !itemKey.equals(UNFREEZE_BUTTON_KEY) ) { // MODIFIED: Added UNFREEZE_BUTTON_KEY check
-                if (!itemKey.equals(SET_TIME_KEY) || !punishmentType.equalsIgnoreCase("freeze")) { // Skip SET_TIME_KEY for freeze punishment
-                    setItemInMenu(itemKey, getItemStack(itemKey));
-                }
+            if (!itemKey.equals(SET_TIME_KEY) && !itemKey.equals(UNSOFTBAN_BUTTON_KEY) && !itemKey.equals(UNFREEZE_BUTTON_KEY)) {
+                setItemInMenu(itemKey, getItemStack(itemKey));
             }
         }
 
-        // Handle softban-specific button separately
+        // Manejar botones específicos de castigo por separado, después de los ítems comunes
         if (punishmentType.equalsIgnoreCase("softban")) {
             setItemInMenu(UNSOFTBAN_BUTTON_KEY, getUnSoftBanButton());
         }
-        // Handle freeze-specific button separately - NEW
         if (punishmentType.equalsIgnoreCase("freeze")) {
-            setItemInMenu(UNFREEZE_BUTTON_KEY, getUnFreezeButton()); // Set unfreeze button for freeze menu - NEW
+            setItemInMenu(UNFREEZE_BUTTON_KEY, getUnFreezeButton());
         }
     }
 
@@ -155,6 +156,8 @@ public class PunishDetailsMenu implements InventoryHolder {
             case BACKGROUND_FILL_1_KEY:
             case BACKGROUND_FILL_2_KEY:
                 return plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, itemKey).toItemStack(target, plugin.getConfigManager());
+            case UNSOFTBAN_BUTTON_KEY:   return getUnSoftBanButton(); // Ensure this case is here if needed for getItemStack call
+            case UNFREEZE_BUTTON_KEY:    return getUnFreezeButton();  // Ensure this case is here if needed for getItemStack call
             default:                     return null; // Handle unknown keys or return null
         }
     }
