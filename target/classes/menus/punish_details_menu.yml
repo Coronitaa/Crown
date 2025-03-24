@@ -15,8 +15,6 @@ menu:
           material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
           name: ' '
           slot: '10,12,14,16' # Another slot range
-
-
         set_time: # Configuration for Set Time item
           material: 'CLOCK' # Clock icon for time
           slot: '11' # Inventory slot
@@ -29,12 +27,8 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:time_selector' # Open time selector menu
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
-
         set_reason: # Configuration for Set Reason item
           material: 'WRITABLE_BOOK' # Writable book icon for setting reason
           slot: '13' # Inventory slot
@@ -47,12 +41,8 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'REQUEST_INPUT:reason_input' # Request reason input from player
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
-
         confirm_punish: # Configuration for Confirm Punish item
           material: 'EMERALD_BLOCK' # Emerald block icon, positive confirmation
           slot: '15' # Inventory slot
@@ -76,12 +66,8 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
-
         back_button: # Configuration for Back Button item
           material: 'ARROW' # Arrow icon for back action
           slot: '31' # Inventory slot
@@ -92,9 +78,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:punish_menu' # Open punish menu
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
     mute: # Mute details menu configuration
       title: '&e&lMute Details' # Title for MuteDetailsMenu
       items:
@@ -118,9 +101,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:time_selector' # Open time selector menu
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
         set_reason: # Set Reason item configuration for Mute
@@ -135,9 +115,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'REQUEST_INPUT:reason_input' # Request reason input
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
         confirm_punish: # Confirm Punish item configuration for Mute
@@ -163,9 +140,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item configuration for Mute
@@ -178,9 +152,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:punish_menu' # Open punish menu
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
     softban: # SoftBan details menu configuration - NEW
       title: '&3&lSoftBan Details' # Title for SoftBanDetailsMenu
       items:
@@ -204,9 +175,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:time_selector' # Open time selector menu
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
         set_reason: # Set Reason item for SoftBan
@@ -221,9 +189,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'REQUEST_INPUT:reason_input' # Request reason input
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
         unsoftban_button: # Unsoftban Button item - NEW
@@ -241,9 +206,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'UN_SOFTBAN:' # Action on Left-Click
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Unsoftban Button!"' # Example command
         confirm_punish: # Confirm Punish item for SoftBan
@@ -269,9 +231,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for SoftBan
@@ -284,9 +243,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:punish_menu' # Open punish menu
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
     kick: # Kick details menu configuration - NEW
       title: '&9&lKick Details' # Title for KickDetailsMenu
       items:
@@ -310,9 +266,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'REQUEST_INPUT:reason_input' # Request reason input
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
         confirm_punish: # Confirm Punish item for Kick
@@ -336,9 +289,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for Kick
@@ -351,9 +301,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:punish_menu' # Open punish menu
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
     warn: # Warn details menu configuration - NEW
       title: '&6&lWarn Details' # Title for WarnDetailsMenu
       items:
@@ -377,9 +324,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'REQUEST_INPUT:reason_input' # Request reason input
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
         confirm_punish: # Confirm Punish item for Warn
@@ -403,9 +347,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
-          click_sound: 'UI_BUTTON_CLICK' # Click sound
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
           right_click_actions:
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for Warn
@@ -418,9 +359,6 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:punish_menu'
-          click_sound: 'UI_BUTTON_CLICK'
-          click_volume: 1.0 # Sound volume
-          click_pitch: 1.0 # Sound pitch
     freeze: # Freeze details menu configuration - NEW
       title: '&5&lFreeze Details' # Title for FreezeDetailsMenu - NEW
       items:
@@ -444,9 +382,6 @@ menu:
             - '&7Right-Click for example command.' # Example right-click action - NEW
           left_click_actions: # Left click actions - NEW
             - 'REQUEST_INPUT:reason_input' # Request reason input - NEW
-          click_sound: 'UI_BUTTON_CLICK' # Click sound - NEW
-          click_volume: 1.0 # Sound volume - NEW
-          click_pitch: 1.0 # Sound pitch - NEW
           right_click_actions: # Right click actions - Example command - NEW
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command - NEW
         confirm_punish: # Confirm Punish item for Freeze - NEW
@@ -470,9 +405,6 @@ menu:
             - '&7Right-Click for example command.' # Example right-click action when disabled - NEW
           left_click_actions: # Left click actions - NEW
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click - NEW
-          click_sound: 'UI_BUTTON_CLICK' # Click sound - NEW
-          click_volume: 1.0 # Sound volume - NEW
-          click_pitch: 1.0 # Sound pitch - NEW
           right_click_actions: # Right click actions - Example command - NEW
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command - NEW
         unfreeze_button: # Unfreeze Button item - NEW
@@ -488,9 +420,6 @@ menu:
             - '&7Right-Click for example command.' # Example right-click action - NEW
           left_click_actions: # Left click actions - NEW
             - 'UN_FREEZE:' # Action on Left-Click (you'll need to add UN_FREEZE action to ClickAction enum) - NEW
-          click_sound: 'UI_BUTTON_CLICK' # Click sound - NEW
-          click_volume: 1.0 # Sound volume - NEW
-          click_pitch: 1.0 # Sound pitch - NEW
           right_click_actions: # Right click actions - Example command - NEW
             - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Unfreeze Button!"' # Example command - NEW
         back_button: # Back Button item for Freeze - NEW
@@ -503,6 +432,3 @@ menu:
             - '&7Right-Click for example command.' # Example right-click action - NEW
           left_click_actions: # Left click actions - NEW
             - 'OPEN_MENU:punish_menu' # Open punish menu - NEW
-          click_sound: 'UI_BUTTON_CLICK' # Click sound - NEW
-          click_volume: 1.0 # Sound volume - NEW
-          click_pitch: 1.0 # Sound pitch - NEW

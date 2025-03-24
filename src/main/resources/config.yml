@@ -46,3 +46,9 @@ freeze: # Configuration section for freeze punishment - NEW
   disconnect_ban_command: 'ban {target} permanent Disconnected while frozen' # Command to execute when frozen player disconnects - NEW
   disconnect_ban_reason: 'Disconnected while frozen for review' # Default reason for disconnect ban - NEW
   disconnect_ban_time: 'permanent' # Default ban time for disconnect ban - NEW
+  freeze_actions: # Actions to execute repeatedly while player is frozen - NEW
+    interval: 40 # Interval in ticks (20 ticks = 1 second) - NEW
+    actions: # List of actions to execute - NEW
+      - 'MESSAGE:#FBCD08&l&oC#F5BF06&l&oR#EFB004&l&oO#E8A202&l&oW#E29300&l&oN &8&o➤&r &c&lYou are FROZEN! &7Please remain still.' # Example MESSAGE action - NEW
+      - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example PLAY_SOUND action - NEW
+      - 'TITLE:You are FREEZED: :20:10:20' # Example TITLE action - NEW

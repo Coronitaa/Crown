@@ -383,6 +383,30 @@ public class MenuListener implements Listener {
         }
     }
 
+    /**
+     * Executes a MenuItem ClickAction directly for a player, without inventory click context. - NEW
+     * This method is used by tasks that need to trigger menu actions programmatically, e.g., freeze actions.
+     *
+     * @param player     The player for whom to execute the action.
+     * @param action     The ClickAction to execute.
+     * @param actionData The data associated with the ClickAction.
+     */
+    public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) { // NEW Method
+        plugin.getLogger().info("[DEBUG] executeMenuItemAction - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - entry
+
+        if (action == ClickAction.CONSOLE_COMMAND) {
+            executeConsoleCommand(player, actionData, null); // Holder is null as it's outside menu context - MODIFIED: Holder can be null now
+        } else if (action == ClickAction.PLAY_SOUND) { // NEW: Handle PLAY_SOUND action
+            executePlaySoundAction(player, actionData);
+        } else if (action == ClickAction.TITLE) { // NEW: Handle TITLE action
+            executeTitleAction(player, actionData);
+        } else if (action == ClickAction.MESSAGE) { // NEW: Handle MESSAGE action
+            executeMessageAction(player, actionData);
+        }
+
+        plugin.getLogger().info("[DEBUG] executeMenuItemAction - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - exit
+    }
+
 
     /**
      * Replaces placeholders in a command string.
@@ -991,6 +1015,7 @@ public class MenuListener implements Listener {
      * @param punishDetailsMenu The PunishDetailsMenu instance.
      */
     private void confirmFreeze(Player player, PunishDetailsMenu punishDetailsMenu) {
+        plugin.getLogger().info("[DEBUG] confirmFreeze - start"); // Debug log - entry
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason(); // Reason is still collected and can be logged even if not displayed in UI
@@ -1011,7 +1036,11 @@ public class MenuListener implements Listener {
         Player onlineTarget = target.getPlayer();
         if (onlineTarget != null) {
             sendFreezeReceivedMessage(onlineTarget, reason); // Inform the frozen player - NEW
+            plugin.getLogger().info("[DEBUG] confirmFreeze - Calling startFreezeActionsTask for player: " + onlineTarget.getName()); // Debug log - before starting task
+            plugin.getFreezeListener().startFreezeActionsTask(onlineTarget); // START FREEZE ACTIONS TASK HERE - NEW - Corrected call to FreezeListener
+            plugin.getLogger().info("[DEBUG] confirmFreeze - startFreezeActionsTask called"); // Debug log - after starting task
         }
+        plugin.getLogger().info("[DEBUG] confirmFreeze - end"); // Debug log - exit
     }
 
 
@@ -1085,6 +1114,7 @@ public class MenuListener implements Listener {
                 "{reason}", reason,
                 "{punishment_type}", SOFTBAN_PUNISHMENT_TYPE)));
     }
+
 
     /**
      * Sends a freeze confirmation message to the punisher. - NEW

@@ -28,6 +28,7 @@ public final class CrownPunishments extends JavaPlugin {
     private final HashMap<UUID, Boolean> pluginFrozenPlayers = new HashMap<>(); // Track frozen players - NEW
 
     private MenuListener menuListener; // Add MenuListener field
+    private FreezeListener freezeListener;
 
     /**
      * Called when the plugin is enabled.
@@ -48,6 +49,7 @@ public final class CrownPunishments extends JavaPlugin {
         }
 
         this.menuListener = new MenuListener(this);
+
 
         registerCommands(); // Register command handlers
         registerEvents();   // Register event listeners
@@ -177,6 +179,7 @@ public final class CrownPunishments extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MenuListener(this), this); // Register MenuListener for menu interactions
         getServer().getPluginManager().registerEvents(new CommandBlockerListener(this), this); // Register CommandBlockerListener for softban command blocking
         getServer().getPluginManager().registerEvents(new FreezeListener(this), this); // Register FreezeListener for freeze punishment - NEW
+        freezeListener = new FreezeListener(this); // Initialize FreezeListener - NEW: Initialize and store FreezeListener
     }
 
     /**
@@ -186,6 +189,15 @@ public final class CrownPunishments extends JavaPlugin {
      */
     public MenuListener getMenuListener() { // NEW: getMenuListener method
         return menuListener;
+    }
+
+    /**
+     * Gets the FreezeListener instance. - NEW
+     *
+     * @return FreezeListener instance.
+     */
+    public FreezeListener getFreezeListener() {
+        return freezeListener;
     }
 
     /**

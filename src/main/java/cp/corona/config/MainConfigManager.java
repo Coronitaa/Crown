@@ -713,6 +713,30 @@ public class MainConfigManager {
     //</editor-fold>
 
     /**
+     * Gets the interval for freeze actions from config.yml. - NEW
+     *
+     * @return The interval in ticks for freeze actions.
+     */
+    public int getFreezeActionsInterval() {
+        return pluginConfig.getConfig().getInt("freeze.freeze_actions.interval", 40); // Default to 40 ticks (2 seconds) if not configured - NEW
+    }
+
+    /**
+     * Loads the list of freeze actions from config.yml. - NEW
+     *
+     * @return List of MenuItem.ClickActionData for freeze actions.
+     */
+    public List<MenuItem.ClickActionData> loadFreezeActions() {
+        List<String> actionConfigs = pluginConfig.getConfig().getStringList("freeze.freeze_actions.actions"); // Get list of action strings - NEW
+        if (actionConfigs != null && !actionConfigs.isEmpty()) {
+            return actionConfigs.stream()
+                    .map(MenuItem.ClickActionData::fromConfigString)
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList(); // Return empty list if no freeze actions configured - NEW
+    }
+
+    /**
      * Gets the CustomConfig instance for the main plugin configuration (config.yml).
      *
      * @return The CustomConfig instance for pluginConfig.
