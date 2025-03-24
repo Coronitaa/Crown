@@ -1,4 +1,3 @@
-// menus/HistoryMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -309,6 +308,15 @@ public class HistoryMenu implements InventoryHolder {
      */
     public void open(Player player) {
         player.openInventory(inventory);
+        plugin.getMenuListener().executeMenuOpenActions(player, this); // Execute menu open actions - NEW
+    }
+
+    /**
+     * Handles menu open actions for this menu.
+     * @param player The player opening the menu.
+     */
+    private void handleMenuOpenActions(Player player) { // NEW
+        plugin.getMenuListener().executeMenuOpenActions(player, this);
     }
 
     /**

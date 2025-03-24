@@ -25,9 +25,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -235,23 +233,23 @@ public class MenuListener implements Listener {
      * @param event The InventoryClickEvent.
      * @param clickedMenuItem The MenuItem that was clicked.
      */
-    private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
+    private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) { // Modified actionData type - MODIFIED
         // Log entry to debug menu item click handling, including action, data, item name and holder type
-        plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName() + ", Holder Type: " + holder.getClass().getSimpleName());
+        plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + clickedMenuItem.getName() + ", Holder Type: " + holder.getClass().getSimpleName()); // Modified ActionData log - MODIFIED
 
         // Handle actions based on the type of menu holder
         if (holder instanceof PunishMenu punishMenu) {
             plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishMenu"); // Debug log to identify PunishMenu holder
-            handlePunishMenuActions(player, punishMenu, action, actionData, clickedMenuItem); // Delegate action handling to PunishMenuActions
+            handlePunishMenuActions(player, punishMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to PunishMenuActions
         } else if (holder instanceof PunishDetailsMenu punishDetailsMenu) {
             plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishDetailsMenu"); // Debug log for PunishDetailsMenu
-            handlePunishDetailsMenuActions(player, punishDetailsMenu, action, actionData, clickedMenuItem); // Delegate action handling to PunishDetailsMenuActions
+            handlePunishDetailsMenuActions(player, punishDetailsMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to PunishDetailsMenuActions
         } else if (holder instanceof TimeSelectorMenu timeSelectorMenu) {
             plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is TimeSelectorMenu"); // Debug log for TimeSelectorMenu
-            handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData, clickedMenuItem); // Delegate action handling to TimeSelectorMenuActions
+            handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to TimeSelectorMenuActions
         } else if (holder instanceof HistoryMenu historyMenu) {
             plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is HistoryMenu"); // Debug log for HistoryMenu
-            handleHistoryMenuActions(player, historyMenu, action, actionData, clickedMenuItem); // Delegate action handling to HistoryMenuActions
+            handleHistoryMenuActions(player, historyMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to HistoryMenuActions
         } else {
             plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is UNKNOWN Type: " + holder.getClass().getSimpleName()); // Log unknown holder types
         }
@@ -259,14 +257,20 @@ public class MenuListener implements Listener {
         // Handle actions that are common to all menus, regardless of the holder type
         if (action == ClickAction.CONSOLE_COMMAND) {
             executeConsoleCommand(player, actionData, holder); // Execute console command action
-        }
-        if (action == ClickAction.CLOSE_MENU) {
+        } else if (action == ClickAction.CLOSE_MENU) {
             plugin.getLogger().info("[DEBUG] handleMenuItemClick - CLOSE_MENU action detected."); // Debug log for CLOSE_MENU action
             player.closeInventory(); // Close the player's inventory
+        }  else if (action == ClickAction.PLAY_SOUND) { // NEW: Handle PLAY_SOUND action
+            executePlaySoundAction(player, actionData);
+        } else if (action == ClickAction.TITLE) { // NEW: Handle TITLE action
+            executeTitleAction(player, actionData);
+        } else if (action == ClickAction.MESSAGE) { // NEW: Handle MESSAGE action
+            executeMessageAction(player, actionData);
         }
 
+
         // Log exit from menu item click handling
-        plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + actionData);
+        plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Modified ActionData log - MODIFIED
     }
 
 
@@ -277,9 +281,9 @@ public class MenuListener implements Listener {
      * @param commandData The command string from the configuration.
      * @param holder      The InventoryHolder, providing context for placeholder replacement.
      */
-    private void executeConsoleCommand(Player player, String commandData, InventoryHolder holder) {
-        if (commandData != null && !commandData.isEmpty()) {
-            String rawCommand = commandData.startsWith("command:") ? commandData.substring("command:".length()).trim() : commandData;
+    private void executeConsoleCommand(Player player, String[] commandData, InventoryHolder holder) { // Modified actionData type - MODIFIED
+        if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) { // Check for commandData array and content - MODIFIED
+            String rawCommand = commandData[0].startsWith("command:") ? commandData[0].substring("command:".length()).trim() : commandData[0]; // Use commandData[0] - MODIFIED
             String commandToExecute = replacePlaceholders(player, rawCommand, holder);
             commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
 
@@ -287,7 +291,95 @@ public class MenuListener implements Listener {
             final String finalCommand = commandToExecute; // Finalize for lambda
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
         } else {
-            plugin.getLogger().warning("Invalid CONSOLE_COMMAND action data: " + commandData);
+            plugin.getLogger().warning("Invalid CONSOLE_COMMAND action data: " + Arrays.toString(commandData)); // Modified actionData log - MODIFIED
+        }
+    }
+
+    /**
+     * Executes the PLAY_SOUND action.
+     * @param player The player to play the sound for.
+     * @param soundArgs Sound arguments: sound name, volume, pitch.
+     */
+    private void executePlaySoundAction(Player player, String[] soundArgs) { // NEW
+        if (soundArgs.length >= 1) { // Check if at least sound name is provided
+            try {
+                Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
+                float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f; // Default volume
+                float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;   // Default pitch
+                player.playSound(player.getLocation(), sound, volume, pitch);
+            } catch (NumberFormatException e) { // Moved NumberFormatException catch block BEFORE IllegalArgumentException
+                plugin.getLogger().warning("Invalid volume or pitch format: " + Arrays.toString(soundArgs));
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid sound name configured: " + soundArgs[0]);
+            }
+        } else {
+            plugin.getLogger().warning("PLAY_SOUND action requires at least a sound name.");
+        }
+    }
+
+    /**
+     * Executes the TITLE action.
+     * @param player The player to show the title to.
+     * @param titleArgs Title arguments: title, subtitle, time, fadein, fadeout.
+     */
+    private void executeTitleAction(Player player, String[] titleArgs) { // NEW
+        if (titleArgs.length >= 3) { // title, subtitle, time are mandatory
+            String titleText = ColorUtils.translateRGBColors(titleArgs[0].replace("_", " ")); // Replace underscores with spaces and colorize
+            String subtitleText = ColorUtils.translateRGBColors(titleArgs[1].replace("_", " ")); // Replace underscores with spaces and colorize
+            int time = Integer.parseInt(titleArgs[2]);
+            int fadeIn = titleArgs.length > 3 ? Integer.parseInt(titleArgs[3]) : 10; // Default fadeIn
+            int fadeOut = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
+            player.sendTitle(titleText, subtitleText, fadeIn, time, fadeOut);
+        } else {
+            plugin.getLogger().warning("TITLE action requires at least title, subtitle, and time arguments.");
+        }
+    }
+
+
+    /**
+     * Executes the MESSAGE action.
+     * @param player The player to send the message to.
+     * @param messageArgs Message arguments: text.
+     */
+    private void executeMessageAction(Player player, String[] messageArgs) { // NEW
+        if (messageArgs.length >= 1) {
+            String messageText = MessageUtils.getColorMessage(messageArgs[0].replace("_", " ")); // Replace underscores with spaces and colorize
+            player.sendMessage(messageText);
+        } else {
+            plugin.getLogger().warning("MESSAGE action requires a message text argument.");
+        }
+    }
+
+
+    /**
+     * Executes menu open actions for the given InventoryHolder.
+     * @param player The player opening the menu.
+     * @param holder The InventoryHolder representing the menu.
+     */
+    public void executeMenuOpenActions(Player player, InventoryHolder holder) { // NEW
+        List<MenuItem.ClickActionData> openActions = Collections.emptyList();
+
+        if (holder instanceof PunishMenu) {
+            openActions = plugin.getConfigManager().loadMenuOpenActions(plugin.getConfigManager().getPunishMenuConfig().getConfig(), "menu");
+        } else if (holder instanceof PunishDetailsMenu) {
+            openActions = plugin.getConfigManager().loadMenuOpenActions(plugin.getConfigManager().getPunishDetailsMenuConfig().getConfig(), "menu.punish_details." + ((PunishDetailsMenu) holder).getPunishmentType());
+        } else if (holder instanceof TimeSelectorMenu) {
+            openActions = plugin.getConfigManager().loadMenuOpenActions(plugin.getConfigManager().getTimeSelectorMenuConfig().getConfig(), "menu");
+        } else if (holder instanceof HistoryMenu) {
+            openActions = plugin.getConfigManager().loadMenuOpenActions(plugin.getConfigManager().getHistoryMenuConfig().getConfig(), "menu");
+        }
+
+        for (MenuItem.ClickActionData actionData : openActions) {
+            ClickAction action = actionData.getAction();
+            String[] actionArgs = actionData.getActionData();
+
+            if (action == ClickAction.PLAY_SOUND) {
+                executePlaySoundAction(player, actionArgs);
+            } else if (action == ClickAction.TITLE) {
+                executeTitleAction(player, actionArgs);
+            } else if (action == ClickAction.MESSAGE) {
+                executeMessageAction(player, actionArgs);
+            }
         }
     }
 
@@ -496,7 +588,8 @@ public class MenuListener implements Listener {
         InventoryHolder holder = event.getInventory().getHolder();
         Player player = (Player) event.getPlayer();
         if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
-            playSound(player, "menu_open");
+            // Removed playSound(player, "menu_open"); - Replaced by open_actions
+            executeMenuOpenActions(player, holder); // Execute menu open actions - NEW
         }
     }
 

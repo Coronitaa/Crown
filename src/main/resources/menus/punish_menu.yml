@@ -1,5 +1,8 @@
 menu:
   title: '&c&lPunish Menu' # Title for PunishMenu
+  open_actions: # Actions to execute when the menu is opened - NEW
+    - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example: Play a pling sound - NEW
+    - 'TITLE:&a&lCrownPunishments:&7Punish Menu:20:10:20' # Example: Show a title
   items:
     background_fill_1: # Background fill item configuration - Example 1
       material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
@@ -29,12 +32,11 @@ menu:
         - ''
         - '&eLeft-Click to change player.' # Instruction on click action
         - '&eRight-Click to execute command.' # Example right-click action
-      click_sound: 'UI_BUTTON_CLICK' # Sound played when item is clicked
-      click_volume: 1.0 # Volume of the click sound
-      click_pitch: 1.0 # Pitch of the click sound
       left_click_actions:
+        - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0' # Added PLAY_SOUND action - NEW
         - 'OPEN_MENU:change_target' # Action performed on Left-Click (default click)
       right_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0' # Added PLAY_SOUND action - NEW
         - 'CONSOLE_COMMAND:command: say Changed Player via Right Click!' # Command for Right-Click
 
     ban:
@@ -57,9 +59,6 @@ menu:
       lore: # Item lore
         - '&7Left-Click to mute'
         - '&7player &b{target}&7.'
-      click_sound: 'UI_BUTTON_CLICK' # Click sound
-      click_volume: 1.0 # Sound volume
-      click_pitch: 1.0 # Sound pitch
       left_click_actions:
         - 'OPEN_MENU:mute_details' # Action on Left-Click (default click)
 
@@ -70,9 +69,6 @@ menu:
       lore: # Lore for softban item
         - '&7Left-Click to softban'
         - '&7player &b{target}&7.'
-      click_sound: 'UI_BUTTON_CLICK' # Click sound
-      click_volume: 1.0 # Sound volume
-      click_pitch: 1.0 # Sound pitch
       left_click_actions:
         - 'OPEN_MENU:softban_details' # Action on Left-Click
 
@@ -83,9 +79,6 @@ menu:
       lore: # Lore for kick item
         - '&7Left-Click to kick'
         - '&7player &b{target}&7.'
-      click_sound: 'UI_BUTTON_CLICK' # Click sound
-      click_volume: 1.0 # Sound volume
-      click_pitch: 1.0 # Sound pitch
       left_click_actions:
         - 'OPEN_MENU:kick_details' # Action on Left-Click - Direct confirm for kick
 
@@ -96,9 +89,6 @@ menu:
       lore: # Lore for warn item
         - '&7Left-Click to warn'
         - '&7player &b{target}&7.'
-      click_sound: 'UI_BUTTON_CLICK' # Click sound
-      click_volume: 1.0 # Sound volume
-      click_pitch: 1.0 # Sound pitch
       left_click_actions:
         - 'OPEN_MENU:warn_details' # Action on Left-Click
 
@@ -109,9 +99,6 @@ menu:
       lore: # Lore for freeze item - NEW
         - '&7Left-Click to freeze' # Instruction line 1 - NEW
         - '&7player &b{target}&7 for review.' # Instruction line 2 - NEW
-      click_sound: 'UI_BUTTON_CLICK' # Click sound - NEW
-      click_volume: 1.0 # Sound volume - NEW
-      click_pitch: 1.0 # Sound pitch - NEW
       left_click_actions: # Left click actions - NEW
         - 'OPEN_MENU:freeze_details' # Open freeze details menu - NEW
 
@@ -122,8 +109,5 @@ menu:
       lore: # Lore for history item
         - '&7Left-Click to view punishment'
         - '&7history for &b{target}&7.'
-      click_sound: 'UI_BUTTON_CLICK' # Click sound
-      click_volume: 1.0 # Sound volume
-      click_pitch: 1.0 # Sound pitch
       left_click_actions:
         - 'OPEN_MENU:history_menu' # Action on Left-Click

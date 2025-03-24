@@ -19,6 +19,7 @@ import org.bukkit.profile.PlayerTextures;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -278,33 +279,32 @@ public class MenuItem {
      */
     public static class ClickActionData {
         private ClickAction action;
-        private String actionData;
+        private String[] actionArgs; // Changed to String[] to hold multiple arguments - MODIFIED
 
-        public ClickActionData(ClickAction action, String actionData) {
+        public ClickActionData(ClickAction action, String... actionArgs) { // Changed to accept varargs - MODIFIED
             this.action = action;
-            this.actionData = actionData;
+            this.actionArgs = actionArgs;
         }
 
         public ClickAction getAction() {
             return action;
         }
 
-        public String getActionData() {
-            return actionData;
-        }
+        public String[] getActionData() { return actionArgs; } //Return String array - MODIFIED
+
 
         /**
          * Parses a configuration string to create a ClickActionData object.
-         * Handles cases where action data is present or absent.
+         * Handles cases where action data is present or absent, and for new actions with multiple parameters.
          *
-         * @param configString The configuration string in the format "ACTION:data" or just "ACTION".
+         * @param configString The configuration string in the format "ACTION:data1:data2:..." or just "ACTION".
          * @return ClickActionData object.
          */
         public static ClickActionData fromConfigString(String configString) {
-            String[] parts = configString.split(":", 2); // Split into action and data at the first ":"
-            ClickAction action = ClickAction.safeValueOf(parts[0]); // Get action, default to NO_ACTION if invalid
-            String actionData = parts.length > 1 ? parts[1] : null; // Action data is null if not provided
-            return new ClickActionData(action, actionData);
+            String[] parts = configString.split(":", -1); // Split by ":" and include trailing empty strings - MODIFIED
+            ClickAction action = ClickAction.safeValueOf(parts[0]);
+            String[] actionArgs = parts.length > 1 ? Arrays.copyOfRange(parts, 1, parts.length) : new String[0]; // Extract arguments - MODIFIED
+            return new ClickActionData(action, actionArgs);
         }
     }
 }

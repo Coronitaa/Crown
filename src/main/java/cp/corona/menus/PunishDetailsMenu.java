@@ -58,11 +58,13 @@ public class PunishDetailsMenu implements InventoryHolder {
     /**
      * Stores the item keys in a Set for easy access and iteration in MenuListener.
      */
+
     private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
             SET_TIME_KEY,
             SET_REASON_KEY, CONFIRM_PUNISH_KEY, BACK_BUTTON_KEY,
-            UNSOFTBAN_BUTTON_KEY, // Include unsoftban button key
-            BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY // Background items
+            UNSOFTBAN_BUTTON_KEY,
+            UNFREEZE_BUTTON_KEY,
+            BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY
     ));
 
 
@@ -76,17 +78,16 @@ public class PunishDetailsMenu implements InventoryHolder {
         this.targetUUID = targetUUID;
         this.plugin = plugin;
         this.punishmentType = punishmentType;
-        this.target = Bukkit.getOfflinePlayer(targetUUID); // Initialize target here
+        this.target = Bukkit.getOfflinePlayer(targetUUID);
         String title = plugin.getConfigManager().getDetailsMenuText("title", target, punishmentType);
         inventory = Bukkit.createInventory(this, 36, title);
-        setTimeRequiredByType(punishmentType); // Set if time is required based on punishment type
-        setReasonRequiredForConfirmationByType(punishmentType); // Set if reason is required based on punishment type - NEW
-        initializeItems(); // Initialize menu items
+        setTimeRequiredByType(punishmentType);
+        setReasonRequiredForConfirmationByType(punishmentType);
+        initializeItems();
 
-        // For freeze punishment, remove SET_TIME_KEY from menuItemKeys and update initializeItems
         if (punishmentType.equalsIgnoreCase("freeze")) {
-            menuItemKeys.remove(SET_TIME_KEY); // Remove set_time for freeze
-            this.reasonRequiredForConfirmation = false; // Reason is also NOT required for freeze confirmation - NEW
+            menuItemKeys.remove(SET_TIME_KEY);
+            this.reasonRequiredForConfirmation = false;
         }
     }
 
@@ -96,7 +97,7 @@ public class PunishDetailsMenu implements InventoryHolder {
      * @param punishmentType Type of punishment.
      */
     private void setTimeRequiredByType(String punishmentType) {
-        if (punishmentType.equalsIgnoreCase("kick") || punishmentType.equalsIgnoreCase("warn") || punishmentType.equalsIgnoreCase("freeze")) { // MODIFIED: Added freeze
+        if (punishmentType.equalsIgnoreCase("kick") || punishmentType.equalsIgnoreCase("warn") || punishmentType.equalsIgnoreCase("freeze")) {
             this.timeRequired = false;
         } else {
             this.timeRequired = true;
@@ -108,11 +109,11 @@ public class PunishDetailsMenu implements InventoryHolder {
      * Reason is optional for Freeze. - NEW
      * @param punishmentType Type of punishment. - NEW
      */
-    private void setReasonRequiredForConfirmationByType(String punishmentType) { // NEW
-        if (punishmentType.equalsIgnoreCase("freeze")) { // Reason is optional for FREEZE - NEW
+    private void setReasonRequiredForConfirmationByType(String punishmentType) {
+        if (punishmentType.equalsIgnoreCase("freeze")) {
             this.reasonRequiredForConfirmation = false;
         } else {
-            this.reasonRequiredForConfirmation = true; // Reason is required for other types
+            this.reasonRequiredForConfirmation = true;
         }
     }
 
@@ -121,22 +122,20 @@ public class PunishDetailsMenu implements InventoryHolder {
      * Initializes the items in the menu based on the punishment type.
      */
     private void initializeItems() {
-        // Primero, establecer el item de 'Set Time' si es necesario para este tipo de castigo
-        if (timeRequired) { // timeRequired se define en setTimeRequiredByType()
-            setItemInMenu(SET_TIME_KEY, getItemStack(SET_TIME_KEY));
-        }
 
-        // Luego, iterar sobre los otros item keys comunes y establecerlos en el menú
         for (String itemKey : menuItemKeys) {
-            if (!itemKey.equals(SET_TIME_KEY) && !itemKey.equals(UNSOFTBAN_BUTTON_KEY) && !itemKey.equals(UNFREEZE_BUTTON_KEY)) {
-                setItemInMenu(itemKey, getItemStack(itemKey));
+            if (!itemKey.equals(UNSOFTBAN_BUTTON_KEY) && !itemKey.equals(UNFREEZE_BUTTON_KEY) ) {
+                if (!itemKey.equals(SET_TIME_KEY) || !punishmentType.equalsIgnoreCase("freeze")) {
+                    setItemInMenu(itemKey, getItemStack(itemKey));
+                }
             }
         }
 
-        // Manejar botones específicos de castigo por separado, después de los ítems comunes
+
         if (punishmentType.equalsIgnoreCase("softban")) {
             setItemInMenu(UNSOFTBAN_BUTTON_KEY, getUnSoftBanButton());
         }
+
         if (punishmentType.equalsIgnoreCase("freeze")) {
             setItemInMenu(UNFREEZE_BUTTON_KEY, getUnFreezeButton());
         }
@@ -308,7 +307,9 @@ public class PunishDetailsMenu implements InventoryHolder {
      */
     public void open(Player player) {
         player.openInventory(inventory);
+        plugin.getMenuListener().executeMenuOpenActions(player, this); // Call executeMenuOpenActions from MenuListener
     }
+
 
     /**
      * Gets the punishment type of this details menu.

@@ -8,23 +8,25 @@ package cp.corona.menus.actions;
  * //                   Corona                 //
  * ////////////////////////////////////////////////
  *
- * Enumeration of possible actions that can be triggered when clicking a MenuItem in a menu.
- * Defines actions like opening menus, setting punishment types, requesting input, executing commands and more.
- *
- * Updated to include CONSOLE_COMMAND, CLOSE_MENU and UN_FREEZE actions and reflect the refactored action system.
+ * Enumeration of possible actions that can be triggered when clicking a MenuItem or opening a menu.
+ * Defines actions like opening menus, setting punishment types, requesting input, executing commands,
+ * playing sounds, showing titles, sending messages and more.
  */
 public enum ClickAction {
-    OPEN_MENU,          // Opens another menu
-    SET_PUNISHMENT_TYPE, // Sets the type of punishment
-    REQUEST_INPUT,      // Requests text input from the player via chat
-    ADJUST_TIME,        // Adjusts the punishment time in the TimeSelectorMenu
-    CONFIRM_PUNISHMENT, // Confirms and executes the punishment
-    UN_SOFTBAN,         // Executes the un-softban action
-    UN_FREEZE,          // Executes the un-freeze action - NEW
-    CLOSE_MENU,         // Closes the current menu
-    ADJUST_PAGE,        // Changes page in a paginated menu (e.g., HistoryMenu)
-    CONSOLE_COMMAND,    // Executes a predefined console command
-    NO_ACTION;          // No action is performed - default action
+    OPEN_MENU,
+    SET_PUNISHMENT_TYPE,
+    REQUEST_INPUT,
+    ADJUST_TIME,
+    CONFIRM_PUNISHMENT,
+    UN_SOFTBAN,
+    UN_FREEZE,
+    CLOSE_MENU,
+    ADJUST_PAGE,
+    CONSOLE_COMMAND,
+    PLAY_SOUND,     // Plays a sound - NEW
+    TITLE,          // Shows a title - NEW
+    MESSAGE,        // Sends a message - NEW
+    NO_ACTION;
 
     /**
      * Safely gets a ClickAction enum value from a string.

@@ -45,97 +45,78 @@ public class MainConfigManager {
     private final CustomConfig punishMenuConfig;
     private final CustomConfig punishDetailsMenuConfig;
     private final CustomConfig timeSelectorMenuConfig;
-    private final CustomConfig historyMenuConfig; // New config for history menu
+    private final CustomConfig historyMenuConfig;
 
     private final CrownPunishments plugin;
-    private final String defaultTimeUnit; // Store default time unit
-    private boolean debugEnabled; // Debugging flag
-    private boolean placeholderAPIEnabled; // Flag to track PlaceholderAPI status
-    private CrownPunishmentsPlaceholders placeholders; // PlaceholderAPI Expansion instance
+    private final String defaultTimeUnit;
+    private boolean debugEnabled;
+    private boolean placeholderAPIEnabled;
+    private CrownPunishmentsPlaceholders placeholders;
 
 
-    /**
-     * Constructor for MainConfigManager.
-     * Initializes and registers custom configuration files, and PlaceholderAPI placeholders.
-     *
-     * @param plugin Instance of the main plugin class.
-     */
     public MainConfigManager(CrownPunishments plugin) {
         this.plugin = plugin;
 
-        // Load configurations from separated files
+
         messagesConfig = new CustomConfig("messages.yml", null, plugin, false);
         pluginConfig = new CustomConfig("config.yml", null, plugin, false);
         punishMenuConfig = new CustomConfig("punish_menu.yml", "menus", plugin, false);
         punishDetailsMenuConfig = new CustomConfig("punish_details_menu.yml", "menus", plugin, false);
         timeSelectorMenuConfig = new CustomConfig("time_selector_menu.yml", "menus", plugin, false);
-        historyMenuConfig = new CustomConfig("history_menu.yml", "menus", plugin, false); // Load history menu config
+        historyMenuConfig = new CustomConfig("history_menu.yml", "menus", plugin, false);
 
         messagesConfig.registerConfig();
         pluginConfig.registerConfig();
         punishMenuConfig.registerConfig();
         punishDetailsMenuConfig.registerConfig();
         timeSelectorMenuConfig.registerConfig();
-        historyMenuConfig.registerConfig(); // Register history menu config
+        historyMenuConfig.registerConfig();
 
         loadConfig();
-        this.defaultTimeUnit = getTimeUnit("default"); // Load default time unit on startup
-        this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false); // Load debug config
+        this.defaultTimeUnit = getTimeUnit("default");
+        this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
-        // Check for PlaceholderAPI and register placeholders if enabled
+
         this.placeholderAPIEnabled = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
-        registerPlaceholders(); // Register PlaceholderAPI placeholders
+        registerPlaceholders();
     }
 
-    /**
-     * Loads configuration from files and re-registers placeholders.
-     */
+
     public void loadConfig() {
         messagesConfig.reloadConfig();
         pluginConfig.reloadConfig();
         punishMenuConfig.reloadConfig();
         punishDetailsMenuConfig.reloadConfig();
         timeSelectorMenuConfig.reloadConfig();
-        historyMenuConfig.reloadConfig(); // Reload history menu config
-        this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false); // Reload debug config
+        historyMenuConfig.reloadConfig();
+        this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
         if (isDebugEnabled()) {
             plugin.getLogger().log(Level.INFO, "[MainConfigManager] Configurations reloaded and debug mode is " + (isDebugEnabled() ? "enabled" : "disabled"));
         }
-        if (placeholders != null && placeholderAPIEnabled) { // Only unregister if placeholders are registered and PAPI is enabled
-            placeholders.unregister(); // Unregister old placeholders
-            placeholders.register();   // Re-register placeholders after config reload
+        if (placeholders != null && placeholderAPIEnabled) {
+            placeholders.unregister();
+            placeholders.register();
         }
     }
 
-    /**
-     * Checks if debug mode is enabled.
-     *
-     * @return true if debug mode is enabled, false otherwise.
-     */
+
     public boolean isDebugEnabled() {
         return debugEnabled;
     }
 
-    /**
-     * Checks if PlaceholderAPI is enabled.
-     *
-     * @return true if PlaceholderAPI is enabled, false otherwise.
-     */
+
     public boolean isPlaceholderAPIEnabled() {
         return placeholderAPIEnabled;
     }
 
 
-    /**
-     * Registers custom placeholders for PlaceholderAPI if PlaceholderAPI is enabled.
-     * Made public to be accessible from CrownPunishments main class.
-     */
-    public void registerPlaceholders() { // Changed to public access modifier
+
+    public void registerPlaceholders() {
         if (placeholderAPIEnabled) {
             if (placeholders == null) {
-                placeholders = new CrownPunishmentsPlaceholders(plugin); // Pass plugin instance to placeholder class
+                placeholders = new CrownPunishmentsPlaceholders(plugin);
             }
-            boolean registered = placeholders.register(); // Capture registration result
+            boolean registered = placeholders.register();
             if (registered) {
                 plugin.getLogger().log(Level.INFO, "[MainConfigManager] PlaceholderAPI placeholders registered successfully.");
             } else {
@@ -147,13 +128,7 @@ public class MainConfigManager {
     }
 
 
-    /**
-     * Processes placeholders in a given text with enhanced color code support.
-     *
-     * @param text   The text to process.
-     * @param target The target player, can be null.
-     * @return The processed text with placeholders replaced and colors formatted.
-     */
+
     public String processPlaceholders(String text, OfflinePlayer target) {
         String prefix = pluginConfig.getConfig().getString("prefix", "&8[&6C&cP&8] &r");
         text = MessageUtils.getColorMessage(text).replace("{prefix}", prefix);
@@ -176,10 +151,10 @@ public class MainConfigManager {
                 .replace("{target_world}", onlineTarget != null ?
                         onlineTarget.getWorld().getName() : "-");
 
-        // Softban Placeholders
+
         boolean isSoftBanned = plugin.getSoftBanDatabaseManager().isSoftBanned(target.getUniqueId());
         String softbanStatus = isSoftBanned ? "&cSoftBanned" : "&aNot SoftBanned";
-        text = text.replace("{target_softban_status}", ColorUtils.translateRGBColors(softbanStatus)); // Apply ColorUtils here
+        text = text.replace("{target_softban_status}", ColorUtils.translateRGBColors(softbanStatus));
 
         if (isSoftBanned) {
             long endTime = plugin.getSoftBanDatabaseManager().getSoftBanEndTime(target.getUniqueId());
@@ -190,15 +165,11 @@ public class MainConfigManager {
                 int remainingSeconds = (int) ((endTime - System.currentTimeMillis()) / 1000);
                 remainingTimeFormatted = TimeUtils.formatTime(remainingSeconds, this);
             }
-            text = text.replace("{target_softban_remaining_time}", ColorUtils.translateRGBColors(remainingTimeFormatted)); // Apply ColorUtils here
+            text = text.replace("{target_softban_remaining_time}", ColorUtils.translateRGBColors(remainingTimeFormatted));
 
         } else {
             text = text.replace("{target_softban_remaining_time}", "N/A");
         }
-        // Freeze Placeholders - NEW
-        boolean isFrozen = plugin.getPluginFrozenPlayers().containsKey(target.getUniqueId()); // Check if player is frozen - NEW
-        String freezeStatus = isFrozen ? "&cFrozen" : "&aNot Frozen"; // Status string based on freeze status - NEW
-        text = text.replace("{target_freeze_status}", ColorUtils.translateRGBColors(freezeStatus)); // Apply ColorUtils to freeze status - NEW
 
 
         if (plugin.isPlaceholderAPIEnabled() && target.isOnline()) {
@@ -208,142 +179,102 @@ public class MainConfigManager {
         return text;
     }
 
-    /**
-     * Gets a message from messages.yml and processes placeholders.
-     *
-     * @param path       Path to the message in messages.yml.
-     * @param replacements Placeholders to replace in the message.
-     * @return The processed message.
-     */
+
     public String getMessage(String path, String... replacements) {
         String message = messagesConfig.getConfig().getString(path, "");
-        if (message == null) return ""; // Handle null message from config
-        message = processPlaceholders(message, null); // <--- Placeholder processing happens here
+        if (message == null) return "";
+        message = processPlaceholders(message, null);
 
         for (int i = 0; i < replacements.length; i += 2) {
             if (i + 1 >= replacements.length) break;
-            message = message.replace(replacements[i], replacements[i + 1]); // <--- NullPointerException likely here if replacement is null
+            message = message.replace(replacements[i], replacements[i + 1]);
         }
 
         return message;
     }
 
+
     //<editor-fold desc="Menu Item Getters">
 
-    /**
-     * Gets menu text from punish_menu.yml and processes placeholders.
-     *
-     * @param path   Path to the menu text.
-     * @param target The target player for placeholders.
-     * @return The processed menu text.
-     */
     public String getMenuText(String path, OfflinePlayer target) {
         String text = punishMenuConfig.getConfig().getString("menu." + path, "");
-        if (text == null) return ""; // Handle null menu text from config
+        if (text == null) return "";
         return processPlaceholders(text, target);
     }
 
-    /**
-     * Gets details menu text from punish_details_menu.yml and processes placeholders.
-     *
-     * @param path            Path to the details menu text.
-     * @param target          The target player for placeholders.
-     * @param punishmentType  The type of punishment (ban, mute, softban, kick, warn).
-     * @return The processed details menu text.
-     */
+
     public String getDetailsMenuText(String path, OfflinePlayer target, String punishmentType) {
         String text = punishDetailsMenuConfig.getConfig().getString("menu.punish_details." + punishmentType + "." + path, "");
-        if (text == null) return ""; // Handle null detail menu text from config
+        if (text == null) return "";
         return processPlaceholders(text, target);
     }
 
-    /**
-     * Gets history menu text from history_menu.yml and processes placeholders.
-     *
-     * @param path   Path to the history menu text.
-     * @param target The target player for placeholders.
-     * @return The processed history menu text.
-     */
+
     public String getHistoryMenuText(String path, OfflinePlayer target) {
         String text = historyMenuConfig.getConfig().getString("menu." + path, "");
-        if (text == null) return ""; // Handle null history menu text from config
+        if (text == null) return "";
         return processPlaceholders(text, target);
     }
 
 
-    /**
-     * Gets a MenuItem from punish_menu.yml.
-     *
-     * @param itemKey Item key in the config.
-     * @return The MenuItem.
-     */
+
     public MenuItem getPunishMenuItemConfig(String itemKey) {
         return loadMenuItemFromConfig(punishMenuConfig.getConfig(), "menu.items." + itemKey);
     }
 
-    /**
-     * Gets a details MenuItem from punish_details_menu.yml.
-     *
-     * @param punishmentType The type of punishment (ban, mute, softban, kick, warn).
-     * @param itemKey       Item key in the config.
-     * @return The MenuItem.
-     */
+
     public MenuItem getDetailsMenuItemConfig(String punishmentType, String itemKey) {
         return loadMenuItemFromConfig(punishDetailsMenuConfig.getConfig(), "menu.punish_details." + punishmentType + ".items." + itemKey);
     }
 
-    /**
-     * Gets a time option MenuItem from time_selector_menu.yml.
-     *
-     * @param itemKey Item key in the config.
-     * @return The MenuItem.
-     */
+
     public MenuItem getTimeOptionMenuItemConfig(String itemKey) {
         return loadMenuItemFromConfig(timeSelectorMenuConfig.getConfig(), "menu.time_options." + itemKey);
     }
 
-    /**
-     * Gets a time selector MenuItem from time_selector_menu.yml.
-     *
-     * @param itemKey Item key in the config.
-     * @return The MenuItem.
-     */
+
     public MenuItem getTimeSelectorMenuItemConfig(String itemKey) {
         return loadMenuItemFromConfig(timeSelectorMenuConfig.getConfig(), "menu.time_selector_items." + itemKey);
     }
 
-    /**
-     * Gets a history MenuItem from history_menu.yml.
-     *
-     * @param itemKey Item key in the config.
-     * @return The MenuItem.
-     */
+
     public MenuItem getHistoryMenuItemConfig(String itemKey) {
         return loadMenuItemFromConfig(historyMenuConfig.getConfig(), "menu.items." + itemKey);
     }
 
-    /**
-     * Gets time selector menu title from time_selector_menu.yml and processes placeholders.
-     *
-     * @param target The target player for placeholders.
-     * @return The processed time selector menu title.
-     */
+
     public String getTimeSelectorMenuTitle(OfflinePlayer target) {
         String title = timeSelectorMenuConfig.getConfig().getString("menu.time_selector_title", "");
         if (title == null) return "";
         return processPlaceholders(title, target);
     }
 
-    /**
-     * Gets history menu title from history_menu.yml and processes placeholders.
-     *
-     * @param target The target player for placeholders.
-     * @return The processed history menu title.
-     */
+
     public String getHistoryMenuTitle(OfflinePlayer target) {
         String title = historyMenuConfig.getConfig().getString("menu.title", "");
         if (title == null) return "";
         return processPlaceholders(title, target);
+    }
+
+
+    //</editor-fold>
+
+
+    //<editor-fold desc="Menu Config Getters">
+    public CustomConfig getPunishMenuConfig() { // Getter for PunishMenuConfig - NEW
+        return punishMenuConfig;
+    }
+
+    public CustomConfig getPunishDetailsMenuConfig() { // Getter for PunishDetailsMenuConfig - NEW
+        return punishDetailsMenuConfig;
+    }
+
+    public CustomConfig getTimeSelectorMenuConfig() { // Getter for TimeSelectorMenuConfig - NEW
+        return timeSelectorMenuConfig;
+    }
+
+    public CustomConfig getHistoryMenuConfig() { // Getter for HistoryMenuConfig - NEW
+        return historyMenuConfig;
     }
 
 
@@ -373,13 +304,7 @@ public class MainConfigManager {
         }
         List<Integer> slots = parseSlots(config.getString(configPath + ".slot"));
         menuItem.setSlots(slots);
-        menuItem.setClickSound(config.getString(configPath + ".click_sound"));
-        if (config.isDouble(configPath + ".click_volume")) {
-            menuItem.setClickVolume( (float) config.getDouble(configPath + ".click_volume"));
-        }
-        if (config.isDouble(configPath + ".click_pitch")) {
-            menuItem.setClickPitch((float) config.getDouble(configPath + ".click_pitch"));
-        }
+        // Removed clickSound loading here - No longer needed for MenuItem
 
         // Load Click Actions for left click - Updated to load multiple actions
         List<String> leftClickActionConfigs = config.getStringList(configPath + ".left_click_actions");
@@ -400,6 +325,24 @@ public class MainConfigManager {
         }
 
         return menuItem;
+    }
+
+
+    /**
+     * Loads menu open actions from configuration.
+     *
+     * @param config     The FileConfiguration to load from.
+     * @param configPath The path to the open_actions configuration.
+     * @return A list of ClickActionData for menu open actions.
+     */
+    public List<MenuItem.ClickActionData> loadMenuOpenActions(FileConfiguration config, String configPath) {
+        List<String> openActionConfigs = config.getStringList(configPath + ".open_actions");
+        if (openActionConfigs != null && !openActionConfigs.isEmpty()) {
+            return openActionConfigs.stream()
+                    .map(MenuItem.ClickActionData::fromConfigString)
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList(); // Return empty list if no open_actions configured
     }
 
 
@@ -777,7 +720,6 @@ public class MainConfigManager {
     public CustomConfig getPluginConfig() {
         return pluginConfig;
     }
-
 
     /**
      * Inner class to handle PlaceholderAPI placeholders.

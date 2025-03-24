@@ -1,4 +1,3 @@
-// PunishMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -120,7 +119,9 @@ public class PunishMenu implements InventoryHolder {
      */
     public void open(Player player) {
         player.openInventory(inventory);
+        plugin.getMenuListener().executeMenuOpenActions(player, this); // Call executeMenuOpenActions from MenuListener
     }
+
 
     /**
      * Gets the target player UUID for this menu.

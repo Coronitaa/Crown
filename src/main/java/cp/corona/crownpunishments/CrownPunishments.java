@@ -27,6 +27,8 @@ public final class CrownPunishments extends JavaPlugin {
     private boolean placeholderAPIEnabled;
     private final HashMap<UUID, Boolean> pluginFrozenPlayers = new HashMap<>(); // Track frozen players - NEW
 
+    private MenuListener menuListener; // Add MenuListener field
+
     /**
      * Called when the plugin is enabled.
      * Initializes configuration, database, commands, and event listeners, and PlaceholderAPI.
@@ -44,6 +46,8 @@ public final class CrownPunishments extends JavaPlugin {
         if (placeholderAPIEnabled) { // Register placeholders only if PlaceholderAPI is enabled
             configManager.registerPlaceholders(); // Register PlaceholderAPI placeholders via ConfigManager - [CORRECTED CALL]
         }
+
+        this.menuListener = new MenuListener(this);
 
         registerCommands(); // Register command handlers
         registerEvents();   // Register event listeners
@@ -173,6 +177,15 @@ public final class CrownPunishments extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MenuListener(this), this); // Register MenuListener for menu interactions
         getServer().getPluginManager().registerEvents(new CommandBlockerListener(this), this); // Register CommandBlockerListener for softban command blocking
         getServer().getPluginManager().registerEvents(new FreezeListener(this), this); // Register FreezeListener for freeze punishment - NEW
+    }
+
+    /**
+     * Gets the MenuListener instance. - NEW
+     *
+     * @return MenuListener instance.
+     */
+    public MenuListener getMenuListener() { // NEW: getMenuListener method
+        return menuListener;
     }
 
     /**
