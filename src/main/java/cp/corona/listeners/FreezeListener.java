@@ -5,9 +5,11 @@ import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent; // Import EntityDamageEvent - NEW
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -25,7 +27,10 @@ import java.util.UUID;
  * Listener to handle the "freeze" punishment.
  * Prevents frozen players from moving, using commands, and handles actions on disconnect and chat.
  *
- * **NEW:** Implemented repeated freeze actions using configuration.
+ * **NEW:**
+ * - Implemented repeated freeze actions using configuration.
+ * - Added invulnerability for frozen players.
+ * - Applies freezing visual effect using Entity#setFreezeTicks. - MODIFIED: Using Freeze Ticks instead of PotionEffect
  */
 public class FreezeListener implements Listener {
 
@@ -55,8 +60,27 @@ public class FreezeListener implements Listener {
     }
 
     /**
+     * Makes frozen players invulnerable to damage. - NEW
+     * Cancels damage events if the entity is a frozen player.
+     *
+     * @param event The EntityDamageEvent.
+     */
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player) { // Check if the entity is a player - Corrected instance check
+            Player player = (Player) event.getEntity();
+            if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())) {
+                event.setCancelled(true); // Cancel damage if player is frozen - NEW
+                // Optional: Send a message to indicate they are frozen and cannot be damaged
+                // player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_no_damage")));
+            }
+        }
+    }
+
+    /**
      * Handles actions when a frozen player disconnects, executing a permanent ban.
      * Stops freeze action task and removes player from frozen list.
+     * Removes freezing visual effect upon disconnect. - MODIFIED: Removed potion effect, now removes freeze ticks
      *
      * @param event The PlayerQuitEvent.
      */
@@ -80,6 +104,7 @@ public class FreezeListener implements Listener {
 
             stopFreezeActionsTask(playerId); // Stop freeze actions task when player quits - NEW
             plugin.getPluginFrozenPlayers().remove(playerId); // Remove player from frozen list on disconnect
+            removeFreezingEffect(player); // Remove freezing effect - MODIFIED: Call removeFreezingEffect (now freeze ticks)
         }
     }
 
@@ -87,6 +112,7 @@ public class FreezeListener implements Listener {
     /**
      * Handles actions when a frozen player joins back, re-applying freeze if necessary.
      * Restarts freeze actions task if player is still frozen.
+     * Applies freezing visual effect on join. - MODIFIED: Applied freeze ticks
      *
      * @param event The PlayerJoinEvent.
      */
@@ -100,6 +126,7 @@ public class FreezeListener implements Listener {
             // Optionally, re-apply immobility if PlayerMoveEvent is not sufficient across re-logins
 
             startFreezeActionsTask(player); // Restart freeze actions task on join - NEW
+            applyFreezingEffect(player); // Apply freezing effect - MODIFIED: Call applyFreezingEffect (now freeze ticks)
         }
     }
 
@@ -174,6 +201,7 @@ public class FreezeListener implements Listener {
     /**
      * Starts the repeating actions task for a frozen player. - NEW
      * Executes actions from config at configured interval.
+     * Applies freezing visual effect when starting the task. - MODIFIED: Apply effect here
      *
      * @param player The player to start freeze actions for.
      */
@@ -212,21 +240,50 @@ public class FreezeListener implements Listener {
         }.runTaskTimer(plugin, 0L, intervalTicks); // Run task repeatedly - NEW
 
         freezeActionTasks.put(playerId, task); // Store task for player - NEW
+        applyFreezingEffect(player); // Apply freezing effect when task starts - NEW - MODIFIED: Call applyFreezingEffect here
         plugin.getLogger().info("[DEBUG] Freeze actions task started and stored for player: " + player.getName()); // Debug log - task started and stored
     }
 
     /**
      * Stops the repeating actions task for a player. - NEW
      * Cancels the BukkitTask if it is running and removes it from tracking.
+     * Removes freezing visual effect when stopping the task. - MODIFIED: Remove effect here
      *
      * @param playerId The UUID of the player to stop freeze actions for.
      */
     public void stopFreezeActionsTask(UUID playerId) {
+        plugin.getLogger().info("[DEBUG] stopFreezeActionsTask CALLED for playerId: " + playerId); // Debug log - ENTRY - NEW
         if (freezeActionTasks.containsKey(playerId)) {
+            removeFreezingEffect(Bukkit.getPlayer(playerId)); // Remove freezing effect when task stops - NEW - MODIFIED: Call removeFreezingEffect here before task cancel
             BukkitTask task = freezeActionTasks.remove(playerId);
             if (task != null) {
                 task.cancel(); // Cancel the task - NEW
+                plugin.getLogger().info("[DEBUG] Freeze actions task cancelled for playerId: " + playerId); // Debug log - task cancelled
+            } else {
+                plugin.getLogger().warning("[WARNING] Freeze actions task was null for playerId: " + playerId + ", cannot cancel."); // Warning log - task null
             }
+        } else {
+            plugin.getLogger().warning("[WARNING] No freeze actions task found to stop for playerId: " + playerId); // Warning log - task not found
         }
+    }
+
+    /**
+     * Applies the freezing visual effect to a player using freeze ticks. - NEW - MODIFIED: Using freeze ticks
+     *
+     * @param player The player to apply the freezing effect to.
+     */
+    public void applyFreezingEffect(Player player) {
+        player.setFreezeTicks(Integer.MAX_VALUE); // Fully freeze player visually - NEW - MODIFIED: Using setFreezeTicks
+        plugin.getLogger().info("[DEBUG] Applied freezing effect to player: " + player.getName() + ", freeze ticks: " + player.getMaxFreezeTicks()); // Debug log - effect applied
+    }
+
+    /**
+     * Removes the freezing visual effect from a player by resetting freeze ticks. - NEW - MODIFIED: Using freeze ticks
+     *
+     * @param player The player to remove the freezing effect from.
+     */
+    public void removeFreezingEffect(Player player) {
+        player.setFreezeTicks(0); // Reset freeze ticks to remove effect - NEW - MODIFIED: Using setFreezeTicks
+        plugin.getLogger().info("[DEBUG] Removed freezing effect from player: " + player.getName()); // Debug log - effect removed
     }
 }
