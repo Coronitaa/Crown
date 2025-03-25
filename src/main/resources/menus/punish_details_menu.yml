@@ -10,7 +10,7 @@ menu:
         background_fill_1: # Background fill item configuration - Example 1
           material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
           name: ' ' # Empty name for background item
-          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
+          slot: '0-9,17,18-26,28-30,32-35' # Slot range for background fill
         background_fill_2: # Background fill item configuration - Example 2
           material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
           name: ' '
@@ -28,7 +28,7 @@ menu:
           left_click_actions:
             - 'OPEN_MENU:time_selector' # Open time selector menu
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
+            - 'OPEN_MENU:time_selector' # Example command
         set_reason: # Configuration for Set Reason item
           material: 'WRITABLE_BOOK' # Writable book icon for setting reason
           slot: '13' # Inventory slot
@@ -36,13 +36,14 @@ menu:
           lore: # Item lore
             - '&7Current Reason: &b{reason}' # Placeholder for current reason
             - ''
-            - '&7Left-Click to set the'
+            - '&7Click to set the'
             - '&7reason for the ban.'
-            - '&7Right-Click for example command.'
           left_click_actions:
             - 'REQUEST_INPUT:reason_input' # Request reason input from player
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
+            - 'REQUEST_INPUT:reason_input' # Example command
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
         confirm_punish: # Configuration for Confirm Punish item
           material: 'EMERALD_BLOCK' # Emerald block icon, positive confirmation
           slot: '15' # Inventory slot
@@ -55,22 +56,13 @@ menu:
             - '&7- Time: {time_status}' # Placeholder for time set status
             - '&7- Reason: {reason_status}' # Placeholder for reason set status
             - '&7Right-Click for example command.'
-          disabled_name: '&c&lConfirm Ban (Not Ready)' # Name when not ready (time/reason unset)
-          disabled_lore: # Item lore when not ready
-            - '&cSet time and reason'
-            - '&cbefore confirming ban.'
-            - ''
-            - '&cRequires:'
-            - '&c- Time: &c\u274c Not Set' # Red cross unicode for not set
-            - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-            - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
+            - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
         back_button: # Configuration for Back Button item
           material: 'ARROW' # Arrow icon for back action
-          slot: '31' # Inventory slot
+          slot: '27' # Inventory slot
           name: '&cBack' # Display name, red color indicating back/cancel
           lore: # Item lore
             - '&7Go back to the'
@@ -78,6 +70,22 @@ menu:
             - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:punish_menu' # Open punish menu
+          right_click_actions:
+            - 'OPEN_MENU:punish_menu' # Open punish menu
+    #        unban_button: # Configuration for Back Button item
+    #          material: 'PLAYER_HEAD'
+    #          player_head: '{target}'
+    #          slot: '27' # Inventory slot
+    #          name: '&4Unban' # Display name, red color indicating back/cancel
+    #          lore: # Item lore
+    #            - '&7Removes actual'
+    #            - '&7ban from &b{target}'
+    #            - ''
+    #            - '&7Click to unban player.'
+    #          left_click_actions:
+    #            - 'CONSOLE_COMMAND: unban {target}'
+    #          right_click_actions:
+    #            - 'CONSOLE_COMMAND: unban {target}'
     mute: # Mute details menu configuration
       title: '&e&lMute Details' # Title for MuteDetailsMenu
       items:
@@ -102,7 +110,7 @@ menu:
           left_click_actions:
             - 'OPEN_MENU:time_selector' # Open time selector menu
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Time!"' # Example command
         set_reason: # Set Reason item configuration for Mute
           material: 'WRITABLE_BOOK' # Writable book icon
           slot: '13' # Inventory slot
@@ -116,7 +124,7 @@ menu:
           left_click_actions:
             - 'REQUEST_INPUT:reason_input' # Request reason input
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Reason!"' # Example command
         confirm_punish: # Confirm Punish item configuration for Mute
           material: 'EMERALD_BLOCK' # Emerald block icon
           slot: '15' # Inventory slot
@@ -129,19 +137,10 @@ menu:
             - '&7- Time: {time_status}' # Placeholder for time status
             - '&7- Reason: {reason_status}' # Placeholder for reason status
             - '&7Right-Click for example command.'
-          disabled_name: '&c&lConfirm Mute (Not Ready)' # Display name when not ready
-          disabled_lore: # Item lore when not ready
-            - '&cSet time and reason'
-            - '&cbefore confirming mute.'
-            - ''
-            - '&cRequires:'
-            - '&c- Time: &c\u274c Not Set' # Red cross unicode for not set
-            - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-            - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item configuration for Mute
           material: 'ARROW' # Arrow icon
           slot: '31' # Inventory slot
@@ -149,7 +148,6 @@ menu:
           lore: # Item lore
             - '&7Go back to the'
             - '&7Punishment Menu.'
-            - '&7Right-Click for example command.'
           left_click_actions:
             - 'OPEN_MENU:punish_menu' # Open punish menu
     softban: # SoftBan details menu configuration - NEW
@@ -176,7 +174,7 @@ menu:
           left_click_actions:
             - 'OPEN_MENU:time_selector' # Open time selector menu
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Time!"' # Example command
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Time!"' # Example command
         set_reason: # Set Reason item for SoftBan
           material: 'WRITABLE_BOOK' # Writable book icon
           slot: '13' # Inventory slot
@@ -188,9 +186,11 @@ menu:
             - '&7reason for the softban.'
             - '&7Right-Click for example command.'
           left_click_actions:
-            - 'REQUEST_INPUT:reason_input' # Request reason input
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
         unsoftban_button: # Unsoftban Button item - NEW
           material: 'LIME_DYE' # Lime dye icon for positive action (unsoftban)
           slot: '16' # Inventory slot
@@ -207,7 +207,7 @@ menu:
           left_click_actions:
             - 'UN_SOFTBAN:' # Action on Left-Click
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Unsoftban Button!"' # Example command
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Unsoftban Button!"' # Example command
         confirm_punish: # Confirm Punish item for SoftBan
           material: 'EMERALD_BLOCK' # Emerald block icon
           slot: '15' # Inventory slot
@@ -232,7 +232,7 @@ menu:
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for SoftBan
           material: 'ARROW' # Arrow icon
           slot: '31' # Inventory slot
@@ -265,9 +265,11 @@ menu:
             - '&7reason for the kick.'
             - '&7Right-Click for example command.'
           left_click_actions:
-            - 'REQUEST_INPUT:reason_input' # Request reason input
+            - 'REQUEST_INPUT:reason_input' # Example command
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
+            - 'REQUEST_INPUT:reason_input' # Example command
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
         confirm_punish: # Confirm Punish item for Kick
           material: 'EMERALD_BLOCK' # Emerald block icon
           slot: '15' # Inventory slot
@@ -290,7 +292,7 @@ menu:
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for Kick
           material: 'ARROW' # Arrow icon
           slot: '31' # Inventory slot
@@ -323,9 +325,11 @@ menu:
             - '&7reason for the warn.'
             - '&7Right-Click for example command.'
           left_click_actions:
-            - 'REQUEST_INPUT:reason_input' # Request reason input
+            - 'REQUEST_INPUT:reason_input' # Example command
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command
+            - 'REQUEST_INPUT:reason_input' # Example command
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
         confirm_punish: # Confirm Punish item for Warn
           material: 'EMERALD_BLOCK' # Emerald block icon
           slot: '15' # Inventory slot
@@ -348,7 +352,7 @@ menu:
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command
         back_button: # Back Button item for Warn
           material: 'ARROW' # Arrow icon
           slot: '31' # Inventory slot
@@ -381,9 +385,11 @@ menu:
             - '&7reason for the freeze.' # Instruction line 2 - NEW
             - '&7Right-Click for example command.' # Example right-click action - NEW
           left_click_actions: # Left click actions - NEW
-            - 'REQUEST_INPUT:reason_input' # Request reason input - NEW
+            - 'REQUEST_INPUT:reason_input' # Example command
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
           right_click_actions: # Right click actions - Example command - NEW
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Set Reason!"' # Example command - NEW
+            - 'REQUEST_INPUT:reason_input' # Example command
+            - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
         confirm_punish: # Confirm Punish item for Freeze - NEW
           material: 'EMERALD_BLOCK' # Emerald block icon - NEW
           slot: '15' # Inventory slot - Adjusted slot - NEW
@@ -395,18 +401,10 @@ menu:
             - '&7Requires:' # Requirements header - NEW
             - '&7- Reason: {reason_status}' # Placeholder for reason status - NEW
             - '&7Right-Click for example command.' # Example right-click action - NEW
-          disabled_name: '&c&lConfirm Freeze (Not Ready)' # Display name when not ready - NEW
-          disabled_lore: # Item lore when not ready - NEW
-            - '&cSet reason' # Instruction line 1 when disabled - NEW
-            - '&cbefore confirming freeze.' # Instruction line 2 when disabled - NEW
-            - '' # Empty line for spacing - NEW
-            - '&cRequires:' # Disabled requirements header - NEW
-            - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set reason - NEW
-            - '&7Right-Click for example command.' # Example right-click action when disabled - NEW
           left_click_actions: # Left click actions - NEW
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click - NEW
           right_click_actions: # Right click actions - Example command - NEW
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Confirm!"' # Example command - NEW
+            - 'CONFIRM_PUNISHMENT:' # Action on Left-Click - NEW
         unfreeze_button: # Unfreeze Button item - NEW
           material: 'LIME_DYE' # Lime dye icon for positive action (unfreeze) - NEW
           slot: '30' # Inventory slot - Adjusted slot to be below confirm - NEW
@@ -421,7 +419,7 @@ menu:
           left_click_actions: # Left click actions - NEW
             - 'UN_FREEZE:' # Action on Left-Click (you'll need to add UN_FREEZE action to ClickAction enum) - NEW
           right_click_actions: # Right click actions - Example command - NEW
-            - 'CONSOLE_COMMAND:command: bc {player} "You right-clicked Unfreeze Button!"' # Example command - NEW
+            - 'CONSOLE_COMMAND: bc {player} "You right-clicked Unfreeze Button!"' # Example command - NEW
         back_button: # Back Button item for Freeze - NEW
           material: 'ARROW' # Arrow icon - NEW
           slot: '32' # Inventory slot - Adjusted slot to be below confirm and unfreeze - NEW

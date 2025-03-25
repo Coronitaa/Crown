@@ -37,7 +37,7 @@ menu:
         - 'OPEN_MENU:change_target' # Action performed on Left-Click (default click)
       right_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0' # Added PLAY_SOUND action - NEW
-        - 'CONSOLE_COMMAND:command: say Changed Player via Right Click!' # Command for Right-Click
+        - 'CONSOLE_COMMAND:say Changed Player via Right Click!' # Command for Right-Click
 
     ban:
       material: 'BARRIER' # Material of the item, Barrier block icon

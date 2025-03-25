@@ -1,7 +1,7 @@
 # General plugin configurations.
 # This file contains settings for plugin prefix, commands, sounds, time units, softban and database.
 
-prefix: "#FBCD08&l&oC#F5BF06&l&oR#EFB004&l&oO#E8A202&l&oW#E29300&l&oN &8&o➤&r "
+prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r "
 
 commands:
   ban_command: 'ban {target} {time} {reason}' # Command to ban a player. Placeholders: {target}, {time}, {reason}
@@ -14,7 +14,6 @@ commands:
 
 
 sounds:
-  menu_open: 'BLOCK_CHEST_OPEN' # Sound played when a menu opens
   menu_click: 'UI_BUTTON_CLICK' # Sound played when clicking a menu item
   punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP' # Sound played when a punishment is confirmed
 
@@ -28,8 +27,9 @@ time_units:
 
 softban:
   blocked_commands: # List of commands blocked for softbanned players. Players with 'crown.softban.bypass' permission are exempt.
+    - examplecommand
+    - kit
     - daily
-    - vote
 
 database: # Database configuration section for softban data storage.
   type: 'sqlite' # Type of database: 'sqlite' for local file or 'mysql' for remote MySQL server
@@ -39,11 +39,9 @@ database: # Database configuration section for softban data storage.
   username: 'username' # MySQL username, only needed if type is 'mysql'
   password: 'password' # MySQL password, only needed if type is 'mysql'
 
-logging:
-  debug: true # Set to 'true' to enable debug logging for detailed plugin output. Useful for development and troubleshooting.
 
 freeze: # Configuration section for freeze punishment - NEW
-  disconnect_ban_command: 'ban {target} permanent Disconnected while frozen' # Command to execute when frozen player disconnects - NEW
+  disconnect_ban_command: 'ban {target} Disconnected while frozen' # Command to execute when frozen player disconnects - NEW
   disconnect_ban_reason: 'Disconnected while frozen for review' # Default reason for disconnect ban - NEW
   disconnect_ban_time: 'permanent' # Default ban time for disconnect ban - NEW
   freeze_actions: # Actions to execute repeatedly while player is frozen - NEW
@@ -51,4 +49,7 @@ freeze: # Configuration section for freeze punishment - NEW
     actions: # List of actions to execute - NEW
       - 'MESSAGE:#FBCD08&l&oC#F5BF06&l&oR#EFB004&l&oO#E8A202&l&oW#E29300&l&oN &8&o➤&r &c&lYou are FROZEN! &7Please remain still.' # Example MESSAGE action - NEW
       - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example PLAY_SOUND action - NEW
-      - 'TITLE:You are FREEZED: :20:10:20' # Example TITLE action - NEW
+      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :20:40:20" # Example TITLE action - NEW
+
+logging:
+  debug: false # Set to 'true' to enable debug logging for detailed plugin output. Useful for development and troubleshooting.

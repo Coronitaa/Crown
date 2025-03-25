@@ -254,7 +254,12 @@ public class FreezeListener implements Listener {
     public void stopFreezeActionsTask(UUID playerId) {
         plugin.getLogger().info("[DEBUG] stopFreezeActionsTask CALLED for playerId: " + playerId); // Debug log - ENTRY - NEW
         if (freezeActionTasks.containsKey(playerId)) {
-            removeFreezingEffect(Bukkit.getPlayer(playerId)); // Remove freezing effect when task stops - NEW - MODIFIED: Call removeFreezingEffect here before task cancel
+            Player player = Bukkit.getPlayer(playerId); // Get player instance - NEW: Get player instance here
+            if (player != null) { // Check if player is online - NEW: Check if player is online before removing effect
+                removeFreezingEffect(player); // Remove freezing effect when task stops - NEW - MODIFIED: Call removeFreezingEffect here before task cancel
+            } else {
+                plugin.getLogger().warning("[WARNING] Player is offline, cannot remove freezing effect: " + playerId); // Warning log - player offline
+            }
             BukkitTask task = freezeActionTasks.remove(playerId);
             if (task != null) {
                 task.cancel(); // Cancel the task - NEW

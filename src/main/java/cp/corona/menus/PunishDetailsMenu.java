@@ -228,7 +228,9 @@ public class PunishDetailsMenu implements InventoryHolder {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             // Ensure display name is set from config here as well, to cover all cases
-            meta.setDisplayName(MessageUtils.getColorMessage(plugin.getConfigManager().getDetailsMenuText("items." + punishmentType + "." + CONFIRM_PUNISH_KEY + ".name", target, punishmentType)));
+            // FIXED: Use MenuItem's getName() to get the configured name, already processed with placeholders in toItemStack()
+            meta.setDisplayName(item.getItemMeta().getDisplayName()); // Corrected line: Use existing display name from toItemStack
+
             if ((timeRequired && !timeSet) || (reasonRequiredForConfirmation && !reasonSet) && !punishmentType.equalsIgnoreCase("freeze")) { // Check timeRequired and reasonRequiredForConfirmation flags - MODIFIED CONDITION - Reason is NOT required for freeze confirmation
                 List<String> lore = plugin.getConfigManager().getDetailsMenuItemLore(punishmentType, CONFIRM_PUNISH_KEY, target,
                         "{time_status}", getTimeStatusText(),
@@ -244,6 +246,7 @@ public class PunishDetailsMenu implements InventoryHolder {
         }
         return item;
     }
+
 
     /**
      * Gets the "Back Button" item.
