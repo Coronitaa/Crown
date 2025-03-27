@@ -1,3 +1,4 @@
+// PunishMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -27,34 +28,20 @@ import java.util.stream.Collectors;
  *
  * Represents the main punishment menu.
  * Allows selecting different punishment categories: Ban, Mute, SoftBan, Kick, Warn, and Freeze. - MODIFIED: Added Freeze
+ *
+ * **MODIFIED:**
+ * - Implemented dynamic loading of menu items from configuration files.
+ * - Removed hardcoded item keys and rely on dynamically loaded keys.
  */
 public class PunishMenu implements InventoryHolder {
     private final Inventory inventory;
     private final UUID targetUUID;
     private final CrownPunishments plugin;
 
-    // Item keys constants for menu items in PunishMenu
-    private static final String INFO_ITEM_KEY = "info";
-    private static final String BAN_ITEM_KEY = "ban";
-    private static final String MUTE_ITEM_KEY = "mute";
-    private static final String SOFTBAN_ITEM_KEY = "softban";
-    private static final String KICK_ITEM_KEY = "kick";
-    private static final String WARN_ITEM_KEY = "warn";
-    private static final String FREEZE_ITEM_KEY = "freeze"; // New item for freeze - NEW
-    private static final String HISTORY_ITEM_KEY = "history";
-    private static final String BACKGROUND_FILL_1_KEY = "background_fill_1";
-    private static final String BACKGROUND_FILL_2_KEY = "background_fill_2";
-
-
     /**
-     * Stores the item keys in a Set for easy access and iteration.
+     * Stores the item keys in a Set, dynamically loaded from config.
      */
-    private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
-            INFO_ITEM_KEY, BAN_ITEM_KEY, MUTE_ITEM_KEY, SOFTBAN_ITEM_KEY,
-            KICK_ITEM_KEY, WARN_ITEM_KEY, FREEZE_ITEM_KEY, // Include FREEZE_ITEM_KEY - NEW
-            HISTORY_ITEM_KEY,
-            BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY // Include background fill keys if you have them listed as items
-    ));
+    private final Set<String> menuItemKeys = new HashSet<>();
 
     /**
      * Constructor for PunishMenu.
@@ -69,8 +56,26 @@ public class PunishMenu implements InventoryHolder {
         // Using getMenuText for title to process placeholders and colors
         String title = plugin.getConfigManager().getMenuText("title", target);
         inventory = Bukkit.createInventory(this, 54, title); // Using a fixed size inventory (54 slots = 6 rows)
+        loadMenuItems(); // Load menu items dynamically from config
         initializeItems(target); // Pass target to initializeItems
     }
+
+    /**
+     * Loads menu items dynamically from punish_menu.yml.
+     * Iterates through the 'items' section in the config and adds each item key to menuItemKeys.
+     * Includes debug logging to verify item keys loading.
+     */
+    private void loadMenuItems() {
+        menuItemKeys.clear(); // Clear any existing keys to reload fresh from config
+        Set<String> configKeys = plugin.getConfigManager().getPunishMenuConfig().getConfig().getConfigurationSection("menu.items").getKeys(false);
+        if (configKeys != null) {
+            menuItemKeys.addAll(configKeys);
+            plugin.getLogger().info("[DEBUG] PunishMenu - Loaded menu item keys: " + menuItemKeys); // Debug log for loaded item keys
+        } else {
+            plugin.getLogger().warning("[WARNING] PunishMenu - No item keys found in punish_menu.yml menu.items section!"); // Warning if no keys are loaded
+        }
+    }
+
 
     /**
      * Initializes the items in the menu.

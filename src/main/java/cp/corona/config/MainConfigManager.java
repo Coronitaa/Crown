@@ -1,3 +1,4 @@
+// MainConfigManager.java
 package cp.corona.config;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -38,6 +39,10 @@ import java.util.stream.Collectors;
  *
  * Updated to load multiple click actions for menu items and handle console commands.
  * Now also manages PlaceholderAPI integration and placeholder registration.
+ *
+ * **MODIFIED:**
+ * - Implemented dynamic loading of menu items from configuration files.
+ * - Updated methods to retrieve MenuItem configurations dynamically.
  */
 public class MainConfigManager {
     private final CustomConfig messagesConfig;
@@ -217,14 +222,32 @@ public class MainConfigManager {
     }
 
 
-
+    /**
+     * Gets punish menu item configuration from punish_menu.yml by item key.
+     * @param itemKey Item key in the config.
+     * @return The loaded MenuItem or null if not found.
+     */
     public MenuItem getPunishMenuItemConfig(String itemKey) {
         return loadMenuItemFromConfig(punishMenuConfig.getConfig(), "menu.items." + itemKey);
     }
 
-
+    /**
+     * Gets details menu item configuration from punish_details_menu.yml.
+     * Includes debug logging to check config path and loaded item.
+     * @param punishmentType The type of punishment (ban, mute, softban, kick, warn, freeze).
+     * @param itemKey       Item key in the config.
+     * @return The loaded MenuItem or null if not found.
+     */
     public MenuItem getDetailsMenuItemConfig(String punishmentType, String itemKey) {
-        return loadMenuItemFromConfig(punishDetailsMenuConfig.getConfig(), "menu.punish_details." + punishmentType + ".items." + itemKey);
+        String configPath = "menu.punish_details." + punishmentType + ".items." + itemKey;
+        if (isDebugEnabled()) {
+            plugin.getLogger().log(Level.INFO, "[MainConfigManager] getDetailsMenuItemConfig - Trying to load config from path: " + configPath); //Debug log for config path
+        }
+        MenuItem menuItem = loadMenuItemFromConfig(punishDetailsMenuConfig.getConfig(), configPath);
+        if (menuItem == null && isDebugEnabled()) {
+            plugin.getLogger().log(Level.WARNING, "[MainConfigManager] getDetailsMenuItemConfig - No item found at path: " + configPath); //Warning log if item is null in debug mode
+        }
+        return menuItem;
     }
 
 
@@ -259,7 +282,6 @@ public class MainConfigManager {
 
     //</editor-fold>
 
-
     //<editor-fold desc="Menu Config Getters">
     public CustomConfig getPunishMenuConfig() { // Getter for PunishMenuConfig - NEW
         return punishMenuConfig;
@@ -284,27 +306,57 @@ public class MainConfigManager {
 
     /**
      * Loads a MenuItem from configuration.
+     * Includes debug logging to trace item loading and property setting.
      *
      * @param config     The FileConfiguration to load from.
      * @param configPath The path to the item configuration.
      * @return The loaded MenuItem.
      */
     private MenuItem loadMenuItemFromConfig(FileConfiguration config, String configPath) {
+        if (config == null || configPath == null) {
+            if (isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] loadMenuItemFromConfig - Null config or configPath, cannot load item.");
+            return null;
+        }
+
         MenuItem menuItem = new MenuItem();
-        menuItem.setMaterial(config.getString(configPath + ".material", "STONE"));
-        menuItem.setName(config.getString(configPath + ".name"));
-        menuItem.setLore(config.getStringList(configPath + ".lore"));
-        menuItem.setPlayerHeadValue(config.getString(configPath + ".player_head_value"));
-        menuItem.setPlayerHeadName(config.getString(configPath + ".player_head"));
+        if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Loading item from path: " + configPath);
+
+        String materialStr = config.getString(configPath + ".material", "STONE");
+        menuItem.setMaterial(materialStr);
+        if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Material set to: " + materialStr);
+
+        String name = config.getString(configPath + ".name");
+        menuItem.setName(name);
+        if (isDebugEnabled() && name != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Name set to: " + name);
+
+        List<String> lore = config.getStringList(configPath + ".lore");
+        menuItem.setLore(lore);
+        if (isDebugEnabled() && lore != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Lore lines loaded: " + lore.size());
+
+        String playerHeadValue = config.getString(configPath + ".player_head_value");
+        menuItem.setPlayerHeadValue(playerHeadValue);
+        if (isDebugEnabled() && playerHeadValue != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - PlayerHeadValue set to: " + playerHeadValue);
+
+        String playerHeadName = config.getString(configPath + ".player_head");
+        menuItem.setPlayerHeadName(playerHeadName);
+        if (isDebugEnabled() && playerHeadName != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - PlayerHeadName set to: " + playerHeadName);
+
         if (config.isInt(configPath + ".custom_model_data")) {
-            menuItem.setCustomModelData(config.getInt(configPath + ".custom_model_data"));
+            int cmd = config.getInt(configPath + ".custom_model_data");
+            menuItem.setCustomModelData(cmd);
+            if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - CustomModelData set to: " + cmd);
         }
+
         if (config.isInt(configPath + ".quantity")) {
-            menuItem.setQuantity(config.getInt(configPath + ".quantity"));
+            int qty = config.getInt(configPath + ".quantity");
+            menuItem.setQuantity(qty);
+            if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Quantity set to: " + qty);
         }
+
         List<Integer> slots = parseSlots(config.getString(configPath + ".slot"));
         menuItem.setSlots(slots);
-        // Removed clickSound loading here - No longer needed for MenuItem
+        if (isDebugEnabled() && slots != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Slots parsed and set: " + slots);
+
 
         // Load Click Actions for left click - Updated to load multiple actions
         List<String> leftClickActionConfigs = config.getStringList(configPath + ".left_click_actions");
@@ -313,6 +365,7 @@ public class MainConfigManager {
                     .map(MenuItem.ClickActionData::fromConfigString)
                     .collect(Collectors.toList());
             menuItem.setLeftClickActions(leftClickActions);
+            if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Left-click actions loaded: " + leftClickActions.size());
         }
 
         // Load Click Actions for right click - Updated to load multiple actions
@@ -322,8 +375,10 @@ public class MainConfigManager {
                     .map(MenuItem.ClickActionData::fromConfigString)
                     .collect(Collectors.toList());
             menuItem.setRightClickActions(rightClickActions);
+            if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Right-click actions loaded: " + rightClickActions.size());
         }
 
+        if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - MenuItem loaded successfully from path: " + configPath);
         return menuItem;
     }
 

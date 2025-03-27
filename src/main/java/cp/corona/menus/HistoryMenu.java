@@ -1,3 +1,4 @@
+// HistoryMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -31,6 +32,10 @@ import java.util.UUID;
  * Represents the History Menu for displaying a player's punishment history.
  * The menu displays up to 28 entries per page (using slots 10 to 43) and includes navigation buttons.
  * A next page is only created if the total number of entries exceeds (page × 28).
+ *
+ * **MODIFIED:**
+ * - Implemented dynamic loading of menu items from configuration files.
+ * - Removed hardcoded item keys and rely on dynamically loaded keys.
  */
 public class HistoryMenu implements InventoryHolder {
 
@@ -41,12 +46,9 @@ public class HistoryMenu implements InventoryHolder {
     // Number of history entries per page: 28 (4 rows of 7 entries)
     private final int entriesPerPage = 28;
     private List<MenuItem> historyEntryItems = new ArrayList<>();
-    private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
-            BACK_BUTTON_KEY, NEXT_PAGE_BUTTON_KEY, PREVIOUS_PAGE_BUTTON_KEY,
-            BACKGROUND_FILL_KEY
-    ));
+    private final Set<String> menuItemKeys = new HashSet<>(); // Removed hardcoded keys, now dynamically loaded
 
-    // Configuration keys for items
+    // Configuration keys for items (Not needed anymore for dynamic items but kept for reference and existing code)
     private static final String BACK_BUTTON_KEY = "back_button";
     private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
     private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
@@ -75,6 +77,7 @@ public class HistoryMenu implements InventoryHolder {
         String title = plugin.getConfigManager().getHistoryMenuTitle(target);
         // Create a fixed-size inventory (54 slots = 6 rows)
         inventory = Bukkit.createInventory(this, 54, title);
+        loadMenuItems(); // Load menu items dynamically from config
         initializeItems(target);
     }
 
@@ -257,6 +260,7 @@ public class HistoryMenu implements InventoryHolder {
             case "unsoftban" -> "LIME_DYE";
             case "unban" -> "GREEN_WOOL";
             case "unmute" -> "EMERALD";
+            case "freeze" -> "ICE";
             default -> "BOOK";
         };
     }
@@ -377,5 +381,16 @@ public class HistoryMenu implements InventoryHolder {
      */
     public Set<String> getMenuItemKeys() {
         return menuItemKeys;
+    }
+
+
+    /**
+     * Loads menu items dynamically from history_menu.yml.
+     * Iterates through the 'items' section in the config and adds each item key to menuItemKeys.
+     */
+    private void loadMenuItems() {
+        menuItemKeys.clear(); // Clear any existing keys to reload fresh from config
+        Set<String> configKeys = plugin.getConfigManager().getHistoryMenuConfig().getConfig().getConfigurationSection("menu.items").getKeys(false);
+        menuItemKeys.addAll(configKeys);
     }
 }

@@ -1,8 +1,10 @@
+// PunishDetailsMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
+import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -29,6 +31,10 @@ import java.util.stream.Collectors;
  *
  * Represents the dynamic punishment details menu, versatile for Ban, Mute, SoftBan, Kick, Warn, and Freeze. - MODIFIED: Added Freeze
  * Allows setting specific details for a punishment like time and reason, adaptable by punishment type.
+ *
+ * **MODIFIED:**
+ * - Implemented dynamic loading of menu items from configuration files.
+ * - Removed hardcoded item keys and rely on dynamically loaded keys.
  */
 public class PunishDetailsMenu implements InventoryHolder {
     private final Inventory inventory;
@@ -44,7 +50,12 @@ public class PunishDetailsMenu implements InventoryHolder {
     private final OfflinePlayer target; // Target player for menu
 
 
-    // Constants for item keys in PunishDetailsMenu
+    /**
+     * Stores the item keys in a Set, dynamically loaded from config.
+     */
+    private final Set<String> menuItemKeys = new HashSet<>();
+
+    // Constants for item keys in PunishDetailsMenu (Not needed anymore for dynamic items but kept for reference and existing code)
     public static final String SET_TIME_KEY = "set_time";
     public static final String SET_REASON_KEY = "set_reason";
     public static final String CONFIRM_PUNISH_KEY = "confirm_punish";
@@ -53,19 +64,6 @@ public class PunishDetailsMenu implements InventoryHolder {
     public static final String UNFREEZE_BUTTON_KEY = "unfreeze_button"; // New button for unfreezing - NEW
     private static final String BACKGROUND_FILL_1_KEY = "background_fill_1"; // Background fill item key 1
     private static final String BACKGROUND_FILL_2_KEY = "background_fill_2"; // Background fill item key 2
-
-
-    /**
-     * Stores the item keys in a Set for easy access and iteration in MenuListener.
-     */
-
-    private final Set<String> menuItemKeys = new HashSet<>(Arrays.asList(
-            SET_TIME_KEY,
-            SET_REASON_KEY, CONFIRM_PUNISH_KEY, BACK_BUTTON_KEY,
-            UNSOFTBAN_BUTTON_KEY,
-            UNFREEZE_BUTTON_KEY,
-            BACKGROUND_FILL_1_KEY, BACKGROUND_FILL_2_KEY
-    ));
 
 
     /**
@@ -83,6 +81,7 @@ public class PunishDetailsMenu implements InventoryHolder {
         inventory = Bukkit.createInventory(this, 36, title);
         setTimeRequiredByType(punishmentType);
         setReasonRequiredForConfirmationByType(punishmentType);
+        loadMenuItems(); // Load menu items dynamically from config
         initializeItems();
 
         if (punishmentType.equalsIgnoreCase("freeze")) {
@@ -90,6 +89,17 @@ public class PunishDetailsMenu implements InventoryHolder {
             this.reasonRequiredForConfirmation = false;
         }
     }
+
+    /**
+     * Loads menu items dynamically from punish_details_menu.yml for the specific punishment type.
+     * Iterates through the 'items' section for the punishment type and adds each item key to menuItemKeys.
+     */
+    private void loadMenuItems() {
+        menuItemKeys.clear(); // Clear any existing keys to reload fresh from config
+        Set<String> configKeys = plugin.getConfigManager().getPunishDetailsMenuConfig().getConfig().getConfigurationSection("menu.punish_details." + punishmentType + ".items").getKeys(false);
+        menuItemKeys.addAll(configKeys);
+    }
+
 
     /**
      * Sets whether time is required for the current punishment type.
@@ -120,6 +130,7 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     /**
      * Initializes the items in the menu based on the punishment type.
+     * Dynamically loads items based on menuItemKeys.
      */
     private void initializeItems() {
 
@@ -142,22 +153,21 @@ public class PunishDetailsMenu implements InventoryHolder {
     }
 
     /**
-     * Gets the ItemStack for a given item key, handling null MenuItem configurations.
-     * @param itemKey The key of the item configuration.
+     * @param itemKey Key of the item in the configuration.
      * @return The ItemStack or null if configuration is missing.
      */
     private ItemStack getItemStack(String itemKey) {
-        switch (itemKey) {
-            case SET_TIME_KEY:         return getSetTimeItem();
-            case SET_REASON_KEY:       return getSetReasonItem();
-            case CONFIRM_PUNISH_KEY:   return getConfirmPunishItem();
-            case BACK_BUTTON_KEY:      return getBackButton();
-            case BACKGROUND_FILL_1_KEY:
-            case BACKGROUND_FILL_2_KEY:
-                return plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, itemKey).toItemStack(target, plugin.getConfigManager());
-            case UNSOFTBAN_BUTTON_KEY:   return getUnSoftBanButton(); // Ensure this case is here if needed for getItemStack call
-            case UNFREEZE_BUTTON_KEY:    return getUnFreezeButton();  // Ensure this case is here if needed for getItemStack call
-            default:                     return null; // Handle unknown keys or return null
+        if (plugin.getConfigManager().isDebugEnabled()) { // Debug log - getItemStack called
+            plugin.getLogger().log(Level.INFO, "[PunishDetailsMenu] getItemStack called for itemKey: " + itemKey + ", punishmentType: " + punishmentType);
+        }
+        MenuItem menuItemConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, itemKey);
+        if (menuItemConfig != null) {
+            return menuItemConfig.toItemStack(target, plugin.getConfigManager());
+        } else {
+            if (plugin.getConfigManager().isDebugEnabled()) { // Debug log if no config found
+                plugin.getLogger().log(Level.WARNING, "[PunishDetailsMenu] getItemStack - No MenuItem config found for itemKey: " + itemKey + " and punishmentType: " + punishmentType);
+            }
+            return null; // Return null if no config found
         }
     }
 

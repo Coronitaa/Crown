@@ -72,20 +72,6 @@ menu:
             - 'OPEN_MENU:punish_menu' # Open punish menu
           right_click_actions:
             - 'OPEN_MENU:punish_menu' # Open punish menu
-    #        unban_button: # Configuration for Back Button item
-    #          material: 'PLAYER_HEAD'
-    #          player_head: '{target}'
-    #          slot: '27' # Inventory slot
-    #          name: '&4Unban' # Display name, red color indicating back/cancel
-    #          lore: # Item lore
-    #            - '&7Removes actual'
-    #            - '&7ban from &b{target}'
-    #            - ''
-    #            - '&7Click to unban player.'
-    #          left_click_actions:
-    #            - 'CONSOLE_COMMAND: unban {target}'
-    #          right_click_actions:
-    #            - 'CONSOLE_COMMAND: unban {target}'
     mute: # Mute details menu configuration
       title: '&e&lMute Details' # Title for MuteDetailsMenu
       items:

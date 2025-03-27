@@ -11,6 +11,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -41,12 +42,8 @@ public class TimeSelectorMenu implements InventoryHolder {
     private static final String BACK_BUTTON_KEY = "back_button";
 
 
-    private final List<String> timeSelectorItemKeys = Arrays.asList(
-            MINUS_5_DAY_KEY, MINUS_1_DAY_KEY, MINUS_2_HOUR_KEY, MINUS_5_MIN_KEY,
-            TIME_DISPLAY_KEY,
-            PLUS_15_MIN_KEY, PLUS_6_HOUR_KEY, PLUS_1_DAY_KEY, PLUS_7_DAY_KEY,
-            PERMANENT_TIME_KEY, CUSTOM_TIME_KEY, BACK_BUTTON_KEY
-    );
+    private final List<String> timeSelectorItemKeys; // Dynamically loaded item keys
+
 
     /**
      * Constructor for TimeSelectorMenu.
@@ -60,32 +57,23 @@ public class TimeSelectorMenu implements InventoryHolder {
         OfflinePlayer target = Bukkit.getOfflinePlayer(punishDetailsMenu.getTargetUUID());
         String title = plugin.getConfigManager().getTimeSelectorMenuTitle(target);
         inventory = Bukkit.createInventory(this, 36, title);
+        // Load time selector item keys dynamically from config
+        timeSelectorItemKeys = loadTimeSelectorItemKeys();
         initializeItems(target);
     }
 
+
     /**
      * Initializes the items in the menu.
-     *
+     * Dynamically loads items based on timeSelectorItemKeys.
      * @param target OfflinePlayer to display player-specific information (placeholders).
      */
     private void initializeItems(OfflinePlayer target) {
-        setItemInMenu(MINUS_5_DAY_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(MINUS_5_DAY_KEY), target);
-        setItemInMenu(MINUS_1_DAY_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(MINUS_1_DAY_KEY), target);
-        setItemInMenu(MINUS_2_HOUR_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(MINUS_2_HOUR_KEY), target);
-        setItemInMenu(MINUS_5_MIN_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(MINUS_5_MIN_KEY), target);
-
+        for (String itemKey : timeSelectorItemKeys) {
+            setItemInMenu(itemKey, plugin.getConfigManager().getTimeSelectorMenuItemConfig(itemKey), target);
+        }
         timeDisplayItem = getTimeDisplayItem(target);
         setItemInMenu(TIME_DISPLAY_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(TIME_DISPLAY_KEY), timeDisplayItem); // Pass the itemStack directly
-
-        setItemInMenu(PLUS_15_MIN_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(PLUS_15_MIN_KEY), target);
-        setItemInMenu(PLUS_6_HOUR_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(PLUS_6_HOUR_KEY), target);
-        setItemInMenu(PLUS_1_DAY_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(PLUS_1_DAY_KEY), target);
-        setItemInMenu(PLUS_7_DAY_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(PLUS_7_DAY_KEY), target);
-
-        setItemInMenu(PERMANENT_TIME_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(PERMANENT_TIME_KEY), target);
-        setItemInMenu(CUSTOM_TIME_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(CUSTOM_TIME_KEY), target);
-
-        setItemInMenu(BACK_BUTTON_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(BACK_BUTTON_KEY), target);
     }
 
     /**
@@ -229,5 +217,14 @@ public class TimeSelectorMenu implements InventoryHolder {
      */
     public List<String> getTimeSelectorItemKeys() {
         return timeSelectorItemKeys;
+    }
+
+    /**
+     * Loads time selector item keys dynamically from time_selector_menu.yml.
+     * Retrieves keys under the 'menu.time_selector_items' configuration section.
+     * @return List of item keys.
+     */
+    private List<String> loadTimeSelectorItemKeys() {
+        return new ArrayList<>(plugin.getConfigManager().getTimeSelectorMenuConfig().getConfig().getConfigurationSection("menu.time_selector_items").getKeys(false));
     }
 }

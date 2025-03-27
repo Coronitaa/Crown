@@ -126,6 +126,7 @@ public class MenuListener implements Listener {
 
     /**
      * Retrieves the MenuItem clicked based on the inventory holder and slot.
+     * Dynamically gets MenuItem based on the menu type and slot.
      * @param slot The slot number clicked.
      * @param holder The InventoryHolder.
      * @return The MenuItem clicked, or null if no MenuItem is found.
@@ -145,6 +146,7 @@ public class MenuListener implements Listener {
 
     /**
      * Gets the PunishMenuItem based on slot number.
+     * Iterates through all MenuItem keys of PunishMenu to find the clicked item.
      * @param slot The slot number.
      * @param menu The PunishMenu instance.
      * @return MenuItem or null if not found.
@@ -152,7 +154,7 @@ public class MenuListener implements Listener {
     private MenuItem getPunishMenuItem(int slot, PunishMenu menu) {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
-        for (String itemKey : menu.getMenuItemKeys()) { // Loop through item keys from menu
+        for (String itemKey : menu.getMenuItemKeys()) { // Loop through dynamically loaded item keys
             MenuItem menuItem = configManager.getPunishMenuItemConfig(itemKey);
             if (menuItem != null && menuItem.getSlots().contains(slot)) {
                 return menuItem;
@@ -163,6 +165,7 @@ public class MenuListener implements Listener {
 
     /**
      * Gets the PunishDetailsMenuItem based on slot number.
+     * Iterates through all MenuItem keys of PunishDetailsMenu to find the clicked item.
      * @param slot The slot number.
      * @param menu The PunishDetailsMenu instance.
      * @return MenuItem or null if not found.
@@ -171,10 +174,22 @@ public class MenuListener implements Listener {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
         String punishmentType = menu.getPunishmentType();
-        for (String itemKey : menu.getMenuItemKeys()) { // Loop through item keys from menu
+
+        plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Punishment Type: " + punishmentType); // Log punishment type
+
+        for (String itemKey : menu.getMenuItemKeys()) { // Loop through dynamically loaded item keys
+            plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Checking item key: " + itemKey); // Log each item key being checked
             MenuItem menuItem = configManager.getDetailsMenuItemConfig(punishmentType, itemKey);
-            if (menuItem != null && menuItem.getSlots().contains(slot)) {
-                return menuItem;
+            if (menuItem != null) {
+                plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - MenuItem config found for key: " + itemKey); // Log if config is found
+                if (menuItem.getSlots().contains(slot)) {
+                    plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Slot " + slot + " matches item key: " + itemKey); // Log if slot matches
+                    return menuItem;
+                } else {
+                    plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Slot " + slot + " does NOT match item key: " + itemKey + ", slots: " + menuItem.getSlots()); // Log if slot doesn't match
+                }
+            } else {
+                plugin.getLogger().warning("[WARNING] getPunishDetailsMenuItem - NO MenuItem config found for key: " + itemKey); // Warning if config is missing
             }
         }
         return null;
@@ -182,6 +197,7 @@ public class MenuListener implements Listener {
 
     /**
      * Gets the TimeSelectorMenuItem based on slot number.
+     * Iterates through all MenuItem keys of TimeSelectorMenu to find the clicked item.
      * @param slot The slot number.
      * @param menu The TimeSelectorMenu instance.
      * @return MenuItem or null if not found.
@@ -189,7 +205,7 @@ public class MenuListener implements Listener {
     private MenuItem getTimeSelectorMenuItem(int slot, TimeSelectorMenu menu) {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
-        for (String itemKey : menu.getTimeSelectorItemKeys()) { // Loop through item keys from menu
+        for (String itemKey : menu.getTimeSelectorItemKeys()) { // Loop through dynamically loaded item keys
             MenuItem menuItem = configManager.getTimeSelectorMenuItemConfig(itemKey);
             if (menuItem != null && menuItem.getSlots().contains(slot)) {
                 return menuItem;
@@ -200,6 +216,7 @@ public class MenuListener implements Listener {
 
     /**
      * Gets the HistoryMenuItem based on slot number.
+     * Iterates through all MenuItem keys of HistoryMenu to find the clicked item.
      * @param slot The slot number.
      * @param menu The HistoryMenu instance.
      * @return MenuItem or null if not found.
@@ -207,7 +224,7 @@ public class MenuListener implements Listener {
     private MenuItem getHistoryMenuItem(int slot, HistoryMenu menu) {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
-        for (String itemKey : menu.getMenuItemKeys()) { // Loop through item keys from menu
+        for (String itemKey : menu.getMenuItemKeys()) { // Loop through dynamically loaded item keys
             MenuItem menuItem = configManager.getHistoryMenuItemConfig(itemKey);
             if (menuItem != null && menuItem.getSlots().contains(slot)) {
                 return menuItem;

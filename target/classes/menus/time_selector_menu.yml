@@ -13,9 +13,6 @@ menu:
         - '&c5 minutes.'
       left_click_actions:
         - 'ADJUST_TIME:minus_5_min'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     minus_2_hour: #new, replaces minus_30_min
       material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
       slot: '11'
@@ -25,9 +22,6 @@ menu:
         - '&c2 hours.'
       left_click_actions:
         - 'ADJUST_TIME:minus_2_hour'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     minus_1_day:
       material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
       slot: '10'
@@ -37,9 +31,6 @@ menu:
         - '&c1 day.'
       left_click_actions:
         - 'ADJUST_TIME:minus_1_day'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     minus_5_day: #renamed from minus_7_day for clarity, functionality remains the same
       material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
       slot: '9'
@@ -49,9 +40,6 @@ menu:
         - '&c5 days.'
       left_click_actions:
         - 'ADJUST_TIME:minus_5_day'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     time_display: # Center time display button
       material: 'WHITE_STAINED_GLASS_PANE'
       slot: '13'
@@ -64,9 +52,6 @@ menu:
         - '&aand return to details menu.'
       left_click_actions:
         - 'SET_PUNISHMENT_TYPE:confirm_time'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     plus_15_min: #renamed from plus_5_min for clarity, functionality remains the same
       material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
       slot: '14'
@@ -76,9 +61,6 @@ menu:
         - '&a15 minutes.'
       left_click_actions:
         - 'ADJUST_TIME:plus_15_min'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     plus_6_hour: #new, replaces plus_30_min
       material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
       slot: '15'
@@ -88,9 +70,6 @@ menu:
         - '&a6 hours.'
       left_click_actions:
         - 'ADJUST_TIME:plus_6_hour'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     plus_1_day:
       material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
       slot: '16'
@@ -100,9 +79,6 @@ menu:
         - '&a1 day.'
       left_click_actions:
         - 'ADJUST_TIME:plus_1_day'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     plus_7_day: #renamed from plus_7_day, functionality remains the same
       material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
       slot: '17'
@@ -112,9 +88,6 @@ menu:
         - '&a7 days.'
       left_click_actions:
         - 'ADJUST_TIME:plus_7_day'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     permanent:
       material: 'LAVA_BUCKET'
       slot: '32'
@@ -123,9 +96,6 @@ menu:
         - '&7Punish permanently.' # Updated lore to be more generic
       left_click_actions:
         - 'SET_PUNISHMENT_TYPE:permanent_time'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     custom:
       material: 'PAPER'
       slot: '31'
@@ -135,9 +105,6 @@ menu:
         - '&7punishment duration.' # Updated lore to be more generic
       left_click_actions:
         - 'REQUEST_INPUT:custom_time_input'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
     back_button: # New: Back button item configuration
       material: 'ARROW'
       slot: '30' # Example slot, adjust as needed
@@ -147,6 +114,3 @@ menu:
         - '&7Punishment Details Menu.'
       left_click_actions:
         - 'OPEN_MENU:punish_details'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
