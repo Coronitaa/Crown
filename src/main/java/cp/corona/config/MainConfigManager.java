@@ -12,6 +12,7 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -97,6 +98,18 @@ public class MainConfigManager {
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
         if (isDebugEnabled()) {
             plugin.getLogger().log(Level.INFO, "[MainConfigManager] Configurations reloaded and debug mode is " + (isDebugEnabled() ? "enabled" : "disabled"));
+            // Debug log to check if punish_menu.yml is loaded and menu.items section exists
+            FileConfiguration punishMenuCfg = punishMenuConfig.getConfig();
+            if (punishMenuCfg != null) {
+                ConfigurationSection itemsSection = punishMenuCfg.getConfigurationSection("menu.items");
+                if (itemsSection != null) {
+                    plugin.getLogger().log(Level.INFO, "[MainConfigManager] Debug: 'menu.items' section found in punish_menu.yml");
+                } else {
+                    plugin.getLogger().warning("[MainConfigManager] WARNING: 'menu.items' section NOT found in punish_menu.yml!");
+                }
+            } else {
+                plugin.getLogger().warning("[MainConfigManager] WARNING: punish_menu.yml FileConfiguration is NULL! Check file loading.");
+            }
         }
         if (placeholders != null && placeholderAPIEnabled) {
             placeholders.unregister();

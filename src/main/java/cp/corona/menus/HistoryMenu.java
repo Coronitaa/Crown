@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 
 /**
  * ////////////////////////////////////////////////
@@ -100,6 +101,16 @@ public class HistoryMenu implements InventoryHolder {
 
         // Fill empty slots with background items for aesthetics
         fillEmptySlotsWithBackground(target);
+
+        // Load and set each menu item using getItemStack
+        for (String itemKey : menuItemKeys) {
+            if (!itemKey.equals(BACK_BUTTON_KEY) && !itemKey.equals(NEXT_PAGE_BUTTON_KEY) && !itemKey.equals(PREVIOUS_PAGE_BUTTON_KEY) && !itemKey.equals(BACKGROUND_FILL_KEY)) { // Avoid processing buttons and background again
+                ItemStack itemStack = getItemStack(itemKey, target); // Use getItemStack and pass target - MODIFIED
+                if (itemStack != null) {
+                    setItemInMenu(itemKey, plugin.getConfigManager().getHistoryMenuItemConfig(itemKey), target);
+                }
+            }
+        }
     }
 
     /**
@@ -232,6 +243,27 @@ public class HistoryMenu implements InventoryHolder {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Gets the ItemStack for a given item key, fetching configuration dynamically.
+     * @param itemKey The key of the item configuration.
+     * @param target  The target player for context and placeholders.
+     * @return The ItemStack or null if no configuration is found.
+     */
+    private ItemStack getItemStack(String itemKey, OfflinePlayer target) {
+        if (plugin.getConfigManager().isDebugEnabled()) { // Debug log - getItemStack called
+            plugin.getLogger().log(Level.INFO, "[HistoryMenu] getItemStack called for itemKey: " + itemKey);
+        }
+        MenuItem menuItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(itemKey);
+        if (menuItemConfig != null) {
+            return menuItemConfig.toItemStack(target, plugin.getConfigManager()); // Pass target here
+        } else {
+            if (plugin.getConfigManager().isDebugEnabled()) { // Debug log if no config found
+                plugin.getLogger().log(Level.WARNING, "[HistoryMenu] getItemStack - No MenuItem config found for itemKey: " + itemKey);
+            }
+            return null; // Return null if no config found
         }
     }
 

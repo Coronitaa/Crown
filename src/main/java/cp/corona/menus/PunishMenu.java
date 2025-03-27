@@ -5,6 +5,8 @@ import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.items.MenuItem;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -67,12 +69,23 @@ public class PunishMenu implements InventoryHolder {
      */
     private void loadMenuItems() {
         menuItemKeys.clear(); // Clear any existing keys to reload fresh from config
-        Set<String> configKeys = plugin.getConfigManager().getPunishMenuConfig().getConfig().getConfigurationSection("menu.items").getKeys(false);
+        FileConfiguration config = plugin.getConfigManager().getPunishMenuConfig().getConfig(); // Get FileConfiguration
+        if (config == null) {
+            plugin.getLogger().warning("[WARNING] PunishMenu - FileConfiguration for punish_menu.yml is null!");
+            return; // Exit if config is null
+        }
+        ConfigurationSection itemsSection = config.getConfigurationSection("menu.items"); // Get menu.items section
+        if (itemsSection == null) {
+            plugin.getLogger().warning("[WARNING] PunishMenu - Configuration section 'menu.items' not found in punish_menu.yml!");
+            return; // Exit if itemsSection is null
+        }
+
+        Set<String> configKeys = itemsSection.getKeys(false); // Get keys from menu.items section
         if (configKeys != null) {
             menuItemKeys.addAll(configKeys);
             plugin.getLogger().info("[DEBUG] PunishMenu - Loaded menu item keys: " + menuItemKeys); // Debug log for loaded item keys
         } else {
-            plugin.getLogger().warning("[WARNING] PunishMenu - No item keys found in punish_menu.yml menu.items section!"); // Warning if no keys are loaded
+            plugin.getLogger().warning("[WARNING] PunishMenu - No item keys found under 'menu.items' in punish_menu.yml!"); // Warning if no keys are loaded
         }
     }
 

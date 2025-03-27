@@ -64,15 +64,39 @@ public class TimeSelectorMenu implements InventoryHolder {
 
 
     /**
+     * Gets the ItemStack for a given item key by dynamically fetching configuration.
+     * @param itemKey The key of the item configuration.
+     * @param target  The target player for context and placeholders.
+     * @return The ItemStack or null if configuration is missing.
+     */
+    private ItemStack getItemStack(String itemKey, OfflinePlayer target) {
+        if (plugin.getConfigManager().isDebugEnabled()) { // Debug log - getItemStack called
+            plugin.getLogger().log(Level.INFO, "[TimeSelectorMenu] getItemStack called for itemKey: " + itemKey);
+        }
+        MenuItem menuItemConfig = plugin.getConfigManager().getTimeSelectorMenuItemConfig(itemKey);
+        if (menuItemConfig != null) {
+            return menuItemConfig.toItemStack(target, plugin.getConfigManager());
+        } else {
+            if (plugin.getConfigManager().isDebugEnabled()) { // Debug log if no config found
+                plugin.getLogger().log(Level.WARNING, "[TimeSelectorMenu] getItemStack - No MenuItem config found for itemKey: " + itemKey);
+            }
+            return null; // Return null if no config found
+        }
+    }
+
+    /**
      * Initializes the items in the menu.
      * Dynamically loads items based on timeSelectorItemKeys.
      * @param target OfflinePlayer to display player-specific information (placeholders).
      */
     private void initializeItems(OfflinePlayer target) {
         for (String itemKey : timeSelectorItemKeys) {
-            setItemInMenu(itemKey, plugin.getConfigManager().getTimeSelectorMenuItemConfig(itemKey), target);
+            ItemStack itemStack = getItemStack(itemKey, target); // Use getItemStack and pass target - MODIFIED
+            if (itemStack != null) {
+                setItemInMenu(itemKey, plugin.getConfigManager().getTimeSelectorMenuItemConfig(itemKey), itemStack);
+            }
         }
-        timeDisplayItem = getTimeDisplayItem(target);
+        timeDisplayItem = getTimeDisplayItem(Bukkit.getOfflinePlayer(punishDetailsMenu.getTargetUUID()));
         setItemInMenu(TIME_DISPLAY_KEY, plugin.getConfigManager().getTimeSelectorMenuItemConfig(TIME_DISPLAY_KEY), timeDisplayItem); // Pass the itemStack directly
     }
 
