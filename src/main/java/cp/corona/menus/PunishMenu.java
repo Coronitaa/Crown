@@ -83,7 +83,7 @@ public class PunishMenu implements InventoryHolder {
         Set<String> configKeys = itemsSection.getKeys(false); // Get keys from menu.items section
         if (configKeys != null) {
             menuItemKeys.addAll(configKeys);
-            plugin.getLogger().info("[DEBUG] PunishMenu - Loaded menu item keys: " + menuItemKeys); // Debug log for loaded item keys
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PunishMenu - Loaded menu item keys: " + menuItemKeys); // Debug log for loaded item keys
         } else {
             plugin.getLogger().warning("[WARNING] PunishMenu - No item keys found under 'menu.items' in punish_menu.yml!"); // Warning if no keys are loaded
         }

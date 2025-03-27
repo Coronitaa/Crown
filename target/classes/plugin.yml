@@ -8,18 +8,11 @@ commands:
   crown:
     description: Main command for CrownPunishments.
     usage: /<command> [punish|reload|help|unpunish]
-    aliases: [cp, crownpunish]
     permission: crown.use
     permission-message: You do not have permission to use this command.
   punish: # Alias command for direct /punish usage - ALIAS OF /CROWN PUNISH
     description: Alias for /crown punish command.
     usage: /<command> <player> [type] [time] [reason]
-    permission: crown.use
-    permission-message: You do not have permission to use this command.
-  crownpunishments: # Added another alias example, for consistency and discoverability - ALIAS OF /CROWN
-    description: Alias for /crown command - full name alias
-    usage: /<command> [punish|reload|help|unpunish]
-    aliases: [crown]
     permission: crown.use
     permission-message: You do not have permission to use this command.
   unpunish: # Top level command for unpunishing players directly - SEPARATE TOP LEVEL COMMAND
@@ -36,7 +29,7 @@ commands:
     description: Command to directly freeze players for manual review. # Description for /freeze command - NEW
     usage: /<command> <player> [reason] # Usage for /freeze command - NEW - Reason is now optional
     permission: crown.use # or crown.admin if you want to restrict it to admins only - NEW
-    permission-message: You do not have permission to use this command. # Permission message for /freeze - NEW
+    permission-message: You do not have permission to use this command.
 
 
 permissions:

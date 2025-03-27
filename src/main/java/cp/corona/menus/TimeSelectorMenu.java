@@ -133,12 +133,7 @@ public class TimeSelectorMenu implements InventoryHolder {
         }
     }
 
-    /**
-     * Gets the "Time Display" item stack, updating lore with the current selected time.
-     *
-     * @param target Target player for item placeholders.
-     * @return ItemStack for time display item.
-     */
+    // TimeSelectorMenu.java
     private ItemStack getTimeDisplayItem(OfflinePlayer target) {
         MenuItem timeDisplayConfig = plugin.getConfigManager().getTimeSelectorMenuItemConfig(TIME_DISPLAY_KEY);
         if (timeDisplayConfig == null) return null;

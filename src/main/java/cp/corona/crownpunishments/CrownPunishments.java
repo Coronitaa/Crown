@@ -84,10 +84,10 @@ public final class CrownPunishments extends JavaPlugin {
         MainCommand mainCommand = new MainCommand(this); // Instantiate main command handler
 
         // Register 'crown' command
-        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'crown'");
+        if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Attempting to get command: 'crown'");
         PluginCommand crownCommand = getCommand("crown");
         if (crownCommand != null) {
-            getLogger().info("[COMMAND DEBUG] Command 'crown' found. Setting executor and tab completer.");
+            if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Command 'crown' found. Setting executor and tab completer.");
             crownCommand.setExecutor(mainCommand); // Set command executor
             crownCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
@@ -95,10 +95,10 @@ public final class CrownPunishments extends JavaPlugin {
         }
 
         // Register 'punish' command alias - for direct /punish usage
-        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'punish'");
+        if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Attempting to get command: 'punish'");
         PluginCommand punishCommand = getCommand("punish");
         if (punishCommand != null) {
-            getLogger().info("[COMMAND DEBUG] Command 'punish' found. Setting executor and tab completer.");
+            if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Command 'punish' found. Setting executor and tab completer.");
             punishCommand.setExecutor(mainCommand); // Set command executor
             punishCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
@@ -106,10 +106,10 @@ public final class CrownPunishments extends JavaPlugin {
         }
 
         // Register 'kick' command - though might be handled internally now, keep logging for troubleshooting
-        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'kick'");
+        if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Attempting to get command: 'kick'");
         PluginCommand kickCommand = getCommand("kick");
         if (kickCommand != null) {
-            getLogger().info("[COMMAND DEBUG] Command 'kick' found. Setting executor and tab completer.");
+            if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Command 'kick' found. Setting executor and tab completer.");
             kickCommand.setExecutor(mainCommand); // Set command executor (though MainCommand might not directly handle /kick anymore)
             kickCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
@@ -117,32 +117,21 @@ public final class CrownPunishments extends JavaPlugin {
         }
 
         // Register 'warn' command - same as kick, keep logging for consistency
-        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'warn'");
+        if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Attempting to get command: 'warn'");
         PluginCommand warnCommand = getCommand("warn");
         if (warnCommand != null) {
-            getLogger().info("[COMMAND DEBUG] Command 'warn' found. Setting executor and tab completer.");
+            if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Command 'warn' found. Setting executor and tab completer.");
             warnCommand.setExecutor(mainCommand); // Set executor
             warnCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
             getLogger().warning("[COMMAND DEBUG] Command 'warn' is NULL! Registration FAILED. Check plugin.yml for 'warn' command definition.");
         }
 
-        // Register 'crownpunishments' command alias - for full command name usage
-        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'crownpunishments'");
-        PluginCommand crownPunishmentsCommand = getCommand("crownpunishments");
-        if (crownPunishmentsCommand != null) {
-            getLogger().info("[COMMAND DEBUG] Command 'crownpunishments' found. Setting executor and tab completer.");
-            crownPunishmentsCommand.setExecutor(mainCommand); // Set executor
-            crownPunishmentsCommand.setTabCompleter(mainCommand); // Set tab completer
-        } else {
-            getLogger().warning("[COMMAND DEBUG] Command 'crownpunishments' is NULL! Registration FAILED. Check plugin.yml for 'crownpunishments' command definition.");
-        }
-
         // Register 'unpunish' command - TOP LEVEL COMMAND, SEPARATE FROM CROWN SUBCOMMAND
-        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'unpunish'");
+        if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Attempting to get command: 'unpunish'");
         PluginCommand unpunishCommand = getCommand("unpunish");
         if (unpunishCommand != null) {
-            getLogger().info("[COMMAND DEBUG] Command 'unpunish' found. Setting executor and tab completer.");
+            if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Command 'unpunish' found. Setting executor and tab completer.");
             unpunishCommand.setExecutor(mainCommand); // Set executor
             unpunishCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
@@ -150,10 +139,10 @@ public final class CrownPunishments extends JavaPlugin {
         }
 
         // Register 'softban' command - TOP LEVEL COMMAND, mirroring /crown punish softban
-        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'softban'");
+        if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Attempting to get command: 'softban'");
         PluginCommand softbanCommand = getCommand("softban");
         if (softbanCommand != null) {
-            getLogger().info("[COMMAND DEBUG] Command 'softban' found. Setting executor and tab completer.");
+            if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Command 'softban' found. Setting executor and tab completer.");
             softbanCommand.setExecutor(mainCommand); // Set executor
             softbanCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
@@ -161,10 +150,10 @@ public final class CrownPunishments extends JavaPlugin {
         }
 
         // Register 'freeze' command - TOP LEVEL COMMAND - NEW
-        getLogger().info("[COMMAND DEBUG] Attempting to get command: 'freeze'");
+        if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Attempting to get command: 'freeze'");
         PluginCommand freezeCommand = getCommand("freeze");
         if (freezeCommand != null) {
-            getLogger().info("[COMMAND DEBUG] Command 'freeze' found. Setting executor and tab completer.");
+            if (configManager.isDebugEnabled()) getLogger().info("[COMMAND DEBUG] Command 'freeze' found. Setting executor and tab completer.");
             freezeCommand.setExecutor(mainCommand); // Set executor
             freezeCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {

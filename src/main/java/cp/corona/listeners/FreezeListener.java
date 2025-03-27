@@ -208,7 +208,7 @@ public class FreezeListener implements Listener {
     public void startFreezeActionsTask(Player player) {
         UUID playerId = player.getUniqueId();
         if (freezeActionTasks.containsKey(playerId)) {
-            plugin.getLogger().info("[DEBUG] Freeze actions task already running for player: " + player.getName()); // Debug: Check if task is already running
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Freeze actions task already running for player: " + player.getName()); // Debug: Check if task is already running
             return; // Task already running, avoid duplicates
         }
 
@@ -221,19 +221,19 @@ public class FreezeListener implements Listener {
             return;
         }
 
-        plugin.getLogger().info("[DEBUG] Starting freeze actions task for player: " + player.getName() + ", interval: " + intervalTicks + " ticks, actions: " + actions.size()); // Debug log - task starting
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Starting freeze actions task for player: " + player.getName() + ", interval: " + intervalTicks + " ticks, actions: " + actions.size()); // Debug log - task starting
 
         BukkitTask task = new BukkitRunnable() {
             @Override
             public void run() {
                 if (!plugin.getPluginFrozenPlayers().containsKey(playerId)) {
-                    plugin.getLogger().info("[DEBUG] Player is no longer frozen, stopping freeze actions task: " + player.getName()); // Debug log - player no longer frozen
+                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Player is no longer frozen, stopping freeze actions task: " + player.getName()); // Debug log - player no longer frozen
                     stopFreezeActionsTask(playerId); // Stop task if player is no longer frozen - NEW
                     return;
                 }
-                plugin.getLogger().info("[DEBUG] Executing freeze actions for player: " + player.getName()); // Debug log - executing actions
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing freeze actions for player: " + player.getName()); // Debug log - executing actions
                 for (MenuItem.ClickActionData actionData : actions) {
-                    plugin.getLogger().info("[DEBUG] Executing action: " + actionData.getAction() + ", data: " + Arrays.toString(actionData.getActionData())); // Debug log - individual action
+                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing action: " + actionData.getAction() + ", data: " + Arrays.toString(actionData.getActionData())); // Debug log - individual action
                     menuListener.executeMenuItemAction(player, actionData.getAction(), actionData.getActionData()); // Execute each action for the player - NEW
                 }
             }
@@ -241,9 +241,8 @@ public class FreezeListener implements Listener {
 
         freezeActionTasks.put(playerId, task); // Store task for player - NEW
         applyFreezingEffect(player); // Apply freezing effect when task starts - NEW - MODIFIED: Call applyFreezingEffect here
-        plugin.getLogger().info("[DEBUG] Freeze actions task started and stored for player: " + player.getName()); // Debug log - task started and stored
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Freeze actions task started and stored for player: " + player.getName()); // Debug log - task started and stored
     }
-
     /**
      * Stops the repeating actions task for a player. - NEW
      * Cancels the BukkitTask if it is running and removes it from tracking.
@@ -252,7 +251,7 @@ public class FreezeListener implements Listener {
      * @param playerId The UUID of the player to stop freeze actions for.
      */
     public void stopFreezeActionsTask(UUID playerId) {
-        plugin.getLogger().info("[DEBUG] stopFreezeActionsTask CALLED for playerId: " + playerId); // Debug log - ENTRY - NEW
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] stopFreezeActionsTask CALLED for playerId: " + playerId); // Debug log - ENTRY - NEW
         if (freezeActionTasks.containsKey(playerId)) {
             Player player = Bukkit.getPlayer(playerId); // Get player instance - NEW: Get player instance here
             if (player != null) { // Check if player is online - NEW: Check if player is online before removing effect
@@ -263,7 +262,7 @@ public class FreezeListener implements Listener {
             BukkitTask task = freezeActionTasks.remove(playerId);
             if (task != null) {
                 task.cancel(); // Cancel the task - NEW
-                plugin.getLogger().info("[DEBUG] Freeze actions task cancelled for playerId: " + playerId); // Debug log - task cancelled
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Freeze actions task cancelled for playerId: " + playerId); // Debug log - task cancelled
             } else {
                 plugin.getLogger().warning("[WARNING] Freeze actions task was null for playerId: " + playerId + ", cannot cancel."); // Warning log - task null
             }
@@ -279,7 +278,7 @@ public class FreezeListener implements Listener {
      */
     public void applyFreezingEffect(Player player) {
         player.setFreezeTicks(Integer.MAX_VALUE); // Fully freeze player visually - NEW - MODIFIED: Using setFreezeTicks
-        plugin.getLogger().info("[DEBUG] Applied freezing effect to player: " + player.getName() + ", freeze ticks: " + player.getMaxFreezeTicks()); // Debug log - effect applied
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Applied freezing effect to player: " + player.getName() + ", freeze ticks: " + player.getMaxFreezeTicks()); // Debug log - effect applied
     }
 
     /**
@@ -289,6 +288,6 @@ public class FreezeListener implements Listener {
      */
     public void removeFreezingEffect(Player player) {
         player.setFreezeTicks(0); // Reset freeze ticks to remove effect - NEW - MODIFIED: Using setFreezeTicks
-        plugin.getLogger().info("[DEBUG] Removed freezing effect from player: " + player.getName()); // Debug log - effect removed
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Removed freezing effect from player: " + player.getName()); // Debug log - effect removed
     }
 }

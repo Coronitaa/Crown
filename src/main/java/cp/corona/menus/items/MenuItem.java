@@ -273,7 +273,7 @@ public class MenuItem {
                     URL textureURL = new URL(this.playerHead);
                     textures.setSkin(textureURL);
                     textureSet = true;
-                    plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player_head URL: " + this.playerHead + " for item: " + this.name);
+                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player_head URL: " + this.playerHead + " for item: " + this.name);
                 } catch (MalformedURLException e) {
                     plugin.getLogger().warning("Invalid player_head URL: " + this.playerHead + " for item: " + this.name + ". Must be a direct texture URL from textures.minecraft.net.");
                 }
@@ -285,7 +285,7 @@ public class MenuItem {
                 if (loadedProfile != null && loadedProfile.getTextures() != null && loadedProfile.getTextures().getSkin() != null) {
                     skullMeta.setOwnerProfile(loadedProfile);
                     textureSet = true;
-                    plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player name (sync): " + playerName + " for item: " + this.name); // Log as sync now
+                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player name (sync): " + playerName + " for item: " + this.name); // Log as sync now
                 } else {
                     plugin.getLogger().warning("Failed to load skin for player: " + playerName + " (sync load failed) for item: " + this.name + ". Using default head."); // Log as sync load failed
                 }
@@ -295,13 +295,12 @@ public class MenuItem {
         // 3. Fallback and Validation: If textures are set, set OwnerProfile
         if (textures != null && textures.getSkin() != null && textureSet) {
             skullMeta.setOwnerProfile(profile);
-            plugin.getLogger().info("[DEBUG] Owner profile set SUCCESSFULLY for item: " + this.name);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Owner profile set SUCCESSFULLY for item: " + this.name);
         } else if (!textureSet && (playerHead != null)) { // Warn if texture was intended to be set but failed
             plugin.getLogger().warning("Skull profile is still missing textures after attempting to set for item: " + this.name + ". Check player_head config. Ensure player_head is a valid username or a DIRECT texture URL from textures.minecraft.net.");
         }
         // No warning if textureSet is false and playerHead is null/empty, assuming default head is intentional
     }
-
 
     /**
      * Processes text for placeholders, using MainConfigManager and PlaceholderAPI if available.

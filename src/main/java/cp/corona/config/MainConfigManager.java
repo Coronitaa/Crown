@@ -103,7 +103,7 @@ public class MainConfigManager {
             if (punishMenuCfg != null) {
                 ConfigurationSection itemsSection = punishMenuCfg.getConfigurationSection("menu.items");
                 if (itemsSection != null) {
-                    plugin.getLogger().log(Level.INFO, "[MainConfigManager] Debug: 'menu.items' section found in punish_menu.yml");
+                    if (isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[MainConfigManager] Debug: 'menu.items' section found in punish_menu.yml");
                 } else {
                     plugin.getLogger().warning("[MainConfigManager] WARNING: 'menu.items' section NOT found in punish_menu.yml!");
                 }
@@ -516,7 +516,7 @@ public class MainConfigManager {
                 String replacementValue = replacements[i + 1]; // Get replacement value
                 if (replacementValue == null) {
                     replacementValue = "N/A"; // Default value if replacement is null - NEW: Handle null replacement
-                    plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + replacements[i] + " in history menu lore. Using 'N/A'."); // Log warning - NEW
+                    if (isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + replacements[i] + " in history menu lore. Using 'N/A'."); // Log warning - NEW
                 }
                 processedLine = processedLine.replace(replacements[i], replacementValue);
             }

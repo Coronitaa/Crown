@@ -174,22 +174,33 @@ public class MenuListener implements Listener {
         if (menu == null) return null;
         MainConfigManager configManager = plugin.getConfigManager();
         String punishmentType = menu.getPunishmentType();
-
-        plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Punishment Type: " + punishmentType); // Log punishment type
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Punishment Type: " + punishmentType); // Log punishment type
+        }
 
         for (String itemKey : menu.getMenuItemKeys()) { // Loop through dynamically loaded item keys
-            plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Checking item key: " + itemKey); // Log each item key being checked
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Checking item key: " + itemKey); // Log each item key being checked
+            }
             MenuItem menuItem = configManager.getDetailsMenuItemConfig(punishmentType, itemKey);
             if (menuItem != null) {
-                plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - MenuItem config found for key: " + itemKey); // Log if config is found
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - MenuItem config found for key: " + itemKey); // Log if config is found
+                }
                 if (menuItem.getSlots().contains(slot)) {
-                    plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Slot " + slot + " matches item key: " + itemKey); // Log if slot matches
+                    if (plugin.getConfigManager().isDebugEnabled()) {
+                        plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Slot " + slot + " matches item key: " + itemKey); // Log if slot matches
+                    }
                     return menuItem;
                 } else {
-                    plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Slot " + slot + " does NOT match item key: " + itemKey + ", slots: " + menuItem.getSlots()); // Log if slot doesn't match
+                    if (plugin.getConfigManager().isDebugEnabled()) {
+                        plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Slot " + slot + " does NOT match item key: " + itemKey + ", slots: " + menuItem.getSlots()); // Log if slot doesn't match
+                    }
                 }
             } else {
-                plugin.getLogger().warning("[WARNING] getPunishDetailsMenuItem - NO MenuItem config found for key: " + itemKey); // Warning if config is missing
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().warning("[WARNING] getPunishDetailsMenuItem - NO MenuItem config found for key: " + itemKey); // Warning if config is missing
+                }
             }
         }
         return null;
@@ -252,30 +263,30 @@ public class MenuListener implements Listener {
      */
     private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) { // Modified actionData type - MODIFIED
         // Log entry to debug menu item click handling, including action, data, item name and holder type
-        plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + clickedMenuItem.getName() + ", Holder Type: " + holder.getClass().getSimpleName()); // Modified ActionData log - MODIFIED
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + clickedMenuItem.getName() + ", Holder Type: " + holder.getClass().getSimpleName()); // Modified ActionData log - MODIFIED
 
         // Handle actions based on the type of menu holder
         if (holder instanceof PunishMenu punishMenu) {
-            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishMenu"); // Debug log to identify PunishMenu holder
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishMenu"); // Debug log to identify PunishMenu holder
             handlePunishMenuActions(player, punishMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to PunishMenuActions
         } else if (holder instanceof PunishDetailsMenu punishDetailsMenu) {
-            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishDetailsMenu"); // Debug log for PunishDetailsMenu
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishDetailsMenu"); // Debug log for PunishDetailsMenu
             handlePunishDetailsMenuActions(player, punishDetailsMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to PunishDetailsMenuActions
         } else if (holder instanceof TimeSelectorMenu timeSelectorMenu) {
-            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is TimeSelectorMenu"); // Debug log for TimeSelectorMenu
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is TimeSelectorMenu"); // Debug log for TimeSelectorMenu
             handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to TimeSelectorMenuActions
         } else if (holder instanceof HistoryMenu historyMenu) {
-            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is HistoryMenu"); // Debug log for HistoryMenu
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is HistoryMenu"); // Debug log for HistoryMenu
             handleHistoryMenuActions(player, historyMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to HistoryMenuActions
         } else {
-            plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is UNKNOWN Type: " + holder.getClass().getSimpleName()); // Log unknown holder types
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is UNKNOWN Type: " + holder.getClass().getSimpleName()); // Log unknown holder types
         }
 
         // Handle actions that are common to all menus, regardless of the holder type
         if (action == ClickAction.CONSOLE_COMMAND || action == ClickAction.PLAYER_COMMAND || action == ClickAction.PLAYER_COMMAND_OP) { // Handle all command types here
             executeCommandAction(player, action, actionData, holder); // Execute command action
         } else if (action == ClickAction.CLOSE_MENU) {
-            plugin.getLogger().info("[DEBUG] handleMenuItemClick - CLOSE_MENU action detected."); // Debug log for CLOSE_MENU action
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - CLOSE_MENU action detected."); // Debug log for CLOSE_MENU action
             player.closeInventory(); // Close the player's inventory
         }  else if (action == ClickAction.PLAY_SOUND) { // NEW: Handle PLAY_SOUND action
             executePlaySoundAction(player, actionData);
@@ -287,7 +298,7 @@ public class MenuListener implements Listener {
 
 
         // Log exit from menu item click handling
-        plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Modified ActionData log - MODIFIED
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Modified ActionData log - MODIFIED
     }
 
 
@@ -306,7 +317,7 @@ public class MenuListener implements Listener {
             String commandToExecute = replacePlaceholders(player, rawCommand, holder);
             commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
 
-            plugin.getLogger().info("[DEBUG] Executing COMMAND: " + action + " Command: " + commandToExecute);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing COMMAND: " + action + " Command: " + commandToExecute);
             final String finalCommand = commandToExecute; // Finalize for lambda
 
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -348,7 +359,7 @@ public class MenuListener implements Listener {
             String commandToExecute = replacePlaceholders(player, rawCommand, holder);
             commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
 
-            plugin.getLogger().info("[DEBUG] Executing CONSOLE_COMMAND: " + commandToExecute);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing CONSOLE_COMMAND: " + commandToExecute);
             final String finalCommand = commandToExecute; // Finalize for lambda
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
         } else {
@@ -453,7 +464,7 @@ public class MenuListener implements Listener {
      * @param actionData The data associated with the ClickAction.
      */
     public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) { // NEW Method
-        plugin.getLogger().info("[DEBUG] executeMenuItemAction - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - entry
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - entry
 
         if (action == ClickAction.CONSOLE_COMMAND) {
             executeConsoleCommand(player, actionData, null); // Holder is null as it's outside menu context - MODIFIED: Holder can be null now
@@ -465,7 +476,7 @@ public class MenuListener implements Listener {
             executeMessageAction(player, actionData);
         }
 
-        plugin.getLogger().info("[DEBUG] executeMenuItemAction - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - exit
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - exit
     }
 
 
@@ -500,12 +511,12 @@ public class MenuListener implements Listener {
 
     private void handlePunishMenuActions(Player player, PunishMenu punishMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) {
         // Log entry to debug PunishMenu action handling, including action, data, and item name
-        plugin.getLogger().info("[DEBUG] handlePunishMenuActions - START - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName());
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - START - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName());
 
         UUID targetUUID = punishMenu.getTargetUUID(); // Get the UUID of the target player for this PunishMenu
         switch (action) {
             case OPEN_MENU:
-                plugin.getLogger().info("[DEBUG] handlePunishMenuActions - OPEN_MENU case entered - ActionData: " + actionData); // Debug log when OPEN_MENU action is detected
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - OPEN_MENU case entered - ActionData: " + actionData); // Debug log when OPEN_MENU action is detected
                 if (actionData != null) {
                     // Handle different OPEN_MENU action data to open specific sub-menus
                     if (actionData.equalsIgnoreCase("ban_details")) {
@@ -523,44 +534,44 @@ public class MenuListener implements Listener {
                     } else if (actionData.equalsIgnoreCase("history_menu")) {
                         new HistoryMenu(targetUUID, plugin).open(player); // Open History menu
                     } else if (actionData.equalsIgnoreCase("punish_menu")) { // Handle reopening of the PunishMenu
-                        plugin.getLogger().info("[DEBUG] handlePunishMenuActions - Opening PunishMenu AGAIN - ActionData: punish_menu"); // Specific log for reopen action
+                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - Opening PunishMenu AGAIN - ActionData: punish_menu"); // Specific log for reopen action
                         new PunishMenu(targetUUID, plugin).open(player); // Re-open the PunishMenu
                     } else if (actionData.equalsIgnoreCase("change_target")) {
                         player.closeInventory(); // Close the current inventory
                         requestNewTargetName(player); // Request a new target player name from the player
                     } else {
-                        plugin.getLogger().info("[DEBUG] handlePunishMenuActions - OPEN_MENU case - No Matching ActionData: " + actionData); // Log if actionData doesn't match expected values
+                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - OPEN_MENU case - No Matching ActionData: " + actionData); // Log if actionData doesn't match expected values
                     }
                 } else {
                     plugin.getLogger().warning("[DEBUG] handlePunishMenuActions - OPEN_MENU case - ActionData is NULL, which is unexpected for OPEN_MENU action."); // Warning log if actionData is unexpectedly null
                 }
                 break;
             case NO_ACTION:
-                plugin.getLogger().info("[DEBUG] handlePunishMenuActions - NO_ACTION case entered"); // Debug log for NO_ACTION case
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - NO_ACTION case entered"); // Debug log for NO_ACTION case
                 break;
             default:
-                plugin.getLogger().info("[DEBUG] handlePunishMenuActions - DEFAULT case entered - Action: " + action); // Log for any unhandled action types
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - DEFAULT case entered - Action: " + action); // Log for any unhandled action types
                 break;
         }
         // Log exit from PunishMenu action handling
-        plugin.getLogger().info("[DEBUG] handlePunishMenuActions - END - Action: " + action + ", ActionData: " + actionData);
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - END - Action: " + action + ", ActionData: " + actionData);
     }
 
     private void handlePunishDetailsMenuActions(Player player, PunishDetailsMenu punishDetailsMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
-        plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Log action details
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Log action details
         switch (action) {
             case OPEN_MENU:
                 if (actionData != null) { // Null check for actionData
-                    plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU ActionData: " + actionData); // <-- DEBUG LOGGING
+                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU ActionData: " + actionData); // <-- DEBUG LOGGING
 
                     if (actionData.equalsIgnoreCase("time_selector")) {
-                        plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Opening TimeSelectorMenu"); // <-- DEBUG LOGGING
+                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Opening TimeSelectorMenu"); // <-- DEBUG LOGGING
                         new TimeSelectorMenu(punishDetailsMenu, plugin).open(player);
                     } else if (actionData.equalsIgnoreCase("punish_menu")) {
-                        plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Opening PunishMenu"); // <-- DEBUG LOGGING
+                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Opening PunishMenu"); // <-- DEBUG LOGGING
                         new PunishMenu(punishDetailsMenu.getTargetUUID(), plugin).open(player);
                     } else {
-                        plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU - No matching ActionData: " + actionData); // <-- DEBUG LOGGING
+                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU - No matching ActionData: " + actionData); // <-- DEBUG LOGGING
                     }
                 } else {
                     plugin.getLogger().warning("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU - ActionData is NULL"); // <-- DEBUG LOGGING
@@ -588,7 +599,7 @@ public class MenuListener implements Listener {
 
 
     private void handleTimeSelectorMenuActions(Player player, TimeSelectorMenu timeSelectorMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
-        plugin.getLogger().info("[DEBUG] handleTimeSelectorMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleTimeSelectorMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
         PunishDetailsMenu detailsMenu = timeSelectorMenu.getPunishDetailsMenu();
         switch (action) {
             case ADJUST_TIME:
@@ -640,7 +651,7 @@ public class MenuListener implements Listener {
     }
 
     private void handleHistoryMenuActions(Player player, HistoryMenu historyMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
-        plugin.getLogger().info("[DEBUG] handleHistoryMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleHistoryMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
         switch (action) {
             case OPEN_MENU:
                 if (actionData != null && actionData.equalsIgnoreCase("punish_menu")) { // Null and value check for actionData
