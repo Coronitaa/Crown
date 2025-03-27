@@ -272,8 +272,8 @@ public class MenuListener implements Listener {
         }
 
         // Handle actions that are common to all menus, regardless of the holder type
-        if (action == ClickAction.CONSOLE_COMMAND) {
-            executeConsoleCommand(player, actionData, holder); // Execute console command action
+        if (action == ClickAction.CONSOLE_COMMAND || action == ClickAction.PLAYER_COMMAND || action == ClickAction.PLAYER_COMMAND_OP) { // Handle all command types here
+            executeCommandAction(player, action, actionData, holder); // Execute command action
         } else if (action == ClickAction.CLOSE_MENU) {
             plugin.getLogger().info("[DEBUG] handleMenuItemClick - CLOSE_MENU action detected."); // Debug log for CLOSE_MENU action
             player.closeInventory(); // Close the player's inventory
@@ -288,6 +288,50 @@ public class MenuListener implements Listener {
 
         // Log exit from menu item click handling
         plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Modified ActionData log - MODIFIED
+    }
+
+
+    /**
+     * Executes a command based on the ClickAction type (CONSOLE_COMMAND, PLAYER_COMMAND, PLAYER_COMMAND_OP),
+     * replacing placeholders and handling colors.
+     *
+     * @param player     The player who triggered the command (for player-specific placeholders and command execution).
+     * @param action     The ClickAction type (determines execution context).
+     * @param commandData The command string from the configuration.
+     * @param holder      The InventoryHolder, providing context for placeholder replacement.
+     */
+    private void executeCommandAction(Player player, ClickAction action, String[] commandData, InventoryHolder holder) { // Modified actionData type - MODIFIED, added action type
+        if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) { // Check for commandData array and content - MODIFIED
+            String rawCommand = commandData[0].startsWith("command:") ? commandData[0].substring("command:".length()).trim() : commandData[0]; // Use commandData[0] - MODIFIED
+            String commandToExecute = replacePlaceholders(player, rawCommand, holder);
+            commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
+
+            plugin.getLogger().info("[DEBUG] Executing COMMAND: " + action + " Command: " + commandToExecute);
+            final String finalCommand = commandToExecute; // Finalize for lambda
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                switch (action) {
+                    case CONSOLE_COMMAND:
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+                        break;
+                    case PLAYER_COMMAND:
+                        player.performCommand(finalCommand);
+                        break;
+                    case PLAYER_COMMAND_OP:
+                        boolean originalOp = player.isOp();
+                        try {
+                            player.setOp(true);
+                            player.performCommand(finalCommand);
+                        } finally {
+                            player.setOp(originalOp); // Revert OP status after command execution
+                        }
+                        break;
+                }
+            });
+
+        } else {
+            plugin.getLogger().warning("Invalid COMMAND action data: " + Arrays.toString(commandData) + " Action Type: " + action); // Modified actionData log - MODIFIED, added action log
+        }
     }
 
 

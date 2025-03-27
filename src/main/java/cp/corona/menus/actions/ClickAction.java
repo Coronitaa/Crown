@@ -23,6 +23,8 @@ public enum ClickAction {
     CLOSE_MENU,
     ADJUST_PAGE,
     CONSOLE_COMMAND,
+    PLAYER_COMMAND, // NEW: Executes a command as the player
+    PLAYER_COMMAND_OP, // NEW: Executes a command as the player with OP permissions
     PLAY_SOUND,     // Plays a sound - NEW
     TITLE,          // Shows a title - NEW
     MESSAGE,        // Sends a message - NEW

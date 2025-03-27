@@ -346,13 +346,11 @@ public class MainConfigManager {
         menuItem.setLore(lore);
         if (isDebugEnabled() && lore != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Lore lines loaded: " + lore.size());
 
-        String playerHeadValue = config.getString(configPath + ".player_head_value");
-        menuItem.setPlayerHeadValue(playerHeadValue);
-        if (isDebugEnabled() && playerHeadValue != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - PlayerHeadValue set to: " + playerHeadValue);
+        // Unified player head loading - using 'player_head' field - MODIFIED
+        String playerHeadConfig = config.getString(configPath + ".player_head");
+        menuItem.setPlayerHead(playerHeadConfig); // Use setPlayerHead instead of setPlayerHeadName/Value - MODIFIED
+        if (isDebugEnabled() && playerHeadConfig != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - PlayerHead set to: " + playerHeadConfig);
 
-        String playerHeadName = config.getString(configPath + ".player_head");
-        menuItem.setPlayerHeadName(playerHeadName);
-        if (isDebugEnabled() && playerHeadName != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - PlayerHeadName set to: " + playerHeadName);
 
         if (config.isInt(configPath + ".custom_model_data")) {
             int cmd = config.getInt(configPath + ".custom_model_data");
