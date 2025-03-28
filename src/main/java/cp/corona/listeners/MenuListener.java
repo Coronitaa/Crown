@@ -268,6 +268,18 @@ public class MenuListener implements Listener {
         // Log entry to debug menu item click handling, including action, data, item name and holder type
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + clickedMenuItem.getName() + ", Holder Type: " + holder.getClass().getSimpleName()); // Modified ActionData log - MODIFIED
 
+        String[] processedActionData = actionData; // Initialize processedActionData with original actionData
+
+        // Process actionData for actions that support text placeholders
+        if (action == ClickAction.CONSOLE_COMMAND || action == ClickAction.PLAYER_COMMAND || action == ClickAction.PLAYER_COMMAND_OP ||
+                action == ClickAction.MESSAGE || action == ClickAction.MESSAGE_TARGET ||
+                action == ClickAction.TITLE || action == ClickAction.TITLE_TARGET) {
+            if (actionData.length > 0 && actionData[0] != null) { // Check if actionData has content
+                processedActionData = new String[]{replacePlaceholders(player, actionData[0], holder)}; // Process only the first element, assuming text/command is in the first arg
+            }
+        }
+
+
         // Handle actions based on the type of menu holder
         if (holder instanceof PunishMenu punishMenu) {
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishMenu"); // Debug log to identify PunishMenu holder
@@ -287,16 +299,16 @@ public class MenuListener implements Listener {
 
         // Handle actions that are common to all menus, regardless of the holder type
         if (action == ClickAction.CONSOLE_COMMAND || action == ClickAction.PLAYER_COMMAND || action == ClickAction.PLAYER_COMMAND_OP) { // Handle all command types here
-            executeCommandAction(player, action, actionData, holder); // Execute command action
+            executeCommandAction(player, action, processedActionData, holder); // Execute command action with processed data
         } else if (action == ClickAction.CLOSE_MENU) {
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - CLOSE_MENU action detected."); // Debug log for CLOSE_MENU action
             player.closeInventory(); // Close the player's inventory
         }  else if (action == ClickAction.PLAY_SOUND) { // NEW: Handle PLAY_SOUND action
             executePlaySoundAction(player, actionData);
         } else if (action == ClickAction.TITLE) { // NEW: Handle TITLE action
-            executeTitleAction(player, actionData);
+            executeTitleAction(player, processedActionData); // Execute Title Action with processed data
         } else if (action == ClickAction.MESSAGE) { // NEW: Handle MESSAGE action
-            executeMessageAction(player, actionData, holder); // MODIFIED: Pass holder here!
+            executeMessageAction(player, processedActionData, holder); // Execute Message Action with processed data and holder
         } else if (action == ClickAction.UN_BAN) { // Handle UN_BAN action
             executeUnbanAction(player, holder);
         } else if (action == ClickAction.UN_MUTE) { // Handle UN_MUTE action
@@ -306,16 +318,15 @@ public class MenuListener implements Listener {
         } else if (action == ClickAction.GIVE_EFFECT_TARGET) { // NEW: Handle GIVE_EFFECT_TARGET action
             executeGiveEffectTargetAction(player, holder, actionData);
         } else if (action == ClickAction.TITLE_TARGET) { // NEW: Handle TITLE_TARGET action
-            executeTitleTargetAction(player, holder, actionData);
+            executeTitleTargetAction(player, holder, processedActionData); // Execute Title Target Action with processed data
         } else if (action == ClickAction.MESSAGE_TARGET) { // NEW: Handle MESSAGE_TARGET action
-            executeMessageTargetAction(player, holder, actionData); // MODIFIED: Pass holder here!
+            executeMessageTargetAction(player, holder, processedActionData); // Execute Message Target Action with processed data and holder
         }
 
 
         // Log exit from menu item click handling
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Modified ActionData log - MODIFIED
     }
-
 
     /**
      * Executes the PLAY_SOUND_TARGET action, playing sound to the target player. - NEW - IMPLEMENTED
@@ -396,9 +407,9 @@ public class MenuListener implements Listener {
      * Executes the TITLE_TARGET action, showing a title to the target player. - NEW - IMPLEMENTED
      * @param player The player initiating the action (punisher).
      * @param holder The InventoryHolder, to get target player context.
-     * @param titleArgs Title arguments from configuration: [title, subtitle, time_seconds, fade_in_ticks, fade_out_ticks].
+     * @param titleArgs Title arguments from configuration: [title, subtitle, time_seconds, fade_in_ticks, fade_out_ticks]. - NOW EXPECTS PROCESSED TEXT
      */
-    private void executeTitleTargetAction(Player player, InventoryHolder holder, String[] titleArgs) { // NEW - IMPLEMENTED
+    private void executeTitleTargetAction(Player player, InventoryHolder holder, String[] titleArgs) { // NEW - IMPLEMENTED - NOW EXPECTS PROCESSED TEXT
         OfflinePlayer target = getTargetForAction(holder);
         if (target == null || !target.isOnline()) {
             sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
@@ -422,9 +433,9 @@ public class MenuListener implements Listener {
      * Executes the MESSAGE_TARGET action, sending a message to the target player. - NEW - IMPLEMENTED
      * @param player The player initiating the action (punisher).
      * @param holder The InventoryHolder, to get target player context.
-     * @param messageArgs Message arguments from configuration: [message_text].
+     * @param messageArgs Message arguments from configuration: [message_text]. - NOW EXPECTS PROCESSED TEXT
      */
-    private void executeMessageTargetAction(Player player, InventoryHolder holder, String[] messageArgs) { // NEW - IMPLEMENTED - CORRECTED: Now processes placeholders
+    private void executeMessageTargetAction(Player player, InventoryHolder holder, String[] messageArgs) { // NEW - IMPLEMENTED - CORRECTED: Now processes placeholders - NOW EXPECTS PROCESSED TEXT
         OfflinePlayer target = getTargetForAction(holder);
         if (target == null || !target.isOnline()) {
             sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
@@ -432,9 +443,7 @@ public class MenuListener implements Listener {
         }
         Player targetPlayer = target.getPlayer();
         if (messageArgs.length >= 1) {
-            // Process placeholders using replacePlaceholders method - CORRECTED
-            String messageText = replacePlaceholders(targetPlayer, messageArgs[0].replace("_", " "), holder);
-            messageText = MessageUtils.getColorMessage(messageText); // Colorize the processed text
+            String messageText = MessageUtils.getColorMessage(messageArgs[0].replace("_", " ")); // Colorize the processed text
             targetPlayer.sendMessage(messageText);
         } else {
             plugin.getLogger().warning("MESSAGE_TARGET action requires a message text argument.");
@@ -518,21 +527,19 @@ public class MenuListener implements Listener {
 
     /**
      * Executes a command based on the ClickAction type (CONSOLE_COMMAND, PLAYER_COMMAND, PLAYER_COMMAND_OP),
-     * replacing placeholders and handling colors.
+     * assuming commandData is already processed for placeholders.
      *
-     * @param player     The player who triggered the command (for player-specific placeholders and command execution).
+     * @param player     The player who triggered the command.
      * @param action     The ClickAction type (determines execution context).
-     * @param commandData The command string from the configuration.
-     * @param holder      The InventoryHolder, providing context for placeholder replacement.
+     * @param commandData The processed command string.
+     * @param holder      The InventoryHolder (not used in this method, but kept for consistency).
      */
-    private void executeCommandAction(Player player, ClickAction action, String[] commandData, InventoryHolder holder) { // Modified actionData type - MODIFIED, added action type
-        if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) { // Check for commandData array and content - MODIFIED
-            String rawCommand = commandData[0].startsWith("command:") ? commandData[0].substring("command:".length()).trim() : commandData[0]; // Use commandData[0] - MODIFIED
-            String commandToExecute = replacePlaceholders(player, rawCommand, holder);
-            commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
+    private void executeCommandAction(Player player, ClickAction action, String[] commandData, InventoryHolder holder) {
+        if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) {
+            String commandToExecute = ColorUtils.translateRGBColors(commandData[0]); // Colorize processed command
 
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing COMMAND: " + action + " Command: " + commandToExecute);
-            final String finalCommand = commandToExecute; // Finalize for lambda
+            final String finalCommand = commandToExecute;
 
             Bukkit.getScheduler().runTask(plugin, () -> {
                 switch (action) {
@@ -553,9 +560,8 @@ public class MenuListener implements Listener {
                         break;
                 }
             });
-
         } else {
-            plugin.getLogger().warning("Invalid COMMAND action data: " + Arrays.toString(commandData) + " Action Type: " + action); // Modified actionData log - MODIFIED, added action log
+            plugin.getLogger().warning("Invalid COMMAND action data for action type: " + action + " Data: " + Arrays.toString(commandData));
         }
     }
 
@@ -570,7 +576,7 @@ public class MenuListener implements Listener {
     private void executeConsoleCommand(Player player, String[] commandData, InventoryHolder holder) { // Modified actionData type - MODIFIED
         if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) { // Check for commandData array and content - MODIFIED
             String rawCommand = commandData[0].startsWith("command:") ? commandData[0].substring("command:".length()).trim() : commandData[0]; // Use commandData[0] - MODIFIED
-            String commandToExecute = replacePlaceholders(player, rawCommand, holder);
+            String commandToExecute = rawCommand; // No need to process placeholder again here, already processed in handleMenuItemClick
             commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
 
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing CONSOLE_COMMAND: " + commandToExecute);
@@ -606,9 +612,9 @@ public class MenuListener implements Listener {
     /**
      * Executes the TITLE action.
      * @param player The player to show the title to.
-     * @param titleArgs Title arguments: title, subtitle, time, fadein, fadeout.
+     * @param titleArgs Title arguments: title, subtitle, time, fadein, fadeout. - NOW EXPECTS PROCESSED TEXT
      */
-    private void executeTitleAction(Player player, String[] titleArgs) { // NEW
+    private void executeTitleAction(Player player, String[] titleArgs) { // NEW - NOW EXPECTS PROCESSED TEXT
         if (titleArgs.length >= 3) { // title, subtitle, time are mandatory
             String titleText = ColorUtils.translateRGBColors(titleArgs[0].replace("_", " ")); // Replace underscores with spaces and colorize
             String subtitleText = ColorUtils.translateRGBColors(titleArgs[1].replace("_", " ")); // Replace underscores with spaces and colorize
@@ -625,13 +631,11 @@ public class MenuListener implements Listener {
     /**
      * Executes the MESSAGE action.
      * @param player The player to send the message to.
-     * @param messageArgs Message arguments: text.
+     * @param messageArgs Message arguments: text. - NOW EXPECTS PROCESSED TEXT
      */
-    private void executeMessageAction(Player player, String[] messageArgs, InventoryHolder holder) { // MODIFIED: Added holder
+    private void executeMessageAction(Player player, String[] messageArgs, InventoryHolder holder) { // MODIFIED: Added holder - NOW EXPECTS PROCESSED TEXT
         if (messageArgs.length >= 1) {
-            // Process placeholders using replacePlaceholders method - CORRECTED
-            String messageText = replacePlaceholders(player, messageArgs[0].replace("_", " "), holder);
-            messageText = MessageUtils.getColorMessage(messageText); // Colorize the processed text
+            String messageText = MessageUtils.getColorMessage(messageArgs[0].replace("_", " ")); // Colorize the processed text
             player.sendMessage(messageText);
         } else {
             plugin.getLogger().warning("MESSAGE action requires a message text argument.");
