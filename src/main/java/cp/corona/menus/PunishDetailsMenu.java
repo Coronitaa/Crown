@@ -1,10 +1,8 @@
-// PunishDetailsMenu.java
 package cp.corona.menus;
 
 import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
-import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -35,6 +33,7 @@ import java.util.stream.Collectors;
  * **MODIFIED:**
  * - Implemented dynamic loading of menu items from configuration files.
  * - Removed hardcoded item keys and rely on dynamically loaded keys.
+ * - **CORRECTION:** Called `updateInventory()` in constructor to initialize placeholders on menu open.
  */
 public class PunishDetailsMenu implements InventoryHolder {
     private final Inventory inventory;
@@ -83,6 +82,7 @@ public class PunishDetailsMenu implements InventoryHolder {
         setReasonRequiredForConfirmationByType(punishmentType);
         loadMenuItems(); // Load menu items dynamically from config
         initializeItems();
+        updateInventory(); // **CORRECTION: Call updateInventory() here to initialize placeholders on menu open**
 
         if (punishmentType.equalsIgnoreCase("freeze")) {
             menuItemKeys.remove(SET_TIME_KEY);
@@ -133,7 +133,13 @@ public class PunishDetailsMenu implements InventoryHolder {
      * Dynamically loads items based on menuItemKeys.
      */
     private void initializeItems() {
+        updateMenuItems(); // Call updateMenuItems to initialize and set items
+    }
 
+    /**
+     * Updates all menu items. Called on initialize and when inventory needs to refresh.
+     */
+    private void updateMenuItems() {
         for (String itemKey : menuItemKeys) {
             if (!itemKey.equals(UNSOFTBAN_BUTTON_KEY) && !itemKey.equals(UNFREEZE_BUTTON_KEY) ) {
                 if (!itemKey.equals(SET_TIME_KEY) || !punishmentType.equalsIgnoreCase("freeze")) {
@@ -141,7 +147,6 @@ public class PunishDetailsMenu implements InventoryHolder {
                 }
             }
         }
-
 
         if (punishmentType.equalsIgnoreCase("softban")) {
             setItemInMenu(UNSOFTBAN_BUTTON_KEY, getUnSoftBanButton());
@@ -449,8 +454,15 @@ public class PunishDetailsMenu implements InventoryHolder {
     /**
      * Updates the inventory for players viewing the menu.
      * This is necessary to reflect changes made to menu items.
+     *
+     * **CORRECTION:** Re-fetching and re-setting dynamic items to refresh placeholders on inventory update.
      */
     private void updateInventory() {
+        // Re-fetch and re-set dynamic items to update placeholders - **CORRECTION**
+        setItemInMenu(SET_TIME_KEY, getSetTimeItem());
+        setItemInMenu(SET_REASON_KEY, getSetReasonItem());
+        setItemInMenu(CONFIRM_PUNISH_KEY, getConfirmPunishItem());
+
         // Get all viewers of the inventory and update their view
         List<Player> viewers = inventory.getViewers().stream()
                 .filter(Player.class::isInstance)
