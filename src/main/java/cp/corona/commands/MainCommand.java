@@ -403,6 +403,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 Player onlineTarget = target.getPlayer();
                 if (onlineTarget != null) {
                     sendConfigMessage(onlineTarget, "messages.you_are_frozen"); // Inform the frozen player
+                    // [FIX] Start Freeze Actions Task for direct freeze command - NEW
+                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[MainCommand] Starting FreezeActionsTask for player " + onlineTarget.getName() + " after direct freeze command."); // Debug log
+                    plugin.getFreezeListener().startFreezeActionsTask(onlineTarget); // Start FreezeActionsTask - NEW
                 }
                 return; // Important: Return after handling freeze
             default:

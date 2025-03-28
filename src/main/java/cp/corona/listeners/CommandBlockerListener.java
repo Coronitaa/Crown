@@ -1,4 +1,4 @@
-// listeners/CommandBlockerListener.java
+// CommandBlockerListener.java
 package cp.corona.listeners;
 
 import cp.corona.crownpunishments.CrownPunishments;
@@ -40,6 +40,10 @@ public class CommandBlockerListener implements Listener {
         Player player = event.getPlayer();
         // Allow command execution if player has bypass permission
         if (player.hasPermission("crown.softban.bypass")) {
+            // [FIX] Added debug log to confirm bypass permission is working for softban
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().log(Level.INFO, "[CommandBlockerListener] Player " + player.getName() + " has 'crown.softban.bypass', bypassing command block.");
+            }
             return;
         }
 

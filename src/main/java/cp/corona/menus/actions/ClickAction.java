@@ -20,14 +20,20 @@ public enum ClickAction {
     CONFIRM_PUNISHMENT,
     UN_SOFTBAN,
     UN_FREEZE,
+    UN_BAN,
+    UN_MUTE,
     CLOSE_MENU,
     ADJUST_PAGE,
     CONSOLE_COMMAND,
-    PLAYER_COMMAND, // NEW: Executes a command as the player
-    PLAYER_COMMAND_OP, // NEW: Executes a command as the player with OP permissions
-    PLAY_SOUND,     // Plays a sound - NEW
-    TITLE,          // Shows a title - NEW
-    MESSAGE,        // Sends a message - NEW
+    PLAYER_COMMAND,
+    PLAYER_COMMAND_OP,
+    PLAY_SOUND,
+    TITLE,
+    MESSAGE,
+    PLAY_SOUND_TARGET, // NEW: Plays sound to the target player
+    GIVE_EFFECT_TARGET, // NEW: Gives effect to the target player
+    TITLE_TARGET, // NEW: Shows title to the target player
+    MESSAGE_TARGET, // NEW: Sends message to the target player
     NO_ACTION;
 
     /**

@@ -436,16 +436,22 @@ public class MainConfigManager {
                             slots.add(i);
                         }
                     } catch (NumberFormatException e) {
-                        plugin.getLogger().warning("Invalid slot range: " + part + " in " + slotConfig);
+                        if (isDebugEnabled()) {
+                            plugin.getLogger().warning("Invalid slot range: " + part + " in " + slotConfig);
+                        }
                     }
                 } else {
-                    plugin.getLogger().warning("Invalid slot range format: " + part + " in " + slotConfig);
+                    if (isDebugEnabled()) {
+                        plugin.getLogger().warning("Invalid slot range format: " + part + " in " + slotConfig);
+                    }
                 }
             } else {
                 try {
                     slots.add(Integer.parseInt(part));
                 } catch (NumberFormatException e) {
-                    plugin.getLogger().warning("Invalid slot number: " + part + " in " + slotConfig);
+//                    if (isDebugEnabled()) {
+//                    plugin.getLogger().warning("Invalid slot number: " + part + " in " + slotConfig);
+//                   }
                 }
             }
         }

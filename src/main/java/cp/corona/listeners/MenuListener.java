@@ -9,6 +9,7 @@ import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
@@ -22,6 +23,8 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -293,12 +296,223 @@ public class MenuListener implements Listener {
         } else if (action == ClickAction.TITLE) { // NEW: Handle TITLE action
             executeTitleAction(player, actionData);
         } else if (action == ClickAction.MESSAGE) { // NEW: Handle MESSAGE action
-            executeMessageAction(player, actionData);
+            executeMessageAction(player, actionData, holder); // MODIFIED: Pass holder here!
+        } else if (action == ClickAction.UN_BAN) { // Handle UN_BAN action
+            executeUnbanAction(player, holder);
+        } else if (action == ClickAction.UN_MUTE) { // Handle UN_MUTE action
+            executeUnmuteAction(player, holder);
+        } else if (action == ClickAction.PLAY_SOUND_TARGET) { // NEW: Handle PLAY_SOUND_TARGET action
+            executePlaySoundTargetAction(player, holder, actionData);
+        } else if (action == ClickAction.GIVE_EFFECT_TARGET) { // NEW: Handle GIVE_EFFECT_TARGET action
+            executeGiveEffectTargetAction(player, holder, actionData);
+        } else if (action == ClickAction.TITLE_TARGET) { // NEW: Handle TITLE_TARGET action
+            executeTitleTargetAction(player, holder, actionData);
+        } else if (action == ClickAction.MESSAGE_TARGET) { // NEW: Handle MESSAGE_TARGET action
+            executeMessageTargetAction(player, holder, actionData); // MODIFIED: Pass holder here!
         }
 
 
         // Log exit from menu item click handling
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Modified ActionData log - MODIFIED
+    }
+
+
+    /**
+     * Executes the PLAY_SOUND_TARGET action, playing sound to the target player. - NEW - IMPLEMENTED
+     * @param player The player initiating the action (punisher).
+     * @param holder The InventoryHolder, to get target player context.
+     * @param soundArgs Sound arguments from configuration: [sound_name, volume, pitch].
+     */
+    private void executePlaySoundTargetAction(Player player, InventoryHolder holder, String[] soundArgs) { // NEW - IMPLEMENTED
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) {
+            sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
+            return;
+        }
+        Player targetPlayer = target.getPlayer();
+        if (soundArgs.length >= 1) { // Check if at least sound name is provided
+            try {
+                Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
+                float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f; // Default volume
+                float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;   // Default pitch
+                targetPlayer.playSound(targetPlayer.getLocation(), sound, volume, pitch);
+            } catch (NumberFormatException e) { // Moved NumberFormatException catch block BEFORE IllegalArgumentException
+                plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_TARGET action: " + Arrays.toString(soundArgs));
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_TARGET action: " + soundArgs[0]);
+            }
+        } else {
+            plugin.getLogger().warning("PLAY_SOUND_TARGET action requires at least a sound name.");
+        }
+    }
+
+    /**
+     * Executes the GIVE_EFFECT_TARGET action, applying potion effect to the target player. - NEW
+     * @param player The player initiating the action (punisher).
+     * @param holder InventoryHolder to retrieve target player.
+     * @param effectArgs Effect arguments from configuration (not currently used in provided code, placeholder for future).
+     */
+    /**
+     * Executes the GIVE_EFFECT_TARGET action, applying potion effect to the target player. - NEW - IMPLEMENTED
+     * @param player The player initiating the action (punisher).
+     * @param holder InventoryHolder to retrieve target player.
+     * @param effectArgs Effect arguments from configuration: [effect_type, duration_seconds, amplifier].
+     */
+    private void executeGiveEffectTargetAction(Player player, InventoryHolder holder, String[] effectArgs) { // NEW - IMPLEMENTED - CORRECTED: Using PotionEffectType.getByKey
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) {
+            sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
+            return;
+        }
+        Player targetPlayer = target.getPlayer();
+        if (effectArgs.length >= 3) { // Expecting effect type, duration, and amplifier
+            try {
+                PotionEffectType effectType = PotionEffectType.getByKey(NamespacedKey.minecraft(effectArgs[0].toLowerCase())); // Use getByKey and lowercase input - CORRECTED
+                int durationSeconds = Integer.parseInt(effectArgs[1]);
+                int amplifier = Integer.parseInt(effectArgs[2]);
+                boolean showParticles = effectArgs.length <= 3 || Boolean.parseBoolean(effectArgs[3]); // Default to true if not specified
+
+                if (effectType == null) {
+                    plugin.getLogger().warning("Invalid PotionEffectType configured: " + effectArgs[0] + " for GIVE_EFFECT_TARGET action. Please use Bukkit namespaced keys (e.g., minecraft:slowness).");
+                    return;
+                }
+
+                PotionEffect effect = new PotionEffect(effectType, durationSeconds * 20, amplifier, true, showParticles); // Duration in ticks, ambient=true, showParticles from config
+                targetPlayer.addPotionEffect(effect);
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] GIVE_EFFECT_TARGET action executed for player: " + targetPlayer.getName() + ", effect: " + effectType.getName() + ", duration: " + durationSeconds + "s, amplifier: " + amplifier + ", showParticles: " + showParticles);
+
+            } catch (NumberFormatException e) {
+                plugin.getLogger().warning("Invalid duration or amplifier format for GIVE_EFFECT_TARGET action: " + Arrays.toString(effectArgs) + ". Expected [effect_type, duration_seconds, amplifier, show_particles(optional)]");
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("IllegalArgumentException in GIVE_EFFECT_TARGET action: " + e.getMessage() + ", Args: " + Arrays.toString(effectArgs));
+            }
+        } else {
+            plugin.getLogger().warning("GIVE_EFFECT_TARGET action requires effect_type, duration_seconds, and amplifier arguments.");
+        }
+    }
+
+
+    /**
+     * Executes the TITLE_TARGET action, showing a title to the target player. - NEW - IMPLEMENTED
+     * @param player The player initiating the action (punisher).
+     * @param holder The InventoryHolder, to get target player context.
+     * @param titleArgs Title arguments from configuration: [title, subtitle, time_seconds, fade_in_ticks, fade_out_ticks].
+     */
+    private void executeTitleTargetAction(Player player, InventoryHolder holder, String[] titleArgs) { // NEW - IMPLEMENTED
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) {
+            sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
+            return;
+        }
+        Player targetPlayer = target.getPlayer();
+        if (titleArgs.length >= 3) { // title, subtitle, time are mandatory
+            String titleText = ColorUtils.translateRGBColors(titleArgs[0].replace("_", " ")); // Replace underscores with spaces and colorize
+            String subtitleText = ColorUtils.translateRGBColors(titleArgs[1].replace("_", " ")); // Replace underscores with spaces and colorize; Subtitle might be empty
+            int timeSeconds = Integer.parseInt(titleArgs[2]);
+            int fadeInTicks = titleArgs.length > 3 ? Integer.parseInt(titleArgs[3]) : 10; // Default fadeIn
+            int fadeOutTicks = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
+
+            targetPlayer.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks);
+        } else {
+            plugin.getLogger().warning("TITLE_TARGET action requires at least title, subtitle, and time_seconds arguments.");
+        }
+    }
+
+    /**
+     * Executes the MESSAGE_TARGET action, sending a message to the target player. - NEW - IMPLEMENTED
+     * @param player The player initiating the action (punisher).
+     * @param holder The InventoryHolder, to get target player context.
+     * @param messageArgs Message arguments from configuration: [message_text].
+     */
+    private void executeMessageTargetAction(Player player, InventoryHolder holder, String[] messageArgs) { // NEW - IMPLEMENTED - CORRECTED: Now processes placeholders
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) {
+            sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
+            return;
+        }
+        Player targetPlayer = target.getPlayer();
+        if (messageArgs.length >= 1) {
+            // Process placeholders using replacePlaceholders method - CORRECTED
+            String messageText = replacePlaceholders(targetPlayer, messageArgs[0].replace("_", " "), holder);
+            messageText = MessageUtils.getColorMessage(messageText); // Colorize the processed text
+            targetPlayer.sendMessage(messageText);
+        } else {
+            plugin.getLogger().warning("MESSAGE_TARGET action requires a message text argument.");
+        }
+    }
+
+    /**
+     * Helper method to get the target player from the InventoryHolder context. - NEW
+     * @param holder The InventoryHolder.
+     * @return OfflinePlayer target or null if holder is not a PunishMenu or PunishDetailsMenu.
+     */
+    private OfflinePlayer getTargetForAction(InventoryHolder holder) {
+        if (holder instanceof PunishMenu) {
+            return Bukkit.getOfflinePlayer(((PunishMenu) holder).getTargetUUID());
+        } else if (holder instanceof PunishDetailsMenu) {
+            return Bukkit.getOfflinePlayer(((PunishDetailsMenu) holder).getTargetUUID());
+        } else if (holder instanceof TimeSelectorMenu) {
+            return Bukkit.getOfflinePlayer(((TimeSelectorMenu) holder).getPunishDetailsMenu().getTargetUUID());
+        } else if (holder instanceof  HistoryMenu){
+            return Bukkit.getOfflinePlayer(((HistoryMenu) holder).getTargetUUID());
+        }
+        return null;
+    }
+
+
+    /**
+     * Executes the UN_BAN action, unbanning the target player. - NEW
+     * @param player The player initiating the unban.
+     * @param holder The InventoryHolder, used to get target player context.
+     */
+    private void executeUnbanAction(Player player, InventoryHolder holder) {
+        if (!(holder instanceof PunishDetailsMenu)) {
+            plugin.getLogger().warning("UN_BAN action called from invalid menu holder: " + holder.getClass().getName());
+            return;
+        }
+        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
+        UUID targetUUID = detailsMenu.getTargetUUID();
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        String unbanCommand = plugin.getConfigManager().getUnbanCommand()
+                .replace("{target}", target.getName());
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), unbanCommand));
+        playSound(player, "punish_confirm");
+        sendUnpunishConfirmation(player, target, "ban"); // Use generic unpunish confirmation
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unban", "Unbanned via Menu", player.getName(), 0L, "permanent"); // Log unban action
+    }
+
+    /**
+     * Executes the UN_MUTE action, unmuting the target player. - NEW
+     * @param player The player initiating the unmute.
+     * @param holder The InventoryHolder, used to get target player context.
+     */
+    private void executeUnmuteAction(Player player, InventoryHolder holder) {
+        if (!(holder instanceof PunishDetailsMenu)) {
+            plugin.getLogger().warning("UN_MUTE action called from invalid menu holder: " + holder.getClass().getName());
+            return;
+        }
+        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
+        UUID targetUUID = detailsMenu.getTargetUUID();
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        String unmuteCommand = plugin.getConfigManager().getUnmuteCommand()
+                .replace("{target}", target.getName());
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), unmuteCommand));
+        playSound(player, "punish_confirm");
+        sendUnpunishConfirmation(player, target, "mute"); // Use generic unpunish confirmation
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unmute", "Unmuted via Menu", player.getName(), 0L, "permanent"); // Log unmute action
+    }
+
+    /**
+     * Sends a generic unpunish confirmation message to the punisher. - NEW
+     * @param player The punisher player.
+     * @param target The unpunished player.
+     * @param punishType The type of punishment that was removed (ban, mute).
+     */
+    private void sendUnpunishConfirmation(Player player, OfflinePlayer target, String punishType) {
+        player.closeInventory();
+        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.direct_unpunishment_confirmed",
+                "{target}", target.getName() != null ? target.getName() : "unknown",
+                "{punishment_type}", punishType)));
     }
 
 
@@ -413,9 +627,11 @@ public class MenuListener implements Listener {
      * @param player The player to send the message to.
      * @param messageArgs Message arguments: text.
      */
-    private void executeMessageAction(Player player, String[] messageArgs) { // NEW
+    private void executeMessageAction(Player player, String[] messageArgs, InventoryHolder holder) { // MODIFIED: Added holder
         if (messageArgs.length >= 1) {
-            String messageText = MessageUtils.getColorMessage(messageArgs[0].replace("_", " ")); // Replace underscores with spaces and colorize
+            // Process placeholders using replacePlaceholders method - CORRECTED
+            String messageText = replacePlaceholders(player, messageArgs[0].replace("_", " "), holder);
+            messageText = MessageUtils.getColorMessage(messageText); // Colorize the processed text
             player.sendMessage(messageText);
         } else {
             plugin.getLogger().warning("MESSAGE action requires a message text argument.");
@@ -428,7 +644,7 @@ public class MenuListener implements Listener {
      * @param player The player opening the menu.
      * @param holder The InventoryHolder representing the menu.
      */
-    public void executeMenuOpenActions(Player player, InventoryHolder holder) { // NEW
+    public void executeMenuOpenActions(Player player, InventoryHolder holder) { // NEW - MODIFIED: Corrected to pass holder
         List<MenuItem.ClickActionData> openActions = Collections.emptyList();
 
         if (holder instanceof PunishMenu) {
@@ -450,7 +666,7 @@ public class MenuListener implements Listener {
             } else if (action == ClickAction.TITLE) {
                 executeTitleAction(player, actionArgs);
             } else if (action == ClickAction.MESSAGE) {
-                executeMessageAction(player, actionArgs);
+                executeMessageAction(player, actionArgs, holder); // MODIFIED: Pass holder here!
             }
         }
     }
@@ -463,7 +679,7 @@ public class MenuListener implements Listener {
      * @param action     The ClickAction to execute.
      * @param actionData The data associated with the ClickAction.
      */
-    public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) { // NEW Method
+    public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) { // NEW Method - MODIFIED: Corrected to pass null holder
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - entry
 
         if (action == ClickAction.CONSOLE_COMMAND) {
@@ -473,9 +689,17 @@ public class MenuListener implements Listener {
         } else if (action == ClickAction.TITLE) { // NEW: Handle TITLE action
             executeTitleAction(player, actionData);
         } else if (action == ClickAction.MESSAGE) { // NEW: Handle MESSAGE action
-            executeMessageAction(player, actionData);
+            executeMessageAction(player, actionData, null); // MODIFIED: Pass null holder here
+        } else if (action == ClickAction.PLAY_SOUND_TARGET) { // NEW: Handle PLAY_SOUND_TARGET action
+            executePlaySoundTargetAction(player, null, actionData); // MODIFIED: Pass null holder here
+        } else if (action == ClickAction.TITLE_TARGET) { // NEW: Handle TITLE action
+            executeTitleTargetAction(player, null, actionData); // MODIFIED: Pass null holder here
+        } else if (action == ClickAction.MESSAGE_TARGET) { // NEW: Handle MESSAGE action
+            executeMessageTargetAction(player, null, actionData); // MODIFIED: Pass null holder here
         }
 
+
+        // Log exit from menu item click handling
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - exit
     }
 
@@ -1442,6 +1666,16 @@ public class MenuListener implements Listener {
         } else {
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_valid_time_confirm")));
         }
+    }
+
+    /**
+     * Sends a message from the configuration to the command sender, with optional replacements.
+     * @param sender Command sender.
+     * @param path Path to the message in messages.yml.
+     * @param replacements Placeholders to replace in the message.
+     */
+    private void sendConfigMessage(CommandSender sender, String path, String... replacements) {
+        MessageUtils.sendConfigMessage(plugin, sender, path, replacements);
     }
 
     /**
