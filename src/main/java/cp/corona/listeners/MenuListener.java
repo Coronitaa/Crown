@@ -438,7 +438,7 @@ public class MenuListener implements Listener {
             int fadeInTicks = titleArgs.length > 3 ? Integer.parseInt(titleArgs[3]) : 10; // Default fadeIn
             int fadeOutTicks = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
 
-            targetPlayer.sendTitle(titleText.replace("_", " "), subtitleText.replace("_", " "), fadeInTicks, timeSeconds * 20, fadeOutTicks); // Apply underscore replacement for display here
+            targetPlayer.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks); // Apply underscore replacement for display here
         } else {
             plugin.getLogger().warning("TITLE_TARGET action requires at least title, subtitle, and time_seconds arguments.");
         }
@@ -460,7 +460,7 @@ public class MenuListener implements Listener {
         if (messageArgs.length >= 1) {
             // Get the message text and colorize directly, no underscore replacement yet
             String messageText = MessageUtils.getColorMessage(messageArgs[0]); // Colorize, NO underscore replacement here
-            targetPlayer.sendMessage(messageText.replace("_", " ")); // Apply underscore replacement for display here
+            targetPlayer.sendMessage(messageText); // Apply underscore replacement for display here
         } else {
             plugin.getLogger().warning("MESSAGE_TARGET action requires a message text argument.");
         }
@@ -661,7 +661,7 @@ public class MenuListener implements Listener {
             int fadeOutTicks = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
 
             // Send the title to the player with parsed and formatted arguments
-            player.sendTitle(titleText.replace("_", " "), subtitleText.replace("_", " "), fadeInTicks, timeSeconds * 20, fadeOutTicks); // Apply underscore replacement for display here
+            player.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks); // Apply underscore replacement for display here
         } else {
             // Log a warning if not enough arguments are provided for the TITLE action
             plugin.getLogger().warning("TITLE action requires at least title, subtitle, and time_seconds arguments.");
@@ -679,7 +679,7 @@ public class MenuListener implements Listener {
             // Get the message text and colorize directly, no underscore replacement yet
             String messageText = MessageUtils.getColorMessage(messageArgs[0]); // Colorize, NO underscore replacement here
             // Send the colorized message to the player, applying underscore replacement for display
-            player.sendMessage(messageText.replace("_", " ")); // Apply underscore replacement for display here
+            player.sendMessage(messageText); // Apply underscore replacement for display here
         } else {
             // Log a warning if no message text argument is provided for the MESSAGE action
             plugin.getLogger().warning("MESSAGE action requires a message text argument.");
