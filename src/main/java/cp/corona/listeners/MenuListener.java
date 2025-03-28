@@ -74,6 +74,17 @@ public class MenuListener implements Listener {
     private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
     private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
     private static final String ADMIN_PERMISSION = "crown.admin"; // ADDED ADMIN_PERMISSION constant here
+    private static final String PUNISH_PERMISSION = "crown.punish"; // Permission to access punish menu
+    private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban"; // Permission for ban related actions
+    private static final String UNPUNISH_BAN_PERMISSION = "crown.unpunish.ban"; // Permission for unban related actions
+    private static final String PUNISH_MUTE_PERMISSION = "crown.punish.mute"; // Permission for mute related actions
+    private static final String UNPUNISH_MUTE_PERMISSION = "crown.unpunish.mute"; // Permission for unmute related actions
+    private static final String PUNISH_SOFTBAN_PERMISSION = "crown.punish.softban"; // Permission for softban related actions
+    private static final String UNPUNISH_SOFTBAN_PERMISSION = "crown.unpunish.softban"; // Permission for unsoftban related actions
+    private static final String PUNISH_KICK_PERMISSION = "crown.punish.kick"; // Permission for kick related actions
+    private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn"; // Permission for warn related actions
+    private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze"; // Permission for freeze related actions - NEW
+    private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze"; // Permission for unfreeze related actions - NEW
 
     /**
      * Constructor for MenuListener.
@@ -264,7 +275,7 @@ public class MenuListener implements Listener {
      * @param event The InventoryClickEvent.
      * @param clickedMenuItem The MenuItem that was clicked.
      */
-    private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) { // Modified actionData type - MODIFIED
+    private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
         // Log entry to debug menu item click handling, including action, data, item name and holder type
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + clickedMenuItem.getName() + ", Holder Type: " + holder.getClass().getSimpleName()); // Modified ActionData log - MODIFIED
 
@@ -274,8 +285,11 @@ public class MenuListener implements Listener {
         if (action == ClickAction.CONSOLE_COMMAND || action == ClickAction.PLAYER_COMMAND || action == ClickAction.PLAYER_COMMAND_OP ||
                 action == ClickAction.MESSAGE || action == ClickAction.MESSAGE_TARGET ||
                 action == ClickAction.TITLE || action == ClickAction.TITLE_TARGET) {
-            if (actionData.length > 0 && actionData[0] != null) { // Check if actionData has content
-                processedActionData = new String[]{replacePlaceholders(player, actionData[0], holder)}; // Process only the first element, assuming text/command is in the first arg
+            if (actionData != null && actionData.length > 0) { // Check if actionData has content
+                processedActionData = Arrays.stream(actionData) // Stream the actionData array
+                        .filter(Objects::nonNull) // Filter out null elements just in case
+                        .map(data -> replacePlaceholders(player, data, holder)) // Process each element for placeholders
+                        .toArray(String[]::new); // Convert back to String array
             }
         }
 
@@ -417,13 +431,14 @@ public class MenuListener implements Listener {
         }
         Player targetPlayer = target.getPlayer();
         if (titleArgs.length >= 3) { // title, subtitle, time are mandatory
-            String titleText = ColorUtils.translateRGBColors(titleArgs[0].replace("_", " ")); // Replace underscores with spaces and colorize
-            String subtitleText = ColorUtils.translateRGBColors(titleArgs[1].replace("_", " ")); // Replace underscores with spaces and colorize; Subtitle might be empty
+            // Get title text and subtitle text, colorize directly, no underscore replacement yet
+            String titleText = ColorUtils.translateRGBColors(titleArgs[0]); // Colorize, NO underscore replacement here
+            String subtitleText = ColorUtils.translateRGBColors(titleArgs[1]); // Colorize, NO underscore replacement here
             int timeSeconds = Integer.parseInt(titleArgs[2]);
             int fadeInTicks = titleArgs.length > 3 ? Integer.parseInt(titleArgs[3]) : 10; // Default fadeIn
             int fadeOutTicks = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
 
-            targetPlayer.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks);
+            targetPlayer.sendTitle(titleText.replace("_", " "), subtitleText.replace("_", " "), fadeInTicks, timeSeconds * 20, fadeOutTicks); // Apply underscore replacement for display here
         } else {
             plugin.getLogger().warning("TITLE_TARGET action requires at least title, subtitle, and time_seconds arguments.");
         }
@@ -443,8 +458,9 @@ public class MenuListener implements Listener {
         }
         Player targetPlayer = target.getPlayer();
         if (messageArgs.length >= 1) {
-            String messageText = MessageUtils.getColorMessage(messageArgs[0].replace("_", " ")); // Colorize the processed text
-            targetPlayer.sendMessage(messageText);
+            // Get the message text and colorize directly, no underscore replacement yet
+            String messageText = MessageUtils.getColorMessage(messageArgs[0]); // Colorize, NO underscore replacement here
+            targetPlayer.sendMessage(messageText.replace("_", " ")); // Apply underscore replacement for display here
         } else {
             plugin.getLogger().warning("MESSAGE_TARGET action requires a message text argument.");
         }
@@ -526,41 +542,49 @@ public class MenuListener implements Listener {
 
 
     /**
-     * Executes a command based on the ClickAction type (CONSOLE_COMMAND, PLAYER_COMMAND, PLAYER_COMMAND_OP),
-     * assuming commandData is already processed for placeholders.
+     * Executes a command as the player, replacing placeholders and handling colors.
      *
      * @param player     The player who triggered the command.
-     * @param action     The ClickAction type (determines execution context).
-     * @param commandData The processed command string.
+     * @param action     The ClickAction type (PLAYER_COMMAND or PLAYER_COMMAND_OP).
+     * @param commandData The command string from the configuration.
      * @param holder      The InventoryHolder (not used in this method, but kept for consistency).
      */
     private void executeCommandAction(Player player, ClickAction action, String[] commandData, InventoryHolder holder) {
+        // Check if there is at least one command argument provided and it's not null or empty
         if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) {
-            String commandToExecute = ColorUtils.translateRGBColors(commandData[0]); // Colorize processed command
+            // Prepare the command to be executed, no additional placeholder processing needed here as it's already processed in handleMenuItemClick
+            String commandToExecute = ColorUtils.translateRGBColors(commandData[0]); // Colorize the command string
 
+            // Debug logging to indicate player command execution with the action and command
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing COMMAND: " + action + " Command: " + commandToExecute);
+            // Make command final for use in lambda
             final String finalCommand = commandToExecute;
 
+            // Execute the player command asynchronously on the main server thread
             Bukkit.getScheduler().runTask(plugin, () -> {
                 switch (action) {
                     case CONSOLE_COMMAND:
+                        // Console command execution (already handled elsewhere if action is CONSOLE_COMMAND but included for completeness)
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
                         break;
                     case PLAYER_COMMAND:
+                        // Player command execution: command is performed by the player
                         player.performCommand(finalCommand);
                         break;
                     case PLAYER_COMMAND_OP:
-                        boolean originalOp = player.isOp();
+                        // Player command execution as OP: temporarily grants OP status to player to execute command
+                        boolean originalOp = player.isOp(); // Store original OP status
                         try {
-                            player.setOp(true);
-                            player.performCommand(finalCommand);
+                            player.setOp(true); // Set player as OP temporarily
+                            player.performCommand(finalCommand); // Execute command as OP
                         } finally {
-                            player.setOp(originalOp); // Revert OP status after command execution
+                            player.setOp(originalOp); // Revert player to original OP status after command execution
                         }
                         break;
                 }
             });
         } else {
+            // Log a warning if the COMMAND action data is invalid or missing for the given action type
             plugin.getLogger().warning("Invalid COMMAND action data for action type: " + action + " Data: " + Arrays.toString(commandData));
         }
     }
@@ -574,15 +598,23 @@ public class MenuListener implements Listener {
      * @param holder      The InventoryHolder, providing context for placeholder replacement.
      */
     private void executeConsoleCommand(Player player, String[] commandData, InventoryHolder holder) { // Modified actionData type - MODIFIED
+        // Check if there is at least one command argument provided and it's not null or empty
         if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) { // Check for commandData array and content - MODIFIED
+            // Extract the command string, removing "command:" prefix if present and trim whitespace
             String rawCommand = commandData[0].startsWith("command:") ? commandData[0].substring("command:".length()).trim() : commandData[0]; // Use commandData[0] - MODIFIED
-            String commandToExecute = rawCommand; // No need to process placeholder again here, already processed in handleMenuItemClick
+            // Prepare the command to be executed, no additional placeholder processing needed here as it's already done in handleMenuItemClick
+            String commandToExecute = rawCommand;
+            // Apply color formatting to the command string
             commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
 
+            // Debug logging to indicate console command execution with the command
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing CONSOLE_COMMAND: " + commandToExecute);
+            // Create a final copy of the command string for use in the Bukkit scheduler
             final String finalCommand = commandToExecute; // Finalize for lambda
+            // Execute the console command asynchronously on the main server thread
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
         } else {
+            // Log a warning if the CONSOLE_COMMAND action data is invalid or missing
             plugin.getLogger().warning("Invalid CONSOLE_COMMAND action data: " + Arrays.toString(commandData)); // Modified actionData log - MODIFIED
         }
     }
@@ -612,21 +644,29 @@ public class MenuListener implements Listener {
     /**
      * Executes the TITLE action.
      * @param player The player to show the title to.
-     * @param titleArgs Title arguments: title, subtitle, time, fadein, fadeout. - NOW EXPECTS PROCESSED TEXT
+     * @param titleArgs Title arguments: title, subtitle, time_seconds, fade_in_ticks, fade_out_ticks. - NOW EXPECTS PROCESSED TEXT
      */
-    private void executeTitleAction(Player player, String[] titleArgs) { // NEW - NOW EXPECTS PROCESSED TEXT
-        if (titleArgs.length >= 3) { // title, subtitle, time are mandatory
-            String titleText = ColorUtils.translateRGBColors(titleArgs[0].replace("_", " ")); // Replace underscores with spaces and colorize
-            String subtitleText = ColorUtils.translateRGBColors(titleArgs[1].replace("_", " ")); // Replace underscores with spaces and colorize
-            int time = Integer.parseInt(titleArgs[2]);
-            int fadeIn = titleArgs.length > 3 ? Integer.parseInt(titleArgs[3]) : 10; // Default fadeIn
-            int fadeOut = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
-            player.sendTitle(titleText, subtitleText, fadeIn, time, fadeOut);
+    private void executeTitleAction(Player player, String[] titleArgs) {
+        // Check if there are enough arguments provided for the TITLE action
+        if (titleArgs.length >= 3) { // title, subtitle, time_seconds are mandatory
+            // Get title text from the first argument and colorize directly after placeholder processing
+            String titleText = ColorUtils.translateRGBColors(titleArgs[0]); // Colorize, NO underscore replacement here
+            // Get subtitle text from the second argument and colorize directly after placeholder processing
+            String subtitleText = ColorUtils.translateRGBColors(titleArgs[1]); // Colorize, NO underscore replacement here
+            // Parse the time in seconds from the third argument
+            int timeSeconds = Integer.parseInt(titleArgs[2]);
+            // Parse fade-in duration from the fourth argument, default to 10 ticks if not provided
+            int fadeInTicks = titleArgs.length > 3 ? Integer.parseInt(titleArgs[3]) : 10; // Default fadeIn
+            // Parse fade-out duration from the fifth argument, default to 20 ticks if not provided
+            int fadeOutTicks = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
+
+            // Send the title to the player with parsed and formatted arguments
+            player.sendTitle(titleText.replace("_", " "), subtitleText.replace("_", " "), fadeInTicks, timeSeconds * 20, fadeOutTicks); // Apply underscore replacement for display here
         } else {
-            plugin.getLogger().warning("TITLE action requires at least title, subtitle, and time arguments.");
+            // Log a warning if not enough arguments are provided for the TITLE action
+            plugin.getLogger().warning("TITLE action requires at least title, subtitle, and time_seconds arguments.");
         }
     }
-
 
     /**
      * Executes the MESSAGE action.
@@ -634,10 +674,14 @@ public class MenuListener implements Listener {
      * @param messageArgs Message arguments: text. - NOW EXPECTS PROCESSED TEXT
      */
     private void executeMessageAction(Player player, String[] messageArgs, InventoryHolder holder) { // MODIFIED: Added holder - NOW EXPECTS PROCESSED TEXT
+        // Check if there is at least one message argument provided
         if (messageArgs.length >= 1) {
-            String messageText = MessageUtils.getColorMessage(messageArgs[0].replace("_", " ")); // Colorize the processed text
-            player.sendMessage(messageText);
+            // Get the message text and colorize directly, no underscore replacement yet
+            String messageText = MessageUtils.getColorMessage(messageArgs[0]); // Colorize, NO underscore replacement here
+            // Send the colorized message to the player, applying underscore replacement for display
+            player.sendMessage(messageText.replace("_", " ")); // Apply underscore replacement for display here
         } else {
+            // Log a warning if no message text argument is provided for the MESSAGE action
             plugin.getLogger().warning("MESSAGE action requires a message text argument.");
         }
     }
@@ -748,23 +792,55 @@ public class MenuListener implements Listener {
                 if (actionData != null) {
                     // Handle different OPEN_MENU action data to open specific sub-menus
                     if (actionData.equalsIgnoreCase("ban_details")) {
+                        if (!player.hasPermission(PUNISH_BAN_PERMISSION)) { // Permission check for ban details menu - NEW
+                            sendNoPermissionMenuMessage(player, "ban details");
+                            return;
+                        }
                         new PunishDetailsMenu(targetUUID, plugin, BAN_PUNISHMENT_TYPE).open(player); // Open Ban details menu
                     } else if (actionData.equalsIgnoreCase("mute_details")) {
+                        if (!player.hasPermission(PUNISH_MUTE_PERMISSION)) { // Permission check for mute details menu - NEW
+                            sendNoPermissionMenuMessage(player, "mute details");
+                            return;
+                        }
                         new PunishDetailsMenu(targetUUID, plugin, MUTE_PUNISHMENT_TYPE).open(player); // Open Mute details menu
                     } else if (actionData.equalsIgnoreCase("softban_details")) {
+                        if (!player.hasPermission(PUNISH_SOFTBAN_PERMISSION)) { // Permission check for softban details menu - NEW
+                            sendNoPermissionMenuMessage(player, "softban details");
+                            return;
+                        }
                         new PunishDetailsMenu(targetUUID, plugin, SOFTBAN_PUNISHMENT_TYPE).open(player); // Open Softban details menu
                     } else if (actionData.equalsIgnoreCase("kick_details")) {
+                        if (!player.hasPermission(PUNISH_KICK_PERMISSION)) { // Permission check for kick details menu - NEW
+                            sendNoPermissionMenuMessage(player, "kick details");
+                            return;
+                        }
                         new PunishDetailsMenu(targetUUID, plugin, KICK_ITEM_MENU_KEY).open(player); // Open Kick details menu
                     } else if (actionData.equalsIgnoreCase("warn_details")) {
+                        if (!player.hasPermission(PUNISH_WARN_PERMISSION)) { // Permission check for warn details menu - NEW
+                            sendNoPermissionMenuMessage(player, "warn details");
+                            return;
+                        }
                         new PunishDetailsMenu(targetUUID, plugin, WARN_PUNISHMENT_TYPE).open(player); // Open Warn details menu
                     } else if (actionData.equalsIgnoreCase("freeze_details")) { // Open Freeze details menu - NEW
+                        if (!player.hasPermission(PUNISH_FREEZE_PERMISSION)) { // Permission check for freeze details menu - NEW
+                            sendNoPermissionMenuMessage(player, "freeze details");
+                            return;
+                        }
                         new PunishDetailsMenu(targetUUID, plugin, FREEZE_PUNISHMENT_TYPE).open(player); // Open Freeze details menu - NEW
                     } else if (actionData.equalsIgnoreCase("history_menu")) {
+                        if (!player.hasPermission(PUNISH_PERMISSION)) { // Basic punish permission needed for history - NEW
+                            sendNoPermissionMenuMessage(player, "history menu");
+                            return;
+                        }
                         new HistoryMenu(targetUUID, plugin).open(player); // Open History menu
                     } else if (actionData.equalsIgnoreCase("punish_menu")) { // Handle reopening of the PunishMenu
                         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - Opening PunishMenu AGAIN - ActionData: punish_menu"); // Specific log for reopen action
                         new PunishMenu(targetUUID, plugin).open(player); // Re-open the PunishMenu
                     } else if (actionData.equalsIgnoreCase("change_target")) {
+                        if (!player.hasPermission(PUNISH_PERMISSION)) { // Basic punish permission needed for change target action - NEW
+                            sendNoPermissionMenuMessage(player, "change target action");
+                            return;
+                        }
                         player.closeInventory(); // Close the current inventory
                         requestNewTargetName(player); // Request a new target player name from the player
                     } else {
@@ -793,10 +869,8 @@ public class MenuListener implements Listener {
                     if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU ActionData: " + actionData); // <-- DEBUG LOGGING
 
                     if (actionData.equalsIgnoreCase("time_selector")) {
-                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Opening TimeSelectorMenu"); // <-- DEBUG LOGGING
                         new TimeSelectorMenu(punishDetailsMenu, plugin).open(player);
                     } else if (actionData.equalsIgnoreCase("punish_menu")) {
-                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Opening PunishMenu"); // <-- DEBUG LOGGING
                         new PunishMenu(punishDetailsMenu.getTargetUUID(), plugin).open(player);
                     } else {
                         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU - No matching ActionData: " + actionData); // <-- DEBUG LOGGING
@@ -814,15 +888,46 @@ public class MenuListener implements Listener {
                 handleConfirmButtonClick(player, punishDetailsMenu);
                 break;
             case UN_SOFTBAN:
+                if (!player.hasPermission(UNPUNISH_SOFTBAN_PERMISSION)) { // Permission check for unsoftban - NEW
+                    sendNoPermissionMenuMessage(player, "unsoftban");
+                    return;
+                }
                 handleUnsoftbanButtonClick(player, punishDetailsMenu);
                 break;
             case UN_FREEZE: // Handle unfreeze button click - NEW
+                if (!player.hasPermission(UNPUNISH_FREEZE_PERMISSION)) { // Permission check for unfreeze - NEW
+                    sendNoPermissionMenuMessage(player, "unfreeze");
+                    return;
+                }
                 handleUnfreezeButtonClick(player, punishDetailsMenu); // Call unfreeze handler - NEW
+                break;
+            case UN_BAN: // Handle unban button click - NEW
+                if (!player.hasPermission(UNPUNISH_BAN_PERMISSION)) { // Permission check for unban - NEW
+                    sendNoPermissionMenuMessage(player, "unban");
+                    return;
+                }
+                executeUnbanAction(player, punishDetailsMenu);
+                break;
+            case UN_MUTE: // Handle unmute button click - NEW
+                if (!player.hasPermission(UNPUNISH_MUTE_PERMISSION)) { // Permission check for unmute - NEW
+                    sendNoPermissionMenuMessage(player, "unmute");
+                    return;
+                }
+                executeUnmuteAction(player, punishDetailsMenu);
                 break;
             case NO_ACTION:
             default:
                 break;
         }
+    }
+
+    /**
+     * Sends a message to the player indicating they do not have permission for a menu action. - NEW
+     * @param player The player to send the message to.
+     * @param actionName The name of the action they do not have permission for.
+     */
+    private void sendNoPermissionMenuMessage(Player player, String actionName) {
+        sendConfigMessage(player, "messages.no_permission_menu_action", "{action}", actionName);
     }
 
 

@@ -18,7 +18,7 @@ commands:
   unpunish: # Top level command for unpunishing players directly - SEPARATE TOP LEVEL COMMAND
     description: Command to directly unpunish players.
     usage: /<command> <player> <type>
-    permission: crown.admin
+    permission: crown.use
     permission-message: You do not have permission to use this command.
   softban: # Top level command for softbanning players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /CROWN PUNISH SOFTBAN
     description: Command to directly softban players.
@@ -34,14 +34,47 @@ commands:
 
 permissions:
   crown.use:
-    description: Allows players to use the /crown and /punish commands to access punishment menus.
-    default: op # or true if you want everyone to use it by default, consider 'op' for moderation tools
+    description: Allows player to use basic crown commands like help
+    default: op
   crown.admin:
-    description: Allows access to administrative commands like /crown reload and /crown unpunish.
+    description: Allows player to use admin commands like reload
+    default: op
+  crown.punish:
+    description: Allows player to open the main punish menu
+    default: op
+  crown.punish.ban:
+    description: Allows player to use ban related features
+    default: op
+  crown.unpunish.ban:
+    description: Allows player to use unban related features
+    default: op
+  crown.punish.mute:
+    description: Allows player to use mute related features
+    default: op
+  crown.unpunish.mute:
+    description: Allows player to use unmute related features
+    default: op
+  crown.punish.softban:
+    description: Allows player to use softban related features
+    default: op
+  crown.unpunish.softban:
+    description: Allows player to use unsoftban related features
+    default: op
+  crown.punish.kick:
+    description: Allows player to use kick related features
+    default: op
+  crown.punish.warn:
+    description: Allows player to use warn related features
+    default: op
+  crown.punish.freeze: # NEW: Freeze punish permission
+    description: Allows player to use freeze related features
+    default: op
+  crown.unpunish.freeze: # NEW: Freeze unpunish permission
+    description: Allows player to use unfreeze related features
     default: op
   crown.softban.bypass:
-    description: Allows players to bypass softban command blocking.
+    description: Allows player to bypass softbans
     default: op
-  crown.freeze.bypass: # Permission to bypass freeze restrictions - NEW
-    description: Allows players to bypass freeze restrictions (movement, commands). # Description for freeze bypass permission - NEW
-    default: op # Default to OP, adjust as needed - NEW
+  crown.freeze.bypass: # NEW: Freeze bypass permission
+    description: Allows player to bypass freeze punishment
+    default: op

@@ -44,9 +44,22 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String HELP_SUBCOMMAND = "help";
     private static final String SOFTBAN_COMMAND_ALIAS = "softban"; // Constant for softban command alias
     private static final String FREEZE_COMMAND_ALIAS = "freeze"; // Constant for freeze command alias - NEW
-    private static final String ADMIN_PERMISSION = "crown.admin";
+    private static final String ADMIN_PERMISSION = "crown.admin"; // ADDED ADMIN_PERMISSION constant here
+    private static final String PUNISH_PERMISSION = "crown.punish"; // Permission to access punish menu
+    private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban"; // Permission for ban related actions
+    private static final String UNPUNISH_BAN_PERMISSION = "crown.unpunish.ban"; // Permission for unban related actions
+    private static final String PUNISH_MUTE_PERMISSION = "crown.punish.mute"; // Permission for mute related actions
+    private static final String UNPUNISH_MUTE_PERMISSION = "crown.unpunish.mute"; // Permission for unmute related actions
+    private static final String PUNISH_SOFTBAN_PERMISSION = "crown.punish.softban"; // Permission for softban related actions
+    private static final String UNPUNISH_SOFTBAN_PERMISSION = "crown.unpunish.softban"; // Permission for unsoftban related actions
+    private static final String PUNISH_KICK_PERMISSION = "crown.punish.kick"; // Permission for kick related actions
+    private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn"; // Permission for warn related actions
+    private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze"; // Permission for freeze related actions - NEW
+    private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze"; // Permission for unfreeze related actions - NEW
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn", "freeze"); // Registered punishment types - ADDED FREEZE
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn", "freeze"); // Registered unpunishment types, including warn and freeze - ADDED FREEZE
+
+
 
     /**
      * Constructor for MainCommand.
@@ -142,11 +155,27 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * @param args Command arguments.
      * @return true if the command was handled successfully.
      */
+    /**
+     * Handles the punish subcommand, opening the punishment menu or executing direct punishment.
+     * Accessible via /crown punish ... or /punish ... (alias).
+     *
+     * @param sender CommandSender who sent the command.
+     * @param args Command arguments.
+     * @return true if the command was handled successfully.
+     */
     private boolean handlePunishCommand(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player) && args.length < 2) {
-            sendConfigMessage(sender, "messages.player_only_console_punish");
-            return false;
+        if (!(sender instanceof Player)) {
+            if (args.length < 2) {
+                sendConfigMessage(sender, "messages.player_only_console_punish");
+                return false;
+            }
         }
+
+        if (!sender.hasPermission(PUNISH_PERMISSION)) { // Check for crown.punish permission to use punish features at all
+            sendConfigMessage(sender, "messages.no_permission_punish_menu"); // Specific permission message for punish menu
+            return true;
+        }
+
 
         if (args.length == 0) { // /crown punish or /punish with no arguments: show help
             help(sender);
@@ -161,6 +190,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // Bypass check for /crown punish and /punish commands - NEW: Bypass check at the beginning for punish command
+        if (target instanceof Player) {
+            Player playerTarget = (Player) target;
+            if (playerTarget.hasPermission("crown.softban.bypass") && sender.hasPermission(PUNISH_SOFTBAN_PERMISSION)) { // Check bypass for softban and punish.softban permission
+                sendConfigMessage(sender, "messages.bypass_error_softban", "{target}", targetName); // Send bypass error message
+                return true; // Stop command execution
+            }
+            if (playerTarget.hasPermission("crown.freeze.bypass") && sender.hasPermission(PUNISH_FREEZE_PERMISSION)) { // Check bypass for freeze and punish.freeze permission - NEW
+                sendConfigMessage(sender, "messages.bypass_error_freeze", "{target}", targetName); // Send bypass error message for freeze - NEW
+                return true; // Stop command execution - NEW
+            }
+        }
+
+
         if (args.length == 1) { // /crown punish <target> or /punish <target>: Open main menu
             if (!(sender instanceof Player)) {
                 sendConfigMessage(sender, "messages.player_only");
@@ -173,6 +216,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
                 return true;
             }
+            // Permission check for each punishment type DETAIL MENU access - NEW: Permission check before opening details menu
+            if (!checkPunishDetailsPermission(sender, punishType)) {
+                sendNoPermissionDetailsMessage(sender, punishType); // Send specific no permission message
+                return true;
+            }
+
             if (args.length == 2) { // /crown punish <target> <type> or /punish <target> <type>: Open details menu
                 if (!(sender instanceof Player)) {
                     sendConfigMessage(sender, "messages.player_only");
@@ -180,6 +229,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 new PunishDetailsMenu(target.getUniqueId(), plugin, punishType).open((Player) sender); // /crown punish <target> <type> - Open details menu
             } else if (args.length >= 3) { // Reason is always from arg 3 onwards, time might be arg 2 for ban, mute, softban, or not present for kick, warn, freeze
+                // Permission check for direct punishment command usage - NEW: Permission check before direct punishment
+                if (!checkPunishCommandPermission(sender, punishType)) {
+                    sendNoPermissionCommandMessage(sender, punishType); // Send specific no permission message for direct command
+                    return true;
+                }
+
                 String reason = String.join(" ", Arrays.copyOfRange(args, (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? 3 : 2, args.length)); // /crown punish <target> <type> <time> <reason...> or /crown punish <target> <type> <reason...>
                 String timeForPunishment = (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) ? args[2] : "permanent"; // Time is arg 2 for ban, mute, softban, or permanent for kick/warn/freeze if not specified in direct command
                 if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[MainCommand] Direct punishment confirmed for " + target.getName() + ", type: " + punishType); // Debug log for direct punishment
@@ -198,8 +253,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * @return true if the command was handled successfully.
      */
     private boolean handleUnpunishCommand(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(ADMIN_PERMISSION)) {
-            sendConfigMessage(sender, "messages.no_permission");
+        if (!sender.hasPermission("crown.use")) { // Check for base crown.use permission first
+            sendConfigMessage(sender, "messages.no_permission_command"); // Generic no permission message
             return true;
         }
 
@@ -220,6 +275,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
             return true;
         }
+
+        // Permission check for each unpunishment type - NEW: Permission check for unpunish command
+        if (!checkUnpunishPermission(sender, punishType)) {
+            sendNoPermissionUnpunishMessage(sender, punishType); // Send specific no permission message for unpunish
+            return true;
+        }
+
 
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
         if (!target.hasPlayedBefore()) {
@@ -577,6 +639,99 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         Collections.sort(completions);
         return completions;
+    }
+
+    /**
+     * Checks if the sender has permission to access punish details menu for a specific punishment type. - NEW
+     * @param sender Command sender.
+     * @param punishType Punishment type.
+     * @return true if has permission, false otherwise.
+     */
+    private boolean checkPunishDetailsPermission(CommandSender sender, String punishType) {
+        // Check for base punish permission first
+        if (!sender.hasPermission(PUNISH_PERMISSION)) {
+            return false;
+        }
+        switch (punishType) {
+            case "ban": return sender.hasPermission(PUNISH_BAN_PERMISSION);
+            case "mute": return sender.hasPermission(PUNISH_MUTE_PERMISSION);
+            case "softban": return sender.hasPermission(PUNISH_SOFTBAN_PERMISSION);
+            case "kick": return sender.hasPermission(PUNISH_KICK_PERMISSION);
+            case "warn": return sender.hasPermission(PUNISH_WARN_PERMISSION);
+            case "freeze": return sender.hasPermission(PUNISH_FREEZE_PERMISSION); // NEW: Freeze permission check
+            default: return false; // Or handle as needed, perhaps return sender.hasPermission(PUNISH_PERMISSION); for default access
+        }
+    }
+
+    /**
+     * Sends a no permission message for unpunish command based on punishment type. - NEW
+     * @param sender Command sender.
+     * @param punishType Punishment type.
+     */
+    private void sendNoPermissionUnpunishMessage(CommandSender sender, String punishType) {
+        sendConfigMessage(sender, "messages.no_permission_unpunish_command_type", "{punishment_type}", punishType);
+    }
+
+    /**
+     * Sends a no permission message for direct punish command based on punishment type. - NEW
+     * @param sender Command sender.
+     * @param punishType Punishment type.
+     */
+    private void sendNoPermissionCommandMessage(CommandSender sender, String punishType) {
+        sendConfigMessage(sender, "messages.no_permission_punish_command_type", "{punishment_type}", punishType);
+    }
+
+    /**
+     * Checks if the sender has permission to use unpunish command for a specific punishment type. - NEW
+     * @param sender CommandSender.
+     * @param punishType Punishment type.
+     * @return true if has permission, false otherwise.
+     */
+    private boolean checkUnpunishPermission(CommandSender sender, String punishType) {
+        // Check for base crown.use permission first - NEW: Added base permission check
+        if (!sender.hasPermission("crown.use")) {
+            return false;
+        }
+        switch (punishType) {
+            case "ban": return sender.hasPermission(UNPUNISH_BAN_PERMISSION);
+            case "mute": return sender.hasPermission(UNPUNISH_MUTE_PERMISSION);
+            case "softban": return sender.hasPermission(UNPUNISH_SOFTBAN_PERMISSION);
+            case "warn": return sender.hasPermission(ADMIN_PERMISSION); // Warn unpunish defaults to admin permission if no specific permission
+            case "freeze": return sender.hasPermission(UNPUNISH_FREEZE_PERMISSION); // NEW: Freeze unpunish permission check
+            default: return false; // Or handle as needed, perhaps return sender.hasPermission(ADMIN_PERMISSION); for default access
+        }
+    }
+
+    /**
+     * Sends a no permission message for punish details menu based on punishment type. - NEW
+     * @param sender Command sender.
+     * @param punishType Punishment type.
+     */
+    private void sendNoPermissionDetailsMessage(CommandSender sender, String punishType) {
+        sendConfigMessage(sender, "messages.no_permission_details_menu", "{punishment_type}", punishType);
+    }
+
+
+    /**
+     * Checks if the sender has permission to use direct punish command for a specific punishment type. - NEW
+     * @param sender CommandSender.
+     * @param punishType Punishment type.
+     * @return true if has permission, false otherwise.
+     */
+    private boolean checkPunishCommandPermission(CommandSender sender, String punishType) {
+        // Check for base punish permission first
+        if (!sender.hasPermission(PUNISH_PERMISSION)) {
+            return false;
+        }
+        switch (punishType) {
+            case "ban": return sender.hasPermission(PUNISH_BAN_PERMISSION);
+            case "mute": return sender.hasPermission(PUNISH_MUTE_PERMISSION);
+            case "softban": return sender.hasPermission(PUNISH_SOFTBAN_PERMISSION);
+            case "kick": return sender.hasPermission(PUNISH_KICK_PERMISSION);
+            case "warn": return sender.hasPermission(PUNISH_WARN_PERMISSION);
+            case "freeze": return sender.hasPermission(PUNISH_FREEZE_PERMISSION); // NEW: Freeze permission check
+            default: return false; // Or handle as needed, perhaps return sender.hasPermission(PUNISH_PERMISSION); for default access
+        }
     }
 
     /**

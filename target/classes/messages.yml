@@ -84,3 +84,9 @@ messages:
   frozen_chat_admin_info: '&7(Only admins can see your chat while frozen)' # Message to inform frozen player about chat visibility - NEW
   frozen_player_chat_self: '&7[Frozen Player Chat - YOU] &e{message}' # Chat format for frozen player to see their own messages - NEW
   already_frozen: '{prefix}&cPlayer &b{target}&c is already frozen.'
+  no_permission_menu_action: '{prefix}&cYou do not have permission to perform &b{action}&c action in this menu.' # Generic no permission message for menu actions - NEW
+  no_permission_punish_command_type: '{prefix}&cYou do not have permission to execute this command.'
+  no_permission_unpunish_command_type: '{prefix}&cYou do not have permission to execute this command.'
+  no_permission_details_menu: '{prefix}&cYou do not have permission to execute this command.'
+  no_permission_punish_menu: '{prefix}&cYou do not have permission to execute this command.'
+  no_permission_command: '{prefix}&cYou do not have permission to execute this command.'
