@@ -22,6 +22,7 @@ public enum ClickAction {
     UN_FREEZE,
     UN_BAN,
     UN_MUTE,
+    UN_WARN, // NEW: Added UN_WARN action type
     CLOSE_MENU,
     ADJUST_PAGE,
     CONSOLE_COMMAND,

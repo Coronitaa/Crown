@@ -85,7 +85,7 @@ public class MenuListener implements Listener {
     private static final String PUNISH_KICK_PERMISSION = "crown.punish.kick"; // Permission for kick related actions
     private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn"; // Permission for warn related actions
     private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze"; // Permission for freeze related actions - NEW
-    private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze"; // Permission for unfreeze related actions - NEW
+    private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
 
     /**
      * Constructor for MenuListener.
@@ -529,6 +529,34 @@ public class MenuListener implements Listener {
     }
 
     /**
+     * Executes the UN_WARN action, unwarning the target player. - NEW
+     * @param player The player initiating the unwarn.
+     * @param holder The InventoryHolder, used to get target player context.
+     */
+    private void executeUnwarnAction(Player player, InventoryHolder holder) { // NEW
+        if (!(holder instanceof PunishDetailsMenu)) {
+            plugin.getLogger().warning("UN_WARN action called from invalid menu holder: " + holder.getClass().getName());
+            return;
+        }
+        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
+        UUID targetUUID = detailsMenu.getTargetUUID();
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        String unwarnCommand = plugin.getConfigManager().getUnwarnCommand()
+                .replace("{target}", target.getName());
+
+        // Check if unwarn command is configured before attempting to execute
+        if (unwarnCommand == null || unwarnCommand.isEmpty()) {
+            sendConfigMessage(player, "messages.unpunish_command_not_configured", "{punishment_type}", "warn");
+            return; // Exit if unwarn command is not configured
+        }
+
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), unwarnCommand));
+        playSound(player, "punish_confirm");
+        sendUnpunishConfirmation(player, target, "warn"); // Use generic unpunish confirmation
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unwarn", "Unwarned via Menu", player.getName(), 0L, "permanent"); // Log unwarn action
+    }
+
+    /**
      * Sends a generic unpunish confirmation message to the punisher. - NEW
      * @param player The punisher player.
      * @param target The unpunished player.
@@ -915,6 +943,13 @@ public class MenuListener implements Listener {
                     return;
                 }
                 executeUnmuteAction(player, punishDetailsMenu);
+                break;
+            case UN_WARN: // Handle unwarn button click - NEW
+                if (!player.hasPermission(UNPUNISH_WARN_PERMISSION)) { // Permission check for unwarn - NEW
+                    sendNoPermissionMenuMessage(player, "unwarn");
+                    return;
+                }
+                executeUnwarnAction(player, punishDetailsMenu); // Call unwarn handler - NEW
                 break;
             case NO_ACTION:
             default:
