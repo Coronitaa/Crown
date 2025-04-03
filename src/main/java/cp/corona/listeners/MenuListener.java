@@ -81,6 +81,7 @@ public class MenuListener implements Listener {
     private static final String UNPUNISH_MUTE_PERMISSION = "crown.unpunish.mute"; // Permission for unmute related actions
     private static final String PUNISH_SOFTBAN_PERMISSION = "crown.punish.softban"; // Permission for softban related actions
     private static final String UNPUNISH_SOFTBAN_PERMISSION = "crown.unpunish.softban"; // Permission for unsoftban related actions
+    private static final String UNPUNISH_WARN_PERMISSION = "crown.unpunish.warn"; // Permission for unsoftban related actions
     private static final String PUNISH_KICK_PERMISSION = "crown.punish.kick"; // Permission for kick related actions
     private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn"; // Permission for warn related actions
     private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze"; // Permission for freeze related actions - NEW
@@ -1402,6 +1403,14 @@ public class MenuListener implements Listener {
     private void confirmSoftBan(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+
+        // Bypass check: prevent softban if target has 'crown.softban.bypass' permission.
+        if (target instanceof Player && ((Player) target).hasPermission("crown.softban.bypass")) {
+            sendConfigMessage(player, "messages.bypass_error_softban_menu", "{target}", target.getName()); // Inform the punisher via menu.
+            player.closeInventory(); // Close the menu to prevent further action.
+            return; // Stop softban execution.
+        }
+
         String reason = punishDetailsMenu.getBanReason();
         String timeInput = punishDetailsMenu.getBanTime();
 
@@ -1423,6 +1432,14 @@ public class MenuListener implements Listener {
         plugin.getLogger().info("[DEBUG] confirmFreeze - start"); // Debug log - entry
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+
+        // Bypass check: prevent freeze if target has 'crown.freeze.bypass' permission. - NEW
+        if (target instanceof Player && ((Player) target).hasPermission("crown.freeze.bypass")) {
+            sendConfigMessage(player, "messages.bypass_error_freeze_menu", "{target}", target.getName()); // Inform the punisher via menu. - NEW
+            player.closeInventory(); // Close the menu to prevent further action. - NEW
+            return; // Stop freeze execution. - NEW
+        }
+
         String reason = punishDetailsMenu.getBanReason(); // Reason is still collected and can be logged even if not displayed in UI
 
         // Check if player is already frozen - NEW - Added check here for menu freeze
@@ -1430,7 +1447,6 @@ public class MenuListener implements Listener {
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.already_frozen", "{target}", target.getName()))); // Send "already_frozen" message - NEW
             return; // Prevent duplicate freeze
         }
-
 
         plugin.getPluginFrozenPlayers().put(target.getUniqueId(), true); // Mark player as frozen in plugin's internal list - NEW
 

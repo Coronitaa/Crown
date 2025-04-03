@@ -47,25 +47,6 @@ public class FreezeListener implements Listener {
         this.plugin = plugin;
     }
 
-    /**
-     * Prevents frozen players from moving.
-     *
-     * @param event The PlayerMoveEvent.
-     */
-    @EventHandler
-    public void onPlayerMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
-        if (player.hasPermission("crown.freeze.bypass")) {
-            // [FIX] Added debug log for freeze bypass permission in PlayerMoveEvent
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().log(Level.INFO, "[FreezeListener] Player " + player.getName() + " has 'crown.freeze.bypass', bypassing move restriction.");
-            }
-            return;
-        }
-        if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())) {
-            event.setCancelled(true);
-        }
-    }
 
     /**
      * Makes frozen players invulnerable to damage. - NEW
@@ -146,16 +127,22 @@ public class FreezeListener implements Listener {
     @EventHandler
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
-        if (player.hasPermission("crown.freeze.bypass")) {
-            // [FIX] Added debug log for freeze bypass permission in PlayerCommandPreprocessEvent
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().log(Level.INFO, "[FreezeListener] Player " + player.getName() + " has 'crown.freeze.bypass', bypassing command restriction.");
-            }
-            return;
-        }
         if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())) {
             event.setCancelled(true);
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.freeze_command_blocked"))); // Removed prefix here
+        }
+    }
+
+    /**
+     * Prevents frozen players from moving.
+     *
+     * @param event The PlayerMoveEvent.
+     */
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+        if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())) {
+            event.setCancelled(true);
         }
     }
 
@@ -167,13 +154,6 @@ public class FreezeListener implements Listener {
     @EventHandler
     public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        if (player.hasPermission("crown.freeze.bypass")) {
-            // [FIX] Added debug log for freeze bypass permission in AsyncPlayerChatEvent
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().log(Level.INFO, "[FreezeListener] Player " + player.getName() + " has 'crown.freeze.bypass', bypassing chat restriction.");
-            }
-            return;
-        }
         boolean isFrozen = plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId()); // Cache freeze status for efficiency
 
         if (isFrozen) {

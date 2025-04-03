@@ -132,20 +132,20 @@ public class HistoryMenu implements InventoryHolder {
             if (index >= validSlots.size()) break;
             int slot = validSlots.get(index);
 
-            MenuItem historyItemConfig;
+            String entryTypeConfigName = entry.getType().toLowerCase() + "_history_entry";
+            MenuItem historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(entryTypeConfigName);
             String duration = getDurationDisplay(entry);
 
-            // Use a different configuration key for warnings
-            if (entry.getType().equalsIgnoreCase("warn")) {
-                historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(WARN_HISTORY_ENTRY_ITEM_KEY);
-            } else {
+            // Fallback to default history_entry if specific type config is not found
+            if (historyItemConfig == null) {
                 historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(HISTORY_ENTRY_ITEM_KEY);
+                if (historyItemConfig == null) continue; // If even default is missing, skip.
             }
-            if (historyItemConfig == null) continue;
 
             // Create and set up the history entry item
             MenuItem historyEntryItem = new MenuItem();
-            historyEntryItem.setMaterial(getPunishmentIcon(entry.getType()));
+            historyEntryItem.setMaterial(historyItemConfig.getMaterial()); // Get material from config
+            historyEntryItem.setPlayerHead(historyItemConfig.getPlayerHead()); // Get player_head from config if set
             String entryName = plugin.getConfigManager().getHistoryMenuText("items.history_entry.name", target)
                     .replace("{punishment_type}", entry.getType());
             historyEntryItem.setName(MessageUtils.getColorMessage(entryName));
@@ -164,6 +164,8 @@ public class HistoryMenu implements InventoryHolder {
         }
         updatePageButtons(target);
     }
+
+
 
     /**
      * Returns a formatted duration string for the given punishment entry.

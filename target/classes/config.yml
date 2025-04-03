@@ -56,7 +56,7 @@ freeze: # freeze: Configuration section for freeze punishment feature. - NEW
     actions: # actions: List of actions to execute for frozen players. - NEW
       - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.' # Example: Send message.
       - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example: Play sound. Format: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :20:40:20" # Example: Display title. Format: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
+      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :10:20:20" # Example: Display title. Format: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
 
 # Logging configurations for debugging purposes.
 logging:

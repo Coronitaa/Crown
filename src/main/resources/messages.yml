@@ -90,3 +90,7 @@ messages:
   no_permission_details_menu: '{prefix}&cYou do not have permission to execute this command.'
   no_permission_punish_menu: '{prefix}&cYou do not have permission to execute this command.'
   no_permission_command: '{prefix}&cYou do not have permission to execute this command.'
+  bypass_error_softban: '{prefix}&cCannot softban &b{target}&c because they have softban bypass permission.' # Message for softban bypass - NEW
+  bypass_error_freeze: '{prefix}&cCannot freeze &b{target}&c because they have freeze bypass permission.' # Message for freeze bypass - NEW
+  bypass_error_softban_menu: '{prefix}&cCannot softban &b{target}&c because they have softban bypass permission.' # Menu message for softban bypass - NEW
+  bypass_error_freeze_menu: '{prefix}&cCannot freeze &b{target}&c because they have freeze bypass permission.' # Menu message for freeze bypass - NEW
