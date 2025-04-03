@@ -74,7 +74,7 @@ public class MenuListener implements Listener {
     private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
     private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
     private static final String ADMIN_PERMISSION = "crown.admin"; // ADDED ADMIN_PERMISSION constant here
-    private static final String PUNISH_PERMISSION = "crown.punish"; // Permission to access punish menu
+    private static final String USE_PERMISSION = "crown.use"; // Replaced PUNISH_PERMISSION with USE_PERMISSION - MODIFIED
     private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban"; // Permission for ban related actions
     private static final String UNPUNISH_BAN_PERMISSION = "crown.unpunish.ban"; // Permission for unban related actions
     private static final String PUNISH_MUTE_PERMISSION = "crown.punish.mute"; // Permission for mute related actions
@@ -829,7 +829,7 @@ public class MenuListener implements Listener {
                         }
                         new PunishDetailsMenu(targetUUID, plugin, FREEZE_PUNISHMENT_TYPE).open(player); // Open Freeze details menu - NEW
                     } else if (actionData.equalsIgnoreCase("history_menu")) {
-                        if (!player.hasPermission(PUNISH_PERMISSION)) { // Basic punish permission needed for history - NEW
+                        if (!player.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
                             sendNoPermissionMenuMessage(player, "history menu");
                             return;
                         }
@@ -838,7 +838,7 @@ public class MenuListener implements Listener {
                         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - Opening PunishMenu AGAIN - ActionData: punish_menu"); // Specific log for reopen action
                         new PunishMenu(targetUUID, plugin).open(player); // Re-open the PunishMenu
                     } else if (actionData.equalsIgnoreCase("change_target")) {
-                        if (!player.hasPermission(PUNISH_PERMISSION)) { // Basic punish permission needed for change target action - NEW
+                        if (!player.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
                             sendNoPermissionMenuMessage(player, "change target action");
                             return;
                         }

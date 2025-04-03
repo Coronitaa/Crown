@@ -33,16 +33,13 @@ commands:
 
 
 permissions:
-  crown.use:
-    description: Allows player to use basic crown commands like help
+  crown.use: # Replaced crown.punish with crown.use
+    description: Allows player to use basic crown commands and punish menu
     default: op
   crown.admin:
     description: Allows player to use admin commands like reload
     default: op
-  crown.punish:
-    description: Allows player to open the main punish menu
-    default: op
-  crown.punish.ban:
+  crown.punish.ban: # Sub-permissions remain the same
     description: Allows player to use ban related features
     default: op
   crown.unpunish.ban:

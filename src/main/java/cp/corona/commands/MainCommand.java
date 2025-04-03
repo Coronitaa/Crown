@@ -45,7 +45,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String SOFTBAN_COMMAND_ALIAS = "softban"; // Constant for softban command alias
     private static final String FREEZE_COMMAND_ALIAS = "freeze"; // Constant for freeze command alias - NEW
     private static final String ADMIN_PERMISSION = "crown.admin"; // ADDED ADMIN_PERMISSION constant here
-    private static final String PUNISH_PERMISSION = "crown.punish"; // Permission to access punish menu
+    private static final String USE_PERMISSION = "crown.use"; // Replaced PUNISH_PERMISSION with USE_PERMISSION - MODIFIED
     private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban"; // Permission for ban related actions
     private static final String UNPUNISH_BAN_PERMISSION = "crown.unpunish.ban"; // Permission for unban related actions
     private static final String PUNISH_MUTE_PERMISSION = "crown.punish.mute"; // Permission for mute related actions
@@ -59,7 +59,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze"; // Permission for unfreeze related actions - NEW
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn", "freeze"); // Registered punishment types - ADDED FREEZE
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn", "freeze"); // Registered unpunishment types, including warn and freeze - ADDED FREEZE
-
 
 
     /**
@@ -84,6 +83,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
         // Handling for /crown command and its subcommands
         if (alias.equalsIgnoreCase("crown")) {
+            if (!sender.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
+                sendConfigMessage(sender, "messages.no_permission_command"); // Generic no permission message
+                return true;
+            }
             if (args.length == 0) { // /crown with no arguments: show help
                 help(sender);
                 return true;
@@ -108,22 +111,38 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         // Handling for /punish command (alias for /crown punish) - SEPARATE HANDLING BLOCK
         if (alias.equalsIgnoreCase("punish")) {
+            if (!sender.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
+                sendConfigMessage(sender, "messages.no_permission_command"); // Generic no permission message
+                return true;
+            }
             // Directly call handlePunishCommand, treating /punish as if it was /crown punish
             return handlePunishCommand(sender, args); // Pass all arguments directly to handlePunishCommand for /punish
         }
 
         // Handling for /unpunish command as a SEPARATE top-level command - SEPARATE HANDLING BLOCK
         if (alias.equalsIgnoreCase("unpunish")) {
+            if (!sender.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
+                sendConfigMessage(sender, "messages.no_permission_command"); // Generic no permission message
+                return true;
+            }
             return handleUnpunishCommand(sender, args); // Directly handle /unpunish command
         }
 
         // Handling for /softban command as a SEPARATE top-level command - SEPARATE HANDLING BLOCK
         if (alias.equalsIgnoreCase("softban")) {
+            if (!sender.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
+                sendConfigMessage(sender, "messages.no_permission_command"); // Generic no permission message
+                return true;
+            }
             return handleSoftbanCommand(sender, args); // Call dedicated handleSoftbanCommand for /softban
         }
 
         // Handling for /freeze command as a SEPARATE top-level command - SEPARATE HANDLING BLOCK - NEW
         if (alias.equalsIgnoreCase("freeze")) {
+            if (!sender.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
+                sendConfigMessage(sender, "messages.no_permission_command"); // Generic no permission message
+                return true;
+            }
             return handleFreezeCommand(sender, args); // Call dedicated handleFreezeCommand for /freeze
         }
 
@@ -166,7 +185,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
 
         // Check if the sender has general punish permission to use punish features.
-        if (!sender.hasPermission(PUNISH_PERMISSION)) { // Check for crown.punish permission to use punish features at all
+        if (!sender.hasPermission(USE_PERMISSION)) { // Check for crown.punish permission to use punish features at all
             sendConfigMessage(sender, "messages.no_permission_punish_menu"); // Specific permission message for punish menu
             return true;
         }
@@ -660,7 +679,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      */
     private boolean checkPunishDetailsPermission(CommandSender sender, String punishType) {
         // Check for base punish permission first
-        if (!sender.hasPermission("crown.use")) {
+        if (!sender.hasPermission(USE_PERMISSION)) {
             return false;
         }
         switch (punishType) {
@@ -670,7 +689,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "kick": return sender.hasPermission(PUNISH_KICK_PERMISSION);
             case "warn": return sender.hasPermission(PUNISH_WARN_PERMISSION);
             case "freeze": return sender.hasPermission(PUNISH_FREEZE_PERMISSION); // NEW: Freeze permission check
-            default: return false; // Or handle as needed, perhaps return sender.hasPermission(PUNISH_PERMISSION); for default access
+            default: return false; // Or handle as needed, perhaps return sender.hasPermission(USE_PERMISSION); for default access
         }
     }
 
@@ -731,7 +750,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      */
     private boolean checkPunishCommandPermission(CommandSender sender, String punishType) {
         // Check for base punish permission first
-        if (!sender.hasPermission(PUNISH_PERMISSION)) {
+        if (!sender.hasPermission(USE_PERMISSION)) {
             return false;
         }
         switch (punishType) {
@@ -741,7 +760,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "kick": return sender.hasPermission(PUNISH_KICK_PERMISSION);
             case "warn": return sender.hasPermission(PUNISH_WARN_PERMISSION);
             case "freeze": return sender.hasPermission(PUNISH_FREEZE_PERMISSION); // NEW: Freeze permission check
-            default: return false; // Or handle as needed, perhaps return sender.hasPermission(PUNISH_PERMISSION); for default access
+            default: return false; // Or handle as needed, perhaps return sender.hasPermission(USE_PERMISSION); for default access
         }
     }
 
