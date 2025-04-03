@@ -324,10 +324,6 @@ public class MenuListener implements Listener {
             executeTitleAction(player, processedActionData); // Execute Title Action with processed data
         } else if (action == ClickAction.MESSAGE) { // NEW: Handle MESSAGE action
             executeMessageAction(player, processedActionData, holder); // Execute Message Action with processed data and holder
-        } else if (action == ClickAction.UN_BAN) { // Handle UN_BAN action
-            executeUnbanAction(player, holder);
-        } else if (action == ClickAction.UN_MUTE) { // Handle UN_MUTE action
-            executeUnmuteAction(player, holder);
         } else if (action == ClickAction.PLAY_SOUND_TARGET) { // NEW: Handle PLAY_SOUND_TARGET action
             executePlaySoundTargetAction(player, holder, actionData);
         } else if (action == ClickAction.GIVE_EFFECT_TARGET) { // NEW: Handle GIVE_EFFECT_TARGET action

@@ -15,6 +15,7 @@ messages:
   help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, softban)'
   help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban command.' # Help for /softban command
   help_reload: '&b/crown reload &7- Reload configuration'
+  unpunish_command_not_configured: '{prefix}&cUnpunish command is not configured for {punishment_type}. Please configure it in config.yml'
   unpunish_not_supported: '{prefix}&cUnpunish command is not supported for {punishment_type}.' # Message for unsupported unpunish types
   prompt_new_target: '&aEnter a new player name (or type ''cancel'' to cancel):'
   prompt_ban_reason: '&aEnter the ban reason (or type ''cancel'' to cancel):'
