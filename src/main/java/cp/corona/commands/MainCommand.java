@@ -185,7 +185,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
 
         // Check if the sender has general punish permission to use punish features.
-        if (!sender.hasPermission(USE_PERMISSION)) { // Check for crown.punish permission to use punish features at all
+        if (!sender.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
             sendConfigMessage(sender, "messages.no_permission_punish_menu"); // Specific permission message for punish menu
             return true;
         }
@@ -205,18 +205,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Bypass checks for softban and freeze punishments.
-        if (target instanceof Player) {
-            Player playerTarget = (Player) target;
-            if (playerTarget.hasPermission("crown.softban.bypass") && sender.hasPermission(PUNISH_SOFTBAN_PERMISSION)) { // Check bypass for softban and punish.softban permission
-                sendConfigMessage(sender, "messages.bypass_error_softban", "{target}", targetName); // Send bypass error message
-                return true; // Stop command execution
-            }
-            if (playerTarget.hasPermission("crown.freeze.bypass") && sender.hasPermission(PUNISH_FREEZE_PERMISSION)) { // Check bypass for freeze and punish.freeze permission - NEW
-                sendConfigMessage(sender, "messages.bypass_error_freeze", "{target}", targetName); // Send bypass error message for freeze - NEW
-                return true; // Stop command execution - NEW
-            }
-        }
+        // Bypass checks are now handled in confirmDirectPunishment to allow menu access - MODIFIED (Bypass checks removed here)
+
 
         // Handle different argument lengths for punish command.
         if (args.length == 1) { // /crown punish <target> or /punish <target>: Open main menu
@@ -425,6 +415,19 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * @param reason Punishment reason.
      */
     private void confirmDirectPunishment(final CommandSender sender, final OfflinePlayer target, final String punishType, final String time, final String reason) {
+        // Bypass check moved here - MODIFIED
+        if (target instanceof Player) {
+            Player playerTarget = (Player) target;
+            if (punishType.equalsIgnoreCase("softban") && playerTarget.hasPermission("crown.softban.bypass") && sender.hasPermission(PUNISH_SOFTBAN_PERMISSION)) { // Bypass check for softban
+                sendConfigMessage(sender, "messages.bypass_error_softban", "{target}", target.getName());
+                return; // Stop command execution
+            }
+            if (punishType.equalsIgnoreCase("freeze") && playerTarget.hasPermission("crown.freeze.bypass") && sender.hasPermission(PUNISH_FREEZE_PERMISSION)) { // Bypass check for freeze - NEW
+                sendConfigMessage(sender, "messages.bypass_error_freeze", "{target}", target.getName());
+                return; // Stop command execution
+            }
+        }
+
         String commandToExecute = "";
         long punishmentEndTime = 0L; // Default punishment end time for logging
         String durationForLog = time; // Store duration string for logging
