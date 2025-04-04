@@ -29,12 +29,6 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
- * ////////////////////////////////////////////////
- * //             CrownPunishments             //
- * //         Developed with passion by         //
- * //                   Corona                 //
- * ////////////////////////////////////////////////
- *
  * Manages all plugin configurations, including messages, plugin settings, and menu configurations.
  * Provides methods to load, reload, and access configuration values, as well as process placeholders.
  *
@@ -44,6 +38,7 @@ import java.util.stream.Collectors;
  * **MODIFIED:**
  * - Implemented dynamic loading of menu items from configuration files.
  * - Updated methods to retrieve MenuItem configurations dynamically.
+ * - **FIXED:** Placeholder replacement for punishment counts in menus.
  */
 public class MainConfigManager {
     private final CustomConfig messagesConfig;
@@ -148,6 +143,7 @@ public class MainConfigManager {
 
 
     public String processPlaceholders(String text, OfflinePlayer target) {
+        plugin.getLogger().info("[DEBUG] MainConfigManager - processPlaceholders - Input text: " + text + ", Target: " + (target != null ? target.getName() : "null")); // DEBUG LOG - Input to processPlaceholders
         String prefix = pluginConfig.getConfig().getString("prefix", "&8[&6C&cP&8] &r");
         text = MessageUtils.getColorMessage(text).replace("{prefix}", prefix);
 
@@ -189,11 +185,20 @@ public class MainConfigManager {
             text = text.replace("{target_softban_remaining_time}", "N/A");
         }
 
+        // Get punishment counts and replace placeholders - FIX: Placeholder replacement for counts
+        HashMap<String, Integer> counts = plugin.getSoftBanDatabaseManager().getPunishmentCounts(target.getUniqueId());
+        text = text.replace("{ban_count}", String.valueOf(counts.getOrDefault("ban", 0)));
+        text = text.replace("{mute_count}", String.valueOf(counts.getOrDefault("mute", 0)));
+        text = text.replace("{kick_count}", String.valueOf(counts.getOrDefault("kick", 0)));
+        text = text.replace("{softban_count}", String.valueOf(counts.getOrDefault("softban", 0)));
+        text = text.replace("{warn_count}", String.valueOf(counts.getOrDefault("warn", 0)));
+        text = text.replace("{freeze_count}", String.valueOf(counts.getOrDefault("freeze", 0)));
+
 
         if (plugin.isPlaceholderAPIEnabled() && target.isOnline()) {
             text = PlaceholderAPI.setPlaceholders(target.getPlayer(), text);
         }
-
+        plugin.getLogger().info("[DEBUG] MainConfigManager - processPlaceholders - Output text: " + text); // DEBUG LOG - Output from processPlaceholders
         return text;
     }
 
@@ -514,7 +519,7 @@ public class MainConfigManager {
             return lore; // Return empty lore to avoid NullPointerException
         }
         for (String line : configLore) {
-            String processedLine = processPlaceholders(line, target);
+            String processedLine = processPlaceholders(line, target); // DEBUG - Placeholder processing is happening here
             for (int i = 0; i < replacements.length; i += 2) {
                 if (i + 1 >= replacements.length) {
                     break; // prevent index out of bounds
@@ -530,6 +535,46 @@ public class MainConfigManager {
         }
         if (isDebugEnabled()) {
             plugin.getLogger().log(Level.INFO, "[MainConfigManager] Processed history lore: " + lore);
+        }
+        return lore;
+    }
+
+
+    /**
+     * Gets punish menu item lore from punish_menu.yml and processes placeholders with replacements.
+     *
+     * @param itemKey       Item key in the config.
+     * @param target        The target player for placeholders.
+     * @param replacements  Placeholders to replace in the lore.
+     * @return The processed punish menu item lore.
+     */
+    public List<String> getPunishMenuItemLore(String itemKey, OfflinePlayer target, String... replacements) {
+        if (isDebugEnabled()) {
+            plugin.getLogger().log(Level.INFO, "[MainConfigManager] getPunishMenuItemLore called for itemKey=" + itemKey + ", target=" + target.getName() + ", replacements=" + Arrays.toString(replacements));
+        }
+        List<String> lore = new ArrayList<>();
+        List<String> configLore = punishMenuConfig.getConfig().getStringList("menu.items." + itemKey + ".lore");
+        if (configLore == null) {
+            plugin.getLogger().warning("[MainConfigManager] Lore config list is null for path: menu.items." + itemKey + ".lore");
+            return lore; // Return empty lore to avoid NullPointerException
+        }
+        for (String line : configLore) {
+            String processedLine = processPlaceholders(line, target); // DEBUG - Placeholder processing is happening here
+            for (int i = 0; i < replacements.length; i += 2) {
+                if (i + 1 >= replacements.length) {
+                    break; // prevent index out of bounds
+                }
+                String replacementValue = replacements[i + 1]; // Get replacement value
+                if (replacementValue == null) {
+                    replacementValue = "N/A"; // Default value if replacement is null - NEW: Handle null replacement
+                    if (isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + replacements[i] + " in punish menu lore. Using 'N/A'."); // Log warning - NEW
+                }
+                processedLine = processedLine.replace(replacements[i], replacementValue);
+            }
+            lore.add(processedLine);
+        }
+        if (isDebugEnabled()) {
+            plugin.getLogger().log(Level.INFO, "[MainConfigManager] Processed punish menu lore: " + lore);
         }
         return lore;
     }

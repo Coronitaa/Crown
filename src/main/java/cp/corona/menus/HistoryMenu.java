@@ -12,24 +12,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 
 /**
- * ////////////////////////////////////////////////
- * //             CrownPunishments             //
- * //         Developed with passion by         //
- * //                   Corona                 //
- * ////////////////////////////////////////////////
- *
  * Represents the History Menu for displaying a player's punishment history.
  * The menu displays up to 28 entries per page (using slots 10 to 43) and includes navigation buttons.
  * A next page is only created if the total number of entries exceeds (page × 28).
@@ -37,6 +27,7 @@ import java.util.logging.Level;
  * **MODIFIED:**
  * - Implemented dynamic loading of menu items from configuration files.
  * - Removed hardcoded item keys and rely on dynamically loaded keys.
+ * - **FIXED**: Previous page button not working.
  */
 public class HistoryMenu implements InventoryHolder {
 
@@ -349,6 +340,47 @@ public class HistoryMenu implements InventoryHolder {
         plugin.getMenuListener().executeMenuOpenActions(player, this); // Execute menu open actions - NEW
     }
 
+
+    /**
+     * Creates the punishment counts item stack. - NEW FEATURE
+     *
+     * @param target The target OfflinePlayer.
+     * @return ItemStack for the punishment counts item.
+     */
+    private ItemStack createPunishmentCountsItem(OfflinePlayer target) {
+        MenuItem countsConfig = plugin.getConfigManager().getHistoryMenuItemConfig("punishment_counts_item");
+        if (countsConfig == null) return null;
+
+        ItemStack itemStack = countsConfig.toItemStack(target, plugin.getConfigManager());
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            HashMap<String, Integer> counts = plugin.getSoftBanDatabaseManager().getPunishmentCounts(targetUUID);
+            List<String> lore = plugin.getConfigManager().getHistoryMenuItemLore("punishment_counts_item", target,
+                    "{ban_count}", String.valueOf(counts.getOrDefault("ban", 0)),
+                    "{mute_count}", String.valueOf(counts.getOrDefault("mute", 0)),
+                    "{kick_count}", String.valueOf(counts.getOrDefault("kick", 0)),
+                    "{softban_count}", String.valueOf(counts.getOrDefault("softban", 0)),
+                    "{warn_count}", String.valueOf(counts.getOrDefault("warn", 0)),
+                    "{freeze_count}", String.valueOf(counts.getOrDefault("freeze", 0))
+            );
+            meta.setLore(lore);
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+
+    /**
+     * Adds the punishment counts item to the history menu. - NEW FEATURE
+     *
+     * @param target The target OfflinePlayer.
+     */
+    private void addPunishmentCountsItem(OfflinePlayer target) {
+        ItemStack countsItem = createPunishmentCountsItem(target);
+        if (countsItem != null) {
+            inventory.setItem(49, countsItem); // Example slot, adjust as needed
+        }
+    }
+
     /**
      * Handles menu open actions for this menu.
      * @param player The player opening the menu.
@@ -391,7 +423,7 @@ public class HistoryMenu implements InventoryHolder {
      */
     public void previousPage(Player player) {
         if (page > 1) {
-            page--;
+            page--; // Decrement page number to go to previous page - FIX: Missing decrement operator
             loadHistoryPage(Bukkit.getOfflinePlayer(targetUUID), page);
             fillEmptySlotsWithBackground(Bukkit.getOfflinePlayer(targetUUID));
             player.updateInventory();

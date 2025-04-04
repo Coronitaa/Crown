@@ -7,16 +7,17 @@ menu:
     ban: # Ban details menu configuration
       title: '&4&lBan Details' # Title for BanDetailsMenu
       items:
-        background_fill_1: # Background fill item configuration - Example 1
-          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
-          name: ' ' # Empty name for background item
-          slot: '0-9,17,18-26,28-30,32-35' # Slot range for background fill
-        background_fill_2: # Background fill item configuration - Example 2
-          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+        background_fill_1:
+          material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '10,12,14,16' # Another slot range
+          slot: '0-9,17,18-26,28-30,32-35'
+        background_fill_2:
+          material: 'WHITE_STAINED_GLASS_PANE'
+          name: ' '
+          slot: '10,12,14,16'
         set_time: # Configuration for Set Time item
-          material: 'CLOCK' # Clock icon for time
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
           slot: '11' # Inventory slot
           name: '&eSet Ban Time' # Display name
           lore: # Item lore
@@ -30,7 +31,8 @@ menu:
           right_click_actions:
             - 'OPEN_MENU:time_selector' # Example command
         set_reason: # Configuration for Set Reason item
-          material: 'WRITABLE_BOOK' # Writable book icon for setting reason
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '13' # Inventory slot
           name: '&eSet Ban Reason' # Display name
           lore: # Item lore
@@ -45,7 +47,8 @@ menu:
             - 'REQUEST_INPUT:reason_input' # Example command
             - 'TITLE:&c&lWrite the punish reason:&7in the chat:20:20:20' # Example: Show a title
         confirm_punish: # Configuration for Confirm Punish item
-          material: 'EMERALD_BLOCK' # Emerald block icon, positive confirmation
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15' # Inventory slot
           name: '&a&lConfirm Ban' # Default name when ready
           lore: # Item lore when ready
@@ -60,9 +63,10 @@ menu:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
-        back_button: # Configuration for Back Button item
-          material: 'ARROW' # Arrow icon for back action
-          slot: '27' # Inventory slot
+        back_button:
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
+          slot: '27'
           name: '&cBack' # Display name, red color indicating back/cancel
           lore: # Item lore
             - '&7Go back to the'
@@ -74,7 +78,7 @@ menu:
             - 'OPEN_MENU:punish_menu' # Open punish menu
         unban_button: # Configuration for Back Button item
           material: 'PLAYER_HEAD'
-          player_head: "http://textures.minecraft.net/texture/223fb67429716b21bc6e8e7d669ceddf65b13e0790a5ce55b2e077b82d19e124"
+          player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
           slot: '31' # Inventory slot
           name: '&4Unban' # Display name, red color indicating back/cancel
           lore: # Item lore
@@ -85,20 +89,21 @@ menu:
           left_click_actions:
             - 'UN_BAN:'
           right_click_actions:
-            - 'CONSOLE_COMMAND: unban {target}'
+            - 'UN_BAN:'
     mute: # Mute details menu configuration
       title: '&e&lMute Details' # Title for MuteDetailsMenu
       items:
-        background_fill_1: # Background fill item configuration - Example 1
-          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
-          name: ' ' # Empty name for background item
-          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
-        background_fill_2: # Background fill item configuration - Example 2
-          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+        background_fill_1:
+          material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '10,12,14,16' # Another slot range
+          slot: '0-9,17,18-26,28-30,32-35'
+        background_fill_2:
+          material: 'WHITE_STAINED_GLASS_PANE'
+          name: ' '
+          slot: '10,12,14,16'
         set_time: # Set Time item configuration for Mute
-          material: 'CLOCK' # Clock icon
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
           slot: '11' # Inventory slot
           name: '&eSet Mute Time' # Display name
           lore: # Item lore
@@ -112,7 +117,8 @@ menu:
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Time!"' # Example command
         set_reason: # Set Reason item configuration for Mute
-          material: 'WRITABLE_BOOK' # Writable book icon
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '13' # Inventory slot
           name: '&eSet Mute Reason' # Display name
           lore: # Item lore
@@ -125,8 +131,9 @@ menu:
             - 'REQUEST_INPUT:reason_input' # Request reason input
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Reason!"' # Example command
-        confirm_punish: # Confirm Punish item configuration for Mute
-          material: 'EMERALD_BLOCK' # Emerald block icon
+        confirm_punish: # Configuration for Confirm Punish item
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15' # Inventory slot
           name: '&a&lConfirm Mute' # Display name when ready
           lore: # Item lore when ready
@@ -137,22 +144,26 @@ menu:
             - '&7- Time: {time_status}' # Placeholder for time status
             - '&7- Reason: {reason_status}' # Placeholder for reason status
             - '&7Right-Click for example command.'
-          disabled_name: '&c&lConfirm Mute (Not Ready)' # Display name when not ready
-          disabled_lore: # Item lore when not ready
-            - '&cSet time and reason'
-            - '&cbefore confirming mute.'
-            - ''
-            - '&cRequires:'
-            - '&c- Time: &c\u274c Not Set' # Red cross unicode for not set
-            - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-            - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command
-        back_button: # Back Button item configuration for Mute
-          material: 'ARROW' # Arrow icon
-          slot: '31' # Inventory slot
+        unmute_button: # Unfreeze Button item - NEW
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
+          slot: '31' # Inventory slot - Adjusted slot to be below confirm - NEW
+          name: '&a&lRemove Mute' # Display name for unfreeze button - NEW
+          lore: # Item lore for unfreeze button - NEW
+            - '&7Left-Click to remove' # Instruction line 1 - NEW
+            - '&7mute from &b{target}&7.' # Instruction line 2 - NEW
+            - '' # Empty line for spacing - NEW
+            - '&7Right-Click for example command.' # Example right-click action - NEW
+          left_click_actions: # Left click actions - NEW
+            - 'UN_MUTE:' # Action on Left-Click (you'll need to add UN_FREEZE action to ClickAction enum) - NEW
+        back_button:
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
+          slot: '27'
           name: '&cBack' # Display name
           lore: # Item lore
             - '&7Go back to the'
@@ -163,16 +174,17 @@ menu:
     softban: # SoftBan details menu configuration - NEW
       title: '&3&lSoftBan Details' # Title for SoftBanDetailsMenu
       items:
-        background_fill_1: # Background fill item configuration - Example 1
-          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
-          name: ' ' # Empty name for background item
-          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
-        background_fill_2: # Background fill item configuration - Example 2
-          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+        background_fill_1:
+          material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '10,12,14' # Another slot range
+          slot: '0-9,17,18-26,28-30,32-35'
+        background_fill_2:
+          material: 'WHITE_STAINED_GLASS_PANE'
+          name: ' '
+          slot: '10,12,14,16'
         set_time: # Set Time item for SoftBan
-          material: 'CLOCK' # Clock icon
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
           slot: '11' # Inventory slot
           name: '&eSet SoftBan Time' # Display name
           lore: # Item lore
@@ -186,7 +198,8 @@ menu:
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Time!"' # Example command
         set_reason: # Set Reason item for SoftBan
-          material: 'WRITABLE_BOOK' # Writable book icon
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '13' # Inventory slot
           name: '&eSet SoftBan Reason' # Display name
           lore: # Item lore
@@ -200,8 +213,9 @@ menu:
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Reason!"' # Example command
         unsoftban_button: # Unsoftban Button item - NEW
-          material: 'LIME_DYE' # Lime dye icon for positive action (unsoftban)
-          slot: '16' # Inventory slot
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
+          slot: '31' # Inventory slot
           name: '&a&lRemove SoftBan' # Display name
           lore: # Item lore
             - '&7Left-Click to remove'
@@ -216,8 +230,9 @@ menu:
             - 'UN_SOFTBAN:' # Action on Left-Click
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Unsoftban Button!"' # Example command
-        confirm_punish: # Confirm Punish item for SoftBan
-          material: 'EMERALD_BLOCK' # Emerald block icon
+        confirm_punish: # Configuration for Confirm Punish item
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15' # Inventory slot
           name: '&a&lConfirm SoftBan' # Display name when ready
           lore: # Item lore when ready
@@ -228,22 +243,14 @@ menu:
             - '&7- Time: {time_status}' # Placeholder for time status
             - '&7- Reason: {reason_status}' # Placeholder for reason status
             - '&7Right-Click for example command.'
-          disabled_name: '&c&lConfirm SoftBan (Not Ready)' # Display name when not ready
-          disabled_lore: # Item lore when not ready
-            - '&cSet time and reason'
-            - '&cbefore confirming softban.'
-            - ''
-            - '&cRequires:'
-            - '&c- Time: &c\u274c Not Set' # Red cross unicode for not set
-            - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-            - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command
-        back_button: # Back Button item for SoftBan
-          material: 'ARROW' # Arrow icon
-          slot: '31' # Inventory slot
+        back_button:
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
+          slot: '27'
           name: '&cBack' # Display name
           lore: # Item lore
             - '&7Go back to the'
@@ -254,16 +261,17 @@ menu:
     kick: # Kick details menu configuration - NEW
       title: '&9&lKick Details' # Title for KickDetailsMenu
       items:
-        background_fill_1: # Background fill item configuration - Example 1
-          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
-          name: ' ' # Empty name for background item
-          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
-        background_fill_2: # Background fill item configuration - Example 2
-          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+        background_fill_1:
+          material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '10,12,14,16' # Another slot range
+          slot: '0-9,17,18-26,28-30,32-35'
+        background_fill_2:
+          material: 'WHITE_STAINED_GLASS_PANE'
+          name: ' '
+          slot: '10,12,14,16'
         set_reason: # Set Reason item for Kick
-          material: 'WRITABLE_BOOK' # Writable book icon
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '13' # Inventory slot
           name: '&eSet Kick Reason' # Display name
           lore: # Item lore
@@ -276,8 +284,9 @@ menu:
             - 'REQUEST_INPUT:reason_input' # Request reason input
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Reason!"' # Example command
-        confirm_punish: # Confirm Punish item for Kick
-          material: 'EMERALD_BLOCK' # Emerald block icon
+        confirm_punish: # Configuration for Confirm Punish item
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15' # Inventory slot
           name: '&a&lConfirm Kick' # Display name when ready
           lore: # Item lore when ready
@@ -287,21 +296,14 @@ menu:
             - '&7Requires:'
             - '&7- Reason: {reason_status}' # Placeholder for reason status
             - '&7Right-Click for example command.'
-          disabled_name: '&c&lConfirm Kick (Not Ready)' # Display name when not ready
-          disabled_lore: # Item lore when not ready
-            - '&cSet reason'
-            - '&cbefore confirming kick.'
-            - ''
-            - '&cRequires:'
-            - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-            - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command
-        back_button: # Back Button item for Kick
-          material: 'ARROW' # Arrow icon
-          slot: '31' # Inventory slot
+        back_button:
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
+          slot: '27'
           name: '&cBack' # Display name
           lore: # Item lore
             - '&7Go back to the'
@@ -312,16 +314,17 @@ menu:
     warn: # Warn details menu configuration - NEW
       title: '&6&lWarn Details' # Title for WarnDetailsMenu
       items:
-        background_fill_1: # Background fill item configuration - Example 1
-          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
-          name: ' ' # Empty name for background item
-          slot: '0-9,17,18-26,27-30,32-35' # Slot range for background fill
-        background_fill_2: # Background fill item configuration - Example 2
-          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane
+        background_fill_1:
+          material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '10,12,14,16' # Another slot range
+          slot: '0-9,17,18-26,28-30,32-35'
+        background_fill_2:
+          material: 'WHITE_STAINED_GLASS_PANE'
+          name: ' '
+          slot: '10,12,14,16'
         set_reason: # Set Reason item for Warn
-          material: 'WRITABLE_BOOK' # Writable book icon
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '13' # Inventory slot
           name: '&eSet Warn Reason' # Display name
           lore: # Item lore
@@ -334,8 +337,9 @@ menu:
             - 'REQUEST_INPUT:reason_input' # Request reason input
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Reason!"' # Example command
-        confirm_punish: # Confirm Punish item for Warn
-          material: 'EMERALD_BLOCK' # Emerald block icon
+        confirm_punish: # Configuration for Confirm Punish item
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15' # Inventory slot
           name: '&a&lConfirm Warn' # Display name when ready
           lore: # Item lore when ready
@@ -345,21 +349,28 @@ menu:
             - '&7Requires:'
             - '&7- Reason: {reason_status}' # Placeholder for reason status
             - '&7Right-Click for example command.'
-          disabled_name: '&c&lConfirm Warn (Not Ready)' # Display name when not ready
-          disabled_lore: # Item lore when not ready
-            - '&cSet reason'
-            - '&cbefore confirming warn.'
-            - ''
-            - '&cRequires:'
-            - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set
-            - '&7Right-Click for example command.'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click
           right_click_actions:
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command
-        back_button: # Back Button item for Warn
-          material: 'ARROW' # Arrow icon
+        unwarn_button: # Configuration for Back Button item
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
           slot: '31' # Inventory slot
+          name: '&4UnWarn' # Display name, red color indicating back/cancel
+          lore: # Item lore
+            - '&7Removes actual'
+            - '&7warn from &b{target}'
+            - ''
+            - '&7Click to unwarn player.'
+          left_click_actions:
+            - 'UN_WARN:'
+          right_click_actions:
+            - 'CONSOLE_COMMAND: unwarn {target}'
+        back_button:
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
+          slot: '27'
           name: '&cBack' # Display name
           lore: # Item lore
             - '&7Go back to the'
@@ -370,16 +381,17 @@ menu:
     freeze: # Freeze details menu configuration - NEW
       title: '&5&lFreeze Details' # Title for FreezeDetailsMenu - NEW
       items:
-        background_fill_1: # Background fill item configuration - Example 1 - NEW
-          material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background - NEW
-          name: ' ' # Empty name for background item - NEW
-          slot: '0' # Slot range for background fill - Adjusted layout, removed center column - NEW
-        background_fill_2: # Background fill item configuration - Example 2 - NEW
-          material: 'LIGHT_GRAY_STAINED_GLASS_PANE' # Light gray stained glass pane - NEW
-          name: ' ' # Empty name for background item - NEW
-          slot: '1' # Center slot for background fill - NEW
+        background_fill_1:
+          material: 'GRAY_STAINED_GLASS_PANE'
+          name: ' '
+          slot: '0-9,17,18-26,28-30,32-35'
+        background_fill_2:
+          material: 'WHITE_STAINED_GLASS_PANE'
+          name: ' '
+          slot: '10,12,14,16'
         set_reason: # Set Reason item for Freeze - NEW
-          material: 'WRITABLE_BOOK' # Writable book icon - NEW
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '11' # Inventory slot - Adjusted slot - NEW
           name: '&eSet Freeze Reason' # Display name - NEW
           lore: # Item lore - NEW
@@ -392,8 +404,9 @@ menu:
             - 'REQUEST_INPUT:reason_input' # Request reason input - NEW
           right_click_actions: # Right click actions - Example command - NEW
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Set Reason!"' # Example command - NEW
-        confirm_punish: # Confirm Punish item for Freeze - NEW
-          material: 'EMERALD_BLOCK' # Emerald block icon - NEW
+        confirm_punish: # Configuration for Confirm Punish item
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15' # Inventory slot - Adjusted slot - NEW
           name: '&a&lConfirm Freeze' # Display name when ready - NEW
           lore: # Item lore when ready - NEW
@@ -403,36 +416,28 @@ menu:
             - '&7Requires:' # Requirements header - NEW
             - '&7- Reason: {reason_status}' # Placeholder for reason status - NEW
             - '&7Right-Click for example command.' # Example right-click action - NEW
-          disabled_name: '&c&lConfirm Freeze (Not Ready)' # Display name when not ready - NEW
-          disabled_lore: # Item lore when not ready - NEW
-            - '&cSet reason' # Instruction line 1 when disabled - NEW
-            - '&cbefore confirming freeze.' # Instruction line 2 when disabled - NEW
-            - '' # Empty line for spacing - NEW
-            - '&cRequires:' # Disabled requirements header - NEW
-            - '&c- Reason: &c\u274c Not Set' # Red cross unicode for not set reason - NEW
-            - '&7Right-Click for example command.' # Example right-click action when disabled - NEW
           left_click_actions: # Left click actions - NEW
             - 'CONFIRM_PUNISHMENT:' # Action on Left-Click - NEW
           right_click_actions: # Right click actions - Example command - NEW
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Confirm!"' # Example command - NEW
         unfreeze_button: # Unfreeze Button item - NEW
-          material: 'LIME_DYE' # Lime dye icon for positive action (unfreeze) - NEW
-          slot: '30' # Inventory slot - Adjusted slot to be below confirm - NEW
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
+          slot: '31' # Inventory slot - Adjusted slot to be below confirm - NEW
           name: '&a&lRemove Freeze' # Display name for unfreeze button - NEW
           lore: # Item lore for unfreeze button - NEW
             - '&7Left-Click to remove' # Instruction line 1 - NEW
             - '&7freeze from &b{target}&7.' # Instruction line 2 - NEW
             - '' # Empty line for spacing - NEW
-            - '&eCurrent Status:' # Status header - NEW
-            - '{target_freeze_status}' # Placeholder for freeze status (you might need to add this placeholder) - NEW
             - '&7Right-Click for example command.' # Example right-click action - NEW
           left_click_actions: # Left click actions - NEW
             - 'UN_FREEZE:' # Action on Left-Click (you'll need to add UN_FREEZE action to ClickAction enum) - NEW
           right_click_actions: # Right click actions - Example command - NEW
             - 'CONSOLE_COMMAND: bc {player} "You right-clicked Unfreeze Button!"' # Example command - NEW
-        back_button: # Back Button item for Freeze - NEW
-          material: 'ARROW' # Arrow icon - NEW
-          slot: '32' # Inventory slot - Adjusted slot to be below confirm and unfreeze - NEW
+        back_button:
+          material: 'PLAYER_HEAD'
+          player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
+          slot: '27'
           name: '&cBack' # Display name - NEW
           lore: # Item lore - NEW
             - '&7Go back to the' # Instruction line 1 - NEW

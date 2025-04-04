@@ -1,199 +1,205 @@
+# punish_menu.yml
 menu:
-  title: '#ea3a1a&lᴘᴜɴɪꜱʜ ᴍᴇɴᴜ' # Title for PunishMenu
-  open_actions: # Actions to execute when the menu is opened - NEW
-    - 'PLAY_SOUND:BLOCK_SHROOMLIGHT_PLACE:1.0:1.0' # Example: Play a pling sound - NEW
+  title: '#ea3a1a&lᴘᴜɴɪꜱʜ ᴍᴇɴᴜ'
+  open_actions:
+    - 'PLAY_SOUND:BLOCK_SHROOMLIGHT_PLACE:1.0:1.0'
   items:
-    background_fill_1: # Background fill item configuration - Example 1
-      material: 'GRAY_STAINED_GLASS_PANE' # Gray stained glass pane for background
-      name: ' ' # Empty name for background item
-      slot: '0-2,9,11,18-20,27-29,36,38,45-47' # Slot range for background fill
-    background_fill_2: # Background fill item configuration - Example 2 (you can add more)
-      material: 'RED_STAINED_GLASS_PANE' # Light gray stained glass pane
+    background_fill_1:
+      material: 'GRAY_STAINED_GLASS_PANE'
       name: ' '
-      slot: '3-8,12,17,21,24-26,30-35,39,44,48-53' # Another slot range
+      slot: '0-2,9,11,18-20,27-29,36,38,45-47'
+    background_fill_2:
+      material: 'RED_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '3-8,12,17,21,24-26,30-35,39,44,48-53'
 
     info:
       material: 'PLAYER_HEAD'
-      player_head: '{target}' # Use player head of the target player
-      slot: '10' # Position in the inventory, single slot
-      name: '&bPlayer Information' # Display name of the item
-      lore: # Lore lines of the item, supports color codes and placeholders
+      player_head: '{target}'
+      slot: '10'
+      name: '&bPlayer Information'
+      lore:
         - '&7Information about'
         - '&7player &b{target}&7:'
         - ''
-        - '&7Online: &b{target_online}' # Placeholder for target online status
-        - '&7IP: &b{target_ip}' # Placeholder for target IP address
-        - '&7Coords: &b{target_coords}' # Placeholder for target coordinates
-        - '&7World: &b{target_world}' # Placeholder for target world name
+        - '&7Online: &b{target_online}'
+        - '&7IP: &b{target_ip}'
+        - '&7Coords: &b{target_coords}'
+        - '&7World: &b{target_world}'
         - ''
-        - '&7Softban Status: {target_softban_status}' # Placeholder for softban status
-        - '&7Softban Remaining: {target_softban_remaining_time}' # Placeholder for softban remaining time
+        - '&7Softban Status: {target_softban_status}'
+        - '&7Softban Remaining: {target_softban_remaining_time}'
         - ''
-        - '&eLeft-Click to change player.' # Instruction on click action
-        - '&eRight-Click to spectate.' # Example right-click action
+        - '&eLeft-Click to change player.'
+        - '&eRight-Click to spectate.'
       left_click_actions:
-        - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0' # Added PLAY_SOUND action - NEW
-        - 'OPEN_MENU:change_target' # Action performed on Left-Click (default click)
+        - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0'
+        - 'OPEN_MENU:change_target'
       right_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0' # Added PLAY_SOUND action - NEW
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'CONSOLE_COMMAND:gamemode spectator {player}'
-        - 'CONSOLE_COMMAND:tp {player} {target}' # Command for Right-Click
+        - 'CONSOLE_COMMAND:tp {player} {target}'
 
     ban:
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/3ed1aba73f639f4bc42bd48196c715197be2712c3b962c97ebf9e9ed8efa025'
-      slot: '13' # Position in the inventory, single slot
-      name: '&c&lBan' # Display name, red color indicating severity
-      lore: # Lore explaining the action
+      slot: '13'
+      name: '&c&lBan'
+      lore:
         - '&7Left-Click to ban'
         - '&7player &b{target}&7.'
-      click_sound: 'UI_BUTTON_CLICK' # Click sound
-      click_volume: 1.0 # Sound volume
-      click_pitch: 1.0 # Sound pitch
+      click_sound: 'UI_BUTTON_CLICK'
+      click_volume: 1.0
+      click_pitch: 1.0
       left_click_actions:
-        - 'OPEN_MENU:ban_details' # Open menu action for Left-Click (default)
+        - 'OPEN_MENU:ban_details'
       right_click_actions:
-        - 'OPEN_MENU:ban_details' # Open menu action for Left-Click (default)
+        - 'OPEN_MENU:ban_details'
 
-    mute: # Configuration for the Mute menu item
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    mute:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/85409b666103eaf5d3d3ccc3c6a9212638a943107736dc93e6661cd4e44f92c5'
-      slot: '22' # Position in the inventory
-      name: '&e&lMute' # Display name, yellow color indicating moderation
-      lore: # Item lore
+      slot: '22'
+      name: '&e&lMute'
+      lore:
         - '&7Left-Click to mute'
         - '&7player &b{target}&7.'
       left_click_actions:
-        - 'OPEN_MENU:mute_details' # Action on Left-Click (default click)
+        - 'OPEN_MENU:mute_details'
       right_click_actions:
-        - 'OPEN_MENU:mute_details' # Action on Left-Click (default click)
+        - 'OPEN_MENU:mute_details'
 
-    softban: # Configuration for the SoftBan menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    softban:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/b978c31c63d7da80b9448220b8a9b896003f1b3281c341ab10194c6c4dfbe23d'
-      slot: '14' # Inventory slot position
-      name: '&3&lSoftBan' # Display name, cyan color for softban
-      lore: # Lore for softban item
+      slot: '14'
+      name: '&3&lSoftBan'
+      lore:
         - '&7Left-Click to softban'
         - '&7player &b{target}&7.'
       left_click_actions:
-        - 'OPEN_MENU:softban_details' # Action on Left-Click
+        - 'OPEN_MENU:softban_details'
       right_click_actions:
-        - 'OPEN_MENU:softban_details' # Action on Left-Click
+        - 'OPEN_MENU:softban_details'
 
 
-    kick: # Configuration for the Kick menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    kick:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/5ae0e486db4ec49ff1b52cfeceda4c3f36fde23c835ea3ccfcaac935e49b5f10'
-      slot: '15' # Inventory slot
-      name: '&9&lKick' # Display name, blue color for kick
-      lore: # Lore for kick item
+      slot: '15'
+      name: '&9&lKick'
+      lore:
         - '&7Left-Click to kick'
         - '&7player &b{target}&7.'
       left_click_actions:
-        - 'OPEN_MENU:kick_details' # Action on Left-Click - Direct confirm for kick
+        - 'OPEN_MENU:kick_details'
       right_click_actions:
-        - 'OPEN_MENU:kick_details' # Action on Left-Click - Direct confirm for kick
+        - 'OPEN_MENU:kick_details'
 
-    warn: # Configuration for the Warn menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    warn:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/1e8b317b63172bdcef9b35116e8bb997479296afdb910a90ad73cd946dc7602c'
-      slot: '16' # Inventory slot
-      name: '&6&lWarn' # Display name, gold color for warn
-      lore: # Lore for warn item
+      slot: '16'
+      name: '&6&lWarn'
+      lore:
         - '&7Left-Click to warn'
         - '&7player &b{target}&7.'
       left_click_actions:
-        - 'OPEN_MENU:warn_details' # Action on Left-Click
+        - 'OPEN_MENU:warn_details'
       right_click_actions:
-        - 'OPEN_MENU:warn_details' # Action on Left-Click
+        - 'OPEN_MENU:warn_details'
 
-    freeze: # Configuration for the Freeze menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    freeze:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/82da68bbc9bd4ccbc6dac39dfde5db5b0bca8358224b4df3fbf0fb6f37bf7499'
-      slot: '23' # Inventory slot - NEW
-      name: '&5&lFreeze' # Display name, purple color for freeze - NEW
-      lore: # Lore for freeze item - NEW
-        - '&7Left-Click to freeze' # Instruction line 1 - NEW
-        - '&7player &b{target}&7 for review.' # Instruction line 2 - NEW
-      left_click_actions: # Left click actions - NEW
-        - 'OPEN_MENU:freeze_details' # Open freeze details menu - NEW
+      slot: '23'
+      name: '&5&lFreeze'
+      lore:
+        - '&7Left-Click to freeze'
+        - '&7player &b{target}&7 for review.'
+      left_click_actions:
+        - 'OPEN_MENU:freeze_details'
       right_click_actions:
-        - 'OPEN_MENU:freeze_details' # Open freeze details menu - NEW
+        - 'OPEN_MENU:freeze_details'
 
-    history: # Configuration for the History menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    history:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/21c63d9b9fd8742eaeb04c692172cb9da43781698a575cdabe1c04df12c3f'
-      slot: '37' # Inventory slot
-      name: '&a&lHistory' # Display name, green color for informational/positive action
-      lore: # Lore for history item
+      slot: '37'
+      name: '&a&lHistory'
+      lore:
         - '&7Left-Click to view punishment'
         - '&7history for &b{target}&7.'
-      left_click_actions:
-        - 'OPEN_MENU:history_menu' # Action on Left-Click
-      right_click_actions:
-        - 'OPEN_MENU:history_menu' # Action on Left-Click
+        - "" # Empty line for spacing
+        - "&7Punishment Summary:" # Header for Punishment Summary - NEW FEATURE
+        - "&c Bans: &e{ban_count}" # Ban count with placeholder - NEW FEATURE
+        - "&e Mutes: &e{mute_count}" # Mute count with placeholder - NEW FEATURE
+        - "&9 Kicks: &e{kick_count}" # Kick count with placeholder - NEW FEATURE
+        - "&3 Softbans: &e{softban_count}" # Softban count with placeholder - NEW FEATURE
+        - "&6 Warns: &e{warn_count}" # Warn count with placeholder - NEW FEATURE
+        - "&5 Freezes: &e{freeze_count}" # Freeze count with placeholder - NEW FEATURE
 
-    invsee: # Configuration for the History menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+      left_click_actions:
+        - 'OPEN_MENU:history_menu'
+      right_click_actions:
+        - 'OPEN_MENU:history_menu'
+
+    invsee:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/beda6a673ba76531d32f2e358c10b7c9e9cd6615d1b77654f98aab44a0d7c17f'
-      slot: '40' # Inventory slot
-      name: '&3&lInvsee' # Display name, green color for informational/positive action
-      lore: # Lore for history item
+      slot: '40'
+      name: '&3&lInvsee'
+      lore:
         - '&7Click to spy'
         - "&b{target}&7's inventory!."
       left_click_actions:
-        - 'PLAYER_COMMAND:invsee {target}' # Player needs access to that command
-        #        - 'PLAYER_COMMAND_OP:invsee {target}' # Player will exec this command as an OP (not recomended)
+        - 'PLAYER_COMMAND:invsee {target}'
         - 'PLAY_SOUND:BLOCK_FIRE_EXTINGUISH:1.0:0.5'
       right_click_actions:
-        - 'PLAYER_COMMAND:invsee {target}' # Player needs access to that command
-        #        - 'PLAYER_COMMAND_OP:invsee {target}' # Player will exec this command as an OP (not recomended)
+        - 'PLAYER_COMMAND:invsee {target}'
         - 'PLAY_SOUND:BLOCK_FIRE_EXTINGUISH:1.0:0.5'
 
-    tp-me: # Configuration for the History menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    tp-me:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/21c63d9b9fd8742eaeb04c692172cb9da43781698a575cdabe1c04df12c3f'
-      slot: '41' # Inventory slot
-      name: '&e&lTP TO ME' # Display name, green color for informational/positive action
-      lore: # Lore for history item
+      slot: '41'
+      name: '&e&lTP TO ME'
+      lore:
         - '&7Click to TP &b{target}'
         - '&7to your actual location.'
       left_click_actions:
-        - 'PLAYER_COMMAND:tp {target} {player}' # Player needs access to that command
-        #        - 'PLAYER_COMMAND_OP:tp {target} {player}' # Player will exec this command as an OP (not recomended)
+        - 'PLAYER_COMMAND:tp {target} {player}'
         - 'PLAY_SOUND:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6'
         - 'PLAY_SOUND_TARGET:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6'
       right_click_actions:
-        - 'PLAYER_COMMAND:tp {target} {player}' # Player needs access to that command
-        #        - 'PLAYER_COMMAND_OP:tp {target} {player}' # Player will exec this command as an OP (not recomended)
+        - 'PLAYER_COMMAND:tp {target} {player}'
         - 'PLAY_SOUND:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6'
         - 'PLAY_SOUND_TARGET:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6'
 
 
-    clearinv: # Configuration for the History menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    clearinv:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/8045743910f23cecff1008ab6adf797d8e6297b2a43c70df572f2e8245697237'
-      slot: '42' # Inventory slot
-      name: '&4&lCLEAR INVENTORY' # Display name, green color for informational/positive action
-      lore: # Lore for history item
+      slot: '42'
+      name: '&4&lCLEAR INVENTORY'
+      lore:
         - '&7Click to clear'
         - "&7player's &finventory&7."
       left_click_actions:
-        - 'PLAYER_COMMAND_OP:clearinventory {target}' # Player will exec this command as an OP (not recomended)
+        - 'PLAYER_COMMAND_OP:clearinventory {target}'
         - 'PLAY_SOUND:ENTITY_ALLAY_ITEM_THROWN:1.0:0.5'
         - 'MESSAGE_TARGET:&c&nYour inventory has been deleted by an administrator.'
       right_click_actions:
-        - 'PLAYER_COMMAND_OP:clearinventory {target}' # Player needs access to that command
+        - 'PLAYER_COMMAND_OP:clearinventory {target}'
         - 'PLAY_SOUND:ENTITY_ALLAY_ITEM_THROWN:1.0:0.5'
         - 'MESSAGE_TARGET:&c&nYour inventory has been deleted by an administrator.'
 
-    kill: # Configuration for the History menu item - NEW
-      material: 'PLAYER_HEAD' # Material of the item, Barrier block icon
+    kill:
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/c40091316b1c9daa21795c47ae567b27dad64d995e83b6556427f871f8d0632a'
-      slot: '43' # Inventory slot
-      name: '&2&lKILL PLAYER' # Display name, green color for informational/positive action
-      lore: # Lore for history item
+      slot: '43'
+      name: '&2&lKILL PLAYER'
+      lore:
         - '&7Left-Click to sentence'
         - '&7player to &4death&7.'
         - ''

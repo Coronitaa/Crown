@@ -8,10 +8,8 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.sql.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
-import java.util.UUID;
 import java.util.logging.Level;
 
 /**
@@ -342,6 +340,28 @@ public class SoftBanDatabaseManager {
             plugin.getLogger().log(Level.SEVERE, "Database error counting punishment history!", e);
         }
         return count;
+    }
+
+    /**
+     * Retrieves the counts of each punishment type for a player. - NEW FEATURE
+     *
+     * @param playerUUID UUID of the player.
+     * @return A map containing punishment types as keys and their counts as values.
+     */
+    public HashMap<String, Integer> getPunishmentCounts(UUID playerUUID) {
+        HashMap<String, Integer> counts = new HashMap<>();
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(
+                     "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? GROUP BY punishment_type")) {
+            ps.setString(1, playerUUID.toString());
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                counts.put(rs.getString("punishment_type"), rs.getInt("count"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving punishment counts!", e);
+        }
+        return counts;
     }
 
     /**
