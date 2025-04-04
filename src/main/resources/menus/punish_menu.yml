@@ -42,7 +42,7 @@ menu:
 
     ban:
       material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/3ed1aba73f639f4bc42bd48196c715197be2712c3b962c97ebf9e9ed8efa025'
+      player_head: 'http://textures.minecraft.net/texture/55effce109de50f5853b0c32dcc1a28cf62a504b610e71e22f1fde6fc1a4b93d'
       slot: '13'
       name: '&c&lBan'
       lore:
@@ -58,7 +58,7 @@ menu:
 
     mute:
       material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/85409b666103eaf5d3d3ccc3c6a9212638a943107736dc93e6661cd4e44f92c5'
+      player_head: 'http://textures.minecraft.net/texture/e82b0b7c68e88800030e674522aab40396fa543072b949c0600e66c2ed352ff0'
       slot: '22'
       name: '&e&lMute'
       lore:
@@ -98,7 +98,7 @@ menu:
 
     warn:
       material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/1e8b317b63172bdcef9b35116e8bb997479296afdb910a90ad73cd946dc7602c'
+      player_head: 'http://textures.minecraft.net/texture/4f09ade78eff3009cbf9ed12c0ac8f8a2073e9a95a82d8a12a42bce4773adcd7'
       slot: '16'
       name: '&6&lWarn'
       lore:
@@ -111,7 +111,7 @@ menu:
 
     freeze:
       material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/82da68bbc9bd4ccbc6dac39dfde5db5b0bca8358224b4df3fbf0fb6f37bf7499'
+      player_head: 'http://textures.minecraft.net/texture/bc3d0632c03e9f8748cf94c2576e8aef785bd8da433f3d139a7b561a5a714ada'
       slot: '23'
       name: '&5&lFreeze'
       lore:
@@ -124,7 +124,7 @@ menu:
 
     history:
       material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/21c63d9b9fd8742eaeb04c692172cb9da43781698a575cdabe1c04df12c3f'
+      player_head: 'http://textures.minecraft.net/texture/c0cf74e2638ba5ad32237a37b1d76aa123d18546e7eb9a6b9961e4bf1c3a919'
       slot: '37'
       name: '&a&lHistory'
       lore:
@@ -161,7 +161,7 @@ menu:
 
     tp-me:
       material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/21c63d9b9fd8742eaeb04c692172cb9da43781698a575cdabe1c04df12c3f'
+      player_head: 'http://textures.minecraft.net/texture/54d48ac7e65b91467904f2f4d154556776ffa9cd2d526b12a0499bb59cc656c7'
       slot: '41'
       name: '&e&lTP TO ME'
       lore:

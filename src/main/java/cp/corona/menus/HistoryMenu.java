@@ -231,12 +231,22 @@ public class HistoryMenu implements InventoryHolder {
             ItemStack backgroundItemStack = backgroundItemConfig.toItemStack(target, plugin.getConfigManager());
             if (backgroundItemStack != null) {
                 for (int slot = 0; slot < inventory.getSize(); slot++) {
-                    if (inventory.getItem(slot) == null && !validSlots.contains(slot)) {
+                    // Fill slot if it's empty AND not a valid history entry slot AND not a button slot
+                    if (inventory.getItem(slot) == null && !validSlots.contains(slot) && !isButtonSlot(slot)) { // FIX: Check if slot is not a button slot
                         inventory.setItem(slot, backgroundItemStack.clone());
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Helper method to check if a slot is used by a navigation button.
+     * @param slot The slot to check.
+     * @return True if the slot is a button slot, false otherwise.
+     */
+    private boolean isButtonSlot(int slot) { // NEW: Helper method to check button slots
+        return slot == 51 || slot == 52 || slot == 53; // Slots for Previous, Next, Back buttons
     }
 
     /**
@@ -423,10 +433,15 @@ public class HistoryMenu implements InventoryHolder {
      */
     public void previousPage(Player player) {
         if (page > 1) {
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - previousPage() called. Current page: " + page); // Debug log - previousPage called
             page--; // Decrement page number to go to previous page - FIX: Missing decrement operator
             loadHistoryPage(Bukkit.getOfflinePlayer(targetUUID), page);
             fillEmptySlotsWithBackground(Bukkit.getOfflinePlayer(targetUUID));
             player.updateInventory();
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - Navigated to previous page. New page: " + page); // Debug log - new page
+        } else {
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - previousPage() called, but already on first page."); // Debug log - already on first page
+            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.history_menu_first_page")));
         }
     }
 

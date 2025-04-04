@@ -1015,6 +1015,15 @@ public class MenuListener implements Listener {
         }
     }
 
+    /**
+     * Handles actions specific to HistoryMenu clicks.
+     *
+     * @param player          The player who clicked.
+     * @param historyMenu     The HistoryMenu instance.
+     * @param action          The ClickAction enum value.
+     * @param actionData      The data associated with the ClickAction.
+     * @param clickedMenuItem The MenuItem that was clicked.
+     */
     private void handleHistoryMenuActions(Player player, HistoryMenu historyMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleHistoryMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
         switch (action) {
@@ -1028,6 +1037,7 @@ public class MenuListener implements Listener {
                     if (actionData.equalsIgnoreCase("next_page")) {
                         historyMenu.nextPage(player);
                     } else if (actionData.equalsIgnoreCase("previous_page")) {
+                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleHistoryMenuActions - Previous Page Clicked!"); // Debug log - Previous Page Clicked
                         historyMenu.previousPage(player);
                     } else if (actionData.equalsIgnoreCase("no_action")) { // Prevent click action when button is "disabled"
                         // Do nothing, effectively cancelling the click
