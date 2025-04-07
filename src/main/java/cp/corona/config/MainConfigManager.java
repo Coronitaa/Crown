@@ -143,7 +143,6 @@ public class MainConfigManager {
 
 
     public String processPlaceholders(String text, OfflinePlayer target) {
-        plugin.getLogger().info("[DEBUG] MainConfigManager - processPlaceholders - Input text: " + text + ", Target: " + (target != null ? target.getName() : "null")); // DEBUG LOG - Input to processPlaceholders
         String prefix = pluginConfig.getConfig().getString("prefix", "&8[&6C&cP&8] &r");
         text = MessageUtils.getColorMessage(text).replace("{prefix}", prefix);
 
@@ -198,7 +197,6 @@ public class MainConfigManager {
         if (plugin.isPlaceholderAPIEnabled() && target.isOnline()) {
             text = PlaceholderAPI.setPlaceholders(target.getPlayer(), text);
         }
-        plugin.getLogger().info("[DEBUG] MainConfigManager - processPlaceholders - Output text: " + text); // DEBUG LOG - Output from processPlaceholders
         return text;
     }
 

@@ -109,7 +109,7 @@ public class MenuListener implements Listener {
 
         if (event.getClickedInventory() == null || event.getClickedInventory().getType() == InventoryType.PLAYER || clickedItem == null) return;
 
-        playSound(player, "menu_click");
+
         event.setCancelled(true); // IMPORTANT: Cancel the event to prevent item movement
 
         MenuItem clickedMenuItem = getMenuItemClicked(event.getRawSlot(), holder);
@@ -1857,5 +1857,6 @@ public class MenuListener implements Listener {
         } else if (!punishDetailsMenu.isReasonSet() && punishDetailsMenu.isReasonRequiredForConfirmation()) { // Check if reason is required - MODIFIED: Added reason required check
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_reason_before_confirm")));
         }
+        playSound(player, "punish_error");
     }
 }
