@@ -2,10 +2,6 @@
 menu:
   title: '&7&lPunishment History for &b{target}'
   items:
-    background_fill:
-      material: 'GRAY_STAINED_GLASS_PANE'
-      name: ' '
-      slot: '0-9,17,18-26,35,36-44,45-51'
 
     history_entry:
       material: 'BOOK'
@@ -18,65 +14,76 @@ menu:
       slot: ''
 
     ban_history_entry:
-      material: 'BARRIER'
-      player_head: 'http://textures.minecraft.net/texture/3ed1aba73f639f4bc42bd48196c715197be2712c3b962c97ebf9e9ed8efa025'
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/55effce109de50f5853b0c32dcc1a28cf62a504b610e71e22f1fde6fc1a4b93d'
       name: '&c&lBan'
       lore: inherit
       slot: ''
 
     mute_history_entry:
-      material: 'NOTE_BLOCK'
-      player_head: 'http://textures.minecraft.net/texture/85409b666103eaf5d3d3ccc3c6a9212638a943107736dc93e6661cd4e44f92c5'
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/e82b0b7c68e88800030e674522aab40396fa543072b949c0600e66c2ed352ff0'
       name: '&e&lMute'
       lore: inherit
       slot: ''
 
+    freeze_history_entry:
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/bc3d0632c03e9f8748cf94c2576e8aef785bd8da433f3d139a7b561a5a714ada'
+      lore: inherit
+      slot: ''
+
     softban_history_entry:
-      material: 'IRON_DOOR'
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/b978c31c63d7da80b9448220b8a9b896003f1b3281c341ab10194c6c4dfbe23d'
       name: '&3&lSoftBan'
       lore: inherit
       slot: ''
 
     kick_history_entry:
-      material: 'LEATHER_BOOTS'
+      material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/5ae0e486db4ec49ff1b52cfeceda4c3f36fde23c835ea3ccfcaac935e49b5f10'
       name: '&9&lKick'
       lore: inherit
       slot: ''
 
     warn_history_entry:
-      material: 'PAPER'
-      player_head: 'http://textures.minecraft.net/texture/1e8b317b63172bdcef9b35116e8bb997479296afdb910a90ad73cd946dc7602c'
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/4f09ade78eff3009cbf9ed12c0ac8f8a2073e9a95a82d8a12a42bce4773adcd7'
       name: '&6&lWarn'
       lore: inherit
       slot: ''
 
     unban_history_entry:
-      material: 'GREEN_WOOL'
-      player_head: "http://textures.minecraft.net/texture/223fb67429716b21bc6e8e7d669ceddf65b13e0790a5ce55b2e077b82d19e124"
+      material: 'PLAYER_HEAD'
+      player_head: "http://textures.minecraft.net/texture/d9848dde8e530dc705fb677dad81492cc222bf96fd632b8514aefb80931fe0d"
       name: '&a&lUnban'
       lore: inherit
       slot: ''
 
     unmute_history_entry:
-      material: 'EMERALD'
-      player_head: 'http://textures.minecraft.net/texture/39744eec8ee66dd9b91e616c1853497a8044a85f190bb2b4658746f71944'
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/d7df3c28ef665b5b128f4090df6e4bbca24ef444b57f215de915d88d5c42fe18'
       name: '&a&lUnmute'
       lore: inherit
       slot: ''
 
+    unwarn_history_entry:
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/e12eac68a481aae2c36cfbebc68cbe7b268c4cc7712764a2ed72c1bb7c74d14f'
+      lore: inherit
+      slot: ''
+
     unsoftban_history_entry:
-      material: 'LIME_DYE'
-      player_head: 'http://textures.minecraft.net/texture/470a821a54b4799664214c3f68d709a43169a863080e08970982a459a6140'
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/899f882b4ecca4a372692a7ae1cd08bdf340700337240d00419168588d98bb75'
       name: '&a&lUnsoftban'
       lore: inherit
       slot: ''
 
     unfreeze_history_entry:
-      material: 'ICE'
-      player_head: 'http://textures.minecraft.net/texture/f4ef96bbd90d8964d6a6b295b5529429419874497885b5998657235609a90'
-      name: '&a&lUnfreeze'
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/77e3c7dd63a88c1e755e94e8db5d30728d2692412014186f4584c5320d04709e'
       lore: inherit
       slot: ''
 
@@ -112,7 +119,7 @@ menu:
 
     punishment_counts_item: # NEW ITEM - Punishment Counts Item Configuration
       material: "MAP" # Example Material - Can be changed
-      slot: '49' # Example Slot - Can be changed
+      slot: '45' # Example Slot - Can be changed
       name: "&bPunishment Summary" # Display Name
       lore: # Lore with placeholders for counts
         - "&7Total Punishments Issued to this Player:"
@@ -124,5 +131,8 @@ menu:
         - "&6Warns: &e{warn_count}"
         - "&5Freezes: &e{freeze_count}"
         - ""
-        - "&7This item displays a summary"
-        - "&7of all punishments given."
+
+    background_fill:
+      material: 'BLACK_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '0-9,17,18-26,35,36-44,46-50'

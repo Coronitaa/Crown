@@ -5,7 +5,6 @@ import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,7 +21,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * Listener to handle the "freeze" punishment.

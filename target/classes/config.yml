@@ -19,8 +19,8 @@ commands:
 # Sound configurations for different actions in the plugin.
 # Uses Bukkit Sound enum names. List of sounds: https://helpch.at/docs/1.19.4/org/bukkit/Sound.html
 sounds:
-  menu_click: 'UI_BUTTON_CLICK' # menu_click: Sound for menu item clicks. Example: 'BLOCK_NOTE_BLOCK_PLING'
   punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP' # punish_confirm: Sound for punishment confirmation. Example: 'ENTITY_VILLAGER_YES'
+  punish_error: 'ENTITY_VILLAGER_NO'
 
 # Time unit configurations for formatting and parsing time durations.
 time_units:
@@ -56,7 +56,7 @@ freeze: # freeze: Configuration section for freeze punishment feature. - NEW
     actions: # actions: List of actions to execute for frozen players. - NEW
       - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.' # Example: Send message.
       - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example: Play sound. Format: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :10:20:20" # Example: Display title. Format: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
+      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :5:5:5" # Example: Display title. Format: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
 
 # Logging configurations for debugging purposes.
 logging:

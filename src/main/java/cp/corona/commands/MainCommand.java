@@ -16,7 +16,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
 import java.util.*;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**

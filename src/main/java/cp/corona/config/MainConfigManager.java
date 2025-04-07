@@ -3,27 +3,18 @@ package cp.corona.config;
 
 import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.items.MenuItem;
-import cp.corona.menus.actions.ClickAction;
 import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.profile.PlayerProfile;
-import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.NotNull;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;

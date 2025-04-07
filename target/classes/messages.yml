@@ -15,7 +15,6 @@ messages:
   help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, softban)'
   help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban command.' # Help for /softban command
   help_reload: '&b/crown reload &7- Reload configuration'
-  unpunish_command_not_configured: '{prefix}&cUnpunish command is not configured for {punishment_type}. Please configure it in config.yml'
   unpunish_not_supported: '{prefix}&cUnpunish command is not supported for {punishment_type}.' # Message for unsupported unpunish types
   prompt_new_target: '&aEnter a new player name (or type ''cancel'' to cancel):'
   prompt_ban_reason: '&aEnter the ban reason (or type ''cancel'' to cancel):'
@@ -32,7 +31,8 @@ messages:
   target_player_not_found: '{prefix}&cTarget player not found.'
   punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_type}d for &b{time}&a with reason: &b{reason}' # Generic confirmation
   punishment_softban_confirmed: '{prefix}&aPlayer &b{target}&a has been softbanned for &b{time}&a with reason: &b{reason}' # Keeping it for specific softban confirmation if needed in future
-  not_set: '&7Not Set'
+  not_set: '&c❌ Not Set'
+  set: '&a✔ Set'
   set_time_reason_before_confirm: '{prefix}&cPlease set both time and reason before confirming.'
   set_time_before_confirm: '{prefix}&cPlease set time before confirming.'
   set_reason_before_confirm: '{prefix}&cPlease set reason before confirming.'
@@ -62,6 +62,7 @@ messages:
   history_menu_back_button: '&cBack to Punish Menu'
   history_menu_next_page: '&aNext Page'
   history_menu_previous_page: '&cPrevious Page'
+  istory_menu_first_page: '{prefix}&cYou are already on the first page.'
   history_menu_entry_name: '&ePunishment Entry' # Default name for history entry item
   softban_usage: '{prefix}&cUsage: /softban <player> [time] [reason]' # Usage message for /softban command - [NEW MESSAGE]
   help_freeze_command: '&b/freeze <player> &7- Freeze a player for manual review.' # Help message for /freeze command - NEW

@@ -2,7 +2,10 @@ package cp.corona.listeners;
 
 import cp.corona.config.MainConfigManager;
 import cp.corona.crownpunishments.CrownPunishments;
-import cp.corona.menus.*;
+import cp.corona.menus.HistoryMenu;
+import cp.corona.menus.PunishDetailsMenu;
+import cp.corona.menus.PunishMenu;
+import cp.corona.menus.TimeSelectorMenu;
 import cp.corona.menus.actions.ClickAction;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.ColorUtils;
@@ -30,9 +33,6 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-
-import static cp.corona.menus.PunishDetailsMenu.*;
 
 /**
  * Menu interaction listener for CrownPunishments plugin.
