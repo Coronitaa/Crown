@@ -32,6 +32,7 @@ messages:
   punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_type}d for &b{time}&a with reason: &b{reason}' # Generic confirmation
   punishment_softban_confirmed: '{prefix}&aPlayer &b{target}&a has been softbanned for &b{time}&a with reason: &b{reason}' # Keeping it for specific softban confirmation if needed in future
   not_set: '&c❌ Not Set'
+  set: '&a✔ Set'
   set_time_reason_before_confirm: '{prefix}&cPlease set both time and reason before confirming.'
   set_time_before_confirm: '{prefix}&cPlease set time before confirming.'
   set_reason_before_confirm: '{prefix}&cPlease set reason before confirming.'

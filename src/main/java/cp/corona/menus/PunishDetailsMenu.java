@@ -298,7 +298,8 @@ public class PunishDetailsMenu implements InventoryHolder {
      * @return Formatted time status text.
      */
     private String getTimeStatusText() {
-        return timeRequired ? (timeSet ? MessageUtils.getColorMessage("&a\u2705 Set") : MessageUtils.getColorMessage("&c\u274c Not Set")) : MessageUtils.getColorMessage("&a\u2705 N/A"); // Adjusted for timeRequired
+        // Using configurable messages for "set" and "not_set"
+        return timeRequired ? (timeSet ? MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set")) : MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.not_set"))) : MessageUtils.getColorMessage("&a\u2705 N/A"); // Adjusted for timeRequired
     }
 
     /**
@@ -306,7 +307,8 @@ public class PunishDetailsMenu implements InventoryHolder {
      * @return Formatted reason status text.
      */
     private String getReasonStatusText() {
-        return reasonSet ? MessageUtils.getColorMessage("&a\u2705 Set") : MessageUtils.getColorMessage("&c\u274c Not Set");
+        // Using configurable messages for "set" and "not_set"
+        return reasonSet ? MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set")) : MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.not_set"));
     }
 
     /**
