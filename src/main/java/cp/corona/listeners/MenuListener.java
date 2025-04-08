@@ -1323,16 +1323,35 @@ public class MenuListener implements Listener {
 
     /**
      * Validates if the input string is a valid time format.
+     * <p>
+     * ////////////////////////////////////////////////
+     * //           Time Format Validator            //
+     * //    Checks if input matches time pattern   //
+     * ////////////////////////////////////////////////
+     *
      * @param time The time string to validate.
      * @return true if valid, false otherwise.
      */
     private boolean isValidTimeFormat(String time) {
+        // ----------------------------------------
+        // ------ Constructing Time Units Regex ------
+        // ----------------------------------------
+        // Construct a regex string for time units using configured units.
+        // This ensures that the validation is consistent with the plugin's configuration
+        // and supports flexible time units.
         String units = String.join("|",
                 plugin.getConfigManager().getDayTimeUnit(),
                 plugin.getConfigManager().getHoursTimeUnit(),
                 plugin.getConfigManager().getMinutesTimeUnit(),
-                plugin.getConfigManager().getSecondsTimeUnit()
+                plugin.getConfigManager().getSecondsTimeUnit(),
+                plugin.getConfigManager().getYearsTimeUnit() // ADDED: Include years time unit - NEW
         );
+        // ----------------------------------------
+        // ------ Matching Time Format ------
+        // ----------------------------------------
+        // Return true if the time string matches the expected format,
+        // which includes digits followed by a valid time unit.
+        // The format is made flexible by using the units defined in the configuration.
         return time.matches("\\d+[" + units + "]");
     }
 

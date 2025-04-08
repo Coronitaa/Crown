@@ -48,6 +48,11 @@ public class TimeUtils {
 
     /**
      * Parses a time string (e.g., "1d", "2h30m") into seconds.
+     * <p>
+     * ////////////////////////////////////////////////
+     * //               Time Parser                //
+     * //    Converts time strings to seconds      //
+     * ////////////////////////////////////////////////
      *
      * @param timeString    The time string to parse.
      * @param configManager MainConfigManager instance to get time units from config.
@@ -55,24 +60,42 @@ public class TimeUtils {
      */
     public static int parseTime(String timeString, MainConfigManager configManager) {
         int totalSeconds = 0;
-        // Get time units from config for flexible unit parsing
+        // ----------------------------------------
+        // ------ Fetching Time Units from Config ------
+        // ----------------------------------------
+        // Get time units from config for flexible unit parsing, ensuring
+        // the plugin is adaptable to different time unit configurations.
         String yearsUnit = configManager.getYearsTimeUnit();
         String dayUnit = configManager.getDayTimeUnit();
         String hoursUnit = configManager.getHoursTimeUnit();
         String minutesUnit = configManager.getMinutesTimeUnit();
         String secondsUnit = configManager.getSecondsTimeUnit();
 
-        // Regex pattern to capture time values and units, supporting flexible units from config
+        // ----------------------------------------
+        // ------ Regex Pattern for Time Units ------
+        // ----------------------------------------
+        // Regex pattern to capture time values and units, supporting flexible units from config.
+        // This pattern is designed to be robust and handle various time formats.
         String pattern = "(\\d+)([y" + yearsUnit + "d" + dayUnit + "h" + hoursUnit + "m" + minutesUnit + "s" + secondsUnit + "]\\s*)"; // e.g., (\d+)([y|d|h|m|s]\s*)
         Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
         Matcher matcher = r.matcher(timeString);
 
-        // Iterate through all matches to sum up total seconds
+        // ----------------------------------------
+        // ------ Iterating and Summing Time ------
+        // ----------------------------------------
+        // Iterate through all matches to sum up total seconds.
+        // For each match, we parse the numeric value and the time unit,
+        // then convert it to seconds and add to the total.
         while (matcher.find()) {
             int value = Integer.parseInt(matcher.group(1)); // Parse numeric value
             String unit = matcher.group(2).trim().toLowerCase(); // Get and normalize unit
 
-            // Determine time unit and add corresponding seconds
+            // ----------------------------------------
+            // ------ Unit Conversion to Seconds ------
+            // ----------------------------------------
+            // Determine time unit and add corresponding seconds.
+            // This section ensures that each time unit is correctly converted to seconds,
+            // handling years, days, hours, minutes, and seconds.
             if (unit.startsWith("y")) {
                 totalSeconds += value * 60 * 60 * 24 * 365;
             } else if (unit.startsWith("d")) {
