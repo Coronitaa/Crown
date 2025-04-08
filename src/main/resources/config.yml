@@ -1,63 +1,68 @@
-# config.yml
 # Main configuration file for CrownPunishments plugin.
 # Contains settings for plugin prefix, commands, sounds, time units, softban, database, freeze features and logging.
-# Supports color codes (using '&' and RGB hex codes like '#RRGGBB') for messages and display names.
 
-prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Plugin prefix: Displayed in {prefix} placeholder. Supports color codes and RGB hex codes.
+# Available Placeholders in commands and messages:
+# - {target}: Target player's name.
+# - {time}: Punishment time duration.
+# - {reason}: Punishment reason.
+# - {player}: Player who executed the command (in some contexts).
+# - {prefix}: Plugin's prefix (defined below).
+
+prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Plugin prefix: Displayed in {prefix} placeholder. Supports color codes and RGB hex codes. Example: "&7[&bMyPlugin&7] "
 
 # Command configurations for different punishment types.
 # Placeholders available in commands: {target}, {time}, {reason}
 commands:
-  ban_command: 'ban {target} {time} {reason}' # ban_command: Command to ban a player. Example: 'ban {target} {time} You have been banned for: {reason}'
-  mute_command: 'mute {target} {time} {reason}' # mute_command: Command to mute a player. Example: 'mute {target} {time} Silenced for: {reason}'
-  warn_command: 'warn {target} {reason}' # warn_command: Command to warn a player. Example: 'minecraft:warn {target} {reason}' (adjust to your server setup)
-  kick_command: 'kick {target} {reason}' # kick_command: Command to kick a player. Example: 'minecraft:kick {target} {reason}' (adjust to your server setup)
-  unban_command: 'pardon {target}' # unban_command: Command to unban a player. Example: 'pardon {target}'
-  unmute_command: 'unmute {target}' # unmute_command: Command to unmute a player. Example: 'unmute {target}'
-  unwarn_command: 'unwarn {target}' # unwarn_command: Command to unwarn a player. Example: 'unwarn {target}' (if your server has an unwarn command)
+  ban_command: 'ban {target} {time} {reason}' # Command to ban a player. Example: 'ban {target} {time} You have been banned for: {reason}'
+  mute_command: 'mute {target} {time} {reason}' # Command to mute a player. Example: 'mute {target} {time} Silenced for: {reason}'
+  warn_command: 'warn {target} {reason}' # Command to warn a player. Example: 'minecraft:warn {target} {reason}' (adjust to your server setup)
+  kick_command: 'kick {target} {reason}' # Command to kick a player. Example: 'minecraft:kick {target} {reason}' (adjust to your server setup)
+  unban_command: 'pardon {target}' # Command to unban a player. Example: 'pardon {target}'
+  unmute_command: 'unmute {target}' # Command to unmute a player. Example: 'unmute {target}'
+  unwarn_command: 'unwarn {target}' # Command to unwarn a player. Example: 'unwarn {target}' (if your server has an unwarn command)
 
 # Sound configurations for different actions in the plugin.
 # Uses Bukkit Sound enum names. List of sounds: https://helpch.at/docs/1.19.4/org/bukkit/Sound.html
 sounds:
-  punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP' # punish_confirm: Sound for punishment confirmation. Example: 'ENTITY_VILLAGER_YES'
+  punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP' # Sound for punishment confirmation. Example: 'ENTITY_VILLAGER_YES'
   punish_error: 'ENTITY_VILLAGER_NO'
 
 # Time unit configurations for formatting and parsing time durations.
 time_units:
-  default: 's' # default: Default time unit if not specified, in seconds.
-  seconds: 's' # seconds: Unit for seconds (e.g., 's', 'sec').
-  minutes: 'm' # minutes: Unit for minutes (e.g., 'm', 'min').
-  hours: 'h' # hours: Unit for hours (e.g., 'h', 'hour').
-  day: 'd' # day: Unit for days (e.g., 'd', 'day').
-  years: 'y' # years: Unit for years (e.g., 'y', 'year').
+  default: 's' # Default time unit if not specified, in seconds.
+  seconds: 's' # Unit for seconds (e.g., 's', 'sec').
+  minutes: 'm' # Unit for minutes (e.g., 'm', 'min').
+  hours: 'h' # Unit for hours (e.g., 'h', 'hour').
+  day: 'd' # Unit for days (e.g., 'd', 'day').
+  years: 'y' # Unit for years (e.g., 'y', 'year').
 
 # Softban feature configurations.
 softban:
-  blocked_commands: # blocked_commands: List of commands blocked for softbanned players.
-    - examplecommand # Commands are case-insensitive.
+  blocked_commands: # List of commands blocked for softbanned players.
+    - examplecommand # Commands are case-insensitive. Example: 'examplecommand'
     - kit # Example: 'kit'
     - daily # Example: 'daily'
 
 # Database settings for storing softban and punishment history data.
 database:
-  type: 'sqlite' # database type: 'sqlite' for file-based, 'mysql' for MySQL server. Options: 'sqlite', 'mysql'
-  name: 'crownpunishments' # database name: File name for SQLite or database name for MySQL. Example: 'punishments'
-  address: 'localhost' # database address: MySQL address (if type is 'mysql'). Example: 'your_mysql_host.com'
-  port: '3306' # database port: MySQL port (if type is 'mysql'). Default: 3306
-  username: 'username' # database username: MySQL username (if type is 'mysql'). Example: 'db_user'
-  password: 'password' # database password: MySQL password (if type is 'mysql'). Example: 'db_password'
+  type: 'sqlite' # Database type: 'sqlite' for file-based, 'mysql' for MySQL server. Options: 'sqlite', 'mysql'
+  name: 'crownpunishments' # Database name: File name for SQLite or database name for MySQL. Example: 'punishments'
+  address: 'localhost' # Database address: MySQL address (if type is 'mysql'). Example: 'your_mysql_host.com'
+  port: '3306' # Database port: MySQL port (if type is 'mysql'). Default: 3306
+  username: 'username' # Database username: MySQL username (if type is 'mysql'). Example: 'db_user'
+  password: 'password' # Database password: MySQL password (if type is 'mysql'). Example: 'db_password'
 
-# Freeze punishment feature configurations. - NEW
-freeze: # freeze: Configuration section for freeze punishment feature. - NEW
-  disconnect_ban_time: 'permanent' # disconnect_ban_time: Ban time for disconnected frozen players. Formats: '1d', '2h', 'permanent'.
-  disconnect_ban_reason: 'Disconnected while frozen for review' # disconnect_ban_reason: Ban reason for disconnected frozen players.
-  freeze_actions: # freeze_actions: Actions to execute repeatedly while player is frozen. - NEW
-    interval: 40 # interval: Interval in ticks for action execution (20 ticks = 1 second). Example: 20 (every second)
-    actions: # actions: List of actions to execute for frozen players. - NEW
-      - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.' # Example: Send message.
-      - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example: Play sound. Format: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :5:5:5" # Example: Display title. Format: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
+# Freeze punishment feature configurations.
+freeze: # Configuration section for freeze punishment feature.
+  disconnect_ban_time: 'permanent' # Ban time for disconnected frozen players. Formats: '1d', '2h', 'permanent'.
+  disconnect_ban_reason: 'Disconnected while frozen for review' # Ban reason for disconnected frozen players.
+  freeze_actions: # Actions to execute repeatedly while player is frozen.
+    interval: 40 # Interval in ticks for action execution (20 ticks = 1 second). Example: 20 (every second)
+    actions: # List of actions to execute for frozen players.
+      - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.' # Example: Send message. Syntax: 'MESSAGE:<message>'
+      - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example: Play sound. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :5:5:5" # Example: Display title. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
 
 # Logging configurations for debugging purposes.
 logging:
-  debug: false # debug: Enable debug logging for detailed console output. Options: true, false
+  debug: false # Enable debug logging for detailed console output. Options: true, false

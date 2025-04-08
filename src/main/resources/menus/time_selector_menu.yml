@@ -1,132 +1,147 @@
-# Configuration for the time selector menu.
-# Defines the title and items for selecting punishment time durations.
+# Configuration file for the Time Selector Menu.
+# This menu is used to select punishment time durations, offering predefined options and custom time input.
+
+# Available Actions:
+# - ADJUST_TIME: Adjusts the selected time duration. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+# - REQUEST_INPUT: Requests text input from the player via chat. Syntax: 'REQUEST_INPUT:<input_type>'
+# - SET_PUNISHMENT_TYPE: Sets a specific punishment type or confirms time selection. Syntax: 'SET_PUNISHMENT_TYPE:<punishment_type_key>'
+# - OPEN_MENU: Opens another menu. Syntax: 'OPEN_MENU:<menu_key>'
+# - PLAY_SOUND: Plays a sound to the player. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+# - NO_ACTION: No action is performed.
+
+# Available Placeholders:
+# - {target}: Target player's name.
+# - {player}: Player who is viewing the menu.
+# - {prefix}: Plugin's prefix from config.yml.
+# - {time}: Current selected time duration.
+
 
 menu:
-  time_selector_title: '&9&lSelect Punishment Time' # Title for TimeSelectorMenu
-  open_actions:
-    - 'PLAY_SOUND:BLOCK_RESPAWN_ANCHOR_CHARGE:1.0:0.6'
+  time_selector_title: '&9&lSelect Punishment Time' # Title of the time selector menu.
+  open_actions: # Actions to perform when the menu is opened.
+    - 'PLAY_SOUND:BLOCK_RESPAWN_ANCHOR_CHARGE:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
   time_selector_items:
-    minus_5_min: #renamed from minus_5_min for clarity, functionality remains the same
-      material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
-      slot: '12'
-      name: '&c- 5 Minutes'
-      lore:
+    minus_5_min: # Button to subtract 5 minutes from selected time
+      material: 'RED_STAINED_GLASS_PANE'
+      slot: '12' # Slot for the -5 minutes button.
+      name: '&c- 5 Minutes' # Display name for the -5 minutes button.
+      lore: # Lore for the -5 minutes button.
         - '&7Click to subtract'
         - '&c5 minutes.'
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.6'
-        - 'ADJUST_TIME:minus_5_min'
-    minus_2_hour: #new, replaces minus_30_min
-      material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
-      slot: '11'
-      name: '&c- 2 Hours'
-      lore:
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'ADJUST_TIME:minus_5_min' # Action to subtract 5 minutes. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+    minus_2_hour: # Button to subtract 2 hours from selected time
+      material: 'RED_STAINED_GLASS_PANE'
+      slot: '11' # Slot for the -2 hours button.
+      name: '&c- 2 Hours' # Display name for the -2 hours button.
+      lore: # Lore for the -2 hours button.
         - '&7Click to subtract'
         - '&c2 hours.'
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.6'
-        - 'ADJUST_TIME:minus_2_hour'
-    minus_1_day:
-      material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
-      slot: '10'
-      name: '&c- 1 Day'
-      lore:
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'ADJUST_TIME:minus_2_hour' # Action to subtract 2 hours. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+    minus_1_day: # Button to subtract 1 day from selected time
+      material: 'RED_STAINED_GLASS_PANE'
+      slot: '10' # Slot for the -1 day button.
+      name: '&c- 1 Day' # Display name for the -1 day button.
+      lore: # Lore for the -1 day button.
         - '&7Click to subtract'
         - '&c1 day.'
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.6'
-        - 'ADJUST_TIME:minus_1_day'
-    minus_5_day: #renamed from minus_7_day for clarity, functionality remains the same
-      material: 'RED_STAINED_GLASS_PANE' # Red panel for negative time
-      slot: '9'
-      name: '&c- 5 Days'
-      lore:
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'ADJUST_TIME:minus_1_day' # Action to subtract 1 day. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+    minus_5_day: # Button to subtract 5 days from selected time
+      material: 'RED_STAINED_GLASS_PANE'
+      slot: '9' # Slot for the -5 days button.
+      name: '&c- 5 Days' # Display name for the -5 days button.
+      lore: # Lore for the -5 days button.
         - '&7Click to subtract'
         - '&c5 days.'
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.6'
-        - 'ADJUST_TIME:minus_5_day'
-    time_display: # Center time display button
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'ADJUST_TIME:minus_5_day' # Action to subtract 5 days. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+    time_display: # Item displaying the currently selected time
       material: 'WHITE_STAINED_GLASS_PANE'
-      slot: '13'
-      name: '&bCurrent Time: &eClick to Confirm'
-      lore:
+      slot: '13' # Slot for the time display item.
+      name: '&bCurrent Time: &eClick to Confirm' # Display name for the time display item.
+      lore: # Lore for the time display item.
         - '&7Current Punishment Time:'
-        - '&b{time}' # Placeholder for current time - FIXED: Placeholder added
+        - '&b{time}' # Placeholder for current time
         - ''
         - '&aClick here to confirm'
         - '&aand return to details menu.'
-      left_click_actions:
-        - 'PLAY_SOUND:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:0.6'
-        - 'SET_PUNISHMENT_TYPE:confirm_time'
-    plus_15_min: #renamed from plus_5_min for clarity, functionality remains the same
-      material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
-      slot: '14'
-      name: '&a+ 15 Minutes'
-      lore:
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'SET_PUNISHMENT_TYPE:confirm_time' # Action to confirm time. Syntax: 'SET_PUNISHMENT_TYPE:<punishment_type_key>'
+    plus_15_min: # Button to add 15 minutes to selected time
+      material: 'GREEN_STAINED_GLASS_PANE'
+      slot: '14' # Slot for the +15 minutes button.
+      name: '&a+ 15 Minutes' # Display name for the +15 minutes button.
+      lore: # Lore for the +15 minutes button.
         - '&7Click to add'
         - '&a15 minutes.'
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.9'
-        - 'ADJUST_TIME:plus_15_min'
-    plus_6_hour: #new, replaces plus_30_min
-      material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
-      slot: '15'
-      name: '&a+ 6 Hours'
-      lore:
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.9' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'ADJUST_TIME:plus_15_min' # Action to add 15 minutes. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+    plus_6_hour: # Button to add 6 hours to selected time
+      material: 'GREEN_STAINED_GLASS_PANE'
+      slot: '15' # Slot for the +6 hours button.
+      name: '&a+ 6 Hours' # Display name for the +6 hours button.
+      lore: # Lore for the +6 hours button.
         - '&7Click to add'
         - '&a6 hours.'
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.9'
-        - 'ADJUST_TIME:plus_6_hour'
-    plus_1_day:
-      material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
-      slot: '16'
-      name: '&a+ 1 Day'
-      lore:
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.9' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'ADJUST_TIME:plus_6_hour' # Action to add 6 hours. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+    plus_1_day: # Button to add 1 day to selected time
+      material: 'GREEN_STAINED_GLASS_PANE'
+      slot: '16' # Slot for the +1 day button.
+      name: '&a+ 1 Day' # Display name for the +1 day button.
+      lore: # Lore for the +1 day button.
         - '&7Click to add'
         - '&a1 day.'
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.9'
-        - 'ADJUST_TIME:plus_1_day'
-    plus_7_day: #renamed from plus_7_day, functionality remains the same
-      material: 'GREEN_STAINED_GLASS_PANE' # Green panel for positive time
-      slot: '17'
-      name: '&a+ 7 Days'
-      lore:
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.9' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'ADJUST_TIME:plus_1_day' # Action to add 1 day. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+    plus_7_day: # Button to add 7 days to selected time
+      material: 'GREEN_STAINED_GLASS_PANE'
+      slot: '17' # Slot for the +7 days button.
+      name: '&a+ 7 Days' # Display name for the +7 days button.
+      lore: # Lore for the +7 days button.
         - '&7Click to add'
         - '&a7 days.'
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.9'
-        - 'ADJUST_TIME:plus_7_day'
-    permanent:
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:0.9' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'ADJUST_TIME:plus_7_day' # Action to add 7 days. Syntax: 'ADJUST_TIME:<time_adjustment_key>'
+    permanent: # Button to set punishment time to permanent
       material: 'LAVA_BUCKET'
-      slot: '32'
-      name: '&4Permanent'
-      lore:
-        - '&7Punish permanently.' # Updated lore to be more generic
-      left_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
-        - 'SET_PUNISHMENT_TYPE:permanent_time'
-    custom:
+      slot: '32' # Slot for the permanent time button.
+      name: '&4Permanent' # Display name for the permanent time button.
+      lore: # Lore for the permanent time button.
+        - '&7Punish permanently.'
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'SET_PUNISHMENT_TYPE:permanent_time' # Action to set time to permanent. Syntax: 'SET_PUNISHMENT_TYPE:<punishment_type_key>'
+    custom: # Button to request custom time input via chat
       material: 'MAP'
-      slot: '31'
-      name: '&bCustom Time'
-      lore:
+      slot: '31' # Slot for the custom time button.
+      name: '&bCustom Time' # Display name for the custom time button.
+      lore: # Lore for the custom time button.
         - '&7Enter a custom'
-        - '&7punishment duration.' # Updated lore to be more generic
-      left_click_actions:
-        - 'TITLE:&e&lWrite Punish Time:&7in the chat:5:20:20'
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
-        - 'REQUEST_INPUT:custom_time_input'
-    back_button: # New: Back button item configuration
+        - '&7punishment duration.'
+      left_click_actions: # Actions performed on left click.
+        - 'TITLE:&e&lWrite Punish Time:&7in the chat:5:20:20' # Action to display title. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'REQUEST_INPUT:custom_time_input' # Action to request custom time input. Syntax: 'REQUEST_INPUT:<input_type>'
+    back_button: # Button to return to the Punish Details Menu
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
-      slot: '30' # Example slot, adjust as needed
-      name: '&cBack'
-      lore:
+      slot: '30' # Slot for the back button.
+      name: '&cBack' # Display name for the back button.
+      lore: # Lore for the back button.
         - '&7Go back to the'
         - '&7Punishment Details Menu.'
-      left_click_actions:
-        - 'OPEN_MENU:punish_details'
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+      left_click_actions: # Actions performed on left click.
+        - 'OPEN_MENU:punish_details' # Action to open punish details menu. Syntax: 'OPEN_MENU:<menu_key>'
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0' # Action to play button click sound. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'

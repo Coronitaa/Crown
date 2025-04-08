@@ -1091,10 +1091,14 @@ public class MenuListener implements Listener {
      * @param punishDetailsMenu The PunishDetailsMenu context.
      */
     private void requestCustomTimeInput(Player player, PunishDetailsMenu punishDetailsMenu) {
-        player.closeInventory();
+        // Send a message to the player prompting for custom time input
         player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.prompt_custom_time")));
+        // Store the pending details menu for later use after input is received
         pendingDetailsMenus.put(player.getUniqueId(), punishDetailsMenu);
+        // Setup a chat input timeout for the player, associating it with the current menu and input type
         setupChatInputTimeout(player, punishDetailsMenu, "custom_time");
+        // [FIX] Ensure inventory is closed synchronously to avoid IllegalStateException
+        Bukkit.getScheduler().runTask(plugin, () -> player.closeInventory()); // Schedule inventory close on main thread - [FIX]
     }
 
 
@@ -1289,14 +1293,22 @@ public class MenuListener implements Listener {
      * @param detailsMenu The PunishDetailsMenu context.
      */
     private void handleCustomTimeInput(Player player, String input, PunishDetailsMenu detailsMenu) {
+        // Validate if the input time format is valid using isValidTimeFormat utility method
         if (isValidTimeFormat(input)) {
-            detailsMenu.setBanTime(input); // Corrected: Only set the time input
+            // If the format is valid, set the ban time in the details menu
+            detailsMenu.setBanTime(input);
+            // Update the set time item in the menu to reflect the new time
             detailsMenu.updateSetTimeItem();
+            // Update the confirm button status based on the new time and reason
             detailsMenu.updateConfirmButtonStatus();
+            // Reopen the details menu to show the updated information
             reopenDetailsMenu(player, detailsMenu);
         } else {
+            // [ROBUSTNESS] Send an error message to the player for invalid time format - ROBUSTNESS
             player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.invalid_time_format")));
-            requestCustomTimeInput(player, detailsMenu);
+            // [UI/UX Improvement] Re-open TimeSelectorMenu instead of re-prompting in chat - UI/UX
+            TimeSelectorMenu timeSelectorMenu = new TimeSelectorMenu(detailsMenu, plugin); // Re-create TimeSelectorMenu - UI/UX
+            Bukkit.getScheduler().runTask(plugin, () -> timeSelectorMenu.open(player)); // Re-open the menu - UI/UX
         }
     }
 

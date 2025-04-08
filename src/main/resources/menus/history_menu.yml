@@ -1,124 +1,146 @@
-# history_menu.yml
+# Configuration file for history menus.
+# This file defines the structure and items of the punishment history menu,
+# used to display a player's past punishments.
+
+# Available Actions:
+# - ADJUST_PAGE: Navigates between pages in the history menu. Syntax: 'ADJUST_PAGE:<next_page|previous_page|no_action>'
+# - OPEN_MENU: Opens another menu. Syntax: 'OPEN_MENU:<menu_key>'
+# - PLAY_SOUND: Plays a sound to the player. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+# - NO_ACTION: No action is performed.
+
+# Available Placeholders:
+# - {target}: Target player's name.
+# - {punishment_type}: Type of punishment (e.g., ban, mute).
+# - {reason}: Reason for the punishment.
+# - {date}: Date and time of the punishment.
+# - {punisher}: Name of the punisher.
+# - {duration}: Duration of the punishment.
+# - {prefix}: Plugin prefix.
+
 menu:
-  title: '&7&lPunishment History for &b{target}'
+  title: '&7&lPunishment History for &b{target}' # Title of the history menu, supports placeholders.
   items:
 
-    history_entry:
-      material: 'BOOK'
-      name: '&e{punishment_type}'
-      lore:
+    history_entry: # Default configuration for history entries.
+      material: 'BOOK' # Material for the history entry item.
+      name: '&e{punishment_type}' # Name of the history entry item, supports placeholders.
+      lore: # Lore of the history entry item, supports placeholders.
         - '&7Reason: &b{reason}'
         - '&7Date: &b{date}'
         - '&7Punisher: &b{punisher}'
         - '&7Duration: {duration}'
-      slot: ''
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    ban_history_entry:
+    ban_history_entry: # Specific configuration for ban history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/55effce109de50f5853b0c32dcc1a28cf62a504b610e71e22f1fde6fc1a4b93d'
-      name: '&c&lBan'
-      lore: inherit
-      slot: ''
+      name: '&c&lBan' # Name for ban history entries.
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    mute_history_entry:
+    mute_history_entry: # Specific configuration for mute history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/e82b0b7c68e88800030e674522aab40396fa543072b949c0600e66c2ed352ff0'
-      name: '&e&lMute'
-      lore: inherit
-      slot: ''
+      name: '&e&lMute' # Name for mute history entries.
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    freeze_history_entry:
+    freeze_history_entry: # Specific configuration for freeze history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bc3d0632c03e9f8748cf94c2576e8aef785bd8da433f3d139a7b561a5a714ada'
-      lore: inherit
-      slot: ''
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    softban_history_entry:
+    softban_history_entry: # Specific configuration for softban history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/b978c31c63d7da80b9448220b8a9b896003f1b3281c341ab10194c6c4dfbe23d'
-      name: '&3&lSoftBan'
-      lore: inherit
-      slot: ''
+      name: '&3&lSoftBan' # Name for softban history entries.
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    kick_history_entry:
+    kick_history_entry: # Specific configuration for kick history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/5ae0e486db4ec49ff1b52cfeceda4c3f36fde23c835ea3ccfcaac935e49b5f10'
-      name: '&9&lKick'
-      lore: inherit
-      slot: ''
+      name: '&9&lKick' # Name for kick history entries.
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    warn_history_entry:
+    warn_history_entry: # Specific configuration for warn history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/4f09ade78eff3009cbf9ed12c0ac8f8a2073e9a95a82d8a12a42bce4773adcd7'
-      name: '&6&lWarn'
-      lore: inherit
-      slot: ''
+      name: '&6&lWarn' # Name for warn history entries.
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    unban_history_entry:
+    unban_history_entry: # Specific configuration for unban history entries.
       material: 'PLAYER_HEAD'
       player_head: "http://textures.minecraft.net/texture/d9848dde8e530dc705fb677dad81492cc222bf96fd632b8514aefb80931fe0d"
-      name: '&a&lUnban'
-      lore: inherit
-      slot: ''
+      name: '&a&lUnban' # Name for unban history entries.
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    unmute_history_entry:
+    unmute_history_entry: # Specific configuration for unmute history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/d7df3c28ef665b5b128f4090df6e4bbca24ef444b57f215de915d88d5c42fe18'
-      name: '&a&lUnmute'
-      lore: inherit
-      slot: ''
+      name: '&a&lUnmute' # Name for unmute history entries.
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    unwarn_history_entry:
+    unwarn_history_entry: # Specific configuration for unwarn history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/e12eac68a481aae2c36cfbebc68cbe7b268c4cc7712764a2ed72c1bb7c74d14f'
-      lore: inherit
-      slot: ''
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    unsoftban_history_entry:
+    unsoftban_history_entry: # Specific configuration for unsoftban history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/899f882b4ecca4a372692a7ae1cd08bdf340700337240d00419168588d98bb75'
-      name: '&a&lUnsoftban'
-      lore: inherit
-      slot: ''
+      name: '&a&lUnsoftban' # Name for unsoftban history entries.
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    unfreeze_history_entry:
+    unfreeze_history_entry: # Specific configuration for unfreeze history entries.
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/77e3c7dd63a88c1e755e94e8db5d30728d2692412014186f4584c5320d04709e'
-      lore: inherit
-      slot: ''
+      lore: inherit # Inherit lore from the default history_entry.
+      slot: '' # Slot for this item, leave empty as it's dynamically assigned.
 
-    next_page_button:
-      material: 'ARROW'
-      slot: '52'
-      name: '&aNext Page'
-      lore:
+    next_page_button: # Configuration for the next page button.
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/19bf3292e126a105b54eba713aa1b152d541a1d8938829c56364d178ed22bf'
+      slot: '52' # Slot for the next page button.
+      name: '&aNext Page' # Display name for the next page button.
+      lore: # Lore for the next page button.
         - '&7Click to view'
         - '&anext page'
-      left_click_actions:
-        - 'ADJUST_PAGE:next_page'
+      left_click_actions: # Actions performed on left click.
+        - 'ADJUST_PAGE:next_page' # Action to go to the next page. Syntax: 'ADJUST_PAGE:<next_page|previous_page|no_action>'
+        - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2' # Action to play a sound. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
 
-    previous_page_button:
-      material: 'ARROW'
-      slot: '51'
-      name: '&cPrevious Page'
-      lore:
+    previous_page_button: # Configuration for the previous page button.
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
+      slot: '51' # Slot for the previous page button.
+      name: '&cPrevious Page' # Display name for the previous page button.
+      lore: # Lore for the previous page button.
         - '&7Click to view'
         - '&cprevious page'
-      left_click_actions:
-        - 'ADJUST_PAGE:previous_page'
+      left_click_actions: # Actions performed on left click.
+        - 'ADJUST_PAGE:previous_page' # Action to go to the previous page. Syntax: 'ADJUST_PAGE:<next_page|previous_page|no_action>'
+        - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2' # Action to play a sound. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
 
-    back_button:
+    back_button: # Configuration for the back button.
       material: 'BARRIER'
-      slot: '53'
-      name: '&cBack'
-      lore:
+      slot: '53' # Slot for the back button.
+      name: '&cBack' # Display name for the back button.
+      lore: # Lore for the back button.
         - '&7Return to'
         - '&7Punish Menu'
-      left_click_actions:
-        - 'OPEN_MENU:punish_menu'
+      left_click_actions: # Actions performed on left click.
+        - 'OPEN_MENU:punish_menu' # Action to open the punish menu. Syntax: 'OPEN_MENU:<menu_key>'
 
-    punishment_counts_item: # NEW ITEM - Punishment Counts Item Configuration
-      material: "MAP" # Example Material - Can be changed
+    punishment_counts_item: # Configuration for the punishment counts summary item.
+      material: "FILLED_MAP"
       slot: '45' # Example Slot - Can be changed
       name: "&bPunishment Summary" # Display Name
       lore: # Lore with placeholders for counts
@@ -132,7 +154,7 @@ menu:
         - "&5Freezes: &e{freeze_count}"
         - ""
 
-    background_fill:
+    background_fill: # Configuration for background fill items.
       material: 'BLACK_STAINED_GLASS_PANE'
-      name: ' '
-      slot: '0-9,17,18-26,35,36-44,46-50'
+      name: ' ' # Name for background fill items (empty for no display name).
+      slot: '0-9,17,18-26,35,36-44,46-50' # Slots where background fill items are placed, using range and comma separation.
