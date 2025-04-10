@@ -72,21 +72,21 @@ permissions:
   crown.unpunish.freeze:
     description: Allows player to use unfreeze related features
     default: op
-  crown.softban.bypass:
+  crown.bypass.softban:
     description: Allows player to bypass softbans
     default: op
-  crown.freeze.bypass:
+  crown.bypass.freeze:
     description: Allows player to bypass freeze punishment
     default: op
-  crown.ban.bypass:
+  crown.bypass.ban:
     description: Allows player to bypass ban punishment
     default: op
-  crown.mute.bypass:
+  crown.bypass.mute:
     description: Allows player to bypass mute punishment
     default: op
-  crown.warn.bypass:
+  crown.bypass.warn:
     description: Allows player to bypass warn punishment
     default: op
-  crown.kick.bypass:
+  crown.bypass.kick:
     description: Allows player to bypass kick punishment
     default: op

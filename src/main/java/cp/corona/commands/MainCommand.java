@@ -327,8 +327,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Bypass check: if the target player has 'crown.softban.bypass' permission, do not softban.
-        if (target instanceof Player && ((Player) target).hasPermission("crown.softban.bypass")) {
+        // Bypass check: if the target player has 'crown.bypass.softban' permission, do not softban.
+        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.softban")) {
             sendConfigMessage(sender, "messages.bypass_error_softban", "{target}", targetName); // Inform the sender about the bypass.
             return true; // Stop command execution.
         }
@@ -382,8 +382,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Bypass check: prevent freezing players with 'crown.freeze.bypass' permission.
-        if (target instanceof Player && ((Player) target).hasPermission("crown.freeze.bypass")) {
+        // Bypass check: prevent freezing players with 'crown.bypass.freeze' permission.
+        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.freeze")) {
             sendConfigMessage(sender, "messages.bypass_error_freeze", "{target}", targetName); // Inform the sender about the bypass.
             return true; // Stop command execution.
         }
@@ -417,27 +417,27 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         // Bypass check moved here - MODIFIED
         if (target instanceof Player) {
             Player playerTarget = (Player) target;
-            if (punishType.equalsIgnoreCase("softban") && playerTarget.hasPermission("crown.softban.bypass") && sender.hasPermission(PUNISH_SOFTBAN_PERMISSION)) { // Bypass check for softban
+            if (punishType.equalsIgnoreCase("softban") && playerTarget.hasPermission("crown.bypass.softban") && sender.hasPermission(PUNISH_SOFTBAN_PERMISSION)) { // Bypass check for softban
                 sendConfigMessage(sender, "messages.bypass_error_softban", "{target}", target.getName());
                 return; // Stop command execution
             }
-            if (punishType.equalsIgnoreCase("freeze") && playerTarget.hasPermission("crown.freeze.bypass") && sender.hasPermission(PUNISH_FREEZE_PERMISSION)) { // Bypass check for freeze - NEW
+            if (punishType.equalsIgnoreCase("freeze") && playerTarget.hasPermission("crown.bypass.freeze") && sender.hasPermission(PUNISH_FREEZE_PERMISSION)) { // Bypass check for freeze - NEW
                 sendConfigMessage(sender, "messages.bypass_error_freeze", "{target}", target.getName());
                 return; // Stop command execution
             }
-            if (punishType.equalsIgnoreCase("ban") && playerTarget.hasPermission("crown.ban.bypass") && sender.hasPermission(PUNISH_BAN_PERMISSION)) { // Bypass check for softban
+            if (punishType.equalsIgnoreCase("ban") && playerTarget.hasPermission("crown.bypass.ban") && sender.hasPermission(PUNISH_BAN_PERMISSION)) { // Bypass check for softban
                 sendConfigMessage(sender, "messages.bypass_error_ban", "{target}", target.getName());
                 return; // Stop command execution
             }
-            if (punishType.equalsIgnoreCase("mute") && playerTarget.hasPermission("crown.mute.bypass") && sender.hasPermission(PUNISH_MUTE_PERMISSION)) { // Bypass check for softban
+            if (punishType.equalsIgnoreCase("mute") && playerTarget.hasPermission("crown.bypass.mute") && sender.hasPermission(PUNISH_MUTE_PERMISSION)) { // Bypass check for softban
                 sendConfigMessage(sender, "messages.bypass_error_mute", "{target}", target.getName());
                 return; // Stop command execution
             }
-            if (punishType.equalsIgnoreCase("kick") && playerTarget.hasPermission("crown.kick.bypass") && sender.hasPermission(PUNISH_KICK_PERMISSION)) { // Bypass check for softban
+            if (punishType.equalsIgnoreCase("kick") && playerTarget.hasPermission("crown.bypass.kick") && sender.hasPermission(PUNISH_KICK_PERMISSION)) { // Bypass check for softban
                 sendConfigMessage(sender, "messages.bypass_error_kick", "{target}", target.getName());
                 return; // Stop command execution
             }
-            if (punishType.equalsIgnoreCase("warn") && playerTarget.hasPermission("crown.warn.bypass") && sender.hasPermission(PUNISH_WARN_PERMISSION)) { // Bypass check for softban
+            if (punishType.equalsIgnoreCase("warn") && playerTarget.hasPermission("crown.bypass.warn") && sender.hasPermission(PUNISH_WARN_PERMISSION)) { // Bypass check for softban
                 sendConfigMessage(sender, "messages.bypass_error_warn", "{target}", target.getName());
                 return; // Stop command execution
             }
@@ -511,7 +511,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         "{punishment_type}", punishType);
                 plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), Long.MAX_VALUE, "permanent"); // Log freeze as permanent
                 Player onlineTarget = target.getPlayer();
-                if (onlineTarget != null && !onlineTarget.hasPermission("crown.freeze.bypass")) {
+                if (onlineTarget != null && !onlineTarget.hasPermission("crown.bypass.freeze")) {
                     sendConfigMessage(onlineTarget, "messages.you_are_frozen"); // Inform the frozen player
                     // [FIX] Start Freeze Actions Task for direct freeze command - NEW
                     if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[MainCommand] Starting FreezeActionsTask for player " + onlineTarget.getName() + " after direct freeze command."); // Debug log

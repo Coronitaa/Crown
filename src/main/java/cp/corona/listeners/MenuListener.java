@@ -1427,13 +1427,13 @@ public class MenuListener implements Listener {
      */
     private void executePunishmentCommand(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu) {
 
-        if (target instanceof Player && ((Player) target).hasPermission("crown.ban.bypass") && detailsMenu.getPunishmentType().equalsIgnoreCase("ban")) {
+        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.ban") && detailsMenu.getPunishmentType().equalsIgnoreCase("ban")) {
             sendConfigMessage(player, "messages.bypass_error_ban", "{target}", target.getName());
             player.closeInventory();
             return;
         }
 
-        if (target instanceof Player && ((Player) target).hasPermission("crown.mute.bypass") && detailsMenu.getPunishmentType().equalsIgnoreCase("mute")) {
+        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.mute") && detailsMenu.getPunishmentType().equalsIgnoreCase("mute")) {
             sendConfigMessage(player, "messages.bypass_error_mute", "{target}", target.getName());
             player.closeInventory();
             return;
@@ -1478,8 +1478,8 @@ public class MenuListener implements Listener {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
 
-        // Bypass check: prevent softban if target has 'crown.softban.bypass' permission.
-        if (target instanceof Player && ((Player) target).hasPermission("crown.softban.bypass")) {
+        // Bypass check: prevent softban if target has 'crown.bypass.softban' permission.
+        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.softban")) {
             sendConfigMessage(player, "messages.bypass_error_softban", "{target}", target.getName()); // Inform the punisher via menu.
             player.closeInventory(); // Close the menu to prevent further action.
             return; // Stop softban execution.
@@ -1507,8 +1507,8 @@ public class MenuListener implements Listener {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
 
-        // Bypass check: prevent freeze if target has 'crown.freeze.bypass' permission. - NEW
-        if (target instanceof Player && ((Player) target).hasPermission("crown.freeze.bypass")) {
+        // Bypass check: prevent freeze if target has 'crown.bypass.freeze' permission. - NEW
+        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.freeze")) {
             sendConfigMessage(player, "messages.bypass_error_freeze", "{target}", target.getName()); // Inform the punisher via menu. - NEW
             player.closeInventory(); // Close the menu to prevent further action. - NEW
             return; // Stop freeze execution. - NEW
@@ -1550,7 +1550,7 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason();
 
-        if (target instanceof Player && ((Player) target).hasPermission("crown.kick.bypass")) {
+        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.kick")) {
             sendConfigMessage(player, "messages.bypass_error_kick", "{target}", target.getName());
             player.closeInventory();
             return;
@@ -1577,7 +1577,7 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason();
 
-        if (target instanceof Player && ((Player) target).hasPermission("crown.warn.bypass")) {
+        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.warn")) {
             sendConfigMessage(player, "messages.bypass_error_warn", "{target}", target.getName());
             player.closeInventory();
             return;
