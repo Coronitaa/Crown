@@ -5,6 +5,7 @@ import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -46,23 +47,6 @@ public class FreezeListener implements Listener {
     }
 
 
-    /**
-     * Makes frozen players invulnerable to damage. - NEW
-     * Cancels damage events if the entity is a frozen player.
-     *
-     * @param event The EntityDamageEvent.
-     */
-    @EventHandler
-    public void onEntityDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Player) { // Check if the entity is a player - Corrected instance check
-            Player player = (Player) event.getEntity();
-            if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())) {
-                event.setCancelled(true); // Cancel damage if player is frozen - NEW
-                // Optional: Send a message to indicate they are frozen and cannot be damaged
-                // player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_no_damage")));
-            }
-        }
-    }
 
     /**
      * Handles actions when a frozen player disconnects, executing a permanent ban.
@@ -88,7 +72,7 @@ public class FreezeListener implements Listener {
                 }
             }.runTask(plugin);
             plugin.getLogger().warning("Frozen player " + player.getName() + " disconnected. Executing permanent ban.");
-
+            player.setInvulnerable(false);
             stopFreezeActionsTask(playerId); // Stop freeze actions task when player quits - NEW
             plugin.getPluginFrozenPlayers().remove(playerId); // Remove player from frozen list on disconnect
             removeFreezingEffect(player); // Remove freezing effect - MODIFIED: Call removeFreezingEffect (now freeze ticks)
@@ -155,7 +139,7 @@ public class FreezeListener implements Listener {
         boolean isFrozen = plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId()); // Cache freeze status for efficiency
 
         if (isFrozen) {
-            if (!player.hasPermission("crown.admin")) {
+            if (!player.hasPermission("crown.mod")) {
                 event.setCancelled(true); // Cancel player message for non-admins
 
                 String message = event.getMessage();
@@ -165,7 +149,7 @@ public class FreezeListener implements Listener {
 
                 // Send message only to admins
                 plugin.getServer().getOnlinePlayers().stream()
-                        .filter(p -> p.hasPermission("crown.admin"))
+                        .filter(p -> p.hasPermission("crown.mod"))
                         .forEach(admin -> admin.sendMessage(formattedAdminMessage));
 
                 // Re-send the message to the frozen player so they can see their own message - NEW - CORRECTED: Send formattedAdminMessage instead of self-format
@@ -180,7 +164,7 @@ public class FreezeListener implements Listener {
 
                 // Send message to admins AND the admin who is frozen so they see their own admin chat too - MODIFIED
                 plugin.getServer().getOnlinePlayers().stream()
-                        .filter(p -> p.hasPermission("crown.admin"))
+                        .filter(p -> p.hasPermission("crown.mod"))
                         .forEach(admin -> admin.sendMessage(formattedAdminMessage));
                 player.sendMessage(formattedAdminMessage); // Send to the admin player as well - NEW
             }
@@ -190,7 +174,7 @@ public class FreezeListener implements Listener {
 
                 Player recipient = event.getRecipients().stream().filter(plugin.getPluginFrozenPlayers()::containsKey).findFirst().orElse(null); // Find if any recipient is frozen
                 if (recipient != null) {
-                    if (!player.hasPermission("crown.admin")) {
+                    if (!player.hasPermission("crown.mod")) {
                         event.setCancelled(true); // Cancel event for non-admins sending to frozen players - Complete block
                     }
                 }
@@ -215,7 +199,8 @@ public class FreezeListener implements Listener {
         int intervalTicks = plugin.getConfigManager().getFreezeActionsInterval(); // Get interval from config - NEW
         List<MenuItem.ClickActionData> actions = plugin.getConfigManager().loadFreezeActions(); // Load actions from config - NEW
         MenuListener menuListener = plugin.getMenuListener(); // Get MenuListener instance to execute actions - NEW
-
+        player.setInvulnerable(true);
+        player.setGameMode(GameMode.ADVENTURE);
         if (actions.isEmpty()) {
             plugin.getLogger().warning("[WARNING] No freeze actions configured in config.yml. Task will not start."); // Warning if no actions are configured
             return;
@@ -256,18 +241,20 @@ public class FreezeListener implements Listener {
             Player player = Bukkit.getPlayer(playerId); // Get player instance - NEW: Get player instance here
             if (player != null) { // Check if player is online - NEW: Check if player is online before removing effect
                 removeFreezingEffect(player); // Remove freezing effect when task stops - NEW - MODIFIED: Call removeFreezingEffect here before task cancel
+                player.setInvulnerable(false);
+                player.setGameMode(GameMode.SURVIVAL);
             } else {
-                plugin.getLogger().warning("[WARNING] Player is offline, cannot remove freezing effect: " + playerId); // Warning log - player offline
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("[WARNING] Player is offline, cannot remove freezing effect: " + playerId); // Warning log - player offline
             }
             BukkitTask task = freezeActionTasks.remove(playerId);
             if (task != null) {
                 task.cancel(); // Cancel the task - NEW
                 if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Freeze actions task cancelled for playerId: " + playerId); // Debug log - task cancelled
             } else {
-                plugin.getLogger().warning("[WARNING] Freeze actions task was null for playerId: " + playerId + ", cannot cancel."); // Warning log - task null
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("[WARNING] Freeze actions task was null for playerId: " + playerId + ", cannot cancel."); // Warning log - task null
             }
         } else {
-            plugin.getLogger().warning("[WARNING] No freeze actions task found to stop for playerId: " + playerId); // Warning log - task not found
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("[WARNING] No freeze actions task found to stop for playerId: " + playerId); // Warning log - task not found
         }
     }
 
@@ -278,6 +265,8 @@ public class FreezeListener implements Listener {
      */
     public void applyFreezingEffect(Player player) {
         player.setFreezeTicks(Integer.MAX_VALUE); // Fully freeze player visually - NEW - MODIFIED: Using setFreezeTicks
+        player.setGlowing(true);
+        player.setGameMode(GameMode.ADVENTURE);
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Applied freezing effect to player: " + player.getName() + ", freeze ticks: " + player.getMaxFreezeTicks()); // Debug log - effect applied
     }
 
@@ -288,6 +277,8 @@ public class FreezeListener implements Listener {
      */
     public void removeFreezingEffect(Player player) {
         player.setFreezeTicks(0); // Reset freeze ticks to remove effect - NEW - MODIFIED: Using setFreezeTicks
+        player.setGlowing(false);
+        player.setGameMode(GameMode.SURVIVAL);
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Removed freezing effect from player: " + player.getName()); // Debug log - effect removed
     }
 }

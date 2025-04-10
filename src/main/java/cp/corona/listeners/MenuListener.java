@@ -74,6 +74,7 @@ public class MenuListener implements Listener {
     private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
     private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
     private static final String ADMIN_PERMISSION = "crown.admin"; // ADDED ADMIN_PERMISSION constant here
+    private static final String MOD_PERMISSION = "crown.mod";
     private static final String USE_PERMISSION = "crown.use"; // Replaced PUNISH_PERMISSION with USE_PERMISSION - MODIFIED
     private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban"; // Permission for ban related actions
     private static final String UNPUNISH_BAN_PERMISSION = "crown.unpunish.ban"; // Permission for unban related actions
@@ -1167,11 +1168,11 @@ public class MenuListener implements Listener {
 
         // Check if the sender is frozen - NEW
         if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())) {
-            if (!player.hasPermission(ADMIN_PERMISSION)) {
+            if (!player.hasPermission(MOD_PERMISSION)) {
                 event.setCancelled(true); // Cancel chat message
                 // Send message only to admins - NEW
                 plugin.getServer().getOnlinePlayers().stream()
-                        .filter(p -> p.hasPermission(ADMIN_PERMISSION))
+                        .filter(p -> p.hasPermission(MOD_PERMISSION))
                         .forEach(admin -> admin.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_player_chat_admin_only", "{player}", player.getName(), "{message}", event.getMessage()))));
                 return; // Stop further processing
             } else {
