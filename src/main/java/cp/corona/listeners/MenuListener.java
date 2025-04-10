@@ -1333,25 +1333,13 @@ public class MenuListener implements Listener {
      * @return true if valid, false otherwise.
      */
     private boolean isValidTimeFormat(String time) {
-        // ----------------------------------------
-        // ------ Constructing Time Units Regex ------
-        // ----------------------------------------
-        // Construct a regex string for time units using configured units.
-        // This ensures that the validation is consistent with the plugin's configuration
-        // and supports flexible time units.
         String units = String.join("|",
                 plugin.getConfigManager().getDayTimeUnit(),
                 plugin.getConfigManager().getHoursTimeUnit(),
                 plugin.getConfigManager().getMinutesTimeUnit(),
                 plugin.getConfigManager().getSecondsTimeUnit(),
-                plugin.getConfigManager().getYearsTimeUnit() // ADDED: Include years time unit - NEW
+                plugin.getConfigManager().getYearsTimeUnit()
         );
-        // ----------------------------------------
-        // ------ Matching Time Format ------
-        // ----------------------------------------
-        // Return true if the time string matches the expected format,
-        // which includes digits followed by a valid time unit.
-        // The format is made flexible by using the units defined in the configuration.
         return time.matches("\\d+[" + units + "]");
     }
 
@@ -1376,8 +1364,8 @@ public class MenuListener implements Listener {
             case WARN_PUNISHMENT_TYPE:
                 confirmWarn(player, punishDetailsMenu);
                 break;
-            case FREEZE_PUNISHMENT_TYPE: // Handle Freeze punishment - NEW
-                confirmFreeze(player, punishDetailsMenu); // Call confirmFreeze method - NEW
+            case FREEZE_PUNISHMENT_TYPE:
+                confirmFreeze(player, punishDetailsMenu);
                 break;
             default:
                 plugin.getLogger().warning("Unknown punishment type: " + punishDetailsMenu.getPunishmentType());
@@ -1437,6 +1425,19 @@ public class MenuListener implements Listener {
      * @param detailsMenu The PunishDetailsMenu instance.
      */
     private void executePunishmentCommand(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu) {
+
+        if (target instanceof Player && ((Player) target).hasPermission("crown.ban.bypass") && detailsMenu.getPunishmentType().equalsIgnoreCase("ban")) {
+            sendConfigMessage(player, "messages.bypass_error_ban", "{target}", target.getName());
+            player.closeInventory();
+            return;
+        }
+
+        if (target instanceof Player && ((Player) target).hasPermission("crown.mute.bypass") && detailsMenu.getPunishmentType().equalsIgnoreCase("mute")) {
+            sendConfigMessage(player, "messages.bypass_error_mute", "{target}", target.getName());
+            player.closeInventory();
+            return;
+        }
+
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command));
         playSound(player, "punish_confirm");
         sendConfirmationMessage(player, target, detailsMenu);
@@ -1478,7 +1479,7 @@ public class MenuListener implements Listener {
 
         // Bypass check: prevent softban if target has 'crown.softban.bypass' permission.
         if (target instanceof Player && ((Player) target).hasPermission("crown.softban.bypass")) {
-            sendConfigMessage(player, "messages.bypass_error_softban_menu", "{target}", target.getName()); // Inform the punisher via menu.
+            sendConfigMessage(player, "messages.bypass_error_softban", "{target}", target.getName()); // Inform the punisher via menu.
             player.closeInventory(); // Close the menu to prevent further action.
             return; // Stop softban execution.
         }
@@ -1507,7 +1508,7 @@ public class MenuListener implements Listener {
 
         // Bypass check: prevent freeze if target has 'crown.freeze.bypass' permission. - NEW
         if (target instanceof Player && ((Player) target).hasPermission("crown.freeze.bypass")) {
-            sendConfigMessage(player, "messages.bypass_error_freeze_menu", "{target}", target.getName()); // Inform the punisher via menu. - NEW
+            sendConfigMessage(player, "messages.bypass_error_freeze", "{target}", target.getName()); // Inform the punisher via menu. - NEW
             player.closeInventory(); // Close the menu to prevent further action. - NEW
             return; // Stop freeze execution. - NEW
         }
@@ -1548,6 +1549,12 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason();
 
+        if (target instanceof Player && ((Player) target).hasPermission("crown.kick.bypass")) {
+            sendConfigMessage(player, "messages.bypass_error_kick", "{target}", target.getName());
+            player.closeInventory();
+            return;
+        }
+
         String command = plugin.getConfigManager().getKickCommand()
                 .replace("{target}", target.getName())
                 .replace("{reason}", reason);
@@ -1568,6 +1575,12 @@ public class MenuListener implements Listener {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason();
+
+        if (target instanceof Player && ((Player) target).hasPermission("crown.warn.bypass")) {
+            sendConfigMessage(player, "messages.bypass_error_warn", "{target}", target.getName());
+            player.closeInventory();
+            return;
+        }
 
         String command = plugin.getConfigManager().getWarnCommand()
                 .replace("{target}", target.getName())

@@ -425,6 +425,22 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 sendConfigMessage(sender, "messages.bypass_error_freeze", "{target}", target.getName());
                 return; // Stop command execution
             }
+            if (punishType.equalsIgnoreCase("ban") && playerTarget.hasPermission("crown.ban.bypass") && sender.hasPermission(PUNISH_BAN_PERMISSION)) { // Bypass check for softban
+                sendConfigMessage(sender, "messages.bypass_error_ban", "{target}", target.getName());
+                return; // Stop command execution
+            }
+            if (punishType.equalsIgnoreCase("mute") && playerTarget.hasPermission("crown.mute.bypass") && sender.hasPermission(PUNISH_MUTE_PERMISSION)) { // Bypass check for softban
+                sendConfigMessage(sender, "messages.bypass_error_mute", "{target}", target.getName());
+                return; // Stop command execution
+            }
+            if (punishType.equalsIgnoreCase("kick") && playerTarget.hasPermission("crown.kick.bypass") && sender.hasPermission(PUNISH_KICK_PERMISSION)) { // Bypass check for softban
+                sendConfigMessage(sender, "messages.bypass_error_kick", "{target}", target.getName());
+                return; // Stop command execution
+            }
+            if (punishType.equalsIgnoreCase("warn") && playerTarget.hasPermission("crown.warn.bypass") && sender.hasPermission(PUNISH_WARN_PERMISSION)) { // Bypass check for softban
+                sendConfigMessage(sender, "messages.bypass_error_warn", "{target}", target.getName());
+                return; // Stop command execution
+            }
         }
 
         String commandToExecute = "";
@@ -777,8 +793,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_header")));
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_punish")));
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_punish_extended")));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_punish_alias")));
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish_command"))); // Help for /unpunish command
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish_alias"))); // Help for /unpunish command
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_softban_command")));
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_freeze_command"))); // Help for /freeze command - NEW
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_reload")));

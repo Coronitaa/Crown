@@ -36,8 +36,10 @@ messages:
   player_not_online: '{prefix}&cPlayer &b{input}&c is not online.' # New message for when a player is not online
   help_header: '&6&lCrownPunishments Commands:' # Header for help message.
   help_punish: '&b/crown punish <player> &7- Open punishment menu' # Help message for /crown punish command.
-  help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Quick punish command. Types: ban, mute, softban, kick, warn' # Extended help for /crown punish command with types.
+  help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Direct punish command. Types: ban, mute, softban, kick, warn' # Extended help for /crown punish command with types.
+  help_punish_alias: '&b/punish <player> <type> [time] [reason] &7- Quick punish command. Types: ban, mute, softban, kick, warn' # Help for /punish command with types.
   help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, softban)' # Help message for /crown unpunish command.
+  help_unpunish_alias: '&b/unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, softban)' # Help message for /unpunish command.
   help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban command.' # Help message for /softban command
   help_freeze_command: '&b/freeze <player> &7- Freeze a player for manual review.' # Help message for /freeze command
   help_reload: '&b/crown reload &7- Reload configuration' # Help message for /crown reload command.
@@ -48,6 +50,7 @@ messages:
   prompt_softban_reason: '&aEnter the softban reason (or type ''cancel'' to cancel):' # Chat prompt for softban reason input.
   prompt_kick_reason: '&aEnter the kick reason (or type ''cancel'' to cancel):' # Chat prompt for kick reason
   prompt_warn_reason: '&aEnter the warn reason (or type ''cancel'' to cancel):' # Chat prompt for warn reason
+  prompt_freeze_reason: '&aEnter the freeze reason (or type ''cancel'' to cancel):' # Chat prompt for warn reason
   prompt_custom_time: '&aEnter custom ban time (e.g., 1d, 2h, 30min, cancel):' # Chat prompt for custom time input.
   input_timeout: '&cTime expired. Input cancelled.' # Message for input timeout.
   input_cancelled: '&cInput cancelled.' # Message for input cancellation.
@@ -119,5 +122,7 @@ messages:
   no_permission_command: '{prefix}&cYou do not have permission to execute this command.' # Generic no permission message for general commands
   bypass_error_softban: '{prefix}&cCannot softban &b{target}&c because they have softban bypass permission.' # Message for softban bypass
   bypass_error_freeze: '{prefix}&cCannot freeze &b{target}&c because they have freeze bypass permission.' # Message for freeze bypass
-  bypass_error_softban_menu: '{prefix}&cCannot softban &b{target}&c because they have softban bypass permission.' # Menu message for softban bypass
-  bypass_error_freeze_menu: '{prefix}&cCannot freeze &b{target}&c because they have freeze bypass permission.' # Menu message for freeze bypass
+  bypass_error_ban: '{prefix}&cCannot ban &b{target}&c because they have ban bypass permission.' # Message for ban bypass
+  bypass_error_mute: '{prefix}&cCannot mute &b{target}&c because they have mute bypass permission.' # Message for mute bypass
+  bypass_error_warn: '{prefix}&cCannot warn &b{target}&c because they have warn bypass permission.' # Message for warn bypass
+  bypass_error_kick: '{prefix}&cCannot kick &b{target}&c because they have kick bypass permission.' # Message for kick bypass
