@@ -343,7 +343,9 @@ public class SoftBanDatabaseManager {
     }
 
     /**
-     * Retrieves the counts of each punishment type for a player. - NEW FEATURE
+     * Retrieves the counts of each punishment type for a player efficiently.
+     * Uses a single SQL query to fetch all counts, improving database interaction efficiency.
+     * Returns a HashMap with punishment types as keys and their counts as values.
      *
      * @param playerUUID UUID of the player.
      * @return A map containing punishment types as keys and their counts as values.
@@ -359,7 +361,9 @@ public class SoftBanDatabaseManager {
                 counts.put(rs.getString("punishment_type"), rs.getInt("count"));
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Database error retrieving punishment counts!", e);
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving punishment counts for UUID: " + playerUUID, e);
+            // Return empty map in case of error to prevent further issues - ROBUSTNESS
+            return new HashMap<>();
         }
         return counts;
     }

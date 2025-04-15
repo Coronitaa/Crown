@@ -85,9 +85,6 @@ menu:
       lore: # Lore for the ban item.
         - '&7Left-Click to ban'
         - '&7player &b{target}&7.'
-      click_sound: 'UI_BUTTON_CLICK' # Sound to play when clicked.
-      click_volume: 1.0 # Volume of the click sound.
-      click_pitch: 1.0 # Pitch of the click sound.
       left_click_actions: # Actions performed on left click.
         - 'OPEN_MENU:ban_details' # Open menu action. Syntax: 'OPEN_MENU:<menu_key>'
       right_click_actions: # Actions performed on right click.

@@ -7,6 +7,8 @@ import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+
 /**
  * ////////////////////////////////////////////////
  * //             CrownPunishments             //
@@ -97,6 +99,29 @@ public class CrownPunishmentsPlaceholders extends PlaceholderExpansion {
             int remainingSeconds = (int) ((endTime - System.currentTimeMillis()) / 1000);
             return TimeUtils.formatTime(remainingSeconds, plugin.getConfigManager());
         }
+
+        if (params.equalsIgnoreCase("is_frozen")) { // Placeholder to check if player is frozen - NEW
+            return String.valueOf(plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())); // Return freeze status - NEW
+        }
+
+        // Get punishment counts for placeholders - NEW: Placeholders for punishment counts
+        if (params.endsWith("_count")) {
+            HashMap<String, Integer> counts = plugin.getSoftBanDatabaseManager().getPunishmentCounts(player.getUniqueId());
+            String punishmentType = params.substring(0, params.length() - "_count".length()); // Extract punishment type
+            Integer count = counts.getOrDefault(punishmentType, 0);
+
+            if (params.equalsIgnoreCase("ban_count")) return String.valueOf(count);
+            if (params.equalsIgnoreCase("mute_count")) return String.valueOf(count);
+            if (params.equalsIgnoreCase("warn_count")) return String.valueOf(count);
+            if (params.equalsIgnoreCase("softban_count")) return String.valueOf(count);
+            if (params.equalsIgnoreCase("kick_count")) return String.valueOf(count);
+            if (params.equalsIgnoreCase("freeze_count")) return String.valueOf(count);
+            if (params.equalsIgnoreCase("punish_count")) { // Total punish count - NEW
+                int totalPunishments = counts.values().stream().mapToInt(Integer::intValue).sum();
+                return String.valueOf(totalPunishments);
+            }
+        }
+
 
         // If placeholder is not recognized, return null
         return null;

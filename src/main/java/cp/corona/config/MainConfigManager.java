@@ -907,9 +907,29 @@ public class MainConfigManager {
                 int remainingSeconds = (int) ((endTime - System.currentTimeMillis()) / 1000);
                 return TimeUtils.formatTime(remainingSeconds, MainConfigManager.this);
             }
-            if (params.equalsIgnoreCase("is_frozen")) { // Placeholder to check if player is frozen - NEW
-                return String.valueOf(plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())); // Return freeze status - NEW
+            if (params.equalsIgnoreCase("is_frozen")) {
+                return String.valueOf(plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId()));
             }
+
+            // Get punishment counts for placeholders - NEW: Placeholders for punishment counts
+            if (params.endsWith("_count")) {
+                HashMap<String, Integer> counts = plugin.getSoftBanDatabaseManager().getPunishmentCounts(player.getUniqueId());
+                String punishmentType = params.substring(0, params.length() - "_count".length()); // Extract punishment type
+                Integer count = counts.getOrDefault(punishmentType, 0);
+
+                if (params.equalsIgnoreCase("ban_count")) return String.valueOf(count);
+                if (params.equalsIgnoreCase("mute_count")) return String.valueOf(count);
+                if (params.equalsIgnoreCase("warn_count")) return String.valueOf(count);
+                if (params.equalsIgnoreCase("softban_count")) return String.valueOf(count);
+                if (params.equalsIgnoreCase("kick_count")) return String.valueOf(count);
+                if (params.equalsIgnoreCase("freeze_count")) return String.valueOf(count);
+                if (params.equalsIgnoreCase("punish_count")) {
+                    int totalPunishments = counts.values().stream().mapToInt(Integer::intValue).sum();
+                    return String.valueOf(totalPunishments);
+                }
+            }
+
+
             return null;
         }
     }
