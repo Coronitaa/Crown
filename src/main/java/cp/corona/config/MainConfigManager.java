@@ -183,6 +183,8 @@ public class MainConfigManager {
         text = text.replace("{softban_count}", String.valueOf(counts.getOrDefault("softban", 0)));
         text = text.replace("{warn_count}", String.valueOf(counts.getOrDefault("warn", 0)));
         text = text.replace("{freeze_count}", String.valueOf(counts.getOrDefault("freeze", 0)));
+        int totalPunishments = counts.values().stream().mapToInt(Integer::intValue).sum();
+        text = text.replace("{punish_count}", String.valueOf(totalPunishments));
 
 
         if (plugin.isPlaceholderAPIEnabled() && target.isOnline()) {
