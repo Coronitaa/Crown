@@ -64,8 +64,8 @@ menu:
         - '&7Coords: &b{target_coords}' # Placeholder for coordinates.
         - '&7World: &b{target_world}' # Placeholder for world name.
         - ''
-        - '&7Softban Status: {target_softban_status}' # Placeholder for softban status.
-        - '&7Softban Remaining: {target_softban_remaining_time}' # Placeholder for softban remaining time.
+        - '&7Softbanned: {target_softban_status}' # Placeholder for softban status.
+        - '&7Softban Remaining: &6{target_softban_remaining_time}' # Placeholder for softban remaining time.
         - ''
         - '&eLeft-Click to change player.'
         - '&eRight-Click to spectate.'

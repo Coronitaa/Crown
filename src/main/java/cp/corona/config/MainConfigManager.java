@@ -41,6 +41,8 @@ public class MainConfigManager {
 
     private final CrownPunishments plugin;
     private final String defaultTimeUnit;
+
+
     private boolean debugEnabled;
     private boolean placeholderAPIEnabled;
     private CrownPunishmentsPlaceholders placeholders;
@@ -48,6 +50,7 @@ public class MainConfigManager {
 
     public MainConfigManager(CrownPunishments plugin) {
         this.plugin = plugin;
+
 
 
         messagesConfig = new CustomConfig("messages.yml", null, plugin, false);
@@ -63,6 +66,7 @@ public class MainConfigManager {
         punishDetailsMenuConfig.registerConfig();
         timeSelectorMenuConfig.registerConfig();
         historyMenuConfig.registerConfig();
+
 
         loadConfig();
         this.defaultTimeUnit = getTimeUnit("default");
@@ -142,9 +146,13 @@ public class MainConfigManager {
         Player onlineTarget = target.isOnline() ? target.getPlayer() : null;
         String targetName = target.getName() != null ? target.getName() : "Unknown";
 
+        String display_yes = "&a✔";
+
+        String display_no = "&c❌";
+
         text = text
                 .replace("{target}", targetName)
-                .replace("{target_online}", target.isOnline() ? "Yes" : "No")
+                .replace("{target_online}", target.isOnline() ? display_yes : display_no)
                 .replace("{target_ip}", onlineTarget != null && onlineTarget.getAddress() != null ?
                         onlineTarget.getAddress().getHostString() : "-")
                 .replace("{target_coords}", onlineTarget != null ?
@@ -157,7 +165,7 @@ public class MainConfigManager {
 
 
         boolean isSoftBanned = plugin.getSoftBanDatabaseManager().isSoftBanned(target.getUniqueId());
-        String softbanStatus = isSoftBanned ? "&cSoftBanned" : "&aNot SoftBanned";
+        String softbanStatus = isSoftBanned ? display_yes : display_no;
         text = text.replace("{target_softban_status}", ColorUtils.translateRGBColors(softbanStatus));
 
         if (isSoftBanned) {

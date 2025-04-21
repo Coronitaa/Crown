@@ -43,6 +43,7 @@ softban:
     - kit # Example: 'kit'
     - daily # Example: 'daily'
 
+
 # Database settings for storing softban and punishment history data.
 database:
   type: 'sqlite' # Database type: 'sqlite' for file-based, 'mysql' for MySQL server. Options: 'sqlite', 'mysql'
