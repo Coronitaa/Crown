@@ -346,7 +346,6 @@ public class HistoryMenu implements InventoryHolder {
      */
     public void open(Player player) {
         player.openInventory(inventory);
-        plugin.getMenuListener().executeMenuOpenActions(player, this); // Execute menu open actions - NEW
     }
 
 

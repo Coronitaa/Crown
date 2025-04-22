@@ -452,7 +452,6 @@ public class PunishDetailsMenu implements InventoryHolder {
         // Ensure items are up-to-date before opening
         updateInventory(); // Call this to refresh state just before opening
         player.openInventory(inventory);
-        plugin.getMenuListener().executeMenuOpenActions(player, this); // Call executeMenuOpenActions from MenuListener
     }
 
 

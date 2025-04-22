@@ -11,11 +11,15 @@ import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
+import org.bukkit.Material; // Needed for Material.AIR check
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -26,6 +30,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta; // Needed for potential meta manipulation
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -33,59 +38,54 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
+ * ////////////////////////////////////////////////
+ * //             CrownPunishments             //
+ * //         Developed with passion by         //
+ * //                   Corona                 //
+ * ////////////////////////////////////////////////
+ *
  * Menu interaction listener for CrownPunishments plugin.
  * Handles inventory clicks, chat input, and menu actions.
+ * Implements various click actions including commands, sounds, titles, messages,
+ * action bars, and target/moderator specific variations.
+ * Follows good practices and aims for SOLID principles where applicable.
+ *
+ * **MODIFIED:** Added handlers for ACTIONBAR, ACTIONBAR_TARGET, ACTIONBAR_MODS,
+ *             MESSAGE_MODS, TITLE_MODS, PLAY_SOUND_MODS actions.
+ *             ActionBar implementation uses standard API (no duration/fade control).
  */
 public class MenuListener implements Listener {
     private final CrownPunishments plugin;
+    // Input tracking maps
     private final HashMap<UUID, BukkitTask> inputTimeouts = new HashMap<>();
     private final HashMap<UUID, PunishDetailsMenu> pendingDetailsMenus = new HashMap<>();
     private final HashMap<UUID, String> inputTypes = new HashMap<>();
 
-    // Constants for punishment types and menu item keys
+    // Constants for punishment types (consistency)
     private static final String BAN_PUNISHMENT_TYPE = "ban";
     private static final String MUTE_PUNISHMENT_TYPE = "mute";
     private static final String SOFTBAN_PUNISHMENT_TYPE = "softban";
     private static final String KICK_PUNISHMENT_TYPE = "kick";
     private static final String WARN_PUNISHMENT_TYPE = "warn";
-    private static final String FREEZE_PUNISHMENT_TYPE = "freeze"; // New punishment type - NEW
-    private static final String PERMANENT_TIME_KEY = "permanent";
-    private static final String CUSTOM_TIME_KEY = "custom";
-    private static final String INFO_ITEM_KEY = "info";
-    private static final String BAN_ITEM_MENU_KEY = "ban";
-    private static final String MUTE_ITEM_MENU_KEY = "mute";
-    private static final String SOFTBAN_ITEM_MENU_KEY = "softban";
-    private static final String KICK_ITEM_MENU_KEY = "kick";
-    private static final String WARN_ITEM_MENU_KEY = "warn";
-    private static final String FREEZE_ITEM_MENU_KEY = "freeze"; // New item key - NEW
-    private static final String HISTORY_ITEM_MENU_KEY = "history";
-    private static final String TIME_DISPLAY_KEY = "time_display";
-    private static final String MINUS_5_MIN_KEY = "minus_5_min";
-    private static final String MINUS_2_HOUR_KEY = "minus_2_hour";
-    private static final String MINUS_1_DAY_KEY = "minus_1_day";
-    private static final String MINUS_5_DAY_KEY = "minus_5_day";
-    private static final String PLUS_15_MIN_KEY = "plus_15_min";
-    private static final String PLUS_6_HOUR_KEY = "plus_6_hour";
-    private static final String PLUS_1_DAY_KEY = "plus_1_day";
-    private static final String PLUS_7_DAY_KEY = "plus_7_day";
-    private static final String BACK_BUTTON_KEY = "back_button";
-    private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
-    private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
-    private static final String ADMIN_PERMISSION = "crown.admin"; // ADDED ADMIN_PERMISSION constant here
+    private static final String FREEZE_PUNISHMENT_TYPE = "freeze";
+
+    // Permission constants
     private static final String MOD_PERMISSION = "crown.mod";
-    private static final String USE_PERMISSION = "crown.use"; // Replaced PUNISH_PERMISSION with USE_PERMISSION - MODIFIED
-    private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban"; // Permission for ban related actions
-    private static final String UNPUNISH_BAN_PERMISSION = "crown.unpunish.ban"; // Permission for unban related actions
-    private static final String PUNISH_MUTE_PERMISSION = "crown.punish.mute"; // Permission for mute related actions
-    private static final String UNPUNISH_MUTE_PERMISSION = "crown.unpunish.mute"; // Permission for unmute related actions
-    private static final String PUNISH_SOFTBAN_PERMISSION = "crown.punish.softban"; // Permission for softban related actions
-    private static final String UNPUNISH_SOFTBAN_PERMISSION = "crown.unpunish.softban"; // Permission for unsoftban related actions
-    private static final String UNPUNISH_WARN_PERMISSION = "crown.unpunish.warn"; // Permission for unsoftban related actions
-    private static final String PUNISH_KICK_PERMISSION = "crown.punish.kick"; // Permission for kick related actions
-    private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn"; // Permission for warn related actions
-    private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze"; // Permission for freeze related actions - NEW
+    private static final String ADMIN_PERMISSION = "crown.admin";
+    private static final String USE_PERMISSION = "crown.use";
+    private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban";
+    private static final String UNPUNISH_BAN_PERMISSION = "crown.unpunish.ban";
+    private static final String PUNISH_MUTE_PERMISSION = "crown.punish.mute";
+    private static final String UNPUNISH_MUTE_PERMISSION = "crown.unpunish.mute";
+    private static final String PUNISH_SOFTBAN_PERMISSION = "crown.punish.softban";
+    private static final String UNPUNISH_SOFTBAN_PERMISSION = "crown.unpunish.softban";
+    private static final String UNPUNISH_WARN_PERMISSION = "crown.unpunish.warn";
+    private static final String PUNISH_KICK_PERMISSION = "crown.punish.kick";
+    private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn";
+    private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze";
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
 
     /**
@@ -96,1262 +96,966 @@ public class MenuListener implements Listener {
         this.plugin = plugin;
     }
 
+    // ========================================================================
+    // Event Handlers
+    // ========================================================================
+
     /**
-     * Handles inventory click events.
-     * Determines the clicked MenuItem and performs the corresponding action based on click type (LEFT or RIGHT).
+     * Handles inventory click events within plugin menus.
+     * Identifies the clicked item and associated actions, then dispatches handling.
      *
      * @param event The InventoryClickEvent.
      */
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         InventoryHolder holder = event.getInventory().getHolder();
-        Player player = (Player) event.getWhoClicked();
+        // Early exit if the holder isn't one of our plugin menus
+        if (!(holder instanceof PunishMenu) && !(holder instanceof PunishDetailsMenu) &&
+                !(holder instanceof TimeSelectorMenu) && !(holder instanceof HistoryMenu)) {
+            return;
+        }
+
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return; // Should not happen, but safeguard
+        }
+
+        // Prevent interaction with the player's inventory while a plugin menu is open
+        if (event.getClickedInventory() != null && event.getClickedInventory().getType() == InventoryType.PLAYER) {
+            event.setCancelled(true); // Prevent taking items from player inv while menu open
+            return;
+        }
+
         ItemStack clickedItem = event.getCurrentItem();
+        // Ignore clicks on empty slots within the menu GUI
+        if (event.getClickedInventory() == null || clickedItem == null || clickedItem.getType() == Material.AIR) {
+            event.setCancelled(true); // Cancel clicks on empty slots in the GUI
+            return;
+        }
 
-        if (event.getClickedInventory() == null || event.getClickedInventory().getType() == InventoryType.PLAYER || clickedItem == null) return;
-
-
-        event.setCancelled(true); // IMPORTANT: Cancel the event to prevent item movement
+        // Click is confirmed within the plugin GUI top inventory
+        event.setCancelled(true); // Prevent item moving
 
         MenuItem clickedMenuItem = getMenuItemClicked(event.getRawSlot(), holder);
         if (clickedMenuItem != null) {
-            clickedMenuItem.playClickSound(player);
+            clickedMenuItem.playClickSound(player); // Play click sound if configured
 
-            // Handle left click actions
-            if (event.getClick().isLeftClick()) {
-                List<MenuItem.ClickActionData> leftClickActions = clickedMenuItem.getLeftClickActions();
-                if (!leftClickActions.isEmpty()) {
-                    for (MenuItem.ClickActionData actionData : leftClickActions) {
-                        handleMenuItemClick(player, holder, actionData.getAction(), actionData.getActionData(), event, clickedMenuItem);
-                    }
+            List<MenuItem.ClickActionData> actionsToExecute = Collections.emptyList();
+            if (event.isLeftClick()) {
+                actionsToExecute = clickedMenuItem.getLeftClickActions();
+            } else if (event.isRightClick()) {
+                actionsToExecute = clickedMenuItem.getRightClickActions();
+            }
+
+            if (!actionsToExecute.isEmpty()) {
+                for (MenuItem.ClickActionData actionData : actionsToExecute) {
+                    // Pass event for potential future use, though currently not used in handleMenuItemClick
+                    handleMenuItemClick(player, holder, actionData.getAction(), actionData.getActionData(), event, clickedMenuItem);
                 }
             }
-
-            // Handle right click actions
-            if (event.getClick().isRightClick()) {
-                List<MenuItem.ClickActionData> rightClickActions = clickedMenuItem.getRightClickActions();
-                if (!rightClickActions.isEmpty()) {
-                    for (MenuItem.ClickActionData actionData : rightClickActions) {
-                        handleMenuItemClick(player, holder, actionData.getAction(), actionData.getActionData(), event, clickedMenuItem);
-                    }
-                }
-            }
+        } else {
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Clicked on slot " + event.getRawSlot() + " in " + holder.getClass().getSimpleName() + " with no associated MenuItem found.");
         }
     }
 
-
     /**
-     * Retrieves the MenuItem clicked based on the inventory holder and slot.
-     * Dynamically gets MenuItem based on the menu type and slot.
-     * @param slot The slot number clicked.
-     * @param holder The InventoryHolder.
-     * @return The MenuItem clicked, or null if no MenuItem is found.
-     */
-    private MenuItem getMenuItemClicked(int slot, InventoryHolder holder) {
-        if (holder instanceof PunishMenu) {
-            return getPunishMenuItem(slot, (PunishMenu) holder);
-        } else if (holder instanceof PunishDetailsMenu) {
-            return getPunishDetailsMenuItem(slot, (PunishDetailsMenu) holder);
-        } else if (holder instanceof TimeSelectorMenu) {
-            return getTimeSelectorMenuItem(slot, (TimeSelectorMenu) holder);
-        }  else if (holder instanceof HistoryMenu) {
-            return getHistoryMenuItem(slot, (HistoryMenu) holder);
-        }
-        return null;
-    }
-
-    /**
-     * Gets the PunishMenuItem based on slot number.
-     * Iterates through all MenuItem keys of PunishMenu to find the clicked item.
-     * @param slot The slot number.
-     * @param menu The PunishMenu instance.
-     * @return MenuItem or null if not found.
-     */
-    private MenuItem getPunishMenuItem(int slot, PunishMenu menu) {
-        if (menu == null) return null;
-        MainConfigManager configManager = plugin.getConfigManager();
-        for (String itemKey : menu.getMenuItemKeys()) { // Loop through dynamically loaded item keys
-            MenuItem menuItem = configManager.getPunishMenuItemConfig(itemKey);
-            if (menuItem != null && menuItem.getSlots().contains(slot)) {
-                return menuItem;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Gets the PunishDetailsMenuItem based on slot number.
-     * Iterates through all MenuItem keys of PunishDetailsMenu to find the clicked item.
-     * @param slot The slot number.
-     * @param menu The PunishDetailsMenu instance.
-     * @return MenuItem or null if not found.
-     */
-    private MenuItem getPunishDetailsMenuItem(int slot, PunishDetailsMenu menu) {
-        if (menu == null) return null;
-        MainConfigManager configManager = plugin.getConfigManager();
-        String punishmentType = menu.getPunishmentType();
-        if (plugin.getConfigManager().isDebugEnabled()) {
-            plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Punishment Type: " + punishmentType); // Log punishment type
-        }
-
-        for (String itemKey : menu.getMenuItemKeys()) { // Loop through dynamically loaded item keys
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Checking item key: " + itemKey); // Log each item key being checked
-            }
-            MenuItem menuItem = configManager.getDetailsMenuItemConfig(punishmentType, itemKey);
-            if (menuItem != null) {
-                if (plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - MenuItem config found for key: " + itemKey); // Log if config is found
-                }
-                if (menuItem.getSlots().contains(slot)) {
-                    if (plugin.getConfigManager().isDebugEnabled()) {
-                        plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Slot " + slot + " matches item key: " + itemKey); // Log if slot matches
-                    }
-                    return menuItem;
-                } else {
-                    if (plugin.getConfigManager().isDebugEnabled()) {
-                        plugin.getLogger().info("[DEBUG] getPunishDetailsMenuItem - Slot " + slot + " does NOT match item key: " + itemKey + ", slots: " + menuItem.getSlots()); // Log if slot doesn't match
-                    }
-                }
-            } else {
-                if (plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().warning("[WARNING] getPunishDetailsMenuItem - NO MenuItem config found for key: " + itemKey); // Warning if config is missing
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Gets the TimeSelectorMenuItem based on slot number.
-     * Iterates through all MenuItem keys of TimeSelectorMenu to find the clicked item.
-     * @param slot The slot number.
-     * @param menu The TimeSelectorMenu instance.
-     * @return MenuItem or null if not found.
-     */
-    private MenuItem getTimeSelectorMenuItem(int slot, TimeSelectorMenu menu) {
-        if (menu == null) return null;
-        MainConfigManager configManager = plugin.getConfigManager();
-        for (String itemKey : menu.getTimeSelectorItemKeys()) { // Loop through dynamically loaded item keys
-            MenuItem menuItem = configManager.getTimeSelectorMenuItemConfig(itemKey);
-            if (menuItem != null && menuItem.getSlots().contains(slot)) {
-                return menuItem;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Gets the HistoryMenuItem based on slot number.
-     * Iterates through all MenuItem keys of HistoryMenu to find the clicked item.
-     * @param slot The slot number.
-     * @param menu The HistoryMenu instance.
-     * @return MenuItem or null if not found.
-     */
-    private MenuItem getHistoryMenuItem(int slot, HistoryMenu menu) {
-        if (menu == null) return null;
-        MainConfigManager configManager = plugin.getConfigManager();
-        for (String itemKey : menu.getMenuItemKeys()) { // Loop through dynamically loaded item keys
-            MenuItem menuItem = configManager.getHistoryMenuItemConfig(itemKey);
-            if (menuItem != null && menuItem.getSlots().contains(slot)) {
-                return menuItem;
-            }
-        }
-        // Check if the clicked slot corresponds to a punishment history item slot range.
-        for (MenuItem historyEntryItem : menu.getHistoryEntryItems()) {
-            if (historyEntryItem != null && historyEntryItem.getSlots().contains(slot)) {
-                return historyEntryItem;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Handles menu item clicks based on the inventory holder and ClickAction.
-     * Executes actions based on ClickAction type such as opening menus, requesting input, or confirming punishments.
+     * Handles inventory open events for plugin menus.
+     * Executes configured 'open_actions'.
+     * This is the SINGLE place where open actions should be triggered.
      *
-     * @param player The player who clicked.
-     * @param holder The InventoryHolder representing the menu.
-     * @param action The ClickAction enum value representing the action to take.
-     * @param actionData The data associated with the ClickAction, used for specifying menu names or commands.
-     * @param event The InventoryClickEvent.
-     * @param clickedMenuItem The MenuItem that was clicked.
-     */
-    private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
-        // Log entry to debug menu item click handling, including action, data, item name and holder type
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + clickedMenuItem.getName() + ", Holder Type: " + holder.getClass().getSimpleName()); // Modified ActionData log - MODIFIED
-
-        String[] processedActionData = actionData; // Initialize processedActionData with original actionData
-
-        // Process actionData for actions that support text placeholders
-        if (action == ClickAction.CONSOLE_COMMAND || action == ClickAction.PLAYER_COMMAND || action == ClickAction.PLAYER_COMMAND_OP ||
-                action == ClickAction.MESSAGE || action == ClickAction.MESSAGE_TARGET ||
-                action == ClickAction.TITLE || action == ClickAction.TITLE_TARGET) {
-            if (actionData != null && actionData.length > 0) { // Check if actionData has content
-                processedActionData = Arrays.stream(actionData) // Stream the actionData array
-                        .filter(Objects::nonNull) // Filter out null elements just in case
-                        .map(data -> replacePlaceholders(player, data, holder)) // Process each element for placeholders
-                        .toArray(String[]::new); // Convert back to String array
-            }
-        }
-
-
-        // Handle actions based on the type of menu holder
-        if (holder instanceof PunishMenu punishMenu) {
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishMenu"); // Debug log to identify PunishMenu holder
-            handlePunishMenuActions(player, punishMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to PunishMenuActions
-        } else if (holder instanceof PunishDetailsMenu punishDetailsMenu) {
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is PunishDetailsMenu"); // Debug log for PunishDetailsMenu
-            handlePunishDetailsMenuActions(player, punishDetailsMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to PunishDetailsMenuActions
-        } else if (holder instanceof TimeSelectorMenu timeSelectorMenu) {
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is TimeSelectorMenu"); // Debug log for TimeSelectorMenu
-            handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to TimeSelectorMenuActions
-        } else if (holder instanceof HistoryMenu historyMenu) {
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is HistoryMenu"); // Debug log for HistoryMenu
-            handleHistoryMenuActions(player, historyMenu, action, actionData[0], clickedMenuItem); // Delegate action handling to HistoryMenuActions
-        } else {
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - Holder is UNKNOWN Type: " + holder.getClass().getSimpleName()); // Log unknown holder types
-        }
-
-        // Handle actions that are common to all menus, regardless of the holder type
-        if (action == ClickAction.CONSOLE_COMMAND || action == ClickAction.PLAYER_COMMAND || action == ClickAction.PLAYER_COMMAND_OP) { // Handle all command types here
-            executeCommandAction(player, action, processedActionData, holder); // Execute command action with processed data
-        } else if (action == ClickAction.CLOSE_MENU) {
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - CLOSE_MENU action detected."); // Debug log for CLOSE_MENU action
-            player.closeInventory(); // Close the player's inventory
-        }  else if (action == ClickAction.PLAY_SOUND) { // NEW: Handle PLAY_SOUND action
-            executePlaySoundAction(player, actionData);
-        } else if (action == ClickAction.TITLE) { // NEW: Handle TITLE action
-            executeTitleAction(player, processedActionData); // Execute Title Action with processed data
-        } else if (action == ClickAction.MESSAGE) { // NEW: Handle MESSAGE action
-            executeMessageAction(player, processedActionData, holder); // Execute Message Action with processed data and holder
-        } else if (action == ClickAction.PLAY_SOUND_TARGET) { // NEW: Handle PLAY_SOUND_TARGET action
-            executePlaySoundTargetAction(player, holder, actionData);
-        } else if (action == ClickAction.GIVE_EFFECT_TARGET) { // NEW: Handle GIVE_EFFECT_TARGET action
-            executeGiveEffectTargetAction(player, holder, actionData);
-        } else if (action == ClickAction.TITLE_TARGET) { // NEW: Handle TITLE_TARGET action
-            executeTitleTargetAction(player, holder, processedActionData); // Execute Title Target Action with processed data
-        } else if (action == ClickAction.MESSAGE_TARGET) { // NEW: Handle MESSAGE_TARGET action
-            executeMessageTargetAction(player, holder, processedActionData); // Execute Message Target Action with processed data and holder
-        }
-
-
-        // Log exit from menu item click handling
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Modified ActionData log - MODIFIED
-    }
-
-    /**
-     * Executes the PLAY_SOUND_TARGET action, playing sound to the target player. - NEW - IMPLEMENTED
-     * @param player The player initiating the action (punisher).
-     * @param holder The InventoryHolder, to get target player context.
-     * @param soundArgs Sound arguments from configuration: [sound_name, volume, pitch].
-     */
-    private void executePlaySoundTargetAction(Player player, InventoryHolder holder, String[] soundArgs) { // NEW - IMPLEMENTED
-        OfflinePlayer target = getTargetForAction(holder);
-        if (target == null || !target.isOnline()) {
-            sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
-            return;
-        }
-        Player targetPlayer = target.getPlayer();
-        if (soundArgs.length >= 1) { // Check if at least sound name is provided
-            try {
-                Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
-                float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f; // Default volume
-                float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;   // Default pitch
-                targetPlayer.playSound(targetPlayer.getLocation(), sound, volume, pitch);
-            } catch (NumberFormatException e) { // Moved NumberFormatException catch block BEFORE IllegalArgumentException
-                plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_TARGET action: " + Arrays.toString(soundArgs));
-            } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_TARGET action: " + soundArgs[0]);
-            }
-        } else {
-            plugin.getLogger().warning("PLAY_SOUND_TARGET action requires at least a sound name.");
-        }
-    }
-
-    /**
-     * Executes the GIVE_EFFECT_TARGET action, applying potion effect to the target player. - NEW
-     * @param player The player initiating the action (punisher).
-     * @param holder InventoryHolder to retrieve target player.
-     * @param effectArgs Effect arguments from configuration (not currently used in provided code, placeholder for future).
-     */
-    /**
-     * Executes the GIVE_EFFECT_TARGET action, applying potion effect to the target player. - NEW - IMPLEMENTED
-     * @param player The player initiating the action (punisher).
-     * @param holder InventoryHolder to retrieve target player.
-     * @param effectArgs Effect arguments from configuration: [effect_type, duration_seconds, amplifier].
-     */
-    private void executeGiveEffectTargetAction(Player player, InventoryHolder holder, String[] effectArgs) { // NEW - IMPLEMENTED - CORRECTED: Using PotionEffectType.getByKey
-        OfflinePlayer target = getTargetForAction(holder);
-        if (target == null || !target.isOnline()) {
-            sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
-            return;
-        }
-        Player targetPlayer = target.getPlayer();
-        if (effectArgs.length >= 3) { // Expecting effect type, duration, and amplifier
-            try {
-                PotionEffectType effectType = PotionEffectType.getByKey(NamespacedKey.minecraft(effectArgs[0].toLowerCase())); // Use getByKey and lowercase input - CORRECTED
-                int durationSeconds = Integer.parseInt(effectArgs[1]);
-                int amplifier = Integer.parseInt(effectArgs[2]);
-                boolean showParticles = effectArgs.length <= 3 || Boolean.parseBoolean(effectArgs[3]); // Default to true if not specified
-
-                if (effectType == null) {
-                    plugin.getLogger().warning("Invalid PotionEffectType configured: " + effectArgs[0] + " for GIVE_EFFECT_TARGET action. Please use Bukkit namespaced keys (e.g., minecraft:slowness).");
-                    return;
-                }
-
-                PotionEffect effect = new PotionEffect(effectType, durationSeconds * 20, amplifier, true, showParticles); // Duration in ticks, ambient=true, showParticles from config
-                targetPlayer.addPotionEffect(effect);
-                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] GIVE_EFFECT_TARGET action executed for player: " + targetPlayer.getName() + ", effect: " + effectType.getName() + ", duration: " + durationSeconds + "s, amplifier: " + amplifier + ", showParticles: " + showParticles);
-
-            } catch (NumberFormatException e) {
-                plugin.getLogger().warning("Invalid duration or amplifier format for GIVE_EFFECT_TARGET action: " + Arrays.toString(effectArgs) + ". Expected [effect_type, duration_seconds, amplifier, show_particles(optional)]");
-            } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("IllegalArgumentException in GIVE_EFFECT_TARGET action: " + e.getMessage() + ", Args: " + Arrays.toString(effectArgs));
-            }
-        } else {
-            plugin.getLogger().warning("GIVE_EFFECT_TARGET action requires effect_type, duration_seconds, and amplifier arguments.");
-        }
-    }
-
-
-    /**
-     * Executes the TITLE_TARGET action, showing a title to the target player. - NEW - IMPLEMENTED
-     * @param player The player initiating the action (punisher).
-     * @param holder The InventoryHolder, to get target player context.
-     * @param titleArgs Title arguments from configuration: [title, subtitle, time_seconds, fade_in_ticks, fade_out_ticks]. - NOW EXPECTS PROCESSED TEXT
-     */
-    private void executeTitleTargetAction(Player player, InventoryHolder holder, String[] titleArgs) { // NEW - IMPLEMENTED - NOW EXPECTS PROCESSED TEXT
-        OfflinePlayer target = getTargetForAction(holder);
-        if (target == null || !target.isOnline()) {
-            sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
-            return;
-        }
-        Player targetPlayer = target.getPlayer();
-        if (titleArgs.length >= 3) { // title, subtitle, time are mandatory
-            // Get title text and subtitle text, colorize directly, no underscore replacement yet
-            String titleText = ColorUtils.translateRGBColors(titleArgs[0]); // Colorize, NO underscore replacement here
-            String subtitleText = ColorUtils.translateRGBColors(titleArgs[1]); // Colorize, NO underscore replacement here
-            int timeSeconds = Integer.parseInt(titleArgs[2]);
-            int fadeInTicks = titleArgs.length > 3 ? Integer.parseInt(titleArgs[3]) : 10; // Default fadeIn
-            int fadeOutTicks = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
-
-            targetPlayer.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks); // Apply underscore replacement for display here
-        } else {
-            plugin.getLogger().warning("TITLE_TARGET action requires at least title, subtitle, and time_seconds arguments.");
-        }
-    }
-
-    /**
-     * Executes the MESSAGE_TARGET action, sending a message to the target player. - NEW - IMPLEMENTED
-     * @param player The player initiating the action (punisher).
-     * @param holder The InventoryHolder, to get target player context.
-     * @param messageArgs Message arguments from configuration: [message_text]. - NOW EXPECTS PROCESSED TEXT
-     */
-    private void executeMessageTargetAction(Player player, InventoryHolder holder, String[] messageArgs) { // NEW - IMPLEMENTED - CORRECTED: Now processes placeholders - NOW EXPECTS PROCESSED TEXT
-        OfflinePlayer target = getTargetForAction(holder);
-        if (target == null || !target.isOnline()) {
-            sendConfigMessage(player, "messages.player_not_online", "{input}", target != null ? target.getName() : "target");
-            return;
-        }
-        Player targetPlayer = target.getPlayer();
-        if (messageArgs.length >= 1) {
-            // Get the message text and colorize directly, no underscore replacement yet
-            String messageText = MessageUtils.getColorMessage(messageArgs[0]); // Colorize, NO underscore replacement here
-            targetPlayer.sendMessage(messageText); // Apply underscore replacement for display here
-        } else {
-            plugin.getLogger().warning("MESSAGE_TARGET action requires a message text argument.");
-        }
-    }
-
-    /**
-     * Helper method to get the target player from the InventoryHolder context. - NEW
-     * @param holder The InventoryHolder.
-     * @return OfflinePlayer target or null if holder is not a PunishMenu or PunishDetailsMenu.
-     */
-    private OfflinePlayer getTargetForAction(InventoryHolder holder) {
-        if (holder instanceof PunishMenu) {
-            return Bukkit.getOfflinePlayer(((PunishMenu) holder).getTargetUUID());
-        } else if (holder instanceof PunishDetailsMenu) {
-            return Bukkit.getOfflinePlayer(((PunishDetailsMenu) holder).getTargetUUID());
-        } else if (holder instanceof TimeSelectorMenu) {
-            return Bukkit.getOfflinePlayer(((TimeSelectorMenu) holder).getPunishDetailsMenu().getTargetUUID());
-        } else if (holder instanceof  HistoryMenu){
-            return Bukkit.getOfflinePlayer(((HistoryMenu) holder).getTargetUUID());
-        }
-        return null;
-    }
-
-
-    /**
-     * Executes the UN_BAN action, unbanning the target player. - NEW
-     * @param player The player initiating the unban.
-     * @param holder The InventoryHolder, used to get target player context.
-     */
-    private void executeUnbanAction(Player player, InventoryHolder holder) {
-        if (!(holder instanceof PunishDetailsMenu)) {
-            plugin.getLogger().warning("UN_BAN action called from invalid menu holder: " + holder.getClass().getName());
-            return;
-        }
-        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
-        UUID targetUUID = detailsMenu.getTargetUUID();
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        String unbanCommand = plugin.getConfigManager().getUnbanCommand()
-                .replace("{target}", target.getName());
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), unbanCommand));
-        playSound(player, "punish_confirm");
-        sendUnpunishConfirmation(player, target, "ban"); // Use generic unpunish confirmation
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unban", "Unbanned via Menu", player.getName(), 0L, "permanent"); // Log unban action
-    }
-
-    /**
-     * Executes the UN_MUTE action, unmuting the target player. - NEW
-     * @param player The player initiating the unmute.
-     * @param holder The InventoryHolder, used to get target player context.
-     */
-    private void executeUnmuteAction(Player player, InventoryHolder holder) {
-        if (!(holder instanceof PunishDetailsMenu)) {
-            plugin.getLogger().warning("UN_MUTE action called from invalid menu holder: " + holder.getClass().getName());
-            return;
-        }
-        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
-        UUID targetUUID = detailsMenu.getTargetUUID();
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        String unmuteCommand = plugin.getConfigManager().getUnmuteCommand()
-                .replace("{target}", target.getName());
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), unmuteCommand));
-        playSound(player, "punish_confirm");
-        sendUnpunishConfirmation(player, target, "mute"); // Use generic unpunish confirmation
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unmute", "Unmuted via Menu", player.getName(), 0L, "permanent"); // Log unmute action
-    }
-
-    /**
-     * Executes the UN_WARN action, unwarning the target player. - NEW
-     * @param player The player initiating the unwarn.
-     * @param holder The InventoryHolder, used to get target player context.
-     */
-    private void executeUnwarnAction(Player player, InventoryHolder holder) { // NEW
-        if (!(holder instanceof PunishDetailsMenu)) {
-            plugin.getLogger().warning("UN_WARN action called from invalid menu holder: " + holder.getClass().getName());
-            return;
-        }
-        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
-        UUID targetUUID = detailsMenu.getTargetUUID();
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        String unwarnCommand = plugin.getConfigManager().getUnwarnCommand()
-                .replace("{target}", target.getName());
-
-        // Check if unwarn command is configured before attempting to execute
-        if (unwarnCommand == null || unwarnCommand.isEmpty()) {
-            sendConfigMessage(player, "messages.unpunish_command_not_configured", "{punishment_type}", "warn");
-            return; // Exit if unwarn command is not configured
-        }
-
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), unwarnCommand));
-        playSound(player, "punish_confirm");
-        sendUnpunishConfirmation(player, target, "warn"); // Use generic unpunish confirmation
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unwarn", "Unwarned via Menu", player.getName(), 0L, "permanent"); // Log unwarn action
-    }
-
-    /**
-     * Sends a generic unpunish confirmation message to the punisher. - NEW
-     * @param player The punisher player.
-     * @param target The unpunished player.
-     * @param punishType The type of punishment that was removed (ban, mute).
-     */
-    private void sendUnpunishConfirmation(Player player, OfflinePlayer target, String punishType) {
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.direct_unpunishment_confirmed",
-                "{target}", target.getName() != null ? target.getName() : "unknown",
-                "{punishment_type}", punishType)));
-    }
-
-
-    /**
-     * Executes a command as the player, replacing placeholders and handling colors.
-     *
-     * @param player     The player who triggered the command.
-     * @param action     The ClickAction type (PLAYER_COMMAND or PLAYER_COMMAND_OP).
-     * @param commandData The command string from the configuration.
-     * @param holder      The InventoryHolder (not used in this method, but kept for consistency).
-     */
-    private void executeCommandAction(Player player, ClickAction action, String[] commandData, InventoryHolder holder) {
-        // Check if there is at least one command argument provided and it's not null or empty
-        if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) {
-            // Prepare the command to be executed, no additional placeholder processing needed here as it's already processed in handleMenuItemClick
-            String commandToExecute = ColorUtils.translateRGBColors(commandData[0]); // Colorize the command string
-
-            // Debug logging to indicate player command execution with the action and command
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing COMMAND: " + action + " Command: " + commandToExecute);
-            // Make command final for use in lambda
-            final String finalCommand = commandToExecute;
-
-            // Execute the player command asynchronously on the main server thread
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                switch (action) {
-                    case CONSOLE_COMMAND:
-                        // Console command execution (already handled elsewhere if action is CONSOLE_COMMAND but included for completeness)
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
-                        break;
-                    case PLAYER_COMMAND:
-                        // Player command execution: command is performed by the player
-                        player.performCommand(finalCommand);
-                        break;
-                    case PLAYER_COMMAND_OP:
-                        // Player command execution as OP: temporarily grants OP status to player to execute command
-                        boolean originalOp = player.isOp(); // Store original OP status
-                        try {
-                            player.setOp(true); // Set player as OP temporarily
-                            player.performCommand(finalCommand); // Execute command as OP
-                        } finally {
-                            player.setOp(originalOp); // Revert player to original OP status after command execution
-                        }
-                        break;
-                }
-            });
-        } else {
-            // Log a warning if the COMMAND action data is invalid or missing for the given action type
-            plugin.getLogger().warning("Invalid COMMAND action data for action type: " + action + " Data: " + Arrays.toString(commandData));
-        }
-    }
-
-
-    /**
-     * Executes a console command, replacing placeholders and handling colors.
-     *
-     * @param player     The player who triggered the command (for player-specific placeholders).
-     * @param commandData The command string from the configuration.
-     * @param holder      The InventoryHolder, providing context for placeholder replacement.
-     */
-    private void executeConsoleCommand(Player player, String[] commandData, InventoryHolder holder) { // Modified actionData type - MODIFIED
-        // Check if there is at least one command argument provided and it's not null or empty
-        if (commandData.length > 0 && commandData[0] != null && !commandData[0].isEmpty()) { // Check for commandData array and content - MODIFIED
-            // Extract the command string, removing "command:" prefix if present and trim whitespace
-            String rawCommand = commandData[0].startsWith("command:") ? commandData[0].substring("command:".length()).trim() : commandData[0]; // Use commandData[0] - MODIFIED
-            // Prepare the command to be executed, no additional placeholder processing needed here as it's already done in handleMenuItemClick
-            String commandToExecute = rawCommand;
-            // Apply color formatting to the command string
-            commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Apply color formatting
-
-            // Debug logging to indicate console command execution with the command
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing CONSOLE_COMMAND: " + commandToExecute);
-            // Create a final copy of the command string for use in the Bukkit scheduler
-            final String finalCommand = commandToExecute; // Finalize for lambda
-            // Execute the console command asynchronously on the main server thread
-            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
-        } else {
-            // Log a warning if the CONSOLE_COMMAND action data is invalid or missing
-            plugin.getLogger().warning("Invalid CONSOLE_COMMAND action data: " + Arrays.toString(commandData)); // Modified actionData log - MODIFIED
-        }
-    }
-
-    /**
-     * Executes the PLAY_SOUND action.
-     * @param player The player to play the sound for.
-     * @param soundArgs Sound arguments: sound name, volume, pitch.
-     */
-    private void executePlaySoundAction(Player player, String[] soundArgs) { // NEW
-        if (soundArgs.length >= 1) { // Check if at least sound name is provided
-            try {
-                Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
-                float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f; // Default volume
-                float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;   // Default pitch
-                player.playSound(player.getLocation(), sound, volume, pitch);
-            } catch (NumberFormatException e) { // Moved NumberFormatException catch block BEFORE IllegalArgumentException
-                plugin.getLogger().warning("Invalid volume or pitch format: " + Arrays.toString(soundArgs));
-            } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Invalid sound name configured: " + soundArgs[0]);
-            }
-        } else {
-            plugin.getLogger().warning("PLAY_SOUND action requires at least a sound name.");
-        }
-    }
-
-    /**
-     * Executes the TITLE action.
-     * @param player The player to show the title to.
-     * @param titleArgs Title arguments: title, subtitle, time_seconds, fade_in_ticks, fade_out_ticks. - NOW EXPECTS PROCESSED TEXT
-     */
-    private void executeTitleAction(Player player, String[] titleArgs) {
-        // Check if there are enough arguments provided for the TITLE action
-        if (titleArgs.length >= 3) { // title, subtitle, time_seconds are mandatory
-            // Get title text from the first argument and colorize directly after placeholder processing
-            String titleText = ColorUtils.translateRGBColors(titleArgs[0]); // Colorize, NO underscore replacement here
-            // Get subtitle text from the second argument and colorize directly after placeholder processing
-            String subtitleText = ColorUtils.translateRGBColors(titleArgs[1]); // Colorize, NO underscore replacement here
-            // Parse the time in seconds from the third argument
-            int timeSeconds = Integer.parseInt(titleArgs[2]);
-            // Parse fade-in duration from the fourth argument, default to 10 ticks if not provided
-            int fadeInTicks = titleArgs.length > 3 ? Integer.parseInt(titleArgs[3]) : 10; // Default fadeIn
-            // Parse fade-out duration from the fifth argument, default to 20 ticks if not provided
-            int fadeOutTicks = titleArgs.length > 4 ? Integer.parseInt(titleArgs[4]) : 20; // Default fadeOut
-
-            // Send the title to the player with parsed and formatted arguments
-            player.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks); // Apply underscore replacement for display here
-        } else {
-            // Log a warning if not enough arguments are provided for the TITLE action
-            plugin.getLogger().warning("TITLE action requires at least title, subtitle, and time_seconds arguments.");
-        }
-    }
-
-    /**
-     * Executes the MESSAGE action.
-     * @param player The player to send the message to.
-     * @param messageArgs Message arguments: text. - NOW EXPECTS PROCESSED TEXT
-     */
-    private void executeMessageAction(Player player, String[] messageArgs, InventoryHolder holder) { // MODIFIED: Added holder - NOW EXPECTS PROCESSED TEXT
-        // Check if there is at least one message argument provided
-        if (messageArgs.length >= 1) {
-            // Get the message text and colorize directly, no underscore replacement yet
-            String messageText = MessageUtils.getColorMessage(messageArgs[0]); // Colorize, NO underscore replacement here
-            // Send the colorized message to the player, applying underscore replacement for display
-            player.sendMessage(messageText); // Apply underscore replacement for display here
-        } else {
-            // Log a warning if no message text argument is provided for the MESSAGE action
-            plugin.getLogger().warning("MESSAGE action requires a message text argument.");
-        }
-    }
-
-
-    /**
-     * Executes menu open actions for the given InventoryHolder.
-     * @param player The player opening the menu.
-     * @param holder The InventoryHolder representing the menu.
-     */
-    public void executeMenuOpenActions(Player player, InventoryHolder holder) { // NEW - MODIFIED: Corrected to pass holder
-        List<MenuItem.ClickActionData> openActions = Collections.emptyList();
-
-        if (holder instanceof PunishMenu) {
-            openActions = plugin.getConfigManager().loadMenuOpenActions(plugin.getConfigManager().getPunishMenuConfig().getConfig(), "menu");
-        } else if (holder instanceof PunishDetailsMenu) {
-            openActions = plugin.getConfigManager().loadMenuOpenActions(plugin.getConfigManager().getPunishDetailsMenuConfig().getConfig(), "menu.punish_details." + ((PunishDetailsMenu) holder).getPunishmentType());
-        } else if (holder instanceof TimeSelectorMenu) {
-            openActions = plugin.getConfigManager().loadMenuOpenActions(plugin.getConfigManager().getTimeSelectorMenuConfig().getConfig(), "menu");
-        } else if (holder instanceof HistoryMenu) {
-            openActions = plugin.getConfigManager().loadMenuOpenActions(plugin.getConfigManager().getHistoryMenuConfig().getConfig(), "menu");
-        }
-
-        for (MenuItem.ClickActionData actionData : openActions) {
-            ClickAction action = actionData.getAction();
-            String[] actionArgs = actionData.getActionData();
-
-            if (action == ClickAction.PLAY_SOUND) {
-                executePlaySoundAction(player, actionArgs);
-            } else if (action == ClickAction.TITLE) {
-                executeTitleAction(player, actionArgs);
-            } else if (action == ClickAction.MESSAGE) {
-                executeMessageAction(player, actionArgs, holder); // MODIFIED: Pass holder here!
-            }
-        }
-    }
-
-    /**
-     * Executes a MenuItem ClickAction directly for a player, without inventory click context. - NEW
-     * This method is used by tasks that need to trigger menu actions programmatically, e.g., freeze actions.
-     *
-     * @param player     The player for whom to execute the action.
-     * @param action     The ClickAction to execute.
-     * @param actionData The data associated with the ClickAction.
-     */
-    public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) { // NEW Method - MODIFIED: Corrected to pass null holder
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - entry
-
-        if (action == ClickAction.CONSOLE_COMMAND) {
-            executeConsoleCommand(player, actionData, null); // Holder is null as it's outside menu context - MODIFIED: Holder can be null now
-        } else if (action == ClickAction.PLAY_SOUND) { // NEW: Handle PLAY_SOUND action
-            executePlaySoundAction(player, actionData);
-        } else if (action == ClickAction.TITLE) { // NEW: Handle TITLE action
-            executeTitleAction(player, actionData);
-        } else if (action == ClickAction.MESSAGE) { // NEW: Handle MESSAGE action
-            executeMessageAction(player, actionData, null); // MODIFIED: Pass null holder here
-        } else if (action == ClickAction.PLAY_SOUND_TARGET) { // NEW: Handle PLAY_SOUND_TARGET action
-            executePlaySoundTargetAction(player, null, actionData); // MODIFIED: Pass null holder here
-        } else if (action == ClickAction.TITLE_TARGET) { // NEW: Handle TITLE action
-            executeTitleTargetAction(player, null, actionData); // MODIFIED: Pass null holder here
-        } else if (action == ClickAction.MESSAGE_TARGET) { // NEW: Handle MESSAGE action
-            executeMessageTargetAction(player, null, actionData); // MODIFIED: Pass null holder here
-        }
-
-
-        // Log exit from menu item click handling
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData)); // Debug log - exit
-    }
-
-
-    /**
-     * Replaces placeholders in a command string.
-     *
-     * @param player    The player context for placeholders.
-     * @param command   The command string with placeholders.
-     * @param holder    The InventoryHolder, providing context for menu-specific placeholders.
-     * @return The command string with placeholders replaced.
-     */
-    private String replacePlaceholders(Player player, String command, InventoryHolder holder) {
-        String processedCommand = command.replace("{player}", player.getName());
-
-        OfflinePlayer target = null;
-        if (holder instanceof PunishMenu) {
-            target = Bukkit.getOfflinePlayer(((PunishMenu) holder).getTargetUUID());
-        } else if (holder instanceof PunishDetailsMenu) {
-            target = Bukkit.getOfflinePlayer(((PunishDetailsMenu) holder).getTargetUUID());
-        } else if (holder instanceof TimeSelectorMenu) {
-            target = Bukkit.getOfflinePlayer(((TimeSelectorMenu) holder).getPunishDetailsMenu().getTargetUUID());
-        } else if (holder instanceof  HistoryMenu){
-            target = Bukkit.getOfflinePlayer(((HistoryMenu) holder).getTargetUUID());
-        }
-
-        if (target != null) {
-            processedCommand = plugin.getConfigManager().processPlaceholders(processedCommand, target); // Use MainConfigManager's placeholder processing
-        }
-        return processedCommand;
-    }
-
-
-    private void handlePunishMenuActions(Player player, PunishMenu punishMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) {
-        // Log entry to debug PunishMenu action handling, including action, data, and item name
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - START - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName());
-
-        UUID targetUUID = punishMenu.getTargetUUID(); // Get the UUID of the target player for this PunishMenu
-        switch (action) {
-            case OPEN_MENU:
-                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - OPEN_MENU case entered - ActionData: " + actionData); // Debug log when OPEN_MENU action is detected
-                if (actionData != null) {
-                    // Handle different OPEN_MENU action data to open specific sub-menus
-                    if (actionData.equalsIgnoreCase("ban_details")) {
-                        if (!player.hasPermission(PUNISH_BAN_PERMISSION)) { // Permission check for ban details menu - NEW
-                            sendNoPermissionMenuMessage(player, "ban details");
-                            return;
-                        }
-                        new PunishDetailsMenu(targetUUID, plugin, BAN_PUNISHMENT_TYPE).open(player); // Open Ban details menu
-                    } else if (actionData.equalsIgnoreCase("mute_details")) {
-                        if (!player.hasPermission(PUNISH_MUTE_PERMISSION)) { // Permission check for mute details menu - NEW
-                            sendNoPermissionMenuMessage(player, "mute details");
-                            return;
-                        }
-                        new PunishDetailsMenu(targetUUID, plugin, MUTE_PUNISHMENT_TYPE).open(player); // Open Mute details menu
-                    } else if (actionData.equalsIgnoreCase("softban_details")) {
-                        if (!player.hasPermission(PUNISH_SOFTBAN_PERMISSION)) { // Permission check for softban details menu - NEW
-                            sendNoPermissionMenuMessage(player, "softban details");
-                            return;
-                        }
-                        new PunishDetailsMenu(targetUUID, plugin, SOFTBAN_PUNISHMENT_TYPE).open(player); // Open Softban details menu
-                    } else if (actionData.equalsIgnoreCase("kick_details")) {
-                        if (!player.hasPermission(PUNISH_KICK_PERMISSION)) { // Permission check for kick details menu - NEW
-                            sendNoPermissionMenuMessage(player, "kick details");
-                            return;
-                        }
-                        new PunishDetailsMenu(targetUUID, plugin, KICK_ITEM_MENU_KEY).open(player); // Open Kick details menu
-                    } else if (actionData.equalsIgnoreCase("warn_details")) {
-                        if (!player.hasPermission(PUNISH_WARN_PERMISSION)) { // Permission check for warn details menu - NEW
-                            sendNoPermissionMenuMessage(player, "warn details");
-                            return;
-                        }
-                        new PunishDetailsMenu(targetUUID, plugin, WARN_PUNISHMENT_TYPE).open(player); // Open Warn details menu
-                    } else if (actionData.equalsIgnoreCase("freeze_details")) { // Open Freeze details menu - NEW
-                        if (!player.hasPermission(PUNISH_FREEZE_PERMISSION)) { // Permission check for freeze details menu - NEW
-                            sendNoPermissionMenuMessage(player, "freeze details");
-                            return;
-                        }
-                        new PunishDetailsMenu(targetUUID, plugin, FREEZE_PUNISHMENT_TYPE).open(player); // Open Freeze details menu - NEW
-                    } else if (actionData.equalsIgnoreCase("history_menu")) {
-                        if (!player.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
-                            sendNoPermissionMenuMessage(player, "history menu");
-                            return;
-                        }
-                        new HistoryMenu(targetUUID, plugin).open(player); // Open History menu
-                    } else if (actionData.equalsIgnoreCase("punish_menu")) { // Handle reopening of the PunishMenu
-                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - Opening PunishMenu AGAIN - ActionData: punish_menu"); // Specific log for reopen action
-                        new PunishMenu(targetUUID, plugin).open(player); // Re-open the PunishMenu
-                    } else if (actionData.equalsIgnoreCase("change_target")) {
-                        if (!player.hasPermission(USE_PERMISSION)) { // Replaced permission check with USE_PERMISSION - MODIFIED
-                            sendNoPermissionMenuMessage(player, "change target action");
-                            return;
-                        }
-                        player.closeInventory(); // Close the current inventory
-                        requestNewTargetName(player); // Request a new target player name from the player
-                    } else {
-                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - OPEN_MENU case - No Matching ActionData: " + actionData); // Log if actionData doesn't match expected values
-                    }
-                } else {
-                    plugin.getLogger().warning("[DEBUG] handlePunishMenuActions - OPEN_MENU case - ActionData is NULL, which is unexpected for OPEN_MENU action."); // Warning log if actionData is unexpectedly null
-                }
-                break;
-            case NO_ACTION:
-                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - NO_ACTION case entered"); // Debug log for NO_ACTION case
-                break;
-            default:
-                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - DEFAULT case entered - Action: " + action); // Log for any unhandled action types
-                break;
-        }
-        // Log exit from PunishMenu action handling
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishMenuActions - END - Action: " + action + ", ActionData: " + actionData);
-    }
-
-    private void handlePunishDetailsMenuActions(Player player, PunishDetailsMenu punishDetailsMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Log action details
-        switch (action) {
-            case OPEN_MENU:
-                if (actionData != null) { // Null check for actionData
-                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU ActionData: " + actionData); // <-- DEBUG LOGGING
-
-                    if (actionData.equalsIgnoreCase("time_selector")) {
-                        new TimeSelectorMenu(punishDetailsMenu, plugin).open(player);
-                    } else if (actionData.equalsIgnoreCase("punish_menu")) {
-                        new PunishMenu(punishDetailsMenu.getTargetUUID(), plugin).open(player);
-                    } else {
-                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU - No matching ActionData: " + actionData); // <-- DEBUG LOGGING
-                    }
-                } else {
-                    plugin.getLogger().warning("[DEBUG] handlePunishDetailsMenuActions - OPEN_MENU - ActionData is NULL"); // <-- DEBUG LOGGING
-                }
-                break;
-            case REQUEST_INPUT:
-                if (actionData != null && actionData.equalsIgnoreCase("reason_input")) { // Null and value check for actionData
-                    requestReasonInput(player, punishDetailsMenu);
-                }
-                break;
-            case CONFIRM_PUNISHMENT:
-                handleConfirmButtonClick(player, punishDetailsMenu);
-                break;
-            case UN_SOFTBAN:
-                if (!player.hasPermission(UNPUNISH_SOFTBAN_PERMISSION)) { // Permission check for unsoftban - NEW
-                    sendNoPermissionMenuMessage(player, "unsoftban");
-                    return;
-                }
-                handleUnsoftbanButtonClick(player, punishDetailsMenu);
-                break;
-            case UN_FREEZE: // Handle unfreeze button click - NEW
-                if (!player.hasPermission(UNPUNISH_FREEZE_PERMISSION)) { // Permission check for unfreeze - NEW
-                    sendNoPermissionMenuMessage(player, "unfreeze");
-                    return;
-                }
-                handleUnfreezeButtonClick(player, punishDetailsMenu); // Call unfreeze handler - NEW
-                break;
-            case UN_BAN: // Handle unban button click - NEW
-                if (!player.hasPermission(UNPUNISH_BAN_PERMISSION)) { // Permission check for unban - NEW
-                    sendNoPermissionMenuMessage(player, "unban");
-                    return;
-                }
-                executeUnbanAction(player, punishDetailsMenu);
-                break;
-            case UN_MUTE: // Handle unmute button click - NEW
-                if (!player.hasPermission(UNPUNISH_MUTE_PERMISSION)) { // Permission check for unmute - NEW
-                    sendNoPermissionMenuMessage(player, "unmute");
-                    return;
-                }
-                executeUnmuteAction(player, punishDetailsMenu);
-                break;
-            case UN_WARN: // Handle unwarn button click - NEW
-                if (!player.hasPermission(UNPUNISH_WARN_PERMISSION)) { // Permission check for unwarn - NEW
-                    sendNoPermissionMenuMessage(player, "unwarn");
-                    return;
-                }
-                executeUnwarnAction(player, punishDetailsMenu); // Call unwarn handler - NEW
-                break;
-            case NO_ACTION:
-            default:
-                break;
-        }
-    }
-
-    /**
-     * Sends a message to the player indicating they do not have permission for a menu action. - NEW
-     * @param player The player to send the message to.
-     * @param actionName The name of the action they do not have permission for.
-     */
-    private void sendNoPermissionMenuMessage(Player player, String actionName) {
-        sendConfigMessage(player, "messages.no_permission_menu_action", "{action}", actionName);
-    }
-
-
-    private void handleTimeSelectorMenuActions(Player player, TimeSelectorMenu timeSelectorMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleTimeSelectorMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
-        PunishDetailsMenu detailsMenu = timeSelectorMenu.getPunishDetailsMenu();
-        switch (action) {
-            case ADJUST_TIME:
-                if (actionData != null) { // Null check for actionData
-                    if (actionData.equalsIgnoreCase("minus_5_min")) {
-                        timeSelectorMenu.adjustTime(-300);
-                    } else if (actionData.equalsIgnoreCase("minus_2_hour")) {
-                        timeSelectorMenu.adjustTime(-7200);
-                    } else if (actionData.equalsIgnoreCase("minus_1_day")) {
-                        timeSelectorMenu.adjustTime(-86400);
-                    } else if (actionData.equalsIgnoreCase("minus_5_day")) {
-                        timeSelectorMenu.adjustTime(-432000);
-                    } else if (actionData.equalsIgnoreCase("plus_15_min")) {
-                        timeSelectorMenu.adjustTime(900);
-                    } else if (actionData.equalsIgnoreCase("plus_6_hour")) {
-                        timeSelectorMenu.adjustTime(21600);
-                    } else if (actionData.equalsIgnoreCase("plus_1_day")) {
-                        timeSelectorMenu.adjustTime(86400);
-                    } else if (actionData.equalsIgnoreCase("plus_7_day")) {
-                        timeSelectorMenu.adjustTime(604800);
-                    }
-                    timeSelectorMenu.updateTimeDisplayItem(player);
-                }
-                break;
-            case REQUEST_INPUT:
-                if (actionData != null && actionData.equalsIgnoreCase("custom_time_input")) { // Null and value check for actionData
-                    player.closeInventory();
-                    requestCustomTimeInput(player, detailsMenu);
-                }
-                break;
-            case SET_PUNISHMENT_TYPE:
-                if (actionData != null) { // Null check for actionData
-                    if (actionData.equalsIgnoreCase("permanent_time")) {
-                        setPermanentTime(detailsMenu, player);
-                    } else if (actionData.equalsIgnoreCase("confirm_time")) {
-                        handleTimeDisplayClick(timeSelectorMenu, detailsMenu, player);
-                    }
-                }
-                break;
-            case OPEN_MENU:
-                if (actionData != null && actionData.equalsIgnoreCase("punish_details")) { // Null and value check for actionData
-                    detailsMenu.open(player);
-                }
-                break;
-            case NO_ACTION:
-            default:
-                break;
-        }
-    }
-
-    /**
-     * Handles actions specific to HistoryMenu clicks.
-     *
-     * @param player          The player who clicked.
-     * @param historyMenu     The HistoryMenu instance.
-     * @param action          The ClickAction enum value.
-     * @param actionData      The data associated with the ClickAction.
-     * @param clickedMenuItem The MenuItem that was clicked.
-     */
-    private void handleHistoryMenuActions(Player player, HistoryMenu historyMenu, ClickAction action, String actionData, MenuItem clickedMenuItem) { // ADDED clickedMenuItem
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleHistoryMenuActions - Action: " + action + ", ActionData: " + actionData + ", Item: " + clickedMenuItem.getName()); // Logging
-        switch (action) {
-            case OPEN_MENU:
-                if (actionData != null && actionData.equalsIgnoreCase("punish_menu")) { // Null and value check for actionData
-                    new PunishMenu(historyMenu.getTargetUUID(), plugin).open(player);
-                }
-                break;
-            case ADJUST_PAGE:
-                if (actionData != null) { // Null check for actionData
-                    if (actionData.equalsIgnoreCase("next_page")) {
-                        historyMenu.nextPage(player);
-                    } else if (actionData.equalsIgnoreCase("previous_page")) {
-                        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleHistoryMenuActions - Previous Page Clicked!"); // Debug log - Previous Page Clicked
-                        historyMenu.previousPage(player);
-                    } else if (actionData.equalsIgnoreCase("no_action")) { // Prevent click action when button is "disabled"
-                        // Do nothing, effectively cancelling the click
-                    }
-                }
-                break;
-            case NO_ACTION:
-            default:
-                break;
-        }
-    }
-
-
-    /**
-     * Handles inventory open events to play menu open sound.
      * @param event The InventoryOpenEvent.
      */
+    @EventHandler
     public void onInventoryOpen(InventoryOpenEvent event) {
         InventoryHolder holder = event.getInventory().getHolder();
-        Player player = (Player) event.getPlayer();
-        if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
-            // Removed playSound(player, "menu_open"); - Replaced by open_actions
-            executeMenuOpenActions(player, holder); // Execute menu open actions - NEW
-        }
-    }
-
-    /**
-     * Requests a new target player name from the player via chat input.
-     * @param player The player to request input from.
-     */
-    private void requestNewTargetName(Player player) {
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.prompt_new_target")));
-        setupChatInputTimeout(player, null, "new_target");
-    }
-
-    /**
-     * Requests a punishment reason from the player via chat input.
-     * @param player The player to request input from.
-     * @param punishDetailsMenu The PunishDetailsMenu context.
-     */
-    private void requestReasonInput(Player player, PunishDetailsMenu punishDetailsMenu) {
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.prompt_" + punishDetailsMenu.getPunishmentType() + "_reason")));
-        pendingDetailsMenus.put(player.getUniqueId(), punishDetailsMenu);
-        setupChatInputTimeout(player, punishDetailsMenu, "ban_reason");
-    }
-
-    /**
-     * Requests a custom time input from the player via chat.
-     * @param player The player to request input from.
-     * @param punishDetailsMenu The PunishDetailsMenu context.
-     */
-    private void requestCustomTimeInput(Player player, PunishDetailsMenu punishDetailsMenu) {
-        // Send a message to the player prompting for custom time input
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.prompt_custom_time")));
-        // Store the pending details menu for later use after input is received
-        pendingDetailsMenus.put(player.getUniqueId(), punishDetailsMenu);
-        // Setup a chat input timeout for the player, associating it with the current menu and input type
-        setupChatInputTimeout(player, punishDetailsMenu, "custom_time");
-        // [FIX] Ensure inventory is closed synchronously to avoid IllegalStateException
-        Bukkit.getScheduler().runTask(plugin, () -> player.closeInventory()); // Schedule inventory close on main thread - [FIX]
-    }
-
-
-    /**
-     * Sets up a timeout for chat input, cancelling existing timeouts and storing input data.
-     *
-     * @param player    The player providing input.
-     * @param menu      The PunishDetailsMenu context.
-     * @param inputType The type of input requested (reason, time, etc.).
-     */
-    private void setupChatInputTimeout(Player player, PunishDetailsMenu menu, String inputType) {
-        cancelExistingTimeout(player);
-
-        BukkitTask timeoutTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                handleInputTimeout(player);
+        if (event.getPlayer() instanceof Player player) {
+            // Check if the opened inventory belongs to one of the plugin's menus
+            if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
+                // Execute open actions ONLY when the inventory actually opens
+                executeMenuOpenActions(player, holder);
             }
-        }.runTaskLater(plugin, 400L); // 20 seconds timeout (20 ticks * 20)
-
-        storeInputData(player, timeoutTask, menu, inputType);
-    }
-
-    /**
-     * Cancels any existing chat input timeout for a player.
-     * @param player The player whose timeout should be cancelled.
-     */
-    private void cancelExistingTimeout(Player player) {
-        if (inputTimeouts.containsKey(player.getUniqueId())) {
-            inputTimeouts.get(player.getUniqueId()).cancel();
         }
     }
 
     /**
-     * Handles input timeout, informing the player and clearing input data.
-     * @param player The player who timed out.
+     * Handles inventory close events for plugin menus.
+     * Cleans up any pending input requests for the player.
+     *
+     * @param event The InventoryCloseEvent.
      */
-    private void handleInputTimeout(Player player) {
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.input_timeout")));
-        clearPlayerInputData(player);
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (event.getPlayer() instanceof Player player) {
+            // Check if the closed inventory belonged to one of the plugin's menus
+            if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
+
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    // Optional log to show the event fired, but emphasize it's not clearing input state.
+                    // plugin.getLogger().info("[DEBUG] InventoryCloseEvent fired for " + player.getName() + " - Menu: " + holder.getClass().getSimpleName() + ". Input state NOT cleared here.");
+                }
+            }
+        }
     }
 
     /**
-     * Stores input related data for a player, including timeout task, menu, and input type.
-     * @param player The player providing input.
-     * @param task The BukkitTask for timeout.
-     * @param menu The PunishDetailsMenu context.
-     * @param inputType The type of input.
-     */
-    private void storeInputData(Player player, BukkitTask task, PunishDetailsMenu menu, String inputType) {
-        inputTimeouts.put(player.getUniqueId(), task);
-        pendingDetailsMenus.put(player.getUniqueId(), menu);
-        inputTypes.put(player.getUniqueId(), inputType);
-    }
-
-
-    /**
-     * Handles player chat input, processing and validating input based on the current input type.
+     * Handles asynchronous player chat events, capturing input if expected.
      *
      * @param event The AsyncPlayerChatEvent.
      */
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        if (!inputTimeouts.containsKey(player.getUniqueId())) return;
+        // Ignore if the plugin is not waiting for input from this player
+        if (!inputTimeouts.containsKey(player.getUniqueId())) {
+            return;
+        }
 
-        // Check if the sender is frozen - NEW
-        if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId())) {
-            if (!player.hasPermission(MOD_PERMISSION)) {
-                event.setCancelled(true); // Cancel chat message
-                // Send message only to admins - NEW
-                plugin.getServer().getOnlinePlayers().stream()
-                        .filter(p -> p.hasPermission(MOD_PERMISSION))
-                        .forEach(admin -> admin.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_player_chat_admin_only", "{player}", player.getName(), "{message}", event.getMessage()))));
-                return; // Stop further processing
-            } else {
-                // Admins can chat even when frozen for monitoring purposes
-                plugin.getServer().getOnlinePlayers().forEach(p -> p.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_player_chat_admin", "{player}", player.getName(), "{message}", event.getMessage()))));
+        // Prevent frozen players (non-mods) from submitting input
+        if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId()) && !player.hasPermission(MOD_PERMISSION)) {
+            event.setCancelled(true);
+            sendConfigMessage(player, "messages.freeze_command_blocked"); // Inform them they can't chat/input
+            return;
+        }
+
+        event.setCancelled(true); // Prevent the message from appearing in global chat
+
+        // Process the input synchronously on the main thread
+        String message = event.getMessage();
+        Bukkit.getScheduler().runTask(plugin, () -> handlePlayerInput(player, message));
+    }
+
+    // ========================================================================
+    // Core Action Dispatching
+    // ========================================================================
+
+    /**
+     * Central dispatcher for handling menu item clicks and executing associated actions.
+     * Processes placeholders relevant to the clicking player ({player}) and delegates execution
+     * first to menu-specific handlers, then to common action handlers.
+     *
+     * @param player The player who clicked.
+     * @param holder The InventoryHolder representing the menu.
+     * @param action The ClickAction enum value representing the action to take.
+     * @param actionData The data associated with the ClickAction.
+     * @param event The InventoryClickEvent (can be null if called programmatically).
+     * @param clickedMenuItem The MenuItem that was clicked (can be null if called programmatically).
+     */
+    private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + (clickedMenuItem != null ? clickedMenuItem.getName() : "null") + ", Holder Type: " + holder.getClass().getSimpleName());
+
+        // 1. Process {player} placeholders using the clicking player's context
+        String[] processedActionData = actionData;
+        if (actionData != null && actionData.length > 0) {
+            processedActionData = Arrays.stream(actionData)
+                    .filter(Objects::nonNull)
+                    .map(data -> replacePlaceholders(player, data, holder)) // Primarily for {player}
+                    .toArray(String[]::new);
+        }
+
+        // 2. Delegate to Menu-Specific Handlers FIRST
+        boolean handledByMenuSpecific = false;
+        if (holder instanceof PunishMenu punishMenu) {
+            handledByMenuSpecific = handlePunishMenuActions(player, punishMenu, action, processedActionData, clickedMenuItem);
+        } else if (holder instanceof PunishDetailsMenu punishDetailsMenu) {
+            handledByMenuSpecific = handlePunishDetailsMenuActions(player, punishDetailsMenu, action, processedActionData, clickedMenuItem);
+        } else if (holder instanceof TimeSelectorMenu timeSelectorMenu) {
+            handledByMenuSpecific = handleTimeSelectorMenuActions(player, timeSelectorMenu, action, processedActionData, clickedMenuItem);
+        } else if (holder instanceof HistoryMenu historyMenu) {
+            handledByMenuSpecific = handleHistoryMenuActions(player, historyMenu, action, processedActionData, clickedMenuItem);
+        }
+
+        // 3. Handle Common Actions (if not already handled by specific menu logic)
+        if (!handledByMenuSpecific) {
+            switch (action) {
+                // Command Actions (Processes {target} internally)
+                case CONSOLE_COMMAND: executeConsoleCommand(player, processedActionData, holder); break;
+                case PLAYER_COMMAND:
+                case PLAYER_COMMAND_OP: executeCommandAction(player, action, processedActionData, holder); break;
+
+                // Menu Interaction
+                case CLOSE_MENU: player.closeInventory(); break;
+
+                // Player Feedback
+                case PLAY_SOUND: executePlaySoundAction(player, processedActionData); break;
+                case TITLE: executeTitleAction(player, processedActionData); break;
+                case MESSAGE: executeMessageAction(player, processedActionData, holder); break;
+                case ACTIONBAR: executeActionbarAction(player, processedActionData); break;
+
+                // Target Feedback (Processes {target} internally)
+                case PLAY_SOUND_TARGET: executePlaySoundTargetAction(player, holder, processedActionData); break;
+                case TITLE_TARGET: executeTitleTargetAction(player, holder, processedActionData); break;
+                case MESSAGE_TARGET: executeMessageTargetAction(player, holder, processedActionData); break;
+                case ACTIONBAR_TARGET: executeActionbarTargetAction(player, holder, processedActionData); break;
+                case GIVE_EFFECT_TARGET: executeGiveEffectTargetAction(player, holder, actionData); break; // Original data for effects
+
+                // Moderator Feedback (Processes {player}/{target} internally)
+                case PLAY_SOUND_MODS: executePlaySoundModsAction(player, holder, processedActionData); break;
+                case TITLE_MODS: executeTitleModsAction(player, holder, processedActionData); break;
+                case MESSAGE_MODS: executeMessageModsAction(player, holder, processedActionData); break;
+                case ACTIONBAR_MODS: executeActionbarModsAction(player, holder, processedActionData); break;
+
+                // NO_ACTION or actions handled purely by menu-specific logic (fall through)
+                case NO_ACTION:
+                case OPEN_MENU:
+                case REQUEST_INPUT:
+                case SET_PUNISHMENT_TYPE:
+                case ADJUST_TIME:
+                case ADJUST_PAGE:
+                case CONFIRM_PUNISHMENT:
+                case UN_SOFTBAN:
+                case UN_FREEZE:
+                case UN_BAN:
+                case UN_MUTE:
+                case UN_WARN:
+                default:
+                    // If debug is enabled and action wasn't NO_ACTION, log it might be unhandled
+                    if (plugin.getConfigManager().isDebugEnabled() && action != ClickAction.NO_ACTION) {
+                        plugin.getLogger().info("[DEBUG] Action " + action + " was not handled by common handlers (expected if menu-specific).");
+                    }
+                    break;
             }
         }
 
-        event.setCancelled(true);
-        handlePlayerInput(player, event.getMessage());
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData));
     }
 
     /**
-     * Processes the player's chat input, handling cancellation and valid input scenarios.
+     * Programmatically executes a ClickAction for a player, typically used by background tasks (e.g., FreezeListener).
+     * Processes {player} placeholders but cannot process {target} or execute TARGET/MODS actions reliably due to lack of menu context.
+     *
+     * @param player     The player context.
+     * @param action     The action to execute.
+     * @param actionData The arguments for the action.
+     */
+    public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) {
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - START - Player: " + player.getName() + ", Action: " + action + ", ActionData: " + Arrays.toString(actionData));
+
+        // Process {player} placeholders using the player's context
+        String[] processedActionData = actionData;
+        if (actionData != null && actionData.length > 0) {
+            processedActionData = Arrays.stream(actionData)
+                    .filter(Objects::nonNull)
+                    .map(data -> replacePlaceholders(player, data, null)) // Process {player}, no holder context
+                    .toArray(String[]::new);
+        }
+
+        // Execute actions that only require the 'player' context
+        switch (action) {
+            // Commands
+            case CONSOLE_COMMAND: executeConsoleCommand(player, processedActionData, null); break;
+            case PLAYER_COMMAND:
+            case PLAYER_COMMAND_OP: executeCommandAction(player, action, processedActionData, null); break;
+            // Player Feedback
+            case PLAY_SOUND: executePlaySoundAction(player, processedActionData); break;
+            case TITLE: executeTitleAction(player, processedActionData); break;
+            case MESSAGE: executeMessageAction(player, processedActionData, null); break;
+            case ACTIONBAR: executeActionbarAction(player, processedActionData); break;
+            // Unsupported actions without menu context
+            case PLAY_SOUND_TARGET: case TITLE_TARGET: case MESSAGE_TARGET: case ACTIONBAR_TARGET:
+            case GIVE_EFFECT_TARGET: case PLAY_SOUND_MODS: case TITLE_MODS: case MESSAGE_MODS:
+            case ACTIONBAR_MODS: case OPEN_MENU: case REQUEST_INPUT:
+                // ... other context-dependent actions ...
+                plugin.getLogger().warning("[WARNING] executeMenuItemAction called with context-dependent action ("+action+") without inventory context. Action skipped for player " + player.getName() + ".");
+                break;
+            case NO_ACTION: default: break; // Ignore NO_ACTION or unhandled actions
+        }
+
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - END - Player: " + player.getName() + ", Action: " + action);
+    }
+
+    /**
+     * Executes menu open actions configured for the given menu.
+     * @param player The player opening the menu.
+     * @param holder The InventoryHolder representing the menu.
+     */
+    public void executeMenuOpenActions(Player player, InventoryHolder holder) {
+        List<MenuItem.ClickActionData> openActions;
+        FileConfiguration config = null;
+        String path = null;
+
+        // Determine config and path based on holder type
+        if (holder instanceof PunishMenu) {
+            config = plugin.getConfigManager().getPunishMenuConfig().getConfig(); path = "menu";
+        } else if (holder instanceof PunishDetailsMenu detailsMenu) {
+            config = plugin.getConfigManager().getPunishDetailsMenuConfig().getConfig(); path = "menu.punish_details." + detailsMenu.getPunishmentType();
+        } else if (holder instanceof TimeSelectorMenu) {
+            config = plugin.getConfigManager().getTimeSelectorMenuConfig().getConfig(); path = "menu";
+        } else if (holder instanceof HistoryMenu) {
+            config = plugin.getConfigManager().getHistoryMenuConfig().getConfig(); path = "menu";
+        }
+
+        // Load and execute actions if config and path are valid
+        if (config != null && path != null) {
+            openActions = plugin.getConfigManager().loadMenuOpenActions(config, path);
+            if (!openActions.isEmpty() && plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Executing " + openActions.size() + " open actions for " + holder.getClass().getSimpleName());
+            }
+            for (MenuItem.ClickActionData actionData : openActions) {
+                // Use executeMenuItemAction to run actions in the player's context
+                // Note: TARGET/MODS actions won't work correctly here due to lack of holder context.
+                executeMenuItemAction(player, actionData.getAction(), actionData.getActionData());
+            }
+        } else if (plugin.getConfigManager().isDebugEnabled()){
+            plugin.getLogger().info("[DEBUG] No valid config/path found for open actions for " + holder.getClass().getSimpleName());
+        }
+    }
+
+    // ========================================================================
+    // Action Execution Implementations
+    // ========================================================================
+
+    // --- Player Context Actions ---
+
+    private void executePlaySoundAction(Player player, String[] soundArgs) {
+        if (soundArgs == null || soundArgs.length < 1 || soundArgs[0] == null || soundArgs[0].isEmpty()) {
+            plugin.getLogger().warning("PLAY_SOUND action requires at least a non-empty sound name."); return;
+        }
+        try {
+            Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
+            float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f;
+            float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;
+            player.playSound(player.getLocation(), sound, volume, pitch);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND played '" + sound.name() + "' for " + player.getName());
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND: " + Arrays.toString(soundArgs));
+        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND: " + soundArgs[0]); }
+    }
+
+    private void executeTitleAction(Player player, String[] titleArgs) {
+        if (titleArgs == null || titleArgs.length < 3 || titleArgs[0] == null || titleArgs[1] == null || titleArgs[2] == null) {
+            plugin.getLogger().warning("TITLE action requires at least non-null title, subtitle, and time_seconds arguments."); return;
+        }
+        String titleText = MessageUtils.getColorMessage(titleArgs[0]);
+        String subtitleText = MessageUtils.getColorMessage(titleArgs[1]);
+        try {
+            int timeSeconds = Integer.parseInt(titleArgs[2]);
+            int fadeInTicks = titleArgs.length > 3 && titleArgs[3] != null ? Integer.parseInt(titleArgs[3]) : 10;
+            int fadeOutTicks = titleArgs.length > 4 && titleArgs[4] != null ? Integer.parseInt(titleArgs[4]) : 20;
+            player.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE sent to " + player.getName() + ": " + titleText);
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE action: " + Arrays.toString(titleArgs)); }
+    }
+
+    private void executeMessageAction(Player player, String[] messageArgs, InventoryHolder holder) {
+        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) {
+            plugin.getLogger().warning("MESSAGE action requires a non-null message text argument."); return;
+        }
+        // Process {target} here if holder is present, otherwise it uses already processed text
+        OfflinePlayer target = getTargetForAction(holder);
+        String messageText = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target} if possible
+        messageText = MessageUtils.getColorMessage(messageText); // Colorize final message
+        player.sendMessage(messageText);
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE sent to " + player.getName() + ": " + messageText);
+    }
+
+    private void executeActionbarAction(Player player, String[] messageArgs) {
+        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) {
+            plugin.getLogger().warning("ACTIONBAR action requires a non-null message text argument."); return;
+        }
+        String messageText = MessageUtils.getColorMessage(messageArgs[0]); // Colorize
+        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(messageText));
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR sent to " + player.getName() + ": " + messageText);
+    }
+
+
+    // --- Target Context Actions ---
+
+    private void executePlaySoundTargetAction(Player player, InventoryHolder holder, String[] soundArgs) {
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET skipped: Target offline or null."); return; }
+        Player targetPlayer = target.getPlayer();
+        if (soundArgs == null || soundArgs.length < 1 || soundArgs[0] == null || soundArgs[0].isEmpty()) { plugin.getLogger().warning("PLAY_SOUND_TARGET action requires at least a non-empty sound name."); return; }
+        try {
+            Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
+            float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f;
+            float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;
+            targetPlayer.playSound(targetPlayer.getLocation(), sound, volume, pitch);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET played '" + sound.name() + "' for " + targetPlayer.getName());
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_TARGET: " + Arrays.toString(soundArgs));
+        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_TARGET: " + soundArgs[0]); }
+    }
+
+    private void executeTitleTargetAction(Player player, InventoryHolder holder, String[] titleArgs) {
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_TARGET skipped: Target offline or null."); return; }
+        Player targetPlayer = target.getPlayer();
+        if (titleArgs == null || titleArgs.length < 3 || titleArgs[0] == null || titleArgs[1] == null || titleArgs[2] == null) { plugin.getLogger().warning("TITLE_TARGET action requires at least non-null title, subtitle, and time_seconds arguments."); return; }
+
+        String titleText = plugin.getConfigManager().processPlaceholders(titleArgs[0], target); // Process {target}
+        titleText = MessageUtils.getColorMessage(titleText);
+        String subtitleText = plugin.getConfigManager().processPlaceholders(titleArgs[1], target); // Process {target}
+        subtitleText = MessageUtils.getColorMessage(subtitleText);
+        try {
+            int timeSeconds = Integer.parseInt(titleArgs[2]);
+            int fadeInTicks = titleArgs.length > 3 && titleArgs[3] != null ? Integer.parseInt(titleArgs[3]) : 10;
+            int fadeOutTicks = titleArgs.length > 4 && titleArgs[4] != null ? Integer.parseInt(titleArgs[4]) : 20;
+            targetPlayer.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_TARGET sent to " + targetPlayer.getName() + ": " + titleText);
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE_TARGET action: " + Arrays.toString(titleArgs)); }
+    }
+
+    private void executeMessageTargetAction(Player player, InventoryHolder holder, String[] messageArgs) {
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_TARGET skipped: Target offline or null."); return; }
+        Player targetPlayer = target.getPlayer();
+        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) { plugin.getLogger().warning("MESSAGE_TARGET action requires a non-null message text argument."); return; }
+        String messageText = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target}
+        messageText = MessageUtils.getColorMessage(messageText); // Colorize
+        targetPlayer.sendMessage(messageText);
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_TARGET sent to " + targetPlayer.getName() + ": " + messageText);
+    }
+
+    private void executeActionbarTargetAction(Player player, InventoryHolder holder, String[] messageArgs) {
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_TARGET skipped: Target offline or null."); return; }
+        Player targetPlayer = target.getPlayer();
+        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) { plugin.getLogger().warning("ACTIONBAR_TARGET action requires a non-null message text argument."); return; }
+        String messageText = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target}
+        messageText = MessageUtils.getColorMessage(messageText); // Colorize
+        targetPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(messageText));
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_TARGET sent to " + targetPlayer.getName() + ": " + messageText);
+    }
+
+    private void executeGiveEffectTargetAction(Player player, InventoryHolder holder, String[] effectArgs) {
+        OfflinePlayer target = getTargetForAction(holder);
+        if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] GIVE_EFFECT_TARGET skipped: Target offline or null."); return; }
+        Player targetPlayer = target.getPlayer();
+        if (effectArgs == null || effectArgs.length < 3 || effectArgs[0] == null || effectArgs[1] == null || effectArgs[2] == null) { plugin.getLogger().warning("GIVE_EFFECT_TARGET action requires at least effect_type, duration_seconds, and amplifier arguments."); return; }
+        try {
+            NamespacedKey effectKey = NamespacedKey.minecraft(effectArgs[0].toLowerCase()); PotionEffectType effectType = PotionEffectType.getByKey(effectKey);
+            if (effectType == null) effectType = PotionEffectType.getByName(effectArgs[0].toUpperCase()); // Fallback
+            if (effectType == null) { plugin.getLogger().warning("Invalid PotionEffectType configured: " + effectArgs[0] + " for GIVE_EFFECT_TARGET action."); return; }
+            int durationSeconds = Integer.parseInt(effectArgs[1]); int amplifier = Integer.parseInt(effectArgs[2]);
+            boolean particles = effectArgs.length <= 3 || effectArgs[3] == null || Boolean.parseBoolean(effectArgs[3]);
+            boolean icon = particles; boolean ambient = false;
+            PotionEffect effect = new PotionEffect(effectType, durationSeconds * 20, amplifier, ambient, particles, icon);
+            targetPlayer.addPotionEffect(effect);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] GIVE_EFFECT_TARGET action executed for player: " + targetPlayer.getName() + ", effect: " + effectType.getKey() + ", duration: " + durationSeconds + "s, amplifier: " + amplifier);
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid duration or amplifier format for GIVE_EFFECT_TARGET action: " + Arrays.toString(effectArgs));
+        } catch (IllegalArgumentException e) { plugin.getLogger().warning("IllegalArgumentException in GIVE_EFFECT_TARGET action: " + e.getMessage() + ", Args: " + Arrays.toString(effectArgs)); }
+    }
+
+
+    // --- Moderator Context Actions ---
+
+    private void executePlaySoundModsAction(Player player, InventoryHolder holder, String[] soundArgs) {
+        if (soundArgs == null || soundArgs.length < 1 || soundArgs[0] == null || soundArgs[0].isEmpty()) { plugin.getLogger().warning("PLAY_SOUND_MODS action requires at least a non-empty sound name."); return; }
+        List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_MODS skipped: No online mods."); return; }
+        try {
+            Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
+            float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f;
+            float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;
+            mods.forEach(mod -> mod.playSound(mod.getLocation(), sound, volume, pitch));
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_MODS played sound '" + sound.name() + "' for " + mods.size() + " mods.");
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_MODS: " + Arrays.toString(soundArgs));
+        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_MODS: " + soundArgs[0]); }
+    }
+
+    private void executeTitleModsAction(Player player, InventoryHolder holder, String[] titleArgs) {
+        if (titleArgs == null || titleArgs.length < 3 || titleArgs[0] == null || titleArgs[1] == null || titleArgs[2] == null) { plugin.getLogger().warning("TITLE_MODS action requires at least non-null title, subtitle, and time_seconds arguments."); return; }
+        List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_MODS skipped: No online mods."); return; }
+        OfflinePlayer target = getTargetForAction(holder);
+        String titleText = plugin.getConfigManager().processPlaceholders(titleArgs[0], target); titleText = replacePlaceholders(player, titleText, holder); titleText = MessageUtils.getColorMessage(titleText);
+        String subtitleText = plugin.getConfigManager().processPlaceholders(titleArgs[1], target); subtitleText = replacePlaceholders(player, subtitleText, holder); subtitleText = MessageUtils.getColorMessage(subtitleText);
+        try {
+            int timeSeconds = Integer.parseInt(titleArgs[2]);
+            int fadeInTicks = titleArgs.length > 3 && titleArgs[3] != null ? Integer.parseInt(titleArgs[3]) : 10;
+            int fadeOutTicks = titleArgs.length > 4 && titleArgs[4] != null ? Integer.parseInt(titleArgs[4]) : 20;
+            final String finalTitle = titleText; final String finalSubtitle = subtitleText;
+            mods.forEach(mod -> mod.sendTitle(finalTitle, finalSubtitle, fadeInTicks, timeSeconds * 20, fadeOutTicks));
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_MODS sent to " + mods.size() + " mods. Title: " + finalTitle);
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE_MODS action: " + Arrays.toString(titleArgs)); }
+    }
+
+    private void executeMessageModsAction(Player player, InventoryHolder holder, String[] messageArgs) {
+        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) { plugin.getLogger().warning("MESSAGE_MODS action requires a non-null message text argument."); return; }
+        List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_MODS skipped: No online mods."); return; }
+        OfflinePlayer target = getTargetForAction(holder);
+        String baseMessage = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target}
+        baseMessage = replacePlaceholders(player, baseMessage, holder); // Process {player} (initiator)
+        baseMessage = MessageUtils.getColorMessage(baseMessage); // Colorize
+        final String finalMessage = baseMessage;
+        mods.forEach(mod -> mod.sendMessage(finalMessage));
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_MODS sent to " + mods.size() + " mods: " + finalMessage);
+    }
+
+    private void executeActionbarModsAction(Player player, InventoryHolder holder, String[] messageArgs) {
+        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) { plugin.getLogger().warning("ACTIONBAR_MODS action requires a non-null message text argument."); return; }
+        List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_MODS skipped: No online mods."); return; }
+        OfflinePlayer target = getTargetForAction(holder);
+        String baseMessage = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target}
+        baseMessage = replacePlaceholders(player, baseMessage, holder); // Process {player} (initiator)
+        baseMessage = MessageUtils.getColorMessage(baseMessage); // Colorize
+        final String finalMessage = baseMessage;
+        mods.forEach(mod -> mod.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(finalMessage)));
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_MODS sent to " + mods.size() + " mods: " + finalMessage);
+    }
+
+
+    // --- Command Execution ---
+
+    private void executeCommandAction(Player player, ClickAction action, String[] commandData, InventoryHolder holder) {
+        if (commandData == null || commandData.length < 1 || commandData[0] == null || commandData[0].isEmpty()) { plugin.getLogger().warning("Invalid COMMAND action data: Command string is missing or empty."); return; }
+        OfflinePlayer target = getTargetForAction(holder);
+        String commandToExecute = plugin.getConfigManager().processPlaceholders(commandData[0], target); // Process {target}
+        commandToExecute = ColorUtils.translateRGBColors(commandToExecute); // Colorize
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing COMMAND: " + action + " Command: " + commandToExecute);
+        final String finalCommand = commandToExecute;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            switch (action) {
+                case CONSOLE_COMMAND: Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand); break;
+                case PLAYER_COMMAND: player.performCommand(finalCommand); break;
+                case PLAYER_COMMAND_OP:
+                    boolean wasOp = player.isOp();
+                    try { player.setOp(true); player.performCommand(finalCommand); }
+                    catch (Exception e) { plugin.getLogger().log(Level.SEVERE, "Error executing OP command '" + finalCommand + "' for player " + player.getName(), e); }
+                    finally { if (!wasOp) player.setOp(false); } // Revert OP status
+                    break;
+                default: plugin.getLogger().warning("executeCommandAction called with non-command action: " + action); break;
+            }
+        });
+    }
+
+    private void executeConsoleCommand(Player player, String[] commandData, InventoryHolder holder) {
+        if (commandData == null || commandData.length < 1 || commandData[0] == null || commandData[0].isEmpty()) { plugin.getLogger().warning("Invalid CONSOLE_COMMAND action data: Command string is missing or empty."); return; }
+        OfflinePlayer target = getTargetForAction(holder);
+        String commandToExecute = plugin.getConfigManager().processPlaceholders(commandData[0], target); // Process {target}
+        commandToExecute = ColorUtils.translateRGBColors(commandToExecute);
+        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing CONSOLE_COMMAND: " + commandToExecute);
+        final String finalCommand = commandToExecute;
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
+    }
+
+
+    /**
+     * Handles actions specific to PunishMenu clicks.
+     * Now handles change_target via REQUEST_INPUT.
+     *
+     * @param player          The player who clicked.
+     * @param punishMenu      The PunishMenu instance.
+     * @param action          The ClickAction enum value.
+     * @param actionData      The data associated with the ClickAction.
+     * @param clickedMenuItem The MenuItem that was clicked.
+     * @return true if the action was handled here, false otherwise.
+     */
+    private boolean handlePunishMenuActions(Player player, PunishMenu punishMenu, ClickAction action, String[] actionData, MenuItem clickedMenuItem) {
+        UUID targetUUID = punishMenu.getTargetUUID();
+        String firstArg = (actionData != null && actionData.length > 0) ? actionData[0] : null;
+
+        switch (action) {
+            case OPEN_MENU:
+                if (firstArg != null) {
+                    // Handle standard menu openings
+                    switch (firstArg.toLowerCase()) {
+                        case "ban_details": if (!player.hasPermission(PUNISH_BAN_PERMISSION)) { sendNoPermissionMenuMessage(player, "ban details"); return true; } new PunishDetailsMenu(targetUUID, plugin, BAN_PUNISHMENT_TYPE).open(player); return true;
+                        case "mute_details": if (!player.hasPermission(PUNISH_MUTE_PERMISSION)) { sendNoPermissionMenuMessage(player, "mute details"); return true; } new PunishDetailsMenu(targetUUID, plugin, MUTE_PUNISHMENT_TYPE).open(player); return true;
+                        case "softban_details": if (!player.hasPermission(PUNISH_SOFTBAN_PERMISSION)) { sendNoPermissionMenuMessage(player, "softban details"); return true; } new PunishDetailsMenu(targetUUID, plugin, SOFTBAN_PUNISHMENT_TYPE).open(player); return true;
+                        case "kick_details": if (!player.hasPermission(PUNISH_KICK_PERMISSION)) { sendNoPermissionMenuMessage(player, "kick details"); return true; } new PunishDetailsMenu(targetUUID, plugin, KICK_PUNISHMENT_TYPE).open(player); return true;
+                        case "warn_details": if (!player.hasPermission(PUNISH_WARN_PERMISSION)) { sendNoPermissionMenuMessage(player, "warn details"); return true; } new PunishDetailsMenu(targetUUID, plugin, WARN_PUNISHMENT_TYPE).open(player); return true;
+                        case "freeze_details": if (!player.hasPermission(PUNISH_FREEZE_PERMISSION)) { sendNoPermissionMenuMessage(player, "freeze details"); return true; } new PunishDetailsMenu(targetUUID, plugin, FREEZE_PUNISHMENT_TYPE).open(player); return true;
+                        case "history_menu": if (!player.hasPermission(USE_PERMISSION)) { sendNoPermissionMenuMessage(player, "history menu"); return true; } new HistoryMenu(targetUUID, plugin).open(player); return true;
+                        // Removed 'change_target' from here
+                        default: return false;
+                    }
+                }
+                return false;
+
+            case REQUEST_INPUT: // Handle input requests
+                if (firstArg != null) {
+                    if (firstArg.equalsIgnoreCase("change_target")) { // Handle change_target here
+                        if (!player.hasPermission(USE_PERMISSION)) { sendNoPermissionMenuMessage(player, "change target action"); return true; }
+                        player.closeInventory();
+                        requestNewTargetName(player); // Request input for new target name
+                        return true; // Action handled
+                    }
+                    // Handle other potential REQUEST_INPUT types specific to PunishMenu if needed
+                }
+                return false; // Unrecognized input request
+
+            // Handle other actions specific to PunishMenu if any
+            default:
+                return false; // Action not handled by this specific menu handler
+        }
+    }
+
+    private boolean handlePunishDetailsMenuActions(Player player, PunishDetailsMenu punishDetailsMenu, ClickAction action, String[] actionData, MenuItem clickedMenuItem) {
+        String firstArg = (actionData != null && actionData.length > 0) ? actionData[0] : null;
+        switch (action) {
+            case OPEN_MENU:
+                if (firstArg != null) {
+                    if (firstArg.equalsIgnoreCase("time_selector")) { if (punishDetailsMenu.isTimeRequired()) { new TimeSelectorMenu(punishDetailsMenu, plugin).open(player); } else { sendConfigMessage(player, "messages.time_not_applicable"); } return true; }
+                    else if (firstArg.equalsIgnoreCase("punish_menu")) { new PunishMenu(punishDetailsMenu.getTargetUUID(), plugin).open(player); return true; }
+                } return false;
+            case REQUEST_INPUT:
+                if (firstArg != null && firstArg.equalsIgnoreCase("reason_input")) { requestReasonInput(player, punishDetailsMenu); return true; } return false;
+            case CONFIRM_PUNISHMENT: handleConfirmButtonClick(player, punishDetailsMenu); return true;
+            case UN_SOFTBAN: if (!player.hasPermission(UNPUNISH_SOFTBAN_PERMISSION)) { sendNoPermissionMenuMessage(player, "unsoftban"); return true; } handleUnsoftbanButtonClick(player, punishDetailsMenu); return true;
+            case UN_FREEZE: if (!player.hasPermission(UNPUNISH_FREEZE_PERMISSION)) { sendNoPermissionMenuMessage(player, "unfreeze"); return true; } handleUnfreezeButtonClick(player, punishDetailsMenu); return true;
+            case UN_BAN: if (!player.hasPermission(UNPUNISH_BAN_PERMISSION)) { sendNoPermissionMenuMessage(player, "unban"); return true; } executeUnbanAction(player, punishDetailsMenu); return true;
+            case UN_MUTE: if (!player.hasPermission(UNPUNISH_MUTE_PERMISSION)) { sendNoPermissionMenuMessage(player, "unmute"); return true; } executeUnmuteAction(player, punishDetailsMenu); return true;
+            case UN_WARN: if (!player.hasPermission(UNPUNISH_WARN_PERMISSION)) { sendNoPermissionMenuMessage(player, "unwarn"); return true; } executeUnwarnAction(player, punishDetailsMenu); return true;
+            default: return false;
+        }
+    }
+
+    private boolean handleTimeSelectorMenuActions(Player player, TimeSelectorMenu timeSelectorMenu, ClickAction action, String[] actionData, MenuItem clickedMenuItem) {
+        PunishDetailsMenu detailsMenu = timeSelectorMenu.getPunishDetailsMenu();
+        String firstArg = (actionData != null && actionData.length > 0) ? actionData[0] : null;
+        switch (action) {
+            case ADJUST_TIME:
+                if (firstArg != null) {
+                    int secondsToAdd = switch (firstArg.toLowerCase()) { case "minus_5_min" -> -300; case "minus_2_hour" -> -7200; case "minus_1_day" -> -86400; case "minus_5_day" -> -432000; case "plus_15_min" -> 900; case "plus_6_hour" -> 21600; case "plus_1_day" -> 86400; case "plus_7_day" -> 604800; default -> 0; };
+                    if (secondsToAdd != 0) { timeSelectorMenu.adjustTime(secondsToAdd); timeSelectorMenu.updateTimeDisplayItem(player); } return true;
+                } return false;
+            case REQUEST_INPUT:
+                if (firstArg != null && firstArg.equalsIgnoreCase("custom_time_input")) { requestCustomTimeInput(player, detailsMenu); return true; } return false;
+            case SET_PUNISHMENT_TYPE: // Used for time setting actions here
+                if (firstArg != null) {
+                    if (firstArg.equalsIgnoreCase("permanent_time")) { setPermanentTime(detailsMenu, player); return true; }
+                    else if (firstArg.equalsIgnoreCase("confirm_time")) { handleTimeDisplayClick(timeSelectorMenu, detailsMenu, player); return true; }
+                } return false;
+            case OPEN_MENU:
+                if (firstArg != null && firstArg.equalsIgnoreCase("punish_details")) { detailsMenu.open(player); return true; } return false;
+            default: return false;
+        }
+    }
+
+    private boolean handleHistoryMenuActions(Player player, HistoryMenu historyMenu, ClickAction action, String[] actionData, MenuItem clickedMenuItem) {
+        String firstArg = (actionData != null && actionData.length > 0) ? actionData[0] : null;
+        switch (action) {
+            case OPEN_MENU:
+                if (firstArg != null && firstArg.equalsIgnoreCase("punish_menu")) { new PunishMenu(historyMenu.getTargetUUID(), plugin).open(player); return true; } return false;
+            case ADJUST_PAGE:
+                if (firstArg != null) {
+                    if (firstArg.equalsIgnoreCase("next_page")) historyMenu.nextPage(player);
+                    else if (firstArg.equalsIgnoreCase("previous_page")) historyMenu.previousPage(player);
+                    return true; // NO_ACTION is also handled here (by doing nothing)
+                } return false;
+            default: return false;
+        }
+    }
+
+    /**
+     * Requests a new target player name from the player via chat input.
+     * Uses "change_target" as the inputType.
+     *
+     * @param player The player to request input from.
+     */
+    private void requestNewTargetName(Player player) {
+        sendConfigMessage(player, "messages.prompt_new_target");
+        // Use "change_target" as the inputType
+        storeInputData(player, setupChatInputTimeout(player, null, "change_target"), null, "change_target");
+    }
+
+    private void requestReasonInput(Player player, PunishDetailsMenu punishDetailsMenu) {
+        player.closeInventory();
+        // Dynamically get the correct prompt message based on punishment type
+        String promptPath = "messages.prompt_" + punishDetailsMenu.getPunishmentType().toLowerCase() + "_reason";
+        sendConfigMessage(player, promptPath); // Send the prompt
+        storeInputData(player, setupChatInputTimeout(player, punishDetailsMenu, "reason_input"), punishDetailsMenu, "reason_input"); // Store data
+    }
+
+    /**
+     * Requests a custom time input from the player via chat.
+     * Stores the pending menu context and the timeout task correctly.
+     *
+     * @param player The player to request input from.
+     * @param punishDetailsMenu The PunishDetailsMenu context.
+     */
+    private void requestCustomTimeInput(Player player, PunishDetailsMenu punishDetailsMenu) {
+        player.closeInventory();
+        // Send the prompt message first
+        sendConfigMessage(player, "messages.prompt_custom_time");
+        // Setup the timeout task and store the input state
+        storeInputData(player, setupChatInputTimeout(player, punishDetailsMenu, "custom_time"), punishDetailsMenu, "custom_time");
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Requested custom_time input from " + player.getName() + ". Timeout task stored.");
+        }
+    }
+
+    /**
+     * Sets up a timeout for chat input, cancelling existing timeouts.
+     * Returns the created BukkitTask so it can be stored.
+     *
+     * @param player    The player providing input.
+     * @param menu      The PunishDetailsMenu context (can be null).
+     * @param inputType The type of input requested (reason, time, etc.).
+     * @return The BukkitTask representing the timeout runnable.
+     */
+    private BukkitTask setupChatInputTimeout(Player player, PunishDetailsMenu menu, String inputType) {
+        cancelExistingTimeout(player); // Cancel previous timeout first
+
+        BukkitTask timeoutTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                // Check if the player is still expecting this specific input type when timeout occurs
+                // This prevents the timeout message if the player already provided input.
+                if (inputTypes.getOrDefault(player.getUniqueId(), "").equals(inputType)) {
+                    handleInputTimeout(player);
+                }
+                // If inputTypes doesn't match, it means the player likely submitted input
+                // or another input request overwrote this one, so the maps were cleared.
+                // No message needed in that case.
+            }
+        }.runTaskLater(plugin, 400L); // 20 seconds timeout (20 ticks/sec * 20)
+
+        // Return the task so the calling method can store it
+        return timeoutTask;
+    }
+
+
+    /**
+     * Stores input related data for a player, including timeout task, menu, and input type.
+     *
+     * @param player The player providing input.
+     * @param task The BukkitTask for timeout.
+     * @param menu The PunishDetailsMenu context (can be null).
+     * @param inputType The type of input.
+     */
+    private void storeInputData(Player player, BukkitTask task, PunishDetailsMenu menu, String inputType) {
+        // Only store if the task is valid
+        if (task != null) {
+            inputTimeouts.put(player.getUniqueId(), task);
+        } else {
+            plugin.getLogger().warning("Attempted to store a null timeout task for " + player.getName() + ", inputType: " + inputType);
+        }
+
+        if (menu != null) { // Store menu context only if provided
+            pendingDetailsMenus.put(player.getUniqueId(), menu);
+        } else {
+            // If a previous menu was stored for this player but isn't needed now, remove it.
+            // This might happen if change_target overwrites a pending reason input.
+            pendingDetailsMenus.remove(player.getUniqueId());
+        }
+        inputTypes.put(player.getUniqueId(), inputType);
+
+        if (plugin.getConfigManager().isDebugEnabled() && task != null) {
+            plugin.getLogger().info("[DEBUG] Stored input data for " + player.getName() + ": inputType=" + inputType + ", menuContext=" + (menu != null) + ", taskID=" + task.getTaskId());
+        }
+    }
+
+    private void cancelExistingTimeout(Player player) {
+        BukkitTask existingTask = inputTimeouts.remove(player.getUniqueId());
+        if (existingTask != null && !existingTask.isCancelled()) {
+            existingTask.cancel();
+        }
+    }
+
+    /**
+     * Handles the actual timeout logic: sends message and clears data.
+     * Called by the BukkitRunnable in setupChatInputTimeout.
+     *
+     * @param player The player who timed out.
+     */
+    private void handleInputTimeout(Player player) {
+        // Check if the player still exists and is online before sending message
+        if (player != null && player.isOnline()) {
+            // Only send timeout message if we were *actually* still waiting for input from them
+            // (check inputTypes before clearing)
+            if (inputTypes.containsKey(player.getUniqueId())) {
+                sendConfigMessage(player, "messages.input_timeout");
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Input timed out for " + player.getName() + ". Type was: " + inputTypes.get(player.getUniqueId()));
+                }
+            }
+        }
+        // Clean up maps regardless of whether message was sent
+        clearPlayerInputData(player);
+    }
+
+
+    /**
+     * Processes the player's chat input after receiving it.
+     * Cancels the associated timeout task.
      *
      * @param player The player providing input.
      * @param input  The chat input message.
      */
     private void handlePlayerInput(Player player, String input) {
-        cancelInputTimeout(player);
+        // Retrieve context *before* cancelling timeout/clearing data
+        PunishDetailsMenu detailsMenu = pendingDetailsMenus.get(player.getUniqueId());
+        String inputType = inputTypes.get(player.getUniqueId());
 
-        PunishDetailsMenu detailsMenu = pendingDetailsMenus.get(player.getUniqueId()); //Get, not remove. We need to reopen it.
-        String inputType = inputTypes.remove(player.getUniqueId()); //Remove input type since input is handled
-
-        if (input.equalsIgnoreCase("cancel")) {
-            handleCancelInput(player, detailsMenu);
-            clearPlayerInputData(player); // Clear all input data on cancel
+        if (inputType == null) {
+            // This might happen if the input arrives *after* the timeout task has run and cleared the maps.
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] Received chat input from " + player.getName() + " but no input type was stored (likely timed out or manually closed menu just before input). Input: " + input);
+            }
+            // Do not attempt to process, as state is gone.
             return;
         }
 
-        processValidInput(player, input, detailsMenu, inputType);
-        clearPlayerInputData(player); // Clear all input data after processing valid input
-    }
+        // Now cancel the timeout since we received input
+        cancelExistingTimeout(player);
 
-    /**
-     * Cancels the chat input timeout for a player.
-     * @param player The player whose timeout should be cancelled.
-     */
-    private void cancelInputTimeout(Player player) {
-        BukkitTask timeoutTask = inputTimeouts.remove(player.getUniqueId());
-        if (timeoutTask != null && !timeoutTask.isCancelled()) timeoutTask.cancel(); // Check if task is not already cancelled
-    }
-
-    /**
-     * Handles the scenario when player types 'cancel' during input request.
-     * @param player The player who cancelled input.
-     * @param detailsMenu The PunishDetailsMenu context.
-     */
-    private void handleCancelInput(Player player, PunishDetailsMenu detailsMenu) {
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.input_cancelled")));
-        if (detailsMenu != null) {
-            Bukkit.getScheduler().runTask(plugin, () -> detailsMenu.open(player));
+        // Handle cancellation input
+        if (input.equalsIgnoreCase("cancel")) {
+            handleCancelInput(player, detailsMenu); // Reopen menu if applicable and clear data
+            return; // Exit after handling cancellation
         }
+
+        // Process valid input based on type
+        processValidInput(player, input, detailsMenu, inputType);
+        // Input data is cleared inside processValidInput or handleCancelInput now
+    }
+
+
+    private void handleCancelInput(Player player, PunishDetailsMenu detailsMenu) {
+        sendConfigMessage(player, "messages.input_cancelled");
+        // Reopen the previous menu if context exists
+        if (detailsMenu != null) {
+            reopenDetailsMenu(player, detailsMenu);
+        }
+        // No need to call clearPlayerInputData here, it's called after return in handlePlayerInput
     }
 
     /**
      * Processes valid input based on input type and context.
+     * Handles specific input types like changing target, setting reason, or custom time.
+     *
      * @param player      The player providing input.
      * @param input       The validated input string.
-     * @param detailsMenu The PunishDetailsMenu context.
+     * @param detailsMenu The PunishDetailsMenu context (can be null for some input types).
      * @param inputType   The type of input being processed.
      */
     private void processValidInput(Player player, String input, PunishDetailsMenu detailsMenu, String inputType) {
-        if (inputType.equals("new_target")) {
-            handleNewTargetInput(player, input, detailsMenu);
-        } else if (detailsMenu != null) {
-            handleMenuSpecificInput(player, input, detailsMenu, inputType);
+        // Use toLowerCase() for case-insensitive comparison of inputType
+        switch (inputType.toLowerCase()) {
+            case "change_target":
+                handleNewTargetInput(player, input); // Call the handler
+                break; // Add break statement
+
+            case "reason_input":
+                if (detailsMenu != null) {
+                    handleReasonInput(player, input, detailsMenu);
+                } else {
+                    // Log error if detailsMenu context is missing when expected
+                    plugin.getLogger().warning("Reason input received but no details menu context for " + player.getName());
+                }
+                break; // Add break statement
+
+            case "custom_time":
+                if (detailsMenu != null) {
+                    handleCustomTimeInput(player, input, detailsMenu);
+                } else {
+                    // Log error if detailsMenu context is missing when expected
+                    plugin.getLogger().warning("Custom time input received but no details menu context for " + player.getName());
+                }
+                break; // Add break statement
+
+            default:
+                // Log if the inputType doesn't match any known cases
+                plugin.getLogger().warning("Unknown input type processed: " + inputType + " for player " + player.getName());
+                break;
         }
+        // Clear player input data AFTER processing is attempted (successful or not)
+        clearPlayerInputData(player);
     }
 
-    /**
-     * Handles input specific to the PunishDetailsMenu, such as reason or custom time.
-     * @param player      The player providing input.
-     * @param input       The validated input string.
-     * @param detailsMenu The PunishDetailsMenu context.
-     * @param inputType   The type of input (reason, custom_time).
-     */
-    private void handleMenuSpecificInput(Player player, String input, PunishDetailsMenu detailsMenu, String inputType) {
-        if (inputType.equals("ban_reason")) {
-            handleReasonInput(player, input, detailsMenu);
-        } else if (inputType.equals("custom_time")) {
-            handleCustomTimeInput(player, input, detailsMenu);
-        }
-    }
-
-    /**
-     * Handles new target input, opening PunishMenu for the new target.
-     * @param player      The player providing input.
-     * @param input       The new target player name.
-     * @param detailsMenu The PunishDetailsMenu context (can be null).
-     */
-    private void handleNewTargetInput(Player player, String input, PunishDetailsMenu detailsMenu) {
+    private void handleNewTargetInput(Player player, String input) {
         OfflinePlayer newTarget = Bukkit.getOfflinePlayer(input);
+        // Use the more robust check from MainCommand
         if (!newTarget.hasPlayedBefore() && !newTarget.isOnline()) {
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.player_never_played", "{input}", input)));
+            sendConfigMessage(player, "messages.never_played", "{input}", input);
         } else {
+            // Open PunishMenu for the new target synchronously
             Bukkit.getScheduler().runTask(plugin, () -> new PunishMenu(newTarget.getUniqueId(), plugin).open(player));
         }
     }
 
 
-    /**
-     * Handles reason input, setting the reason in PunishDetailsMenu and updating UI.
-     * @param player      The player providing input.
-     * @param input       The punishment reason.
-     * @param detailsMenu The PunishDetailsMenu context.
-     */
     private void handleReasonInput(Player player, String input, PunishDetailsMenu detailsMenu) {
-        detailsMenu.setBanReason(input);
-        detailsMenu.updateSetReasonItem();
-        detailsMenu.updateConfirmButtonStatus();
-        reopenDetailsMenu(player, detailsMenu);
+        detailsMenu.setBanReason(input); // Set the reason in the menu state
+        reopenDetailsMenu(player, detailsMenu); // Reopen to show updated state
     }
 
-    /**
-     * Handles custom time input, validating format, setting time in PunishDetailsMenu, and updating UI.
-     * @param player      The player providing input.
-     * @param input       The custom time string.
-     * @param detailsMenu The PunishDetailsMenu context.
-     */
     private void handleCustomTimeInput(Player player, String input, PunishDetailsMenu detailsMenu) {
-        // Validate if the input time format is valid using isValidTimeFormat utility method
-        if (isValidTimeFormat(input)) {
-            // If the format is valid, set the ban time in the details menu
-            detailsMenu.setBanTime(input);
-            // Update the set time item in the menu to reflect the new time
-            detailsMenu.updateSetTimeItem();
-            // Update the confirm button status based on the new time and reason
-            detailsMenu.updateConfirmButtonStatus();
-            // Reopen the details menu to show the updated information
+        // Use TimeUtils for parsing, check for non-zero return and not permanent keyword
+        int seconds = TimeUtils.parseTime(input, plugin.getConfigManager());
+        String permanentKeyword = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
+
+        if (seconds > 0 || input.equalsIgnoreCase(permanentKeyword)) {
+            String timeToSet = input.equalsIgnoreCase(permanentKeyword) ? permanentKeyword : TimeUtils.formatTime(seconds, plugin.getConfigManager()); // Use formatted or permanent
+            detailsMenu.setBanTime(timeToSet);
             reopenDetailsMenu(player, detailsMenu);
         } else {
-            // [ROBUSTNESS] Send an error message to the player for invalid time format - ROBUSTNESS
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.invalid_time_format")));
-            // [UI/UX Improvement] Re-open TimeSelectorMenu instead of re-prompting in chat - UI/UX
-            TimeSelectorMenu timeSelectorMenu = new TimeSelectorMenu(detailsMenu, plugin); // Re-create TimeSelectorMenu - UI/UX
-            Bukkit.getScheduler().runTask(plugin, () -> timeSelectorMenu.open(player)); // Re-open the menu - UI/UX
+            sendConfigMessage(player, "messages.invalid_time_format_command", "{input}", input);
+            // Reopen the previous details menu directly instead of time selector
+            reopenDetailsMenu(player, detailsMenu);
         }
     }
 
-    /**
-     * Reopens the PunishDetailsMenu for the player.
-     * @param player      The player for whom to reopen the menu.
-     * @param detailsMenu The PunishDetailsMenu instance.
-     */
     private void reopenDetailsMenu(Player player, PunishDetailsMenu detailsMenu) {
+        // Run on next tick to ensure chat processing is complete
         Bukkit.getScheduler().runTask(plugin, () -> detailsMenu.open(player));
     }
 
-    /**
-     * Validates if the input string is a valid time format.
-     * <p>
-     * ////////////////////////////////////////////////
-     * //           Time Format Validator            //
-     * //    Checks if input matches time pattern   //
-     * ////////////////////////////////////////////////
-     *
-     * @param time The time string to validate.
-     * @return true if valid, false otherwise.
-     */
-    private boolean isValidTimeFormat(String time) {
-        String units = String.join("|",
-                plugin.getConfigManager().getDayTimeUnit(),
-                plugin.getConfigManager().getHoursTimeUnit(),
-                plugin.getConfigManager().getMinutesTimeUnit(),
-                plugin.getConfigManager().getSecondsTimeUnit(),
-                plugin.getConfigManager().getYearsTimeUnit()
-        );
-        return time.matches("\\d+[" + units + "]");
+    private void clearPlayerInputData(Player player) {
+        cancelExistingTimeout(player); // Ensure timeout is cancelled
+        pendingDetailsMenus.remove(player.getUniqueId());
+        inputTypes.remove(player.getUniqueId());
     }
 
+    // ========================================================================
+    // Punishment / Unpunishment Confirmation Logic
+    // ========================================================================
 
-    /**
-     * Confirms and executes a dynamic punishment based on the punishment type set in PunishDetailsMenu.
-     * @param player          The player confirming the punishment.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
+    private void handleConfirmButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
+        // Check if time is required AND not set
+        boolean timeMissing = punishDetailsMenu.isTimeRequired() && !punishDetailsMenu.isTimeSet();
+        // Check if reason is required for confirmation AND not set
+        boolean reasonMissing = punishDetailsMenu.isReasonRequiredForConfirmation() && !punishDetailsMenu.isReasonSet();
+
+        if (timeMissing || reasonMissing) {
+            sendValidationMessages(player, timeMissing, reasonMissing); // Pass boolean flags
+        } else {
+            confirmDynamicPunishment(player, punishDetailsMenu); // Proceed with punishment
+        }
+    }
+
+    private void handleUnsoftbanButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
+        UUID targetUUID = punishDetailsMenu.getTargetUUID();
+        if (plugin.getSoftBanDatabaseManager().isSoftBanned(targetUUID)) {
+            confirmUnsoftban(player, punishDetailsMenu);
+        } else {
+            // Fetch target name for message
+            OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+            sendConfigMessage(player, "messages.no_active_softban", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+            playSound(player, "punish_error"); // Play error sound
+        }
+    }
+
+    private void handleUnfreezeButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
+        UUID targetUUID = punishDetailsMenu.getTargetUUID();
+        if (plugin.getPluginFrozenPlayers().containsKey(targetUUID)) {
+            confirmUnfreeze(player, punishDetailsMenu);
+        } else {
+            OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+            sendConfigMessage(player, "messages.no_active_freeze", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+            playSound(player, "punish_error");
+        }
+    }
+
     private void confirmDynamicPunishment(Player player, PunishDetailsMenu punishDetailsMenu) {
-        switch (punishDetailsMenu.getPunishmentType().toLowerCase()) {
+        // Permission check should happen BEFORE confirming
+        String type = punishDetailsMenu.getPunishmentType().toLowerCase();
+        if (!checkPunishmentPermission(player, type)) {
+            sendNoPermissionMenuMessage(player, type + " punishment"); // Inform player about missing perm
+            playSound(player, "punish_error");
+            return;
+        }
+
+        // Bypass check should also happen before execution
+        OfflinePlayer target = Bukkit.getOfflinePlayer(punishDetailsMenu.getTargetUUID());
+        if (hasBypassPermission(target, type)) {
+            sendBypassError(player, target, type);
+            playSound(player, "punish_error");
+            player.closeInventory(); // Close menu on bypass error
+            return;
+        }
+
+
+        // Proceed with specific confirmation logic
+        switch (type) {
             case BAN_PUNISHMENT_TYPE:
             case MUTE_PUNISHMENT_TYPE:
                 confirmStandardPunishment(player, punishDetailsMenu);
@@ -1369,555 +1073,416 @@ public class MenuListener implements Listener {
                 confirmFreeze(player, punishDetailsMenu);
                 break;
             default:
-                plugin.getLogger().warning("Unknown punishment type: " + punishDetailsMenu.getPunishmentType());
+                plugin.getLogger().warning("Attempted to confirm unknown punishment type: " + type);
+                sendConfigMessage(player, "messages.invalid_punishment_type", "{types}", "Known Types"); // Generic error
+                playSound(player, "punish_error");
+                break;
         }
     }
 
-    /**
-     * Confirms and executes a standard punishment (ban, mute).
-     *
-     * @param player      The player confirming the punishment.
-     * @param detailsMenu The PunishDetailsMenu instance.
-     */
+    // --- Specific Confirmation Methods ---
+
     private void confirmStandardPunishment(Player player, PunishDetailsMenu detailsMenu) {
         UUID targetUUID = detailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        String command = getPunishmentCommand(detailsMenu.getPunishmentType());
-        String timeInput = detailsMenu.getBanTime();
-        String reason = detailsMenu.getBanReason();
+        String punishmentType = detailsMenu.getPunishmentType();
+        String commandTemplate = getPunishmentCommand(punishmentType);
+        String timeInput = detailsMenu.getBanTime() != null ? detailsMenu.getBanTime() : "permanent"; // Default if somehow null
+        String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified"; // Default if somehow null
 
-        String processedCommand = command
-                .replace("{target}", target.getName() != null ? target.getName() : "unknown")
+        String processedCommand = commandTemplate
+                .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                 .replace("{time}", timeInput)
                 .replace("{reason}", reason);
 
         executePunishmentCommand(player, processedCommand, target, detailsMenu);
     }
 
-    /**
-     * Gets the punishment command string based on punishment type.
-     * @param punishmentType The type of punishment (ban, mute).
-     * @return The command string from config.
-     */
-    private String getPunishmentCommand(String punishmentType) {
-        switch (punishmentType.toLowerCase()) {
-            case BAN_PUNISHMENT_TYPE:
-                return plugin.getConfigManager().getBanCommand();
-            case MUTE_PUNISHMENT_TYPE:
-                return plugin.getConfigManager().getMuteCommand();
-            case KICK_PUNISHMENT_TYPE:
-                return plugin.getConfigManager().getKickCommand();
-            case WARN_PUNISHMENT_TYPE:
-                return plugin.getConfigManager().getWarnCommand();
-            case SOFTBAN_PUNISHMENT_TYPE: // Added softban type here
-                return plugin.getConfigManager().getSoftBanCommand(); // Although softban is handled internally, added to avoid potential issues
-            case FREEZE_PUNISHMENT_TYPE: // Freeze type - NEW
-                return ""; // Freeze is handled internally, no external command
-            default:
-                return "";
-        }
-    }
-
-    /**
-     * Executes the punishment command and sends confirmation messages.
-     * @param player      The player executing the punishment.
-     * @param command     The command string to execute.
-     * @param target      The target player.
-     * @param detailsMenu The PunishDetailsMenu instance.
-     */
-    private void executePunishmentCommand(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu) {
-
-        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.ban") && detailsMenu.getPunishmentType().equalsIgnoreCase("ban")) {
-            sendConfigMessage(player, "messages.bypass_error_ban", "{target}", target.getName());
-            player.closeInventory();
-            return;
-        }
-
-        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.mute") && detailsMenu.getPunishmentType().equalsIgnoreCase("mute")) {
-            sendConfigMessage(player, "messages.bypass_error_mute", "{target}", target.getName());
-            player.closeInventory();
-            return;
-        }
-
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command));
-        playSound(player, "punish_confirm");
-        sendConfirmationMessage(player, target, detailsMenu);
-        long punishmentEndTime = 0L;
-        String durationString = detailsMenu.getBanTime(); // Store duration string for logging
-        if (detailsMenu.getPunishmentType().equalsIgnoreCase("ban") || detailsMenu.getPunishmentType().equalsIgnoreCase("mute")) {
-            String timeInput = detailsMenu.getBanTime();
-            punishmentEndTime = calculateEndTime(timeInput);
-
-        }
-        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), detailsMenu.getPunishmentType(), detailsMenu.getBanReason(), player.getName(), punishmentEndTime, durationString); // Log punishment with endTime and duration string
-    }
-
-    /**
-     * Sends a confirmation message to the punisher after successful punishment.
-     * @param player      The punisher player.
-     * @param target      The punished player.
-     * @param detailsMenu The PunishDetailsMenu instance.
-     */
-    private void sendConfirmationMessage(Player player, OfflinePlayer target, PunishDetailsMenu detailsMenu) {
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.punishment_confirmed",
-                "{target}", target.getName() != null ? target.getName() : "unknown",
-                "{time}", detailsMenu.getBanTime(),
-                "{reason}", detailsMenu.getBanReason(),
-                "{punishment_type}", detailsMenu.getPunishmentType())));
-    }
-
-
-    /**
-     * Confirms and executes a softban, storing softban data in the database.
-     *
-     * @param player          The player confirming the softban.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
     private void confirmSoftBan(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-
-        // Bypass check: prevent softban if target has 'crown.bypass.softban' permission.
-        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.softban")) {
-            sendConfigMessage(player, "messages.bypass_error_softban", "{target}", target.getName()); // Inform the punisher via menu.
-            player.closeInventory(); // Close the menu to prevent further action.
-            return; // Stop softban execution.
-        }
-
-        String reason = punishDetailsMenu.getBanReason();
-        String timeInput = punishDetailsMenu.getBanTime();
+        String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Softbanned by moderator";
+        String timeInput = punishDetailsMenu.getBanTime() != null ? punishDetailsMenu.getBanTime() : "permanent";
 
         long endTime = calculateEndTime(timeInput);
+        String durationString = timeInput; // Use the input string for logging
+
+        // Correct the end time for the 1-second bug if not permanent
+        if (endTime != Long.MAX_VALUE) {
+            endTime += 1000L; // Add 1 second
+            // Recalculate duration string based on corrected time for logging consistency if needed
+            // durationString = TimeUtils.formatTime((int)((endTime - System.currentTimeMillis())/1000), plugin.getConfigManager());
+        } else {
+            durationString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display"); // Use permanent display for log
+        }
+
+
+        // SoftbanPlayer now handles logging internally
         plugin.getSoftBanDatabaseManager().softBanPlayer(targetUUID, endTime, reason, player.getName());
 
         playSound(player, "punish_confirm");
-        sendSoftbanConfirmation(player, target, timeInput, reason);
-        // Softban is logged inside SoftBanDatabaseManager.softBanPlayer to avoid duplicates.
+        sendPunishmentConfirmation(player, target, timeInput, reason, SOFTBAN_PUNISHMENT_TYPE); // Use generic confirmation
     }
 
-    /**
-     * Confirms and executes a freeze punishment. - NEW
-     *
-     * @param player          The player confirming the freeze.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
     private void confirmFreeze(Player player, PunishDetailsMenu punishDetailsMenu) {
-        plugin.getLogger().info("[DEBUG] confirmFreeze - start"); // Debug log - entry
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Frozen by moderator";
 
-        // Bypass check: prevent freeze if target has 'crown.bypass.freeze' permission. - NEW
-        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.freeze")) {
-            sendConfigMessage(player, "messages.bypass_error_freeze", "{target}", target.getName()); // Inform the punisher via menu. - NEW
-            player.closeInventory(); // Close the menu to prevent further action. - NEW
-            return; // Stop freeze execution. - NEW
+        // Check if already frozen again just before applying (race condition mitigation)
+        if (plugin.getPluginFrozenPlayers().containsKey(targetUUID)) {
+            sendConfigMessage(player, "messages.already_frozen", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+            playSound(player, "punish_error");
+            return;
         }
 
-        String reason = punishDetailsMenu.getBanReason(); // Reason is still collected and can be logged even if not displayed in UI
-
-        // Check if player is already frozen - NEW - Added check here for menu freeze
-        if (plugin.getPluginFrozenPlayers().containsKey(target.getUniqueId())) {
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.already_frozen", "{target}", target.getName()))); // Send "already_frozen" message - NEW
-            return; // Prevent duplicate freeze
-        }
-
-        plugin.getPluginFrozenPlayers().put(target.getUniqueId(), true); // Mark player as frozen in plugin's internal list - NEW
+        plugin.getPluginFrozenPlayers().put(targetUUID, true); // Mark as frozen
 
         playSound(player, "punish_confirm");
-        sendFreezeConfirmation(player, target, reason); // Send freeze confirmation message - NEW
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, FREEZE_PUNISHMENT_TYPE, reason, player.getName(), Long.MAX_VALUE, "permanent"); // Log freeze punishment - NEW
+        sendPunishmentConfirmation(player, target, "Permanent", reason, FREEZE_PUNISHMENT_TYPE); // Use generic confirmation
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, FREEZE_PUNISHMENT_TYPE, reason, player.getName(), Long.MAX_VALUE, plugin.getConfigManager().getMessage("placeholders.permanent_time_display")); // Log
 
+        // Apply effects and start task if player is online
         Player onlineTarget = target.getPlayer();
         if (onlineTarget != null) {
-            sendFreezeReceivedMessage(onlineTarget, reason); // Inform the frozen player - NEW
-            plugin.getLogger().info("[DEBUG] confirmFreeze - Calling startFreezeActionsTask for player: " + onlineTarget.getName()); // Debug log - before starting task
-            plugin.getFreezeListener().startFreezeActionsTask(onlineTarget); // START FREEZE ACTIONS TASK HERE - NEW - Corrected call to FreezeListener
-            plugin.getLogger().info("[DEBUG] confirmFreeze - startFreezeActionsTask called"); // Debug log - after starting task
+            sendFreezeReceivedMessage(onlineTarget);
+            plugin.getFreezeListener().startFreezeActionsTask(onlineTarget);
         }
-        plugin.getLogger().info("[DEBUG] confirmFreeze - end"); // Debug log - exit
     }
 
-
-    /**
-     * Confirms and executes a kick command.
-     *
-     * @param player          The player confirming the kick.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
     private void confirmKick(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        String reason = punishDetailsMenu.getBanReason();
+        String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Kicked by moderator";
+        String commandTemplate = plugin.getConfigManager().getKickCommand();
 
-        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.kick")) {
-            sendConfigMessage(player, "messages.bypass_error_kick", "{target}", target.getName());
-            player.closeInventory();
-            return;
-        }
-
-        String command = plugin.getConfigManager().getKickCommand()
-                .replace("{target}", target.getName())
+        String processedCommand = commandTemplate
+                .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                 .replace("{reason}", reason);
 
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command));
-        playSound(player, "punish_confirm");
-        sendKickConfirmation(player, target, reason);
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, KICK_PUNISHMENT_TYPE, reason, player.getName(), 0L, "permanent"); // Log kick with 0L for time and "permanent" duration
+        executePunishmentCommand(player, processedCommand, target, punishDetailsMenu); // Uses the generic executor
     }
 
-    /**
-     * Confirms and executes a warn command.
-     *
-     * @param player          The player confirming the warn.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
     private void confirmWarn(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        String reason = punishDetailsMenu.getBanReason();
+        String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Warned by moderator";
+        String commandTemplate = plugin.getConfigManager().getWarnCommand();
 
-        if (target instanceof Player && ((Player) target).hasPermission("crown.bypass.warn")) {
-            sendConfigMessage(player, "messages.bypass_error_warn", "{target}", target.getName());
-            player.closeInventory();
-            return;
-        }
-
-        String command = plugin.getConfigManager().getWarnCommand()
-                .replace("{target}", target.getName())
+        String processedCommand = commandTemplate
+                .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                 .replace("{reason}", reason);
 
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command));
-        playSound(player, "punish_confirm");
-        sendWarnConfirmation(player, target, reason);
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, WARN_PUNISHMENT_TYPE, reason, player.getName(), 0L, "permanent"); // Log warn with 0L for time and "permanent" duration
-    }
-
-    /**
-     * Calculates the end time in milliseconds based on the time input string.
-     * @param timeInput The time input string (e.g., "1d", "permanent").
-     * @return End time in milliseconds.
-     */
-    private long calculateEndTime(String timeInput) {
-        // Get the configured display string for permanent time for comparison
-        String permanentDisplayString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display"); // CORRECTED PATH
-
-        // Compare the input (case-insensitive) with the configured permanent string
-        if (timeInput != null && timeInput.equalsIgnoreCase(permanentDisplayString)) { // CORRECTED COMPARISON
-            return Long.MAX_VALUE;
-        }
-
-        // If not permanent, parse the time string into seconds
-        int seconds = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
-        if (seconds <= 0) {
-            // If parsing fails or results in 0/negative, treat as invalid (or could default to permanent based on design choice)
-            // Returning 0 might indicate an error or instant action depending on context.
-            // For bans/mutes, usually means invalid input here. Let's return 0 to signal potentially invalid.
-            return 0; // Indicate invalid/zero duration
-        }
-
-        // Calculate the end time by adding seconds (converted to ms) to current time
-        return System.currentTimeMillis() + (seconds * 1000L);
-    }
-
-    /**
-     * Sends a softban confirmation message to the punisher.
-     * @param player    The punisher player.
-     * @param target    The softbanned player.
-     * @param timeValue The softban duration string.
-     * @param reason    The softban reason.
-     */
-    private void sendSoftbanConfirmation(Player player, OfflinePlayer target, String timeValue, String reason) {
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.punishment_confirmed",
-                "{target}", target.getName() != null ? target.getName() : "unknown",
-                "{time}", timeValue,
-                "{reason}", reason,
-                "{punishment_type}", SOFTBAN_PUNISHMENT_TYPE)));
+        executePunishmentCommand(player, processedCommand, target, punishDetailsMenu); // Uses the generic executor
     }
 
 
-    /**
-     * Sends a freeze confirmation message to the punisher. - NEW
-     * @param player    The punisher player.
-     * @param target    The frozen player.
-     * @param reason    The freeze reason.
-     */
-    private void sendFreezeConfirmation(Player player, OfflinePlayer target, String reason) {
-        plugin.getLogger().info("[DEBUG] sendFreezeConfirmation - start"); // Debug log - entry
-        plugin.getLogger().info("[DEBUG] sendFreezeConfirmation - message path: messages.punishment_confirmed"); // Debug log - message path
+    // --- Unpunishment Methods ---
 
-        // Handle potentially null reason to prevent NullPointerException
-        String actualReason = (reason != null) ? reason : "No reason provided"; // Provide default reason if null
-        // Retrieve disconnect ban time from config for confirmation message - NEW
-        String disconnectBanTime = plugin.getConfigManager().getPluginConfig().getConfig().getString("freeze.disconnect_ban_time", "permanent"); // Get configured time - NEW
-
-        String message = plugin.getConfigManager().getMessage("messages.punishment_confirmed",
-                "{target}", target.getName() != null ? target.getName() : "unknown",
-                "{time}", disconnectBanTime, // Use configured disconnectBanTime here - MODIFIED
-                "{reason}", actualReason, // Use actualReason here - MODIFIED
-                "{punishment_type}", FREEZE_PUNISHMENT_TYPE);
-
-        plugin.getLogger().info("[DEBUG] sendFreezeConfirmation - message retrieved: " + message); // Debug log - message content
-        if (message == null) {
-            plugin.getLogger().warning("[DEBUG] sendFreezeConfirmation - message is NULL for path: messages.punishment_confirmed"); // Warning log if message is null
-        }
-
-
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(message)); // Send processed message
-
-        plugin.getLogger().info("[DEBUG] sendFreezeConfirmation - end"); // Debug log - exit
-
-    }
-
-    /**
-     * Sends a freeze received message to the frozen player. - NEW
-     * @param player    The frozen player.
-     * @param reason    The freeze reason.
-     */
-    private void sendFreezeReceivedMessage(Player player, String reason) {
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_frozen")));
-    }
-
-    /**
-     * Sends a kick confirmation message to the punisher.
-     * @param player The punisher player.
-     * @param target The kicked player.
-     * @param reason The kick reason.
-     */
-    private void sendKickConfirmation(Player player, OfflinePlayer target, String reason) {
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.direct_kick_confirmed",
-                "{target}", target.getName() != null ? target.getName() : "unknown",
-                "{reason}", reason)));
-    }
-
-    /**
-     * Sends a warn confirmation message to the punisher.
-     * @param player The punisher player.
-     * @param target The warned player.
-     * @param reason The warn reason.
-     */
-    private void sendWarnConfirmation(Player player, OfflinePlayer target, String reason) {
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.direct_warn_confirmed",
-                "{target}", target.getName() != null ? target.getName() : "unknown",
-                "{reason}", reason)));
-    }
-
-
-    /**
-     * Confirms and executes an unsoftban operation.
-     *
-     * @param player          The player confirming the unsoftban.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
     private void confirmUnsoftban(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-
-        // Log unsoftban action BEFORE unSoftBanPlayer to prevent potential race conditions if logging fails after unbanning
-        plugin.getSoftBanDatabaseManager().unSoftBanPlayer(targetUUID, player.getName()); // Passing punisher name
-
+        plugin.getSoftBanDatabaseManager().unSoftBanPlayer(targetUUID, player.getName()); // Handles logging internally now
         playSound(player, "punish_confirm");
-
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.unsoftban_success",
-                "{target}", target.getName() != null ? target.getName() : "unknown")));
+        sendUnpunishConfirmation(player, target, SOFTBAN_PUNISHMENT_TYPE);
     }
 
-    /**
-     * Confirms and executes an unfreeze operation. - NEW
-     *
-     * @param player          The player confirming the unfreeze. - NEW
-     * @param punishDetailsMenu The PunishDetailsMenu instance. - NEW
-     */
-    private void confirmUnfreeze(Player player, PunishDetailsMenu punishDetailsMenu) { // NEW
+    private void confirmUnfreeze(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        boolean removed = plugin.getPluginFrozenPlayers().remove(targetUUID) != null; // Remove and check if existed
 
-        plugin.getPluginFrozenPlayers().remove(targetUUID); // Remove player from frozen list - NEW
+        if(removed) {
+            plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unfreeze", "Unfrozen via Menu", player.getName(), 0L, "N/A"); // Log unfreeze
+            playSound(player, "punish_confirm");
+            sendUnpunishConfirmation(player, target, FREEZE_PUNISHMENT_TYPE);
+            // Stop freeze task and remove effects if player is online
+            Player onlineTarget = target.getPlayer();
+            if (onlineTarget != null) {
+                plugin.getFreezeListener().stopFreezeActionsTask(targetUUID); // Stop task using UUID
+                sendUnfreezeMessage(onlineTarget);
+            }
+        } else {
+            // Should have been caught by handleUnfreezeButtonClick, but double-check
+            sendConfigMessage(player, "messages.no_active_freeze", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+            playSound(player, "punish_error");
+        }
+    }
 
+    private void executeUnbanAction(Player player, InventoryHolder holder) {
+        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder; // Assume called correctly
+        UUID targetUUID = detailsMenu.getTargetUUID();
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        String commandTemplate = plugin.getConfigManager().getUnbanCommand();
+        String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unban", "Unbanned via Menu", player.getName(), 0L, "N/A");
         playSound(player, "punish_confirm");
+        sendUnpunishConfirmation(player, target, BAN_PUNISHMENT_TYPE);
+    }
 
-        player.closeInventory();
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.unfreeze_success", // You might want to add this message to messages.yml - NEW
-                "{target}", target.getName() != null ? target.getName() : "unknown")));
-        Player onlineTarget = target.getPlayer();
-        if (onlineTarget != null) {
-            sendUnfreezeMessage(onlineTarget); // Inform the player they are unfrozen - NEW
+    private void executeUnmuteAction(Player player, InventoryHolder holder) {
+        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
+        UUID targetUUID = detailsMenu.getTargetUUID();
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        String commandTemplate = plugin.getConfigManager().getUnmuteCommand();
+        String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unmute", "Unmuted via Menu", player.getName(), 0L, "N/A");
+        playSound(player, "punish_confirm");
+        sendUnpunishConfirmation(player, target, MUTE_PUNISHMENT_TYPE);
+    }
+
+    private void executeUnwarnAction(Player player, InventoryHolder holder) {
+        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
+        UUID targetUUID = detailsMenu.getTargetUUID();
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        String commandTemplate = plugin.getConfigManager().getUnwarnCommand();
+        if (commandTemplate == null || commandTemplate.isEmpty()) {
+            sendConfigMessage(player, "messages.unpunish_command_not_configured", "{punishment_type}", "warn");
+            playSound(player, "punish_error");
+            return;
         }
-    }
-
-    /**
-     * Sends a unfreeze message to the unfreezed player. - NEW
-     * @param player    The unfreezed player. - NEW
-     */
-    private void sendUnfreezeMessage(Player player) { // NEW
-        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_unfrozen")));
+        String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unwarn", "Unwarned via Menu", player.getName(), 0L, "N/A");
+        playSound(player, "punish_confirm");
+        sendUnpunishConfirmation(player, target, WARN_PUNISHMENT_TYPE);
     }
 
 
-    /**
-     * Handles inventory close events, clearing player input data.
-     *
-     * @param event The InventoryCloseEvent.
-     */
-    public void onInventoryClose(InventoryCloseEvent event) {
-        InventoryHolder holder = event.getInventory().getHolder();
-        Player player = (Player) event.getPlayer();
+    // ========================================================================
+    // Time Selection Logic
+    // ========================================================================
 
-        if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
-            clearPlayerInputData(player);
-        }
-    }
-
-    /**
-     * Clears player specific input data, such as timeouts and pending menus.
-     * @param player The player whose data should be cleared.
-     */
-    private void clearPlayerInputData(Player player) {
-        cancelInputTimeout(player); // Ensure timeout is cancelled
-        inputTimeouts.remove(player.getUniqueId());
-        pendingDetailsMenus.remove(player.getUniqueId());
-        inputTypes.remove(player.getUniqueId());
-    }
-
-    /**
-     * Plays a sound for the player based on the sound key from configuration.
-     * @param player The player to play the sound for.
-     * @param soundKey The sound key from config.
-     */
-    private void playSound(Player player, String soundKey) {
-        try {
-            Sound sound = Sound.valueOf(plugin.getConfigManager().getSoundName(soundKey).toUpperCase());
-            player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
-        } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning("Invalid sound configured: " + plugin.getConfigManager().getSoundName(soundKey));
-        }
-    }
-
-    /**
-     * Handles new target input, opening PunishMenu for the new target.
-     * (Duplicate method - can be removed, already defined above)
-     * @param player The player providing input.
-     * @param input The new target player name.
-     */
-    private void handleNewTargetInput(Player player, String input) {
-        OfflinePlayer newTarget = Bukkit.getOfflinePlayer(input);
-        if (!newTarget.hasPlayedBefore() && !newTarget.isOnline()) {
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.player_never_played", "{input}", input)));
-        } else {
-            Bukkit.getScheduler().runTask(plugin, () -> new PunishMenu(newTarget.getUniqueId(), plugin).open(player));
-        }
-    }
-
-
-    /**
-     * Handles the confirm button click in PunishDetailsMenu, validating input and confirming punishment.
-     * @param player          The player clicking the confirm button.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
-    private void handleConfirmButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
-        if (punishDetailsMenu.isTimeSet() || (!punishDetailsMenu.isTimeRequired())) { // Time is set OR time is not required (for kick/warn/freeze) - MODIFIED: Added freeze
-            if (punishDetailsMenu.isReasonSet() || !punishDetailsMenu.isReasonRequiredForConfirmation()) { // MODIFIED: Reason is optional for freeze now, added isReasonRequiredForConfirmation check
-                confirmDynamicPunishment(player, punishDetailsMenu);
-            } else {
-                sendValidationMessages(player, punishDetailsMenu);
-            }
-        } else {
-            sendValidationMessages(player, punishDetailsMenu);
-        }
-    }
-
-    /**
-     * Handles the unsoftban button click, confirming and executing unsoftban if player is softbanned.
-     * @param player          The player clicking the unsoftban button.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
-    private void handleUnsoftbanButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
-        UUID targetUUID = punishDetailsMenu.getTargetUUID();
-        if (plugin.getSoftBanDatabaseManager().isSoftBanned(targetUUID)) {
-            confirmUnsoftban(player, punishDetailsMenu);
-        } else {
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.no_active_softban")));
-        }
-    }
-
-    /**
-     * Handles the unfreeze button click, confirming and executing unfreeze if player is frozen. - NEW
-     * @param player          The player clicking the unfreeze button. - NEW
-     * @param punishDetailsMenu The PunishDetailsMenu instance. - NEW
-     */
-    private void handleUnfreezeButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) { // NEW
-        UUID targetUUID = punishDetailsMenu.getTargetUUID();
-        if (plugin.getPluginFrozenPlayers().containsKey(targetUUID)) { // Check if player is frozen - NEW
-            confirmUnfreeze(player, punishDetailsMenu);
-        } else {
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.no_active_freeze"))); // Message if player is not frozen - NEW
-        }
-    }
-
-
-    /**
-     * Sets permanent time in PunishDetailsMenu and updates UI.
-     * @param detailsMenu The PunishDetailsMenu instance.
-     * @param player      The player setting permanent time.
-     */
     private void setPermanentTime(PunishDetailsMenu detailsMenu, Player player) {
-        // Get the configured display string for permanent time
-        String permanentDisplayString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display"); // CORRECTED PATH
-
-        detailsMenu.setBanTime(permanentDisplayString); // Use the configured string
-        // No need to call update methods individually, open() will trigger updateInventory()
-        detailsMenu.open(player); // Reopen the details menu to show changes
+        String permanentDisplayString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
+        detailsMenu.setBanTime(permanentDisplayString); // Set time in details menu state
+        reopenDetailsMenu(player, detailsMenu); // Reopen details menu to reflect change
     }
 
-    /**
-     * Handles the time display click in TimeSelectorMenu, confirming selected time and returning to PunishDetailsMenu.
-     * @param menu        The TimeSelectorMenu instance.
-     * @param detailsMenu   The PunishDetailsMenu instance.
-     * @param player      The player confirming time.
-     */
-    private void handleTimeDisplayClick(TimeSelectorMenu menu, PunishDetailsMenu detailsMenu, Player player) {
-        if (menu.getCurrentTimeSeconds() > 0) {
-            String formattedTime = menu.getFormattedTime();
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().log(Level.INFO, "Time Selected from TimeSelector: " + formattedTime); // Log selected time
-            }
-            detailsMenu.setBanTime(formattedTime);
-            detailsMenu.updateSetTimeItem();
-            detailsMenu.updateConfirmButtonStatus();
-            detailsMenu.open(player);
+    private void handleTimeDisplayClick(TimeSelectorMenu timeSelectorMenu, PunishDetailsMenu detailsMenu, Player player) {
+        if (timeSelectorMenu.getCurrentTimeSeconds() > 0) {
+            String formattedTime = timeSelectorMenu.getFormattedTime();
+            detailsMenu.setBanTime(formattedTime); // Set time in details menu state
+            reopenDetailsMenu(player, detailsMenu); // Open details menu
         } else {
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_valid_time_confirm")));
+            sendConfigMessage(player, "messages.set_valid_time_confirm");
+            playSound(player, "punish_error");
+            // Stay in TimeSelectorMenu
         }
     }
 
+
+    // ========================================================================
+    // Helper & Utility Methods
+    // ========================================================================
+
     /**
-     * Sends a message from the configuration to the command sender, with optional replacements.
-     * @param sender Command sender.
-     * @param path Path to the message in messages.yml.
-     * @param replacements Placeholders to replace in the message.
+     * Retrieves the MenuItem that was clicked based on the slot and menu holder.
+     * @param slot   The raw slot number clicked.
+     * @param holder The InventoryHolder (the menu object).
+     * @return The clicked MenuItem, or null if not found.
      */
+    private MenuItem getMenuItemClicked(int slot, InventoryHolder holder) {
+        // Delegate based on the specific menu type
+        if (holder instanceof PunishMenu menu) return getPunishMenuItem(slot, menu);
+        if (holder instanceof PunishDetailsMenu menu) return getPunishDetailsMenuItem(slot, menu);
+        if (holder instanceof TimeSelectorMenu menu) return getTimeSelectorMenuItem(slot, menu);
+        if (holder instanceof HistoryMenu menu) return getHistoryMenuItem(slot, menu);
+        return null; // Unknown menu type
+    }
+
+    /** Helper to find MenuItem in PunishMenu */
+    private MenuItem getPunishMenuItem(int slot, PunishMenu menu) {
+        MainConfigManager configManager = plugin.getConfigManager();
+        for (String itemKey : menu.getMenuItemKeys()) {
+            MenuItem menuItem = configManager.getPunishMenuItemConfig(itemKey);
+            if (menuItem != null && menuItem.getSlots() != null && menuItem.getSlots().contains(slot)) return menuItem;
+        } return null;
+    }
+
+    /** Helper to find MenuItem in PunishDetailsMenu */
+    private MenuItem getPunishDetailsMenuItem(int slot, PunishDetailsMenu menu) {
+        MainConfigManager configManager = plugin.getConfigManager(); String punishmentType = menu.getPunishmentType();
+        for (String itemKey : menu.getMenuItemKeys()) {
+            MenuItem menuItem = configManager.getDetailsMenuItemConfig(punishmentType, itemKey);
+            if (menuItem != null && menuItem.getSlots() != null && menuItem.getSlots().contains(slot)) return menuItem;
+        } return null;
+    }
+
+    /** Helper to find MenuItem in TimeSelectorMenu */
+    private MenuItem getTimeSelectorMenuItem(int slot, TimeSelectorMenu menu) {
+        MainConfigManager configManager = plugin.getConfigManager();
+        for (String itemKey : menu.getTimeSelectorItemKeys()) {
+            MenuItem menuItem = configManager.getTimeSelectorMenuItemConfig(itemKey);
+            if (menuItem != null && menuItem.getSlots() != null && menuItem.getSlots().contains(slot)) return menuItem;
+        } return null;
+    }
+
+    /** Helper to find MenuItem in HistoryMenu */
+    private MenuItem getHistoryMenuItem(int slot, HistoryMenu menu) {
+        MainConfigManager configManager = plugin.getConfigManager();
+        // Check configured static items first (like buttons)
+        for (String itemKey : menu.getMenuItemKeys()) {
+            MenuItem menuItem = configManager.getHistoryMenuItemConfig(itemKey);
+            if (menuItem != null && menuItem.getSlots() != null && menuItem.getSlots().contains(slot)) return menuItem;
+        }
+        // Check dynamically generated history entry items
+        for (MenuItem historyEntryItem : menu.getHistoryEntryItems()) {
+            if (historyEntryItem != null && historyEntryItem.getSlots() != null && historyEntryItem.getSlots().contains(slot)) return historyEntryItem;
+        }
+        return null;
+    }
+
+
+    /** Gets the target player from the InventoryHolder context. */
+    private OfflinePlayer getTargetForAction(InventoryHolder holder) {
+        if (holder instanceof PunishMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
+        if (holder instanceof PunishDetailsMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
+        if (holder instanceof TimeSelectorMenu menu) return Bukkit.getOfflinePlayer(menu.getPunishDetailsMenu().getTargetUUID());
+        if (holder instanceof HistoryMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
+        return null;
+    }
+
+    /** Replaces placeholders in text. Primarily handles {player}. */
+    private String replacePlaceholders(Player player, String text, InventoryHolder holder) {
+        if (text == null) return null;
+        return text.replace("{player}", player.getName());
+        // Note: {target} and other context-specific placeholders are handled later
+        // by MainConfigManager or within specific execute* methods.
+    }
+
+    /** Gets online players with the moderator permission. */
+    private List<Player> getMods() {
+        return Bukkit.getOnlinePlayers().stream().filter(p -> p.hasPermission(MOD_PERMISSION)).collect(Collectors.toList());
+    }
+
+    /** Plays a sound configured in config.yml for the player. */
+    private void playSound(Player player, String soundKey) {
+        String soundName = plugin.getConfigManager().getSoundName(soundKey);
+        if (soundName != null && !soundName.isEmpty()) {
+            try { Sound sound = Sound.valueOf(soundName.toUpperCase()); player.playSound(player.getLocation(), sound, 1.0f, 1.0f); }
+            catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound configured for key '" + soundKey + "': " + soundName); }
+        }
+    }
+
+    /** Sends a message from messages.yml to a sender. */
     private void sendConfigMessage(CommandSender sender, String path, String... replacements) {
         MessageUtils.sendConfigMessage(plugin, sender, path, replacements);
     }
 
-    /**
-     * Sends validation messages to the player if time or reason are not set before confirming punishment.
-     * @param player          The player needing validation messages.
-     * @param punishDetailsMenu The PunishDetailsMenu instance.
-     */
-    private void sendValidationMessages(Player player, PunishDetailsMenu punishDetailsMenu) {
-        if (!punishDetailsMenu.isTimeSet() && !punishDetailsMenu.isReasonSet() && punishDetailsMenu.isTimeRequired()) { // Check if time is required
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_time_reason_before_confirm")));
-        } else if (!punishDetailsMenu.isTimeSet() && punishDetailsMenu.isTimeRequired()) { // Check if time is required
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_time_before_confirm")));
-        } else if (!punishDetailsMenu.isReasonSet() && punishDetailsMenu.isReasonRequiredForConfirmation()) { // Check if reason is required - MODIFIED: Added reason required check
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.set_reason_before_confirm")));
-        }
+    /** Sends a "no permission for menu action" message. */
+    private void sendNoPermissionMenuMessage(Player player, String actionName) {
+        sendConfigMessage(player, "messages.no_permission_menu_action", "{action}", actionName);
+    }
+
+    /** Sends validation messages if time/reason are missing. */
+    private void sendValidationMessages(Player player, boolean timeMissing, boolean reasonMissing) {
+        if (timeMissing && reasonMissing) sendConfigMessage(player, "messages.set_time_reason_before_confirm");
+        else if (timeMissing) sendConfigMessage(player, "messages.set_time_before_confirm");
+        else if (reasonMissing) sendConfigMessage(player, "messages.set_reason_before_confirm");
         playSound(player, "punish_error");
     }
-}
+
+    /** Sends a generic punishment confirmation message. */
+    private void sendPunishmentConfirmation(Player player, OfflinePlayer target, String timeValue, String reason, String punishmentType) {
+        player.closeInventory();
+        sendConfigMessage(player, "messages.punishment_confirmed",
+                "{target}", target.getName() != null ? target.getName() : target.getUniqueId().toString(),
+                "{time}", timeValue,
+                "{reason}", reason,
+                "{punishment_type}", punishmentType);
+    }
+
+    /** Sends a generic unpunishment confirmation message. */
+    private void sendUnpunishConfirmation(Player player, OfflinePlayer target, String punishType) {
+        player.closeInventory();
+        sendConfigMessage(player, "messages.direct_unpunishment_confirmed",
+                "{target}", target.getName() != null ? target.getName() : target.getUniqueId().toString(),
+                "{punishment_type}", punishType);
+    }
+
+    /** Sends the "you are frozen" message. */
+    private void sendFreezeReceivedMessage(Player player) {
+        sendConfigMessage(player, "messages.you_are_frozen");
+    }
+
+    /** Sends the "you are unfrozen" message. */
+    private void sendUnfreezeMessage(Player player) {
+        sendConfigMessage(player, "messages.you_are_unfrozen");
+    }
+
+    /** Calculates the punishment end time in milliseconds. */
+    private long calculateEndTime(String timeInput) {
+        if (timeInput == null) return 0L; // Or handle as permanent? Decide based on desired behavior.
+        String permanentDisplay = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
+        if (timeInput.equalsIgnoreCase(permanentDisplay)) return Long.MAX_VALUE;
+        int seconds = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
+        if (seconds <= 0) return 0L; // Indicate invalid duration
+        return System.currentTimeMillis() + (seconds * 1000L);
+    }
+
+    /** Checks if the target has bypass permission for a specific punishment type. */
+    private boolean hasBypassPermission(OfflinePlayer target, String punishmentType) {
+        if (!(target instanceof Player onlineTarget)) return false; // Cannot check perms for offline players
+        String bypassPerm = "crown.bypass." + punishmentType.toLowerCase();
+        return onlineTarget.hasPermission(bypassPerm);
+    }
+
+    /** Sends the appropriate bypass error message to the punisher. */
+    private void sendBypassError(Player punisher, OfflinePlayer target, String punishmentType) {
+        String messageKey = "messages.bypass_error_" + punishmentType.toLowerCase();
+        // Check if a specific bypass message exists, otherwise use a generic one?
+        // For now, assume specific messages exist as per messages.yml structure.
+        sendConfigMessage(punisher, messageKey, "{target}", target.getName() != null ? target.getName() : target.getUniqueId().toString());
+    }
+
+    /** Checks if the executor has permission to apply a specific punishment type. */
+    private boolean checkPunishmentPermission(Player executor, String punishmentType) {
+        String perm = "crown.punish." + punishmentType.toLowerCase();
+        return executor.hasPermission(perm) || executor.hasPermission(USE_PERMISSION); // Allow if they have specific or base use perm? Adjust as needed. For now, require specific.
+        // return executor.hasPermission(perm); // More strict: requires specific permission
+    }
+
+    /** Retrieves the command template string for a given punishment type from config. */
+    private String getPunishmentCommand(String punishmentType) {
+        return switch (punishmentType.toLowerCase()) {
+            case BAN_PUNISHMENT_TYPE -> plugin.getConfigManager().getBanCommand();
+            case MUTE_PUNISHMENT_TYPE -> plugin.getConfigManager().getMuteCommand();
+            case KICK_PUNISHMENT_TYPE -> plugin.getConfigManager().getKickCommand();
+            case WARN_PUNISHMENT_TYPE -> plugin.getConfigManager().getWarnCommand();
+            case SOFTBAN_PUNISHMENT_TYPE -> plugin.getConfigManager().getSoftBanCommand(); // May not be used
+            case FREEZE_PUNISHMENT_TYPE -> ""; // Internal handling
+            default -> ""; // Unknown type
+        };
+    }
+
+    /** Executes the final punishment command and handles logging/confirmation. */
+    private void executePunishmentCommand(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu) {
+        // Bypass check already done in confirmDynamicPunishment
+        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command));
+        playSound(player, "punish_confirm");
+        String punishmentType = detailsMenu.getPunishmentType();
+        String timeValue = detailsMenu.getBanTime() != null ? detailsMenu.getBanTime() : "N/A"; // Time might be null for kick/warn
+        String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified";
+
+        sendPunishmentConfirmation(player, target, timeValue, reason, punishmentType); // Use the generic message
+
+        long punishmentEndTime = 0L;
+        String durationString = "permanent"; // Default for kick/warn
+
+        if (punishmentType.equalsIgnoreCase(BAN_PUNISHMENT_TYPE) || punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE)) {
+            punishmentEndTime = calculateEndTime(timeValue);
+            durationString = timeValue; // Log the input string
+            if (punishmentEndTime == Long.MAX_VALUE) {
+                durationString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
+            }
+        }
+        // Kick/Warn use 0L and "permanent" duration string
+
+        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishmentType, reason, player.getName(), punishmentEndTime, durationString);
+    }
+
+
+} // End of MenuListener class

@@ -215,7 +215,6 @@ public class TimeSelectorMenu implements InventoryHolder {
      */
     public void open(Player player) {
         player.openInventory(inventory);
-        plugin.getMenuListener().executeMenuOpenActions(player, this); // Call executeMenuOpenActions from MenuListener
     }
 
 
