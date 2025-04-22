@@ -1599,10 +1599,24 @@ public class MenuListener implements Listener {
      * @return End time in milliseconds.
      */
     private long calculateEndTime(String timeInput) {
-        if (timeInput.equalsIgnoreCase("Permanent")) {
+        // Get the configured display string for permanent time for comparison
+        String permanentDisplayString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display"); // CORRECTED PATH
+
+        // Compare the input (case-insensitive) with the configured permanent string
+        if (timeInput != null && timeInput.equalsIgnoreCase(permanentDisplayString)) { // CORRECTED COMPARISON
             return Long.MAX_VALUE;
         }
+
+        // If not permanent, parse the time string into seconds
         int seconds = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
+        if (seconds <= 0) {
+            // If parsing fails or results in 0/negative, treat as invalid (or could default to permanent based on design choice)
+            // Returning 0 might indicate an error or instant action depending on context.
+            // For bans/mutes, usually means invalid input here. Let's return 0 to signal potentially invalid.
+            return 0; // Indicate invalid/zero duration
+        }
+
+        // Calculate the end time by adding seconds (converted to ms) to current time
         return System.currentTimeMillis() + (seconds * 1000L);
     }
 
@@ -1852,10 +1866,12 @@ public class MenuListener implements Listener {
      * @param player      The player setting permanent time.
      */
     private void setPermanentTime(PunishDetailsMenu detailsMenu, Player player) {
-        detailsMenu.setBanTime("Permanent");
-        detailsMenu.updateSetTimeItem();
-        detailsMenu.updateConfirmButtonStatus();
-        detailsMenu.open(player);
+        // Get the configured display string for permanent time
+        String permanentDisplayString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display"); // CORRECTED PATH
+
+        detailsMenu.setBanTime(permanentDisplayString); // Use the configured string
+        // No need to call update methods individually, open() will trigger updateInventory()
+        detailsMenu.open(player); // Reopen the details menu to show changes
     }
 
     /**

@@ -24,105 +24,104 @@
 # - {warn_count}: Number of warns issued to the target player.
 # - {freeze_count}: Number of freezes issued to the target player.
 
+
+# Section for user-facing messages displayed to players and console.
 messages:
-  plugin_enabled: '{prefix}&dPlugin enabled.' # Message when the plugin is enabled.
-  plugin_disabled: '{prefix}&dPlugin disabled.' # Message when the plugin is disabled.
-  player_only: '{prefix}&cOnly players can use this command.' # Message for when a command is player-only.
-  player_only_console_punish: '{prefix}&cFor console usage, specify target and punishment type and more arguments.' # Message for console usage of punish command.
-  no_permission: '{prefix}&cYou do not have permission to use this command.' # Generic no permission message.
-  reload_success: '{prefix}&aConfiguration reloaded successfully.' # Message for successful config reload.
-  invalid_player: '{prefix}&cInvalid player name. Usage: {usage}' # Message for invalid player name input.
-  never_played: '{prefix}&cPlayer &b{input}&c has never played before or is not online.' # Message for when target player has never played.
-  player_not_online: '{prefix}&cPlayer &b{input}&c is not online.' # New message for when a player is not online
-  help_header: '&6&lCrownPunishments Commands:' # Header for help message.
-  help_punish: '&b/crown punish <player> &7- Open punishment menu' # Help message for /crown punish command.
-  help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Direct punish command. Types: ban, mute, softban, kick, warn' # Extended help for /crown punish command with types.
-  help_punish_alias: '&b/punish <player> <type> [time] [reason] &7- Quick punish command. Types: ban, mute, softban, kick, warn' # Help for /punish command with types.
-  help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, softban)' # Help message for /crown unpunish command.
-  help_unpunish_alias: '&b/unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, softban)' # Help message for /unpunish command.
-  help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban command.' # Help message for /softban command
-  help_freeze_command: '&b/freeze <player> &7- Freeze a player for manual review.' # Help message for /freeze command
-  help_reload: '&b/crown reload &7- Reload configuration' # Help message for /crown reload command.
-  unpunish_not_supported: '{prefix}&cUnpunish command is not supported for {punishment_type}.' # Message for unsupported unpunish types
-  prompt_new_target: '&aEnter a new player name (or type ''cancel'' to cancel):' # Chat prompt for new target input.
-  prompt_ban_reason: '&aEnter the ban reason (or type ''cancel'' to cancel):' # Chat prompt for ban reason input.
-  prompt_mute_reason: '&aEnter the mute reason (or type ''cancel'' to cancel):' # Chat prompt for mute reason input.
-  prompt_softban_reason: '&aEnter the softban reason (or type ''cancel'' to cancel):' # Chat prompt for softban reason input.
-  prompt_kick_reason: '&aEnter the kick reason (or type ''cancel'' to cancel):' # Chat prompt for kick reason
-  prompt_warn_reason: '&aEnter the warn reason (or type ''cancel'' to cancel):' # Chat prompt for warn reason
-  prompt_freeze_reason: '&aEnter the freeze reason (or type ''cancel'' to cancel):' # Chat prompt for warn reason
-  prompt_custom_time: '&aEnter custom ban time (e.g., 1d, 2h, 30min, cancel):' # Chat prompt for custom time input.
-  input_timeout: '&cTime expired. Input cancelled.' # Message for input timeout.
-  input_cancelled: '&cInput cancelled.' # Message for input cancellation.
-  player_never_played: '{prefix}&cPlayer ''{input}'' has never played before.' # Message for when input player has never played.
-  invalid_time_format: '{prefix}&cInvalid time format. Please use like 1d, 2h, 30min.' # Message for invalid time format input.
-  invalid_time_format_command: '{prefix}&cInvalid time format: &b{input}&c. Please use formats like 1s, 2m, 3h, 4d, 5y or "permanent".' # Specific message for invalid time format in commands
-  target_player_not_found: '{prefix}&cTarget player not found.' # Message for when target player is not found.
-  punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_type}d for &b{time}&a with reason: &b{reason}' # Generic punishment confirmation message.
-  punishment_softban_confirmed: '{prefix}&aPlayer &b{target}&a has been softbanned for &b{time}&a with reason: &b{reason}' # Softban specific confirmation message (keeping for potential future specific needs).
-  not_set: '&c❌ Not Set' # Message indicating a setting is not set in menus.
-  set: '&a✔ Set' # Message indicating a setting is set in menus.
-  set_time_reason_before_confirm: '{prefix}&cPlease set both time and reason before confirming.' # Validation message for time and reason.
-  set_time_before_confirm: '{prefix}&cPlease set time before confirming.' # Validation message for time only.
-  set_reason_before_confirm: '{prefix}&cPlease set reason before confirming.' # Validation message for reason only.
-  set_valid_time_confirm: '{prefix}&cPlease set a valid time before confirming.' # Validation message for valid time.
-  permanent_time_display: 'Permanent' # Text displayed for permanent time durations.
-  softban_received: '&c&lSoftBan Alert!&r&c You have received a SoftBan for: &e{reason}&c.' # Message for softban received by player.
-  softban_command_blocked: '{prefix}&cYou can''t execute this command due to your behavior!' # Message for blocked command due to softban.
-  no_active_softban: '{prefix}&cThe player is not currently softbanned.' # Message for when player is not softbanned on unsoftban attempt.
-  unsoftban_success: '{prefix}&aSuccessfully removed softban from &b{target}&a.' # Message for successful unsoftban.
-  you_are_softbanned: | # Multiline message for when a player receives a softban
+  plugin_enabled: '{prefix}&dPlugin enabled.'
+  plugin_disabled: '{prefix}&dPlugin disabled.'
+  player_only: '{prefix}&cOnly players can use this command.'
+  player_only_console_punish: '{prefix}&cFor console usage, specify target and punishment type and more arguments.'
+  no_permission: '{prefix}&cYou do not have permission to use this command.'
+  no_permission_menu_action: '{prefix}&cYou do not have permission to perform &b{action}&c action in this menu.'
+  no_permission_punish_command_type: '{prefix}&cYou do not have permission to execute this command.'
+  no_permission_unpunish_command_type: '{prefix}&cYou do not have permission to execute this command.'
+  no_permission_details_menu: '{prefix}&cYou do not have permission to execute this command.'
+  no_permission_punish_menu: '{prefix}&cYou do not have permission to execute this command.'
+  no_permission_command: '{prefix}&cYou do not have permission to execute this command.' # Generic for /crown, /punish etc. level
+  reload_success: '{prefix}&aConfiguration reloaded successfully.'
+  invalid_player: '{prefix}&cInvalid player name. Usage: {usage}'
+  never_played: '{prefix}&cPlayer &b{input}&c has never played before or is not online.'
+  player_not_online: '{prefix}&cPlayer &b{input}&c is not online.'
+  help_header: '&6&lCrownPunishments Commands:'
+  help_punish: '&b/crown punish <player> &7- Open punishment menu'
+  help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Direct punish command. Types: ban, mute, softban, kick, warn, freeze'
+  help_punish_alias: '&b/punish <player> <type> [time] [reason] &7- Quick punish command. Types: ban, mute, softban, kick, warn, freeze'
+  help_unpunish: '&b/crown unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, warn, freeze)'
+  help_unpunish_alias: '&b/unpunish <player> <type> &7- Remove specific punishment (ban, mute, softban, warn, freeze)'
+  help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban command.'
+  help_freeze_command: '&b/freeze <player> &7- Freeze a player for manual review.'
+  help_reload: '&b/crown reload &7- Reload configuration'
+  unpunish_not_supported: '{prefix}&cUnpunish command is not supported for {punishment_type}.'
+  unpunish_command_not_configured: '{prefix}&cThe unpunish command for {punishment_type} is not configured in config.yml.'
+  prompt_new_target: '&aEnter a new player name (or type ''cancel'' to cancel):'
+  prompt_ban_reason: '&aEnter the ban reason (or type ''cancel'' to cancel):'
+  prompt_mute_reason: '&aEnter the mute reason (or type ''cancel'' to cancel):'
+  prompt_softban_reason: '&aEnter the softban reason (or type ''cancel'' to cancel):'
+  prompt_kick_reason: '&aEnter the kick reason (or type ''cancel'' to cancel):'
+  prompt_warn_reason: '&aEnter the warn reason (or type ''cancel'' to cancel):'
+  prompt_freeze_reason: '&aEnter the freeze reason (or type ''cancel'' to cancel):'
+  prompt_custom_time: '&aEnter custom ban time (e.g., 1d, 2h, 30min, cancel):'
+  input_timeout: '&cTime expired. Input cancelled.'
+  input_cancelled: '&cInput cancelled.'
+  player_never_played: '{prefix}&cPlayer ''{input}'' has never played before.'
+  invalid_time_format: '{prefix}&cInvalid time format. Please use like 1d, 2h, 30m, 1y.'
+  invalid_time_format_command: '{prefix}&cInvalid time format: &b{input}&c. Please use formats like 1s, 2m, 3h, 4d, 5y or "permanent".'
+  target_player_not_found: '{prefix}&cTarget player not found.'
+  punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_type}d for &b{time}&a with reason: &b{reason}'
+  set_time_reason_before_confirm: '{prefix}&cPlease set both time and reason before confirming.'
+  set_time_before_confirm: '{prefix}&cPlease set time before confirming.'
+  set_reason_before_confirm: '{prefix}&cPlease set reason before confirming.'
+  set_valid_time_confirm: '{prefix}&cPlease set a valid time before confirming.'
+  softban_received: '&c&lSoftBan Alert!&r&c You have received a SoftBan for: &e{reason}&c.'
+  softban_command_blocked: '{prefix}&cYou can''t execute this command due to your behavior!'
+  no_active_softban: '{prefix}&cThe player &b{target}&c is not currently softbanned.'
+  unsoftban_success: '{prefix}&aSuccessfully removed softban from &b{target}&a.'
+  you_are_softbanned: |
     &c&lYou have been SoftBanned!
     &cDuration: &e{time}
     &cReason: &e{reason}
     &7Blocked commands will not work during this time.
-  invalid_punishment_type: '{prefix}&cInvalid punishment type. Available types: {types}' # Message for invalid punishment type input.
-  direct_punishment_confirmed: '{prefix}&aDirect {punishment_type} for &b{target}&a confirmed. Time: &b{time}&a, Reason: &b{reason}' # Confirmation for direct punishment commands.
-  softban_direct_command_not_supported: '{prefix}&cDirect command execution is not supported for softban, please use the menu.' # Message for unsupported direct softban command.
-  unpunish_usage: '{prefix}&cUsage: {usage}' # Usage message for unpunish command.
-  direct_unpunishment_confirmed: '{prefix}&aDirect un{punishment_type} for &b{target}&a confirmed.' # Confirmation for direct unpunishment commands.
-  direct_unsoftban_confirmed: '{prefix}&aDirect unsoftban for &b{target}&a confirmed.' # Confirmation for direct unsoftban command.
-  default_kick_reason: 'Kicked by moderator.' # Default reason for kicks, configurable
-  direct_kick_confirmed: '{prefix}&aPlayer &b{target}&a has been kicked. Reason: &b{reason}' # Confirmation for kick
-  direct_warn_confirmed: '{prefix}&aPlayer &b{target}&a has been warned. Reason: &b{reason}' # Confirmation for warn
-  direct_command_not_supported: '{prefix}&cDirect command is not supported for {punishment_type}, please use the menu.' # Message for unsupported direct commands
-  history_entry_format: "&eType: &b{type}&7, &eReason: &b{reason}&7, &eTime: &b{timestamp}&7, &eBy: &b{punisher}" # Format for history entries in lore.
-  history_menu_title: '&7&lPunishment History for &b{target}&7' # Title for history menu.
-  history_menu_back_button: '&cBack to Punish Menu' # Text for back button in history menu.
-  history_menu_next_page: '&aNext Page' # Text for next page button in history menu.
-  history_menu_previous_page: '&cPrevious Page' # Text for previous page button in history menu.
-  history_menu_first_page: '{prefix}&cYou are already on the first page.' # Message when trying to go to previous page on first page.
-  history_menu_entry_name: '&ePunishment Entry' # Default name for history entry item.
-  softban_usage: '{prefix}&cUsage: /softban <player> [time] [reason]' # Usage message for /softban command
-  you_are_frozen: | # Message shown to the frozen player
+  invalid_punishment_type: '{prefix}&cInvalid punishment type. Available types: {types}'
+  direct_punishment_confirmed: '{prefix}&aDirect {punishment_type} for &b{target}&a confirmed. Time: &b{time}&a, Reason: &b{reason}'
+  unpunish_usage: '{prefix}&cUsage: {usage}'
+  direct_unpunishment_confirmed: '{prefix}&aDirect un{punishment_type} for &b{target}&a confirmed.'
+  direct_unsoftban_confirmed: '{prefix}&aDirect unsoftban for &b{target}&a confirmed.'
+  direct_kick_confirmed: '{prefix}&aPlayer &b{target}&a has been kicked. Reason: &b{reason}'
+  direct_warn_confirmed: '{prefix}&aPlayer &b{target}&a has been warned. Reason: &b{reason}'
+  direct_command_not_supported: '{prefix}&cDirect command is not supported for {punishment_type}, please use the menu.'
+  history_menu_first_page: '{prefix}&cYou are already on the first page.'
+  softban_usage: '{prefix}&cUsage: /softban <player> [time] [reason]'
+  you_are_frozen: |
     &c&lYou are FROZEN!
     &cYou have been frozen by a moderator for review.
     &cPlease remain in place and await further instructions.
     &7Admins can still see your chat messages.
-  direct_unfreeze_confirmed: '{prefix}&aDirect unfreeze for &b{target}&a confirmed.' # Confirmation message for unfreeze command
-  direct_freeze_confirmed: '{prefix}&aDirect freeze for &b{target}&a confirmed. Time: &b{time}&a, Reason: &b{reason}' # Confirmation for freeze
-  freeze_usage: '{prefix}&cUsage: /freeze <player> [reason]' # Usage message for /freeze command
-  freeze_command_blocked: '{prefix}&cYou cannot use commands while frozen.' # Message when frozen player tries to use a command
-  frozen_player_chat_admin_only: '&7[Frozen Player Chat] &b{player}&7: &e{message}' # Chat format for frozen player messages visible to admins only
-  frozen_player_chat_admin: '&7[Frozen Player Chat - ALL] &b{player}&7: &e{message}' # Chat format for frozen player messages visible to all (admins)
-  frozen_player_is_immortal: '&7[Freeze] &b{player}&7 is now immortal.' # Message when player becomes immortal under freeze
-  frozen_player_is_mortal: '&7[Freeze] &b{player}&7 is no longer immortal.' # Message when player is no longer immortal after unfreeze
-  no_active_freeze: '{prefix}&cThe player is not currently frozen.' # Message when player is not frozen
-  unfreeze_success: '{prefix}&aSuccessfully removed freeze from &b{target}&a.' # Message for successful unfreeze
-  you_are_unfrozen: '{prefix}&aYou are no longer frozen. You can move and chat freely.' # Message when player is unfrozen
-  freeze_received: '&c&lFreeze Alert!&r&c You have been Frozen for manual review. Reason: &e{reason}&c. Please remain in place and await further instructions.' # Message shown to the frozen player
-  frozen_chat_admin_info: '&7(Only admins can see your chat while frozen)' # Message to inform frozen player about chat visibility
-  frozen_player_chat_self: '&7[Frozen Player Chat - YOU] &e{message}' # Chat format for frozen player to see their own messages
-  already_frozen: '{prefix}&cPlayer &b{target}&c is already frozen.' # Message when trying to freeze already frozen player.
-  no_permission_menu_action: '{prefix}&cYou do not have permission to perform &b{action}&c action in this menu.' # Generic no permission message for menu actions
-  no_permission_punish_command_type: '{prefix}&cYou do not have permission to execute this command.' # Generic no permission message for punish commands
-  no_permission_unpunish_command_type: '{prefix}&cYou do not have permission to execute this command.' # Generic no permission message for unpunish commands
-  no_permission_details_menu: '{prefix}&cYou do not have permission to execute this command.' # Generic no permission message for details menus
-  no_permission_punish_menu: '{prefix}&cYou do not have permission to execute this command.' # Generic no permission message for punish menu access
-  no_permission_command: '{prefix}&cYou do not have permission to execute this command.' # Generic no permission message for general commands
-  bypass_error_softban: '{prefix}&cCannot softban &b{target}&c because they have softban bypass permission.' # Message for softban bypass
-  bypass_error_freeze: '{prefix}&cCannot freeze &b{target}&c because they have freeze bypass permission.' # Message for freeze bypass
-  bypass_error_ban: '{prefix}&cCannot ban &b{target}&c because they have ban bypass permission.' # Message for ban bypass
-  bypass_error_mute: '{prefix}&cCannot mute &b{target}&c because they have mute bypass permission.' # Message for mute bypass
-  bypass_error_warn: '{prefix}&cCannot warn &b{target}&c because they have warn bypass permission.' # Message for warn bypass
-  bypass_error_kick: '{prefix}&cCannot kick &b{target}&c because they have kick bypass permission.' # Message for kick bypass
+  direct_unfreeze_confirmed: '{prefix}&aDirect unfreeze for &b{target}&a confirmed.'
+  direct_freeze_confirmed: '{prefix}&aDirect freeze for &b{target}&a confirmed. Time: &b{time}&a, Reason: &b{reason}'
+  freeze_usage: '{prefix}&cUsage: /freeze <player> [reason]'
+  freeze_command_blocked: '{prefix}&cYou cannot use commands while frozen.'
+  frozen_player_chat_admin_only: '&7[Frozen Player Chat] &b{player}&7: &e{message}'
+  frozen_player_chat_admin: '&7[Frozen Player Chat - ALL] &b{player}&7: &e{message}'
+  frozen_player_is_immortal: '&7[Freeze] &b{player}&7 is now immortal.'
+  frozen_player_is_mortal: '&7[Freeze] &b{player}&7 is no longer immortal.'
+  no_active_freeze: '{prefix}&cThe player &b{target}&c is not currently frozen.'
+  unfreeze_success: '{prefix}&aSuccessfully removed freeze from &b{target}&a.'
+  you_are_unfrozen: '{prefix}&aYou are no longer frozen. You can move and chat freely.'
+  frozen_chat_admin_info: '&7(Only admins can see your chat while frozen)'
+  frozen_player_chat_self: '&7[Frozen Player Chat - YOU] &e{message}'
+  already_frozen: '{prefix}&cPlayer &b{target}&c is already frozen.'
+  bypass_error_softban: '{prefix}&cCannot softban &b{target}&c because they have softban bypass permission.'
+  bypass_error_freeze: '{prefix}&cCannot freeze &b{target}&c because they have freeze bypass permission.'
+  bypass_error_ban: '{prefix}&cCannot ban &b{target}&c because they have ban bypass permission.'
+  bypass_error_mute: '{prefix}&cCannot mute &b{target}&c because they have mute bypass permission.'
+  bypass_error_warn: '{prefix}&cCannot warn &b{target}&c because they have warn bypass permission.'
+  bypass_error_kick: '{prefix}&cCannot kick &b{target}&c because they have kick bypass permission.'
+
+# Section for reusable placeholder display values.
+# These symbols/texts are used internally to represent states or fixed strings.
+placeholders:
+  display_yes: "&a✔"          # Symbol used when a status is positive/true (e.g., player is online).
+  display_no: "&c❌"           # Symbol used when a status is negative/false (e.g., player is offline).
+  not_set: '&c❌ Not Set'     # Text used in menus when time/reason is not set.
+  set: '&a✔ Set'             # Text used in menus when time/reason is set.
+  permanent_time_display: 'Permanent' # Text used to display a permanent duration.
