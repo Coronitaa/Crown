@@ -71,7 +71,7 @@ menu:
         - '&eRight-Click to spectate.'
       left_click_actions: # Actions performed on left click.
         - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-        - 'OPEN_MENU:change_target' # Open menu action. Syntax: 'OPEN_MENU:<menu_key>'
+        - 'REQUEST_INPUT:change_target'
       right_click_actions: # Actions performed on right click.
         - 'PLAY_SOUND:ENTITY_EVOKER_CAST_SPELL:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
         - 'CONSOLE_COMMAND:gamemode spectator {player}' # Console command action. Syntax: 'CONSOLE_COMMAND:<command>'
