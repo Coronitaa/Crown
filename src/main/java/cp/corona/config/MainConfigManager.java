@@ -4,6 +4,7 @@ package cp.corona.config;
 import cp.corona.crownpunishments.CrownPunishments;
 import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.items.MenuItem;
+import cp.corona.menus.items.MenuItem.ClickActionData; // Import ClickActionData
 import cp.corona.utils.ColorUtils; // Keep this import
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
@@ -17,9 +18,10 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable; // Added for clarity in inner class
 
+import java.io.File; // Added File import just in case (might already be implicitly imported)
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
+import java.util.stream.Collectors; // Import Collectors
 
 /**
  * Manages all plugin configurations, including messages, plugin settings, and menu configurations.
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
  * - **FIXED:** Placeholder replacement for punishment counts in menus.
  * - **REFACTORED:** Made 'display_yes', 'display_no', 'set', 'not_set', 'permanent_time_display'
  *   symbols/text configurable via a top-level 'placeholders' section in messages.yml.
+ * - Added methods to load and retrieve post-punishment/unpunishment action hooks from config.yml.
  */
 public class MainConfigManager {
     private final CustomConfig messagesConfig;
@@ -73,7 +76,7 @@ public class MainConfigManager {
         historyMenuConfig.registerConfig();
 
 
-        loadConfig(); // Initial load
+        loadConfig(); // Initial load includes new hooks now
         this.defaultTimeUnit = getTimeUnit("default"); // Ensure this is after loadConfig
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false); // Ensure this is after loadConfig
 
@@ -85,11 +88,11 @@ public class MainConfigManager {
 
     /**
      * Loads or reloads all configuration files.
-     * Updates debug status and re-registers PAPI placeholders if necessary.
+     * Updates debug status, PAPI placeholders, and punishment hooks. // MODIFIED comment
      */
     public void loadConfig() {
         messagesConfig.reloadConfig();
-        pluginConfig.reloadConfig();
+        pluginConfig.reloadConfig(); // Ensure pluginConfig is reloaded before accessing hooks
         punishMenuConfig.reloadConfig();
         punishDetailsMenuConfig.reloadConfig();
         timeSelectorMenuConfig.reloadConfig();
@@ -111,6 +114,12 @@ public class MainConfigManager {
             } else {
                 plugin.getLogger().warning("[MainConfigManager] WARNING: punish_menu.yml FileConfiguration is NULL! Check file loading.");
             }
+
+            // Debug log for punishment hooks loading (optional)
+            plugin.getLogger().log(Level.INFO, "[MainConfigManager] Loading punishment action hooks...");
+            // Example: Log one hook list to verify loading
+            List<ClickActionData> kickActions = getOnPunishActions("kick");
+            plugin.getLogger().log(Level.INFO, "[MainConfigManager] Debug: Loaded 'on_punish.kick' actions: " + kickActions.size());
         }
         // Re-register Placeholders if PAPI is enabled
         if (placeholders != null && placeholderAPIEnabled) {
@@ -1053,6 +1062,70 @@ public class MainConfigManager {
         // Return an empty list if no freeze actions are configured
         return Collections.emptyList();
     }
+    //</editor-fold>
+
+    //<editor-fold desc="Punishment Hook Getters - NEW">
+
+    /**
+     * Gets the list of ClickActionData configured to run after a specific punishment type is applied.
+     * Loads actions from 'punishment_hooks.on_punish.{punishmentType}' in config.yml.
+     *
+     * @param punishmentType The type of punishment (e.g., "ban", "kick"). Case-insensitive.
+     * @return A List of ClickActionData for the hook, or an empty list if none are configured or type is invalid.
+     */
+    public List<ClickActionData> getOnPunishActions(String punishmentType) {
+        String path = "punishment_hooks.on_punish." + punishmentType.toLowerCase();
+        return loadActionsFromPath(path);
+    }
+
+    /**
+     * Gets the list of ClickActionData configured to run after a specific unpunishment type is applied.
+     * Loads actions from 'punishment_hooks.on_unpunish.{punishmentType}' in config.yml.
+     * Note: The key in the config (e.g., "ban") corresponds to the *original* punishment type being undone.
+     *
+     * @param unpunishType The type of punishment being undone (e.g., "ban", "softban"). Case-insensitive.
+     * @return A List of ClickActionData for the hook, or an empty list if none are configured or type is invalid.
+     */
+    public List<ClickActionData> getOnUnpunishActions(String unpunishType) {
+        // The key in config.yml refers to the original punishment type being undone
+        String path = "punishment_hooks.on_unpunish." + unpunishType.toLowerCase();
+        return loadActionsFromPath(path);
+    }
+
+    /**
+     * Helper method to load a list of ClickActionData from a given path in config.yml.
+     *
+     * @param configPath The exact path to the list of action strings.
+     * @return A List of ClickActionData, or an empty list if the path is invalid or list is empty.
+     */
+    private List<ClickActionData> loadActionsFromPath(String configPath) {
+        FileConfiguration config = pluginConfig.getConfig(); // Get the main config
+        if (!config.contains(configPath) || !config.isList(configPath)) {
+            // Only log in debug mode if the path doesn't exist to avoid spam for unused hooks
+            if (isDebugEnabled()) {
+                plugin.getLogger().log(Level.INFO, "[MainConfigManager] No action hook list found at path: " + configPath);
+            }
+            return Collections.emptyList(); // Return empty list if path doesn't exist or isn't a list
+        }
+
+        List<String> actionStrings = config.getStringList(configPath);
+        if (actionStrings.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Parse strings into ClickActionData objects
+        List<ClickActionData> actions = actionStrings.stream()
+                .map(ClickActionData::fromConfigString)
+                .filter(Objects::nonNull) // Filter out potential nulls from parsing errors
+                .collect(Collectors.toList());
+
+        if (isDebugEnabled() && !actions.isEmpty()) {
+            plugin.getLogger().log(Level.INFO, "[MainConfigManager] Loaded " + actions.size() + " actions from path: " + configPath);
+        }
+
+        return actions;
+    }
+
     //</editor-fold>
 
     /**

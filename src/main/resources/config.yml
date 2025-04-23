@@ -64,6 +64,56 @@ freeze: # Configuration section for freeze punishment feature.
       - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example: Play sound. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
       - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :5:5:5" # Example: Display title. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
 
+# --- NEW SECTION: Post-Action Hooks ---
+# Defines lists of actions to execute AFTER a punishment or unpunishment is successfully confirmed and logged.
+# Uses the same action format as menu items (e.g., 'ACTION:arg1:arg2').
+# Available Placeholders within these hook actions:
+# - {player}: Name of the player/console executing the punishment/unpunishment.
+# - {target}: Name of the player being punished/unpunished.
+# - {reason}: The reason provided for the punishment (N/A for unpunishment).
+# - {time}: The time duration specified for the punishment (e.g., "1d", "Permanent", N/A for unpunishment).
+# - {punishment_type}: The type of punishment (e.g., "ban", "kick", "unban", "unfreeze").
+# - {prefix}: Plugin's prefix.
+punishment_hooks:
+  on_punish: # Actions executed AFTER a punishment is applied.
+    ban:
+      - 'MESSAGE_MODS:&c{target} &7was banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+      - 'PLAY_SOUND_MODS:ENTITY_ENDER_DRAGON_GROWL:1.0:0.8'
+      # - 'CONSOLE_COMMAND:discord broadcast Ban {target} {reason} {time}' # Example Discord integration
+    mute:
+      - 'MESSAGE_MODS:&e{target} &7was muted by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+      - 'PLAY_SOUND_MODS:ENTITY_VEX_CHARGE:1.0:1.0'
+    softban:
+      - 'MESSAGE_MODS:&3{target} &7was soft-banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+      - 'PLAY_SOUND_MODS:BLOCK_CHAIN_PLACE:1.0:1.2'
+    kick:
+      - 'MESSAGE_MODS:&9{target} &7was kicked by &e{player}&7. Reason: &f{reason}'
+      - 'PLAY_SOUND_MODS:ENTITY_GHAST_SHOOT:1.0:1.0'
+    warn:
+      - 'MESSAGE_MODS:&6{target} &7was warned by &e{player}&7. Reason: &f{reason}'
+      - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_NO:1.0:0.8'
+    freeze:
+      - 'MESSAGE_MODS:&5{target} &7was frozen by &e{player}&7. Reason: &f{reason}'
+      - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:0.7'
+      - 'ACTIONBAR_MODS:&d&lFROZEN: &f{target}' # Show on action bar too
+  on_unpunish: # Actions executed AFTER an unpunishment is applied.
+    ban: # Corresponds to 'unban' type
+      - 'MESSAGE_MODS:&a{target} &7was unbanned by &e{player}.'
+      - 'PLAY_SOUND_MODS:ENTITY_PLAYER_LEVELUP:1.0:1.2'
+      # - 'CONSOLE_COMMAND:discord broadcast Unban {target}' # Example Discord integration
+    mute: # Corresponds to 'unmute' type
+      - 'MESSAGE_MODS:&a{target} &7was unmuted by &e{player}.'
+      - 'PLAY_SOUND_MODS:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:1.5'
+    softban: # Corresponds to 'unsoftban' type
+      - 'MESSAGE_MODS:&a{target} &7was un-softbanned by &e{player}.'
+      - 'PLAY_SOUND_MODS:BLOCK_CHAIN_BREAK:1.0:1.2'
+    warn: # Corresponds to 'unwarn' type
+      - 'MESSAGE_MODS:&a{target}&7''s warning was removed by &e{player}.'
+      - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_YES:1.0:1.0'
+    freeze: # Corresponds to 'unfreeze' type
+      - 'MESSAGE_MODS:&a{target} &7was unfrozen by &e{player}.'
+      - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:1.2'
+
 # Logging configurations for debugging purposes.
 logging:
   debug: false # Enable debug logging for detailed console output. Options: true, false

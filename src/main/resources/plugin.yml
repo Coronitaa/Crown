@@ -1,5 +1,5 @@
 name: CrownPunishments
-version: '1.0.1'
+version: '1.0'
 main: cp.corona.crownpunishments.CrownPunishments
 api-version: '1.18'
 softdepend: [PlaceholderAPI]

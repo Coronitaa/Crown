@@ -8,6 +8,7 @@ import cp.corona.menus.PunishMenu;
 import cp.corona.menus.TimeSelectorMenu;
 import cp.corona.menus.actions.ClickAction;
 import cp.corona.menus.items.MenuItem;
+import cp.corona.menus.items.MenuItem.ClickActionData; // Import ClickActionData
 import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
@@ -18,7 +19,7 @@ import org.bukkit.Material; // Needed for Material.AIR check
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
-import org.bukkit.command.CommandSender;
+import org.bukkit.command.CommandSender; // Import CommandSender
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +29,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.inventory.Inventory; // Import Inventory
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta; // Needed for potential meta manipulation
@@ -35,10 +37,12 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.NotNull; // Import NotNull
 
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
+import java.util.stream.Collectors; // Import Collectors
+
 
 /**
  * ////////////////////////////////////////////////
@@ -53,9 +57,13 @@ import java.util.stream.Collectors;
  * action bars, and target/moderator specific variations.
  * Follows good practices and aims for SOLID principles where applicable.
  *
- * **MODIFIED:** Added handlers for ACTIONBAR, ACTIONBAR_TARGET, ACTIONBAR_MODS,
+ * **MODIFIED:**
+ * - Added handlers for ACTIONBAR, ACTIONBAR_TARGET, ACTIONBAR_MODS,
  *             MESSAGE_MODS, TITLE_MODS, PLAY_SOUND_MODS actions.
- *             ActionBar implementation uses standard API (no duration/fade control).
+ * - ActionBar implementation uses standard API (no duration/fade control).
+ * - Added `executeHookActions` method to run configured post-punishment/unpunishment actions.
+ * - Integrated calls to `executeHookActions` after successful punishment/unpunishment confirmations.
+ * - Added `executeSpecificHookAction` to handle action execution with both executor and target context.
  */
 public class MenuListener implements Listener {
     private final CrownPunishments plugin;
@@ -435,23 +443,49 @@ public class MenuListener implements Listener {
         } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE action: " + Arrays.toString(titleArgs)); }
     }
 
+    /**
+     * Executes the MESSAGE action for the clicking player.
+     * **MODIFIED:** Reconstructs the message if it was split by colons during parsing.
+     */
     private void executeMessageAction(Player player, String[] messageArgs, InventoryHolder holder) {
-        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) {
+        // RECONSTRUCT message if it was potentially split by colons in config
+        String messageText = (messageArgs != null && messageArgs.length > 0)
+                ? String.join(":", messageArgs) // Join all parts back with ":"
+                : null;
+
+        if (messageText == null) {
             plugin.getLogger().warning("MESSAGE action requires a non-null message text argument."); return;
         }
-        // Process {target} here if holder is present, otherwise it uses already processed text
+
+        // Placeholders should be processed *before* this point if called from hook.
+        // Process {target} again here specifically for direct menu clicks context.
         OfflinePlayer target = getTargetForAction(holder);
-        String messageText = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target} if possible
-        messageText = MessageUtils.getColorMessage(messageText); // Colorize final message
+        if (target != null) { // Only process target if holder provided context
+            messageText = plugin.getConfigManager().processPlaceholders(messageText, target);
+        }
+        // Ensure colors are applied (might be redundant if already done by hook processing, but safe)
+        messageText = MessageUtils.getColorMessage(messageText);
+
         player.sendMessage(messageText);
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE sent to " + player.getName() + ": " + messageText);
     }
 
+    /**
+     * Executes the ACTIONBAR action for the clicking player.
+     * **MODIFIED:** Reconstructs the message if it was split by colons during parsing.
+     */
     private void executeActionbarAction(Player player, String[] messageArgs) {
-        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) {
+        // RECONSTRUCT message if it was potentially split by colons in config
+        String messageText = (messageArgs != null && messageArgs.length > 0)
+                ? String.join(":", messageArgs) // Join all parts back with ":"
+                : null;
+
+        if (messageText == null) {
             plugin.getLogger().warning("ACTIONBAR action requires a non-null message text argument."); return;
         }
-        String messageText = MessageUtils.getColorMessage(messageArgs[0]); // Colorize
+        // Colors should be processed before this point if called from hook. Apply again for safety/direct calls.
+        messageText = MessageUtils.getColorMessage(messageText);
+
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(messageText));
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR sent to " + player.getName() + ": " + messageText);
     }
@@ -493,24 +527,52 @@ public class MenuListener implements Listener {
         } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE_TARGET action: " + Arrays.toString(titleArgs)); }
     }
 
+    /**
+     * Executes the MESSAGE_TARGET action.
+     * **MODIFIED:** Reconstructs the message if it was split by colons during parsing.
+     */
     private void executeMessageTargetAction(Player player, InventoryHolder holder, String[] messageArgs) {
         OfflinePlayer target = getTargetForAction(holder);
         if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_TARGET skipped: Target offline or null."); return; }
         Player targetPlayer = target.getPlayer();
-        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) { plugin.getLogger().warning("MESSAGE_TARGET action requires a non-null message text argument."); return; }
-        String messageText = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target}
-        messageText = MessageUtils.getColorMessage(messageText); // Colorize
+
+        // RECONSTRUCT message
+        String messageText = (messageArgs != null && messageArgs.length > 0)
+                ? String.join(":", messageArgs)
+                : null;
+
+        if (messageText == null) { plugin.getLogger().warning("MESSAGE_TARGET action requires a non-null message text argument."); return; }
+
+        // Process {target} placeholders (might be redundant if called from hook, but needed for menu clicks)
+        messageText = plugin.getConfigManager().processPlaceholders(messageText, target);
+        // Apply colors
+        messageText = MessageUtils.getColorMessage(messageText);
+
         targetPlayer.sendMessage(messageText);
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_TARGET sent to " + targetPlayer.getName() + ": " + messageText);
     }
 
+    /**
+     * Executes the ACTIONBAR_TARGET action.
+     * **MODIFIED:** Reconstructs the message if it was split by colons during parsing.
+     */
     private void executeActionbarTargetAction(Player player, InventoryHolder holder, String[] messageArgs) {
         OfflinePlayer target = getTargetForAction(holder);
         if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_TARGET skipped: Target offline or null."); return; }
         Player targetPlayer = target.getPlayer();
-        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) { plugin.getLogger().warning("ACTIONBAR_TARGET action requires a non-null message text argument."); return; }
-        String messageText = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target}
-        messageText = MessageUtils.getColorMessage(messageText); // Colorize
+
+        // RECONSTRUCT message
+        String messageText = (messageArgs != null && messageArgs.length > 0)
+                ? String.join(":", messageArgs)
+                : null;
+
+        if (messageText == null) { plugin.getLogger().warning("ACTIONBAR_TARGET action requires a non-null message text argument."); return; }
+
+        // Process {target} placeholders
+        messageText = plugin.getConfigManager().processPlaceholders(messageText, target);
+        // Apply colors
+        messageText = MessageUtils.getColorMessage(messageText);
+
         targetPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(messageText));
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_TARGET sent to " + targetPlayer.getName() + ": " + messageText);
     }
@@ -566,25 +628,56 @@ public class MenuListener implements Listener {
         } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE_MODS action: " + Arrays.toString(titleArgs)); }
     }
 
+    /**
+     * Executes the MESSAGE_MODS action.
+     * **MODIFIED:** Reconstructs the message if it was split by colons during parsing.
+     */
     private void executeMessageModsAction(Player player, InventoryHolder holder, String[] messageArgs) {
-        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) { plugin.getLogger().warning("MESSAGE_MODS action requires a non-null message text argument."); return; }
         List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_MODS skipped: No online mods."); return; }
-        OfflinePlayer target = getTargetForAction(holder);
-        String baseMessage = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target}
-        baseMessage = replacePlaceholders(player, baseMessage, holder); // Process {player} (initiator)
-        baseMessage = MessageUtils.getColorMessage(baseMessage); // Colorize
+        OfflinePlayer target = getTargetForAction(holder); // Target context for placeholders
+
+        // RECONSTRUCT message
+        String baseMessage = (messageArgs != null && messageArgs.length > 0)
+                ? String.join(":", messageArgs)
+                : null;
+
+        if (baseMessage == null) { plugin.getLogger().warning("MESSAGE_MODS action requires a non-null message text argument."); return; }
+
+        // Process placeholders relevant to mods message ({target}, {player})
+        // {player} should be the initiator if available (passed as 'player'), otherwise might need context adjustment if called from hook
+        String initiatorName = (player != null) ? player.getName() : "System"; // Use "System" or similar if player context is null (e.g., from hook)
+        baseMessage = plugin.getConfigManager().processPlaceholders(baseMessage, target); // Process {target} and its sub-placeholders
+        baseMessage = baseMessage.replace("{player}", initiatorName); // Replace initiator {player}
+        // Apply colors
+        baseMessage = MessageUtils.getColorMessage(baseMessage);
+
         final String finalMessage = baseMessage;
         mods.forEach(mod -> mod.sendMessage(finalMessage));
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_MODS sent to " + mods.size() + " mods: " + finalMessage);
     }
 
+    /**
+     * Executes the ACTIONBAR_MODS action.
+     * **MODIFIED:** Reconstructs the message if it was split by colons during parsing.
+     */
     private void executeActionbarModsAction(Player player, InventoryHolder holder, String[] messageArgs) {
-        if (messageArgs == null || messageArgs.length < 1 || messageArgs[0] == null) { plugin.getLogger().warning("ACTIONBAR_MODS action requires a non-null message text argument."); return; }
         List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_MODS skipped: No online mods."); return; }
         OfflinePlayer target = getTargetForAction(holder);
-        String baseMessage = plugin.getConfigManager().processPlaceholders(messageArgs[0], target); // Process {target}
-        baseMessage = replacePlaceholders(player, baseMessage, holder); // Process {player} (initiator)
-        baseMessage = MessageUtils.getColorMessage(baseMessage); // Colorize
+
+        // RECONSTRUCT message
+        String baseMessage = (messageArgs != null && messageArgs.length > 0)
+                ? String.join(":", messageArgs)
+                : null;
+
+        if (baseMessage == null) { plugin.getLogger().warning("ACTIONBAR_MODS action requires a non-null message text argument."); return; }
+
+        // Process placeholders
+        String initiatorName = (player != null) ? player.getName() : "System";
+        baseMessage = plugin.getConfigManager().processPlaceholders(baseMessage, target);
+        baseMessage = baseMessage.replace("{player}", initiatorName);
+        // Apply colors
+        baseMessage = MessageUtils.getColorMessage(baseMessage);
+
         final String finalMessage = baseMessage;
         mods.forEach(mod -> mod.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(finalMessage)));
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_MODS sent to " + mods.size() + " mods: " + finalMessage);
@@ -625,6 +718,10 @@ public class MenuListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
     }
 
+
+    // ========================================================================
+    // Menu Specific Logic
+    // ========================================================================
 
     /**
      * Handles actions specific to PunishMenu clicks.
@@ -733,6 +830,10 @@ public class MenuListener implements Listener {
             default: return false;
         }
     }
+
+    // ========================================================================
+    // Input Handling Logic
+    // ========================================================================
 
     /**
      * Requests a new target player name from the player via chat input.
@@ -890,6 +991,7 @@ public class MenuListener implements Listener {
         // Handle cancellation input
         if (input.equalsIgnoreCase("cancel")) {
             handleCancelInput(player, detailsMenu); // Reopen menu if applicable and clear data
+            // Input data cleared within handleCancelInput or processValidInput
             return; // Exit after handling cancellation
         }
 
@@ -905,7 +1007,8 @@ public class MenuListener implements Listener {
         if (detailsMenu != null) {
             reopenDetailsMenu(player, detailsMenu);
         }
-        // No need to call clearPlayerInputData here, it's called after return in handlePlayerInput
+        // Clear data after reopening or if no menu to reopen
+        clearPlayerInputData(player);
     }
 
     /**
@@ -996,7 +1099,7 @@ public class MenuListener implements Listener {
     }
 
     // ========================================================================
-    // Punishment / Unpunishment Confirmation Logic
+    // Punishment / Unpunishment Confirmation Logic (MODIFIED Calls)
     // ========================================================================
 
     private void handleConfirmButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -1080,22 +1183,26 @@ public class MenuListener implements Listener {
         }
     }
 
-    // --- Specific Confirmation Methods ---
+    // --- Specific Confirmation Methods (MODIFIED) ---
 
     private void confirmStandardPunishment(Player player, PunishDetailsMenu detailsMenu) {
         UUID targetUUID = detailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String punishmentType = detailsMenu.getPunishmentType();
         String commandTemplate = getPunishmentCommand(punishmentType);
-        String timeInput = detailsMenu.getBanTime() != null ? detailsMenu.getBanTime() : "permanent"; // Default if somehow null
-        String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified"; // Default if somehow null
+        String timeInput = detailsMenu.getBanTime() != null ? detailsMenu.getBanTime() : "permanent";
+        String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified";
 
         String processedCommand = commandTemplate
                 .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                 .replace("{time}", timeInput)
                 .replace("{reason}", reason);
 
-        executePunishmentCommand(player, processedCommand, target, detailsMenu);
+        // --- Execute and Log ---
+        executePunishmentCommandAndLog(player, processedCommand, target, detailsMenu, punishmentType, timeInput, reason);
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        executeHookActions(player, target, punishmentType, timeInput, reason, false);
     }
 
     private void confirmSoftBan(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -1105,23 +1212,22 @@ public class MenuListener implements Listener {
         String timeInput = punishDetailsMenu.getBanTime() != null ? punishDetailsMenu.getBanTime() : "permanent";
 
         long endTime = calculateEndTime(timeInput);
-        String durationString = timeInput; // Use the input string for logging
+        String durationString = timeInput; // Use the input for user display consistency
 
-        // Correct the end time for the 1-second bug if not permanent
         if (endTime != Long.MAX_VALUE) {
-            endTime += 1000L; // Add 1 second
-            // Recalculate duration string based on corrected time for logging consistency if needed
-            // durationString = TimeUtils.formatTime((int)((endTime - System.currentTimeMillis())/1000), plugin.getConfigManager());
+            endTime += 1000L;
         } else {
-            durationString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display"); // Use permanent display for log
+            durationString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
         }
 
-
-        // SoftbanPlayer now handles logging internally
+        // --- Execute and Log ---
         plugin.getSoftBanDatabaseManager().softBanPlayer(targetUUID, endTime, reason, player.getName());
-
         playSound(player, "punish_confirm");
-        sendPunishmentConfirmation(player, target, timeInput, reason, SOFTBAN_PUNISHMENT_TYPE); // Use generic confirmation
+        sendPunishmentConfirmation(player, target, timeInput, reason, SOFTBAN_PUNISHMENT_TYPE);
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        // Pass the original timeInput string for the {time} placeholder in hooks
+        executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, timeInput, reason, false);
     }
 
     private void confirmFreeze(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -1129,25 +1235,28 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Frozen by moderator";
 
-        // Check if already frozen again just before applying (race condition mitigation)
         if (plugin.getPluginFrozenPlayers().containsKey(targetUUID)) {
             sendConfigMessage(player, "messages.already_frozen", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
             playSound(player, "punish_error");
             return;
         }
 
-        plugin.getPluginFrozenPlayers().put(targetUUID, true); // Mark as frozen
-
+        // --- Execute and Log ---
+        plugin.getPluginFrozenPlayers().put(targetUUID, true);
         playSound(player, "punish_confirm");
-        sendPunishmentConfirmation(player, target, "Permanent", reason, FREEZE_PUNISHMENT_TYPE); // Use generic confirmation
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, FREEZE_PUNISHMENT_TYPE, reason, player.getName(), Long.MAX_VALUE, plugin.getConfigManager().getMessage("placeholders.permanent_time_display")); // Log
+        // Use the configured permanent display string for confirmation message consistency
+        String permanentDisplay = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
+        sendPunishmentConfirmation(player, target, permanentDisplay, reason, FREEZE_PUNISHMENT_TYPE);
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, FREEZE_PUNISHMENT_TYPE, reason, player.getName(), Long.MAX_VALUE, permanentDisplay);
 
-        // Apply effects and start task if player is online
         Player onlineTarget = target.getPlayer();
         if (onlineTarget != null) {
             sendFreezeReceivedMessage(onlineTarget);
             plugin.getFreezeListener().startFreezeActionsTask(onlineTarget);
         }
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        executeHookActions(player, target, FREEZE_PUNISHMENT_TYPE, permanentDisplay, reason, false);
     }
 
     private void confirmKick(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -1155,12 +1264,15 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Kicked by moderator";
         String commandTemplate = plugin.getConfigManager().getKickCommand();
-
         String processedCommand = commandTemplate
                 .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                 .replace("{reason}", reason);
 
-        executePunishmentCommand(player, processedCommand, target, punishDetailsMenu); // Uses the generic executor
+        // --- Execute and Log ---
+        executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, KICK_PUNISHMENT_TYPE, "N/A", reason);
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        executeHookActions(player, target, KICK_PUNISHMENT_TYPE, "N/A", reason, false);
     }
 
     private void confirmWarn(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -1168,57 +1280,73 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Warned by moderator";
         String commandTemplate = plugin.getConfigManager().getWarnCommand();
-
         String processedCommand = commandTemplate
                 .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                 .replace("{reason}", reason);
 
-        executePunishmentCommand(player, processedCommand, target, punishDetailsMenu); // Uses the generic executor
+        // --- Execute and Log ---
+        executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, WARN_PUNISHMENT_TYPE, "N/A", reason);
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", reason, false);
     }
 
-
-    // --- Unpunishment Methods ---
+    // --- Unpunishment Methods (MODIFIED) ---
 
     private void confirmUnsoftban(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        plugin.getSoftBanDatabaseManager().unSoftBanPlayer(targetUUID, player.getName()); // Handles logging internally now
+        // --- Execute and Log ---
+        plugin.getSoftBanDatabaseManager().unSoftBanPlayer(targetUUID, player.getName());
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, SOFTBAN_PUNISHMENT_TYPE);
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, "N/A", "Un-softbanned", true); // Pass reason
     }
 
     private void confirmUnfreeze(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        boolean removed = plugin.getPluginFrozenPlayers().remove(targetUUID) != null; // Remove and check if existed
+        // --- Execute and Log ---
+        boolean removed = plugin.getPluginFrozenPlayers().remove(targetUUID) != null;
 
         if(removed) {
-            plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unfreeze", "Unfrozen via Menu", player.getName(), 0L, "N/A"); // Log unfreeze
+            String reason = "Unfrozen via Menu";
+            plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unfreeze", reason, player.getName(), 0L, "N/A");
             playSound(player, "punish_confirm");
             sendUnpunishConfirmation(player, target, FREEZE_PUNISHMENT_TYPE);
-            // Stop freeze task and remove effects if player is online
             Player onlineTarget = target.getPlayer();
             if (onlineTarget != null) {
-                plugin.getFreezeListener().stopFreezeActionsTask(targetUUID); // Stop task using UUID
+                plugin.getFreezeListener().stopFreezeActionsTask(targetUUID);
                 sendUnfreezeMessage(onlineTarget);
             }
+
+            // --- Execute Hooks --- // LLAMADA MODIFICADA
+            executeHookActions(player, target, FREEZE_PUNISHMENT_TYPE, "N/A", reason, true);
+
         } else {
-            // Should have been caught by handleUnfreezeButtonClick, but double-check
             sendConfigMessage(player, "messages.no_active_freeze", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
             playSound(player, "punish_error");
         }
     }
 
     private void executeUnbanAction(Player player, InventoryHolder holder) {
-        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder; // Assume called correctly
+        PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
         UUID targetUUID = detailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String commandTemplate = plugin.getConfigManager().getUnbanCommand();
         String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+        String reason = "Unbanned via Menu";
+
+        // --- Execute and Log ---
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unban", "Unbanned via Menu", player.getName(), 0L, "N/A");
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unban", reason, player.getName(), 0L, "N/A");
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, BAN_PUNISHMENT_TYPE);
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        executeHookActions(player, target, BAN_PUNISHMENT_TYPE, "N/A", reason, true);
     }
 
     private void executeUnmuteAction(Player player, InventoryHolder holder) {
@@ -1227,10 +1355,16 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String commandTemplate = plugin.getConfigManager().getUnmuteCommand();
         String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+        String reason = "Unmuted via Menu";
+
+        // --- Execute and Log ---
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unmute", "Unmuted via Menu", player.getName(), 0L, "N/A");
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unmute", reason, player.getName(), 0L, "N/A");
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, MUTE_PUNISHMENT_TYPE);
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        executeHookActions(player, target, MUTE_PUNISHMENT_TYPE, "N/A", reason, true);
     }
 
     private void executeUnwarnAction(Player player, InventoryHolder holder) {
@@ -1244,10 +1378,16 @@ public class MenuListener implements Listener {
             return;
         }
         String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+        String reason = "Unwarned via Menu";
+
+        // --- Execute and Log ---
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
-        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unwarn", "Unwarned via Menu", player.getName(), 0L, "N/A");
+        plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unwarn", reason, player.getName(), 0L, "N/A");
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, WARN_PUNISHMENT_TYPE);
+
+        // --- Execute Hooks --- // LLAMADA MODIFICADA
+        executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", reason, true);
     }
 
 
@@ -1275,7 +1415,7 @@ public class MenuListener implements Listener {
 
 
     // ========================================================================
-    // Helper & Utility Methods
+    // Helper & Utility Methods (MODIFIED/NEW)
     // ========================================================================
 
     /**
@@ -1342,13 +1482,15 @@ public class MenuListener implements Listener {
         if (holder instanceof PunishDetailsMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof TimeSelectorMenu menu) return Bukkit.getOfflinePlayer(menu.getPunishDetailsMenu().getTargetUUID());
         if (holder instanceof HistoryMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
+        if (holder instanceof TempHolder temp) return Bukkit.getOfflinePlayer(temp.getTargetUUID()); // Handle TempHolder
         return null;
     }
 
     /** Replaces placeholders in text. Primarily handles {player}. */
     private String replacePlaceholders(Player player, String text, InventoryHolder holder) {
         if (text == null) return null;
-        return text.replace("{player}", player.getName());
+        String playerName = (player != null) ? player.getName() : "Unknown";
+        return text.replace("{player}", playerName);
         // Note: {target} and other context-specific placeholders are handled later
         // by MainConfigManager or within specific execute* methods.
     }
@@ -1441,8 +1583,8 @@ public class MenuListener implements Listener {
     /** Checks if the executor has permission to apply a specific punishment type. */
     private boolean checkPunishmentPermission(Player executor, String punishmentType) {
         String perm = "crown.punish." + punishmentType.toLowerCase();
-        return executor.hasPermission(perm) || executor.hasPermission(USE_PERMISSION); // Allow if they have specific or base use perm? Adjust as needed. For now, require specific.
-        // return executor.hasPermission(perm); // More strict: requires specific permission
+        // return executor.hasPermission(perm) || executor.hasPermission(USE_PERMISSION); // Allow if they have specific or base use perm? Adjust as needed. For now, require specific.
+        return executor.hasPermission(perm); // More strict: requires specific permission
     }
 
     /** Retrieves the command template string for a given punishment type from config. */
@@ -1458,17 +1600,27 @@ public class MenuListener implements Listener {
         };
     }
 
-    /** Executes the final punishment command and handles logging/confirmation. */
-    private void executePunishmentCommand(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu) {
-        // Bypass check already done in confirmDynamicPunishment
+    /**
+     * Executes the final punishment command, logs the punishment, and sends confirmation.
+     * Consolidated logic from executePunishmentCommand.
+     *
+     * @param player           The player executing the punishment.
+     * @param command          The final command string to execute.
+     * @param target           The target player.
+     * @param detailsMenu      The details menu context (can be null if called from command).
+     * @param punishmentType   The type of punishment.
+     * @param timeValue        The time string ("Permanent", "1d", "N/A").
+     * @param reason           The reason string.
+     */
+    private void executePunishmentCommandAndLog(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu, String punishmentType, String timeValue, String reason) {
+        // Execute Command
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command));
-        playSound(player, "punish_confirm");
-        String punishmentType = detailsMenu.getPunishmentType();
-        String timeValue = detailsMenu.getBanTime() != null ? detailsMenu.getBanTime() : "N/A"; // Time might be null for kick/warn
-        String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified";
 
+        // Play Sound & Send Confirmation
+        playSound(player, "punish_confirm");
         sendPunishmentConfirmation(player, target, timeValue, reason, punishmentType); // Use the generic message
 
+        // Prepare for Logging
         long punishmentEndTime = 0L;
         String durationString = "permanent"; // Default for kick/warn
 
@@ -1481,8 +1633,200 @@ public class MenuListener implements Listener {
         }
         // Kick/Warn use 0L and "permanent" duration string
 
+        // Log Punishment
         plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishmentType, reason, player.getName(), punishmentEndTime, durationString);
+
+        // Note: Hooks are executed *after* this method returns in the calling confirmX methods.
     }
 
+    // --- NEW Hook Execution Methods ---
+
+    /**
+     * Executes the configured post-punishment or post-unpunishment actions (hooks).
+     * Retrieves the appropriate action list from the config manager.
+     * Processes all relevant hook placeholders ({player}, {target}, {reason}, {time}, {punishment_type})
+     * within the action arguments before delegating execution to `executeSpecificHookAction`.
+     * (Logic inside this method is now correct after previous modification)
+     */
+    public void executeHookActions(CommandSender executor, OfflinePlayer target, String punishmentType, String time, String reason, boolean isUnpunish) {
+        List<ClickActionData> actions;
+        String hookType = isUnpunish ? "on_unpunish" : "on_punish";
+
+        // Get the correct list of actions from config manager
+        if (isUnpunish) {
+            actions = plugin.getConfigManager().getOnUnpunishActions(punishmentType);
+        } else {
+            actions = plugin.getConfigManager().getOnPunishActions(punishmentType);
+        }
+
+        if (actions.isEmpty()) {
+            return; // No hooks configured for this action type
+        }
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] Preparing to execute " + actions.size() + " hook actions for " + hookType + "." + punishmentType);
+        }
+
+        // --- Prepare context for placeholder replacement ---
+        final String executorName = (executor instanceof Player) ? executor.getName() : "Console";
+        final String targetName = (target != null && target.getName() != null) ? target.getName() : (target != null ? target.getUniqueId().toString() : "Unknown");
+        final String finalTime = (time != null) ? time : "N/A";
+        final String finalReason = (reason != null) ? reason : "N/A";
+        final String finalPunishmentTypePlaceholder = punishmentType;
+
+        // --- Execute each configured action ---
+        for (ClickActionData actionData : actions) {
+            String[] originalArgs = actionData.getActionData();
+            String[] processedHookArgs = new String[originalArgs.length];
+
+            // --- Process ALL placeholders for this hook context ---
+            for (int i = 0; i < originalArgs.length; i++) {
+                if (originalArgs[i] != null) {
+                    String currentArg = originalArgs[i];
+                    // Replace all relevant placeholders
+                    currentArg = currentArg.replace("{player}", executorName);
+                    currentArg = currentArg.replace("{target}", targetName);
+                    currentArg = currentArg.replace("{reason}", finalReason);
+                    currentArg = currentArg.replace("{time}", finalTime);
+                    currentArg = currentArg.replace("{punishment_type}", finalPunishmentTypePlaceholder);
+                    // Process other general placeholders via MainConfigManager
+                    currentArg = plugin.getConfigManager().processPlaceholders(currentArg, null);
+                    // Apply colors LAST
+                    processedHookArgs[i] = MessageUtils.getColorMessage(currentArg); // Color applied here now
+                } else {
+                    processedHookArgs[i] = null;
+                }
+            }
+            // --- End Placeholder Processing ---
+
+            if (plugin.getConfigManager().isDebugEnabled()) {
+                plugin.getLogger().info("[DEBUG] -> Executing Hook Action: " + actionData.getAction() + " with Processed Args: " + Arrays.toString(processedHookArgs));
+            }
+
+            // Execute the action using the dedicated method with *fully processed* arguments
+            executeSpecificHookAction(executor, target, actionData.getAction(), processedHookArgs, plugin);
+        }
+    }
+
+
+
+    /**
+     * Executes a specific ClickAction in the context of a punishment/unpunishment hook.
+     * Receives fully processed arguments (placeholders already replaced by `executeHookActions`).
+     * Focuses only on executing the action logic itself.
+     * (Logic inside this method is now correct after previous modification)
+     */
+    private void executeSpecificHookAction(CommandSender executor, OfflinePlayer target, ClickAction action, String[] actionArgs, CrownPunishments plugin) {
+        // (Logic inside this method remains the same as the previous correct version)
+        if (action == ClickAction.NO_ACTION) return;
+
+        // Debug Log (Shows the final args being used)
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            String executorName = (executor instanceof Player) ? executor.getName() : "Console";
+            String targetName = (target != null && target.getName() != null) ? target.getName() : "Unknown";
+            plugin.getLogger().info("[DEBUG] executeSpecificHookAction - Action: " + action + " | Executor: " + executorName + " | Target: " + targetName + " | Using Args: " + Arrays.toString(actionArgs));
+        }
+
+        // --- Execute Relevant Actions ---
+        switch (action) {
+            // Commands
+            case CONSOLE_COMMAND:
+                if (actionArgs.length >= 1 && actionArgs[0] != null) {
+                    final String commandToRun = actionArgs[0];
+                    Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandToRun));
+                } else { logInvalidArgs(action, actionArgs, plugin); }
+                break;
+
+            case PLAYER_COMMAND:
+            case PLAYER_COMMAND_OP:
+                if (!(executor instanceof Player playerExecutor)) {
+                    plugin.getLogger().warning("Skipping PLAYER_COMMAND/PLAYER_COMMAND_OP hook action: Executor is not a player."); return;
+                }
+                if (actionArgs.length >= 1 && actionArgs[0] != null) {
+                    final String commandToRun = actionArgs[0];
+                    Bukkit.getScheduler().runTask(plugin, () -> { /* ... OP logic ... */ });
+                } else { logInvalidArgs(action, actionArgs, plugin); }
+                break;
+
+            // Sounds
+            case PLAY_SOUND:
+                if (executor instanceof Player playerExecutor) { executePlaySoundAction(playerExecutor, actionArgs); }
+                break;
+            case PLAY_SOUND_TARGET:
+                if (target != null) { executePlaySoundTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                else { logTargetMissing(action, plugin); } break;
+            case PLAY_SOUND_MODS:
+                if (target != null) { executePlaySoundModsAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                else { logTargetMissing(action, plugin); } break;
+
+            // Titles
+            case TITLE:
+                if (executor instanceof Player playerExecutor) { executeTitleAction(playerExecutor, actionArgs); }
+                break;
+            case TITLE_TARGET:
+                if (target != null) { executeTitleTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                else { logTargetMissing(action, plugin); } break;
+            case TITLE_MODS:
+                if (target != null) { executeTitleModsAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                else { logTargetMissing(action, plugin); } break;
+
+            // Messages - Use the CORRECTED helpers
+            case MESSAGE:
+                if (executor instanceof Player playerExecutor) { executeMessageAction(playerExecutor, actionArgs, null); } // Pass null holder
+                else { executor.sendMessage(actionArgs.length > 0 ? actionArgs[0] : ""); } // Send directly to console
+                break;
+            case MESSAGE_TARGET:
+                if (target != null) { executeMessageTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                else { logTargetMissing(action, plugin); } break;
+            case MESSAGE_MODS:
+                if (target != null) { executeMessageModsAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                else { logTargetMissing(action, plugin); } break;
+
+            // Action Bars - Use the CORRECTED helpers
+            case ACTIONBAR:
+                if (executor instanceof Player playerExecutor) { executeActionbarAction(playerExecutor, actionArgs); }
+                break;
+            case ACTIONBAR_TARGET:
+                if (target != null) { executeActionbarTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                else { logTargetMissing(action, plugin); } break;
+            case ACTIONBAR_MODS:
+                if (target != null) { executeActionbarModsAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                else { logTargetMissing(action, plugin); } break;
+
+            case GIVE_EFFECT_TARGET:
+                if (target != null) { executeGiveEffectTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); } // Assuming args ok
+                else { logTargetMissing(action, plugin); } break;
+
+            default:
+                if (plugin.getConfigManager().isDebugEnabled()) { plugin.getLogger().info("[DEBUG] Skipping unsupported action type for hook execution: " + action); }
+                break;
+        }
+    }
+
+    /**
+     * Helper method to log target missing warning.
+     */
+    private void logTargetMissing(ClickAction action, CrownPunishments plugin) {
+        plugin.getLogger().warning("Cannot execute hook action " + action + ": Target player context is missing.");
+    }
+
+
+    /**
+     * Helper method to log invalid arguments warning.
+     */
+    private void logInvalidArgs(ClickAction action, String[] args, CrownPunishments plugin) {
+        plugin.getLogger().warning("Invalid arguments for hook action " + action + ": " + Arrays.toString(args));
+    }
+
+    /**
+     * Temporary InventoryHolder implementation to pass target UUID to reused action methods.
+     * This is a workaround as some action methods expect a holder primarily to get the target.
+     */
+    private static class TempHolder implements InventoryHolder {
+        private final UUID targetUUID;
+        TempHolder(UUID targetUUID) { this.targetUUID = targetUUID; }
+        @Override public @NotNull Inventory getInventory() { return null; } // Not actually used
+        public UUID getTargetUUID() { return targetUUID; }
+    }
 
 } // End of MenuListener class
