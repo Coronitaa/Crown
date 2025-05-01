@@ -1,590 +1,585 @@
-# Configuration for punish details menus.
-# This file defines the structure and items for each punishment detail menu,
-# allowing customization for ban, mute, softban, kick, warn, and freeze menus.
+# Configuration for punish details menus (Ban, Mute, Softban, Kick, Warn, Freeze).
+# Defines structure, items, and actions for setting punishment details.
+## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
-# Available Actions:
-# - OPEN_MENU: Opens another menu. Syntax: 'OPEN_MENU:<menu_key>'
-# - REQUEST_INPUT: Requests text input from the player via chat. Syntax: 'REQUEST_INPUT:<input_type>'
-# - CONFIRM_PUNISHMENT: Confirms and executes the punishment. Syntax: 'CONFIRM_PUNISHMENT:'
-# - UN_SOFTBAN: Removes softban from the player. Syntax: 'UN_SOFTBAN:'
-# - UN_FREEZE: Removes freeze from the player. Syntax: 'UN_FREEZE:'
-# - UN_BAN: Removes ban from the player. Syntax: 'UN_BAN:'
-# - UN_MUTE: Removes mute from the player. Syntax: 'UN_MUTE:'
-# - UN_WARN: Removes warn from the player. Syntax: 'UN_WARN:'
-# - PLAY_SOUND: Plays a sound to the player. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-# - NO_ACTION: No action is performed.
+# --- Available Actions ---
+# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:time_selector, OPEN_MENU:punish_menu)
+# - REQUEST_INPUT:<input_type>       (e.g., REQUEST_INPUT:reason_input)
+# - CONFIRM_PUNISHMENT:              (Confirms and executes the current punishment)
+# - UN_SOFTBAN:                      (Removes softban - only applicable in softban menu)
+# - UN_FREEZE:                       (Removes freeze - only applicable in freeze menu)
+# - UN_BAN:                          (Removes ban - only applicable in ban menu)
+# - UN_MUTE:                         (Removes mute - only applicable in mute menu)
+# - UN_WARN:                         (Removes warn - only applicable in warn menu)
+# - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0)
+# - TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout> (Shows title to clicking player)
+# - NO_ACTION:                       (Does nothing)
+# (See wiki for more potentially usable actions like MESSAGE, etc.)
 
-# Available Placeholders:
+# --- Available Placeholders ---
 # - {target}: Target player's name.
-# - {time}: Punishment time duration.
-# - {reason}: Punishment reason.
+# - {time}: Currently set punishment time duration.
+# - {reason}: Currently set punishment reason.
 # - {prefix}: Plugin prefix.
-# - {time_status}: Status of time setting (Set/Not Set).
-# - {reason_status}: Status of reason setting (Set/Not Set).
-# - {target_softban_status}: Status of target player's softban.
-# - {target_softban_remaining_time}: Remaining time of target player's softban.
-
+# - {time_status}: Text indicating if time is set (uses placeholders.set/not_set).
+# - {reason_status}: Text indicating if reason is set (uses placeholders.set/not_set).
+# - {target_softban_status}: Target's softban status (relevant in softban menu).
+# - {target_softban_remaining_time}: Target's remaining softban time (relevant in softban menu).
 
 menu:
   punish_details:
-    ban: # Ban details menu configuration
-      title: '&4&lBan Details' # Title for BanDetailsMenu
-      open_actions: # Actions to perform when the menu is opened.
-        - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+    # --- BAN MENU ---
+    ban:
+      title: '&4&lBan Details for &c{target}'
+      open_actions:
+        - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0'
       items:
-        background_fill_1: # Background fill item configuration.
+        background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '0-9,17,18-26,28-29,33-34' # Slots where the background fill item will be placed.
-        background_fill_2: # Background fill item configuration.
+          name: ' '
+          slot: '0-9,17,18-26,28-29,33-34'
+        background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '10,12,14,16' # Slots where the background fill item will be placed.
-        background_fill_3: # Background fill item configuration.
+          name: ' '
+          slot: '10,12,14,16'
+        background_fill_3:
           material: 'RED_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '30,32' # Slots where the background fill item will be placed.
-        info: # Information item configuration.
+          name: ' '
+          slot: '30,32'
+        info:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ================== ' # Display name for the info item.
-          slot: '35' # Slot for the info item.
-          lore: # Lore for the info item.
-            - '&fInformation:'
-            - '&7- Block this player from'
-            - '&7  joining the server.'
+          name: ' #ffffa7&m&o ================== '
+          slot: '35'
+          lore:
+            - '&fAction: Ban'
+            - '&7- Prevents &b{target}'
+            - '&7  from joining the server.'
             - ' #ffffa7&m&o ================== '
-        set_time: # Set Time item configuration.
+        set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
-          slot: '11' # Inventory slot
-          name: '&eSet Ban Time' # Display name
-          lore: # Item lore
-            - '&fCurrent Time: &b{time}' # Placeholder for current set time
+          slot: '11'
+          name: '&eSet Ban Time'
+          lore:
+            - '&fCurrent Time: &b{time}'
             - ''
             - '&7Click to set the'
             - '&7duration of the ban.'
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:time_selector' # Open time selector menu. Syntax: 'OPEN_MENU:<menu_key>'
-
-          right_click_actions: # Actions on right click.
-            - 'OPEN_MENU:time_selector' # Example command
-
-        set_reason: # Set Reason item configuration.
+          left_click_actions:
+            - 'OPEN_MENU:time_selector'
+          right_click_actions:
+            - 'OPEN_MENU:time_selector'
+        set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
-          slot: '13' # Inventory slot
-          name: '&eSet Ban Reason' # Display name
-          lore: # Item lore
-            - '&fCurrent Reason: &b{reason}' # Placeholder for current reason
+          slot: '13'
+          name: '&eSet Ban Reason'
+          lore:
+            - '&fCurrent Reason: &b{reason}'
             - ''
             - '&7Click to set the'
             - '&7reason for the ban.'
-          left_click_actions: # Actions on left click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-          right_click_actions: # Actions on right click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-        confirm_punish: # Confirm Punish item configuration.
+          left_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Ban Reason:&7in chat:5:20:20'
+          right_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Ban Reason:&7in chat:5:20:20'
+        confirm_punish:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
-          slot: '15' # Inventory slot
-          name: '&a&lConfirm Ban' # Default name when ready
-          lore: # Item lore when ready
+          slot: '15'
+          name: '&a&lConfirm Ban'
+          lore:
             - '&7Click to confirm and'
             - '&7apply the ban to &b{target}&7.'
             - ''
             - '&fRequires:'
-            - '&7- Time: {time_status}' # Placeholder for time set status
-            - '&7- Reason: {reason_status}' # Placeholder for reason set status
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-          right_click_actions: # Actions on right click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-        back_button: # Back Button item configuration.
+            - '&7- Time: {time_status}'
+            - '&7- Reason: {reason_status}'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+          right_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+        back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
-          slot: '27' # Inventory slot
-          name: '&cBack' # Display name, red color indicating back/cancel
-          lore: # Item lore
-            - ''
-            - '&7Go back to the'
+          slot: '27'
+          name: '&cBack'
+          lore:
+            - '&7Return to main'
             - '&7Punishment Menu.'
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-          right_click_actions: # Actions on right click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-        unban_button: # Unban Button item configuration.
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu'
+          right_click_actions:
+            - 'OPEN_MENU:punish_menu'
+        unban_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
-          slot: '31' # Inventory slot
-          name: '&4Unban' # Display name, red color indicating back/cancel
-          lore: # Item lore
-            - '&7Removes actual'
-            - '&7ban from &b{target}'
+          slot: '31'
+          name: '&4&lUnban Player'
+          lore:
+            - '&7Removes the current'
+            - '&7ban from &b{target}&7.'
             - ''
-            - '&7Click to unban player.'
-          left_click_actions: # Actions on left click.
-            - 'UN_BAN:' # Unban action. Syntax: 'UN_BAN:'
-          right_click_actions: # Actions on right click.
-            - 'UN_BAN:' # Unban action. Syntax: 'UN_BAN:'
-    mute: # Mute details menu configuration
-      title: '&e&lMute Details' # Title for MuteDetailsMenu
-      open_actions: # Actions to perform when the menu is opened.
-        - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_HAT:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+            - '&7Click to unban.'
+          left_click_actions:
+            - 'UN_BAN:'
+          right_click_actions:
+            - 'UN_BAN:'
+
+    # --- MUTE MENU ---
+    mute:
+      title: '&e&lMute Details for &6{target}'
+      open_actions:
+        - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_HAT:1.0:0.6'
       items:
-        background_fill_1: # Background fill item configuration.
+        background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '0-9,17,18-26,28-29,33-34' # Slots where the background fill item will be placed.
-        background_fill_2: # Background fill item configuration.
+          name: ' '
+          slot: '0-9,17,18-26,28-29,33-34'
+        background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '10,12,14,16' # Slots where the background fill item will be placed.
-        background_fill_3: # Background fill item configuration.
+          name: ' '
+          slot: '10,12,14,16'
+        background_fill_3:
           material: 'RED_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '30,32' # Slots where the background fill item will be placed.
-        info: # Information item configuration.
+          name: ' '
+          slot: '30,32'
+        info:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ==================== ' # Display name for the info item.
-          slot: '35' # Slot for the info item.
-          lore: # Lore for the info item.
-            - '&fInformation:'
-            - '&7- Restrict the use of chat'
-            - '&7  to the player.'
+          name: ' #ffffa7&m&o ==================== '
+          slot: '35'
+          lore:
+            - '&fAction: Mute'
+            - '&7- Restricts &b{target}''s'
+            - '&7  ability to chat.'
             - ' #ffffa7&m&o ==================== '
-        set_time: # Set Time item configuration for Mute
+        set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
-          slot: '11' # Inventory slot
-          name: '&eSet Mute Time' # Display name
-          lore: # Item lore
-            - '&fCurrent Time: &b{time}' # Placeholder for current set time
+          slot: '11'
+          name: '&eSet Mute Time'
+          lore:
+            - '&fCurrent Time: &b{time}'
             - ''
             - '&7Click to set the'
             - '&7duration of the mute.'
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:time_selector' # Open time selector menu. Syntax: 'OPEN_MENU:<menu_key>'
-
-          right_click_actions: # Actions on right click.
-            - 'OPEN_MENU:time_selector' # Example command
-
-        set_reason: # Set Reason item configuration for Mute
+          left_click_actions:
+            - 'OPEN_MENU:time_selector'
+          right_click_actions:
+            - 'OPEN_MENU:time_selector'
+        set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
-          slot: '13' # Inventory slot
-          name: '&eSet Mute Reason' # Display name
-          lore: # Item lore
-            - '&fCurrent Reason: &b{reason}' # Placeholder for current reason
+          slot: '13'
+          name: '&eSet Mute Reason'
+          lore:
+            - '&fCurrent Reason: &b{reason}'
             - ''
             - '&7Click to set the'
             - '&7reason for the mute.'
-          left_click_actions: # Actions on left click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-          right_click_actions: # Actions on right click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-        confirm_punish: # Confirm Punish item configuration.
+          left_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Mute Reason:&7in chat:5:20:20'
+          right_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Mute Reason:&7in chat:5:20:20'
+        confirm_punish:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
-          slot: '15' # Inventory slot
-          name: '&a&lConfirm Mute' # Display name when ready
-          lore: # Item lore when ready
-            - '&7Left-Click to confirm and'
+          slot: '15'
+          name: '&a&lConfirm Mute'
+          lore:
+            - '&7Click to confirm and'
             - '&7apply the mute to &b{target}&7.'
             - ''
             - '&fRequires:'
-            - '&7- Time: {time_status}' # Placeholder for time set status
-            - '&7- Reason: {reason_status}' # Placeholder for reason set status
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-          right_click_actions: # Actions on right click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-        unmute_button: # Unmute Button item configuration.
+            - '&7- Time: {time_status}'
+            - '&7- Reason: {reason_status}'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+          right_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+        unmute_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
-          slot: '31' # Inventory slot - Adjusted slot to be below confirm
-          name: '&a&lRemove Mute' # Display name for unmute button
-          lore: # Item lore for unmute button
-            - '&7Left-Click to remove' # Instruction line 1
-            - '&7mute from &b{target}&7.' # Instruction line 2
-            - '' # Empty line for spacing
-          left_click_actions: # Actions on left click.
-            - 'UN_MUTE:' # Unmute action. Syntax: 'UN_MUTE:'
-          right_click_actions: # Actions on right click.
-            - 'UN_MUTE:' # Unmute action. Syntax: 'UN_MUTE:'
-        back_button: # Back Button item configuration.
+          slot: '31'
+          name: '&a&lRemove Mute'
+          lore:
+            - '&7Click to remove'
+            - '&7mute from &b{target}&7.'
+          left_click_actions:
+            - 'UN_MUTE:'
+          right_click_actions:
+            - 'UN_MUTE:'
+        back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
-          slot: '27' # Inventory slot
-          name: '&cBack' # Display name
-          lore: # Item lore
-            - '&7Go back to the'
+          slot: '27'
+          name: '&cBack'
+          lore:
+            - '&7Return to main'
             - '&7Punishment Menu.'
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-          right_click_actions: # Actions on right click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-    softban: # SoftBan details menu configuration
-      title: '&3&lSoftBan Details' # Title for SoftBanDetailsMenu
-      open_actions: # Actions to perform when the menu is opened.
-        - 'PLAY_SOUND:BLOCK_BEEHIVE_WORK:1.0:1.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu'
+          right_click_actions:
+            - 'OPEN_MENU:punish_menu'
+
+    # --- SOFTBAN MENU ---
+    softban:
+      title: '&3&lSoftBan Details for &b{target}'
+      open_actions:
+        - 'PLAY_SOUND:BLOCK_BEEHIVE_WORK:1.0:1.0'
       items:
-        background_fill_1: # Background fill item configuration.
+        background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '0-9,17,18-26,28-29,33,34' # Slots where the background fill item will be placed.
-        background_fill_2: # Background fill item configuration.
+          name: ' '
+          slot: '0-9,17,18-26,28-29,33,34'
+        background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '10,12,14,16' # Slots where the background fill item will be placed.
-        background_fill_3: # Background fill item configuration.
+          name: ' '
+          slot: '10,12,14,16'
+        background_fill_3:
           material: 'RED_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '30,32' # Slots where the background fill item will be placed.
-        info: # Information item configuration.
+          name: ' '
+          slot: '30,32'
+        info:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ====================== ' # Display name for the info item.
-          slot: '35' # Slot for the info item.
-          lore: # Lore for the info item.
-            - '&fInformation:'
+          name: ' #ffffa7&m&o ====================== '
+          slot: '35'
+          lore:
+            - '&fAction: SoftBan'
             - '&7- Restricts the use of certain'
-            - '&7  commands to the player.'
+            - '&7  commands for &b{target}&7.'
             - ' #ffffa7&m&o ====================== '
-        set_time: # Set Time item for SoftBan
+        set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
-          slot: '11' # Inventory slot
-          name: '&eSet SoftBan Time' # Display name
-          lore: # Item lore
-            - '&fCurrent Time: &b{time}' # Placeholder for current time
+          slot: '11'
+          name: '&eSet SoftBan Time'
+          lore:
+            - '&fCurrent Time: &b{time}'
             - ''
-            - '&7Left-Click to set the'
+            - '&7Click to set the'
             - '&7duration of the softban.'
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:time_selector' # Open time selector menu. Syntax: 'OPEN_MENU:<menu_key>'
-          right_click_actions: # Actions on right click.
-            - 'OPEN_MENU:time_selector' # Example command
-        set_reason: # Set Reason item for SoftBan
+          left_click_actions:
+            - 'OPEN_MENU:time_selector'
+          right_click_actions:
+            - 'OPEN_MENU:time_selector'
+        set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
-          slot: '13' # Inventory slot
-          name: '&eSet SoftBan Reason' # Display name
-          lore: # Item lore
-            - '&fCurrent Reason: &b{reason}' # Placeholder for current reason
+          slot: '13'
+          name: '&eSet SoftBan Reason'
+          lore:
+            - '&fCurrent Reason: &b{reason}'
             - ''
             - '&7Click to set the'
             - '&7reason for the SoftBan.'
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-          right_click_actions: # Actions on right click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-        unsoftban_button: # Unsoftban Button item
+          left_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter SoftBan Reason:&7in chat:5:20:20'
+          right_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter SoftBan Reason:&7in chat:5:20:20'
+        unsoftban_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
-          slot: '31' # Inventory slot
-          name: '&a&lRemove SoftBan' # Display name
-          lore: # Item lore
+          slot: '31'
+          name: '&a&lRemove SoftBan'
+          lore:
             - '&7Click to remove softban'
-            - '&7punish from &b{target}&7.'
+            - '&7from &b{target}&7.'
             - ''
             - '&fCurrent Status:'
-            - '{target_softban_status}' # Placeholder for softban status
+            - '{target_softban_status}'
             - '&fRemaining Time:'
-            - '&e{target_softban_remaining_time}' # Placeholder for remaining time
-          left_click_actions: # Actions on left click.
-            - 'UN_SOFTBAN:' # Unsoftban action. Syntax: 'UN_SOFTBAN:'
-          right_click_actions: # Actions on right click.
-            - 'UN_SOFTBAN:' # Unsoftban action. Syntax: 'UN_SOFTBAN:'
-        confirm_punish: # Confirm Punish item configuration.
+            - '&e{target_softban_remaining_time}'
+          left_click_actions:
+            - 'UN_SOFTBAN:'
+          right_click_actions:
+            - 'UN_SOFTBAN:'
+        confirm_punish:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
-          slot: '15' # Inventory slot
-          name: '&a&lConfirm SoftBan' # Display name when ready
-          lore: # Item lore when ready
-            - '&7Left-Click to confirm and'
+          slot: '15'
+          name: '&a&lConfirm SoftBan'
+          lore:
+            - '&7Click to confirm and'
             - '&7apply the softban to &b{target}&7.'
             - ''
             - '&fRequires:'
-            - '&7- Time: {time_status}' # Placeholder for time set status
-            - '&7- Reason: {reason_status}' # Placeholder for reason set status
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-          right_click_actions: # Actions on right click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-        back_button: # Back Button item configuration.
+            - '&7- Time: {time_status}'
+            - '&7- Reason: {reason_status}'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+          right_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+        back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
-          slot: '27' # Inventory slot
-          name: '&cBack' # Display name
-          lore: # Item lore
-            - '&7Go back to the'
+          slot: '27'
+          name: '&cBack'
+          lore:
+            - '&7Return to main'
             - '&7Punishment Menu.'
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-          right_click_actions: # Actions on right click.
-            - 'OPEN_menu:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-    kick: # Kick details menu configuration
-      title: '&9&lKick Details' # Title for KickDetailsMenu
-      open_actions: # Actions to perform when the menu is opened.
-        - 'PLAY_SOUND:BLOCK_WOODEN_DOOR_OPEN:1.0:1.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu'
+          right_click_actions:
+            - 'OPEN_MENU:punish_menu'
+
+    # --- KICK MENU ---
+    kick:
+      title: '&9&lKick Details for &1{target}'
+      open_actions:
+        - 'PLAY_SOUND:BLOCK_WOODEN_DOOR_OPEN:1.0:1.0'
       items:
-        background_fill_1: # Background fill item configuration.
+        background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '0-9,17,18-26,28-35' # Slots where the background fill item will be placed.
-        background_fill_2: # Background fill item configuration.
+          name: ' '
+          slot: '0-9,17,18-26,28-35'
+        background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '10,12,14,16' # Slots where the background fill item will be placed.
-        info: # Information item configuration.
+          name: ' '
+          slot: '10,12,14,16'
+        info:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o =========================== ' # Display name for the info item.
-          slot: '13' # Slot for the info item.
-          lore: # Lore for the info item.
-            - '&fInformation:'
-            - '&7- Kicks the player from the server.'
+          name: ' #ffffa7&m&o =========================== '
+          slot: '13'
+          lore:
+            - '&fAction: Kick'
+            - '&7- Kicks &b{target}&7 from'
+            - '&7  the server.'
             - ' #ffffa7&m&o =========================== '
-        set_reason: # Set Reason item for Kick
+        set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
-          slot: '11' # Inventory slot
-          name: '&eSet Kick Reason' # Display name
-          lore: # Item lore
-            - '&fCurrent Reason: &b{reason}' # Placeholder for current reason
+          slot: '11'
+          name: '&eSet Kick Reason'
+          lore:
+            - '&fCurrent Reason: &b{reason}'
             - ''
             - '&7Click to set the'
             - '&7reason for the kick.'
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-          right_click_actions: # Actions on right click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-        confirm_punish: # Confirm Punish item configuration.
+          left_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Kick Reason:&7in chat:5:20:20'
+          right_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Kick Reason:&7in chat:5:20:20'
+        confirm_punish:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
-          slot: '15' # Inventory slot
-          name: '&a&lConfirm Kick' # Display name when ready
-          lore: # Item lore when ready
+          slot: '15'
+          name: '&a&lConfirm Kick'
+          lore:
             - '&7Click to confirm and'
             - '&7kick &b{target}&7.'
             - ''
             - '&fRequires:'
-            - '&7- Reason: {reason_status}' # Placeholder for reason status
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-          right_click_actions: # Actions on right click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-        back_button: # Back Button item configuration.
+            - '&7- Reason: {reason_status}'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+          right_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+        back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
-          slot: '27' # Inventory slot
-          name: '&cBack' # Display name
-          lore: # Item lore
-            - '&7Go back to the'
+          slot: '27'
+          name: '&cBack'
+          lore:
+            - '&7Return to main'
             - '&7Punishment Menu.'
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-          right_click_actions: # Actions on right click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-    warn: # Warn details menu configuration
-      title: '&6&lWarn Details' # Title for WarnDetailsMenu
-      open_actions: # Actions to perform when the menu is opened.
-        - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_BASS:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu'
+          right_click_actions:
+            - 'OPEN_MENU:punish_menu'
+
+    # --- WARN MENU ---
+    warn:
+      title: '&6&lWarn Details for &e{target}'
+      open_actions:
+        - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_BASS:1.0:0.6'
       items:
-        background_fill_1: # Background fill item configuration.
+        background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '0-9,17,18-26,28-29,33-35' # Slots where the background fill item will be placed.
-        background_fill_2: # Background fill item configuration.
+          name: ' '
+          slot: '0-9,17,18-26,28-29,33-35'
+        background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '10,12,14,16' # Slots where the background fill item will be placed.
-        background_fill_3: # Background fill item configuration.
+          name: ' '
+          slot: '10,12,14,16'
+        background_fill_3:
           material: 'RED_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '30,32' # Slots where the background fill item will be placed.
-        info: # Information item configuration.
+          name: ' '
+          slot: '30,32'
+        info:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ========================= ' # Display name for the info item.
-          slot: '13' # Slot for the info item.
-          lore: # Lore for the info item.
-            - '&fInformation:'
-            - '&7- Adds a Warning to the player.'
-            - '&7- If he receives too many warnings,'
-            - '&7  he will be &npunished&r&7.'
+          name: ' #ffffa7&m&o ========================= '
+          slot: '13'
+          lore:
+            - '&fAction: Warn'
+            - '&7- Issues a warning to &b{target}&7.'
+            - '&7- Accumulating warnings may lead'
+            - '&7  to further action.'
             - ' #ffffa7&m&o ========================= '
-        set_reason: # Set Reason item for Warn
+        set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
-          slot: '11' # Inventory slot
-          name: '&eSet Warn Reason' # Display name
-          lore: # Item lore
-            - '&fCurrent Reason: &b{reason}' # Placeholder for current reason
+          slot: '11'
+          name: '&eSet Warn Reason'
+          lore:
+            - '&fCurrent Reason: &b{reason}'
             - ''
             - '&7Click to set the'
-            - '&7reason for the warn.'
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-          right_click_actions: # Actions on right click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-        confirm_punish: # Confirm Punish item configuration.
+            - '&7reason for the warning.'
+          left_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Warn Reason:&7in chat:5:20:20'
+          right_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Warn Reason:&7in chat:5:20:20'
+        confirm_punish:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
-          slot: '15' # Inventory slot
-          name: '&a&lConfirm Warn' # Display name when ready
-          lore: # Item lore when ready
-            - '&7Left-Click to confirm and'
-            - '&7apply the warn to &b{target}&7.'
+          slot: '15'
+          name: '&a&lConfirm Warn'
+          lore:
+            - '&7Click to confirm and'
+            - '&7apply the warning to &b{target}&7.'
             - ''
             - '&fRequires:'
-            - '&7- Reason: {reason_status}' # Placeholder for reason status
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-          right_click_actions: # Actions on right click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-        unwarn_button: # Unwarn Button item configuration.
+            - '&7- Reason: {reason_status}'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+          right_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+        unwarn_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
-          slot: '31' # Inventory slot
-          name: '&4UnWarn' # Display name, red color indicating back/cancel
-          lore: # Item lore
-            - '&7Removes actual'
-            - '&7warn from &b{target}'
+          slot: '31'
+          name: '&4&lRemove Last Warn' # Or adjust based on your unwarn command functionality
+          lore:
+            - '&7Removes the last warning' # Adjust description if needed
+            - '&7from &b{target}&7.'
             - ''
-            - '&7Click to unwarn player.'
-          left_click_actions: # Actions on left click.
-            - 'UN_WARN:' # Unwarn action. Syntax: 'UN_WARN:'
-          right_click_actions: # Actions on right click.
-            - 'UN_WARN:' # Unwarn action. Syntax: 'UN_WARN:'
-        back_button: # Back Button item configuration.
+            - '&7Click to unwarn.'
+          left_click_actions:
+            - 'UN_WARN:'
+          right_click_actions:
+            - 'UN_WARN:'
+        back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
-          slot: '27' # Inventory slot
-          name: '&cBack' # Display name
-          lore: # Item lore
-            - '&7Go back to the'
+          slot: '27'
+          name: '&cBack'
+          lore:
+            - '&7Return to main'
             - '&7Punishment Menu.'
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-          right_click_actions: # Actions on right click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-    freeze: # Freeze details menu configuration
-      title: '&5&lFreeze Details' # Title for FreezeDetailsMenu
-      open_actions: # Actions to perform when the menu is opened.
-        - 'PLAY_SOUND:BLOCK_AMETHYST_BLOCK_BREAK:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu'
+          right_click_actions:
+            - 'OPEN_MENU:punish_menu'
+
+    # --- FREEZE MENU ---
+    freeze:
+      title: '&5&lFreeze Details for &d{target}'
+      open_actions:
+        - 'PLAY_SOUND:BLOCK_AMETHYST_BLOCK_BREAK:1.0:0.6'
       items:
-        background_fill_1: # Background fill item configuration.
+        background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '0-9,17,18-26,28-29,33-35' # Slots where the background fill item will be placed.
-        background_fill_2: # Background fill item configuration.
+          name: ' '
+          slot: '0-9,17,18-26,28-29,33-35'
+        background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '10,12,14,16' # Slots where the background fill item will be placed.
-        background_fill_3: # Background fill item configuration.
+          name: ' '
+          slot: '10,12,14,16'
+        background_fill_3:
           material: 'RED_STAINED_GLASS_PANE'
-          name: ' ' # Empty name for invisible item.
-          slot: '30,32' # Slots where the background fill item will be placed.
-        info: # Information item configuration.
+          name: ' '
+          slot: '30,32'
+        info:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ============================== ' # Display name for the info item.
-          slot: '13' # Slot for the info item.
-          lore: # Lore for the info item.
-            - '&fInformation:'
-            - '&7- Frezzes a player for a manual review.'
-            - '&7- If he leaves the server he will'
-            - '&7  receive a &npunishment&r&7.'
+          name: ' #ffffa7&m&o ============================== '
+          slot: '13'
+          lore:
+            - '&fAction: Freeze'
+            - '&7- Immobilizes &b{target}&7.'
+            - '&7- Staff review required.'
+            - '&7- &cDisconnecting results in a ban.'
             - ' #ffffa7&m&o ============================== '
-
-        set_reason: # Set Reason item for Freeze
+        set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
-          slot: '11' # Inventory slot - Adjusted slot
-          name: '&eSet Freeze Reason' # Display name
-          lore: # Item lore
-            - '&fCurrent Reason: &b{reason}' # Placeholder for current reason
+          slot: '11'
+          name: '&eSet Freeze Reason (Optional)'
+          lore:
+            - '&fCurrent Reason: &b{reason}'
             - ''
             - '&7Click to set the'
             - '&7reason for the freeze.'
-            - ''
-          left_click_actions: # Actions on left click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-          right_click_actions: # Actions on right click.
-            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-            - 'REQUEST_INPUT:reason_input' # Request text input action. Syntax: 'REQUEST_INPUT:<input_type>'
-            - 'TITLE:&c&lWrite the punish reason:&7in the chat:5:20:20' # Display title action. Syntax: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
-        confirm_punish: # Confirm Punish item configuration.
+          left_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Freeze Reason:&7in chat:5:20:20'
+          right_click_actions:
+            - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
+            - 'REQUEST_INPUT:reason_input'
+            - 'TITLE:&c&lEnter Freeze Reason:&7in chat:5:20:20'
+        confirm_punish:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
-          slot: '15' # Inventory slot - Adjusted slot
-          name: '&a&lConfirm Freeze' # Display name when ready
-          lore: # Item lore when ready
-            - '&7Click to confirm and' # Instruction line 1
-            - '&7apply the freeze to &b{target}&7.' # Instruction line 2
-            - '' # Empty line for spacing
-            - '&fOptional Requirements:' # Requirements header
-            - '&7- Reason: {reason_status}' # Placeholder for reason status
+          slot: '15'
+          name: '&a&lConfirm Freeze'
+          lore:
+            - '&7Click to confirm and'
+            - '&7apply the freeze to &b{target}&7.'
             - ''
-          left_click_actions: # Actions on left click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-          right_click_actions: # Actions on right click.
-            - 'CONFIRM_PUNISHMENT:' # Confirm punishment action. Syntax: 'CONFIRM_PUNISHMENT:'
-        unfreeze_button: # Unfreeze Button item configuration
+            - '&fOptional:'
+            - '&7- Reason: {reason_status}'
+          left_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+          right_click_actions:
+            - 'CONFIRM_PUNISHMENT:'
+        unfreeze_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
-          slot: '31' # Inventory slot - Adjusted slot to be below confirm
-          name: '&a&lRemove Freeze' # Display name for unfreeze button
-          lore: # Item lore for unfreeze button
-            - '&7Left-Click to remove' # Instruction line 1
-            - '&7freeze from &b{target}&7.' # Instruction line 2
-            - '' # Empty line for spacing
-          left_click_actions: # Actions on left click.
-            - 'UN_FREEZE:' # Unfreeze action. Syntax: 'UN_FREEZE:'
-          right_click_actions: # Actions on right click.
-            - 'UN_FREEZE:' # Unfreeze action. Syntax: 'UN_FREEZE:'
-        back_button: # Back Button item configuration.
+          slot: '31'
+          name: '&a&lRemove Freeze'
+          lore:
+            - '&7Click to remove'
+            - '&7freeze from &b{target}&7.'
+          left_click_actions:
+            - 'UN_FREEZE:'
+          right_click_actions:
+            - 'UN_FREEZE:'
+        back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
-          slot: '27' # Inventory slot
-          name: '&cBack' # Display name
-          lore: # Item lore
-            - '&7Go back to the' # Instruction line 1
-            - '&7Punishment Menu.' # Instruction line 2
-          left_click_actions: # Actions on left click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
-          right_click_actions: # Actions on right click.
-            - 'OPEN_MENU:punish_menu' # Open punish menu. Syntax: 'OPEN_MENU:<menu_key>'
+          slot: '27'
+          name: '&cBack'
+          lore:
+            - '&7Return to main'
+            - '&7Punishment Menu.'
+          left_click_actions:
+            - 'OPEN_MENU:punish_menu'
+          right_click_actions:
+            - 'OPEN_MENU:punish_menu'
