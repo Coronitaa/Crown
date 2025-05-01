@@ -33,7 +33,7 @@ commands:
   kick_command: 'kick {target} {reason}'
   unban_command: 'pardon {target}'
   unmute_command: 'unmute {target}'
-  unwarn_command: 'unwarn {target}' # Command to remove a warn (if your system supports it). Leave empty "" if not applicable.
+  unwarn_command: 'unwarn {target}' # Command to remove warn. Leave empty "" if not applicable.
 
 # Sound configurations for different actions in the plugin.
 # Uses Bukkit Sound enum names (e.g., ENTITY_EXPERIENCE_ORB_PICKUP). Find names here: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
