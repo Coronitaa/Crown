@@ -60,8 +60,10 @@ softban:
 
 # Freeze punishment feature configurations.
 freeze:
-  disconnect_ban_time: 'permanent' # Ban time applied if a frozen player disconnects ('permanent' or format like '7d').
-  disconnect_ban_reason: 'Disconnected while frozen for review' # Reason for the disconnect ban.
+  disconnect_commands:
+    - 'crown punish {target} ban 365d &cDisconnected while frozen!'
+    - 'tellraw @a "&e&lᴄʀᴏᴡɴ &6🜲&r &ePlayer &b{target} &edisconnected while frozen! &cApplying actions&e."'
+    # - 'discord broadcast alert Player {target} disconnected while frozen!'
   freeze_actions:
     interval: 40 # Interval in ticks (20 ticks = 1 second) to run the actions below.
     actions: # List of actions (see menu action list) executed repeatedly on the frozen player.
