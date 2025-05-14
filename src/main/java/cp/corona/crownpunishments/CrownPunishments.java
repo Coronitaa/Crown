@@ -91,7 +91,7 @@ public final class CrownPunishments extends JavaPlugin {
             crownCommand.setExecutor(mainCommand); // Set command executor
             crownCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
-            getLogger().warning("[COMMAND DEBUG] Command 'crown' is NULL! Registration FAILED. Check plugin.yml for 'crown' command definition.");
+            if (configManager.isDebugEnabled()) getLogger().warning("[COMMAND DEBUG] Command 'crown' is NULL! Registration FAILED. Check plugin.yml for 'crown' command definition.");
         }
 
         // Register 'punish' command alias - for direct /punish usage
@@ -102,7 +102,7 @@ public final class CrownPunishments extends JavaPlugin {
             punishCommand.setExecutor(mainCommand); // Set command executor
             punishCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
-            getLogger().warning("[COMMAND DEBUG] Command 'punish' is NULL! Registration FAILED. Check plugin.yml for 'punish' command definition.");
+            if (configManager.isDebugEnabled()) getLogger().warning("[COMMAND DEBUG] Command 'punish' is NULL! Registration FAILED. Check plugin.yml for 'punish' command definition.");
         }
 
         // Register 'kick' command - though might be handled internally now, keep logging for troubleshooting
@@ -113,7 +113,7 @@ public final class CrownPunishments extends JavaPlugin {
             kickCommand.setExecutor(mainCommand); // Set command executor (though MainCommand might not directly handle /kick anymore)
             kickCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
-            getLogger().warning("[COMMAND DEBUG] Command 'kick' is NULL! Registration FAILED. Check plugin.yml for 'kick' command definition.");
+            if (configManager.isDebugEnabled()) getLogger().warning("[COMMAND DEBUG] Command 'kick' is NULL! Registration FAILED. Check plugin.yml for 'kick' command definition.");
         }
 
         // Register 'warn' command - same as kick, keep logging for consistency
@@ -124,7 +124,7 @@ public final class CrownPunishments extends JavaPlugin {
             warnCommand.setExecutor(mainCommand); // Set executor
             warnCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
-            getLogger().warning("[COMMAND DEBUG] Command 'warn' is NULL! Registration FAILED. Check plugin.yml for 'warn' command definition.");
+            if (configManager.isDebugEnabled()) getLogger().warning("[COMMAND DEBUG] Command 'warn' is NULL! Registration FAILED. Check plugin.yml for 'warn' command definition.");
         }
 
         // Register 'unpunish' command - TOP LEVEL COMMAND, SEPARATE FROM CROWN SUBCOMMAND
@@ -135,7 +135,7 @@ public final class CrownPunishments extends JavaPlugin {
             unpunishCommand.setExecutor(mainCommand); // Set executor
             unpunishCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
-            getLogger().warning("[COMMAND DEBUG] Command 'unpunish' is NULL! Registration FAILED. Check plugin.yml for 'unpunish' command definition.");
+            if (configManager.isDebugEnabled()) getLogger().warning("[COMMAND DEBUG] Command 'unpunish' is NULL! Registration FAILED. Check plugin.yml for 'unpunish' command definition.");
         }
 
         // Register 'softban' command - TOP LEVEL COMMAND, mirroring /crown punish softban
@@ -146,7 +146,7 @@ public final class CrownPunishments extends JavaPlugin {
             softbanCommand.setExecutor(mainCommand); // Set executor
             softbanCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
-            getLogger().warning("[COMMAND DEBUG] Command 'softban' is NULL! Registration FAILED. Check plugin.yml for 'softban' command definition.");
+            if (configManager.isDebugEnabled()) getLogger().warning("[COMMAND DEBUG] Command 'softban' is NULL! Registration FAILED. Check plugin.yml for 'softban' command definition.");
         }
 
         // Register 'freeze' command - TOP LEVEL COMMAND - NEW
@@ -157,7 +157,7 @@ public final class CrownPunishments extends JavaPlugin {
             freezeCommand.setExecutor(mainCommand); // Set executor
             freezeCommand.setTabCompleter(mainCommand); // Set tab completer
         } else {
-            getLogger().warning("[COMMAND DEBUG] Command 'freeze' is NULL! Registration FAILED. Check plugin.yml for 'freeze' command definition.");
+            if (configManager.isDebugEnabled()) getLogger().warning("[COMMAND DEBUG] Command 'freeze' is NULL! Registration FAILED. Check plugin.yml for 'freeze' command definition.");
         }
     }
 

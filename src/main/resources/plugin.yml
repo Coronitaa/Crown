@@ -2,34 +2,33 @@ name: CrownPunishments
 version: '1.0'
 main: cp.corona.crownpunishments.CrownPunishments
 api-version: '1.18'
-softdepend: [PlaceholderAPI]
 
 commands:
   crown:
     description: Main command for CrownPunishments.
     usage: /<command> [punish|reload|help|unpunish]
     permission: crown.use
-    permission-message: You do not have permission to use this command.
+    permission-message: "Unknown command. Type '/help' for help."
   punish: # Alias command for direct /punish usage - ALIAS OF /CROWN PUNISH
     description: Alias for /crown punish command.
     usage: /<command> <player> [type] [time] [reason]
     permission: crown.use
-    permission-message: You do not have permission to use this command.
+    permission-message: "Unknown command. Type '/help' for help."
   unpunish: # Top level command for unpunishing players directly - SEPARATE TOP LEVEL COMMAND
     description: Command to directly unpunish players.
     usage: /<command> <player> <type>
     permission: crown.use
-    permission-message: You do not have permission to use this command.
+    permission-message: "Unknown command. Type '/help' for help."
   softban: # Top level command for softbanning players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /CROWN PUNISH SOFTBAN
     description: Command to directly softban players.
     usage: /<command> <player> [time] [reason]
     permission: crown.use # or crown.admin if you want to restrict it to admins only
-    permission-message: You do not have permission to use this command.
+    permission-message: "Unknown command. Type '/help' for help."
   freeze: # Top level command for freezing players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /crown punish freeze - NEW
     description: Command to directly freeze players for manual review. # Description for /freeze command - NEW
     usage: /<command> <player> [reason] # Usage for /freeze command - NEW - Reason is now optional
     permission: crown.use # or crown.admin if you want to restrict it to admins only - NEW
-    permission-message: You do not have permission to use this command.
+    permission-message: "Unknown command. Type '/help' for help."
 
 
 permissions:

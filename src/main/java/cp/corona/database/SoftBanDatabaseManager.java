@@ -49,7 +49,7 @@ public class SoftBanDatabaseManager {
             if (!dataFolder.exists()) {
                 boolean created = dataFolder.mkdirs();
                 if (!created && plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().warning("[SoftBanDB] Failed to create plugin data folder.");
+                    plugin.getLogger().warning("[DATABASE] Failed to create plugin data folder.");
                 }
             }
             File dbFile = new File(dataFolder, dbName + ".db");
@@ -126,7 +126,7 @@ public class SoftBanDatabaseManager {
 
                 int deletedRows = ps.executeUpdate();
                 if (deletedRows > 0 && plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().info("[SoftBanDB] Removed " + deletedRows + " expired softban(s).");
+                    plugin.getLogger().info("[DATABASE] Removed " + deletedRows + " expired softban(s).");
                 }
 
             } catch (SQLException e) {
@@ -177,7 +177,7 @@ public class SoftBanDatabaseManager {
         // Debug logging for the softban action
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().log(Level.INFO,
-                    "[SoftBanDB] " + logMessage + " - UUID: " + uuid +
+                    "[DATABASE] " + logMessage + " - UUID: " + uuid +
                             " | EndTime: " + (finalEndTime == Long.MAX_VALUE ? "PERMANENT" : new Date(finalEndTime)) +
                             " | Reason: " + reason);
         }
@@ -236,12 +236,12 @@ public class SoftBanDatabaseManager {
                 // Use "N/A" or similar for duration/time as it's an unban action
                 logPunishment(uuid, "unsoftban", "Softban Removed", punisherName, 0L, "N/A");
                 if (plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().info("[SoftBanDB] Successfully un-softbanned UUID: " + uuid);
+                    plugin.getLogger().info("[DATABASE] Successfully un-softbanned UUID: " + uuid);
                 }
             } else {
                 // Optionally log if no softban was found to remove
                 if (plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().info("[SoftBanDB] No active softban found to remove for UUID: " + uuid);
+                    plugin.getLogger().info("[DATABASE] No active softban found to remove for UUID: " + uuid);
                 }
             }
 
@@ -355,7 +355,7 @@ public class SoftBanDatabaseManager {
 
             // Debug logging for punishment logging confirmation
             if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().log(Level.INFO, "[SoftBanDB] Logged punishment: UUID=" + playerUUID + ", Type=" + punishmentType + ", Reason=" + reason + ", Punisher=" + punisherName + ", EndTime=" + punishmentEndTime + ", DurationString=" + durationString);
+                plugin.getLogger().log(Level.INFO, "[DATABASE] Logged punishment: UUID=" + playerUUID + ", Type=" + punishmentType + ", Reason=" + reason + ", Punisher=" + punisherName + ", EndTime=" + punishmentEndTime + ", DurationString=" + durationString);
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error logging punishment!", e);
