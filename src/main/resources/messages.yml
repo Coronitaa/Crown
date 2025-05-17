@@ -1,3 +1,4 @@
+# messages.yml
 # Configuration file for plugin messages.
 # This file contains all text messages used by the CrownPunishments plugin,
 # allowing for easy customization of the plugin's text output.
@@ -15,7 +16,8 @@
 # Punishment Specific:
 # - {time}: Punishment time duration (e.g., "1d", "Permanent").
 # - {reason}: Punishment reason.
-# - {punishment_type}: Type of punishment being applied/removed.
+# - {punishment_type}: (DEPRECATED in punishment_confirmed, use {punishment_action_verb} or specific type names)
+# - {punishment_action_verb}: The verb form of the punishment (e.g., "banned", "muted").
 # Menu Specific:
 # - {action}: Action name (e.g., 'ban details').
 # - {time_status}: Status of time setting ('Set'/'Not Set').
@@ -37,11 +39,11 @@ messages:
   player_only: '{prefix}&cOnly players can use this command.'
   player_only_console_punish: '{prefix}&cConsole must specify target, punishment type, and other required arguments.'
   no_permission: '{prefix}&cYou do not have permission to use this command.'
-  no_permission_menu_action: '{prefix}&cYou lack permission for the &b{action}&c action.'
-  no_permission_punish_command_type: '{prefix}&cYou lack permission to use the &b{punishment_type}&c command.'
-  no_permission_unpunish_command_type: '{prefix}&cYou lack permission to unpunish &b{punishment_type}&c.'
-  no_permission_details_menu: '{prefix}&cYou lack permission to open the &b{punishment_type}&c details menu.'
-  no_permission_punish_menu: '{prefix}&cYou lack permission to use the punish menu.'
+  no_permission_menu_action: '{prefix}&cYou do not have permission for the &b{action}&c action.'
+  no_permission_punish_command_type: '{prefix}&cYou do not have permission to use the &b{punishment_type}&c command.'
+  no_permission_unpunish_command_type: '{prefix}&cYou do not have permission to unpunish &b{punishment_type}&c.'
+  no_permission_details_menu: '{prefix}&cYou do not have permission to open the &b{punishment_type}&c details menu.'
+  no_permission_punish_menu: '{prefix}&cYou do not have permission to use the punish menu.'
   no_permission_command: '{prefix}&cYou do not have permission to use this command.' # Generic for /crown, /punish etc. level
   reload_success: '{prefix}&aConfiguration reloaded successfully.'
   invalid_player: '{prefix}&cInvalid player specified. Usage: {usage}'
@@ -77,7 +79,7 @@ messages:
   invalid_time_format_command: '{prefix}&cInvalid time format: &b{input}&c. Use units (s, m, h, d, y) or "permanent".'
   target_player_not_found: '{prefix}&cTarget player not found.'
 
-  punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_type}d for &b{time}&a. Reason: &f{reason}'
+  punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_action_verb}. Duration: &b{time}&a Reason: &f{reason}'
   set_time_reason_before_confirm: '{prefix}&cPlease set time and reason before confirming.'
   set_time_before_confirm: '{prefix}&cPlease set the time before confirming.'
   set_reason_before_confirm: '{prefix}&cPlease set the reason before confirming.'
@@ -94,9 +96,9 @@ messages:
     &7Certain commands are blocked during this time.
 
   invalid_punishment_type: '{prefix}&cInvalid punishment type. Available: &b{types}'
-  direct_punishment_confirmed: '{prefix}&aApplied {punishment_type} to &b{target}&a. Time: &b{time}&a, Reason: &f{reason}'
+  direct_punishment_confirmed: '{prefix}&aApplied {punishment_type} to &b{target}&a. Time: &b{time}&a, Reason: &f{reason}' # {punishment_type} refers to the configurable noun form here
   unpunish_usage: '{prefix}&cUsage: {usage}'
-  direct_unpunishment_confirmed: '{prefix}&aRemoved {punishment_type} from &b{target}&a.'
+  direct_unpunishment_confirmed: '{prefix}&aRemoved {punishment_type} from &b{target}&a.' # {punishment_type} refers to the configurable noun form here
   direct_unsoftban_confirmed: '{prefix}&aRemoved softban from &b{target}&a.'
   direct_kick_confirmed: '{prefix}&aPlayer &b{target}&a kicked. Reason: &f{reason}' # Potentially unused
   direct_warn_confirmed: '{prefix}&aPlayer &b{target}&a warned. Reason: &f{reason}' # Potentially unused
@@ -137,3 +139,31 @@ placeholders:
   not_set: '&c❌ Not Set'     # Text used in menus when time/reason is not yet set.
   set: '&a✔ Set'             # Text used in menus when time/reason has been set.
   permanent_time_display: 'Permanent' # Text used to display a permanent duration.
+
+  # Configurable display names for punishment types (nouns)
+  # These can be used in other messages or GUIs if needed, e.g., {punishment_display_name_ban}
+  # For `direct_punishment_confirmed` and `direct_unpunishment_confirmed`,
+  # the {punishment_type} placeholder will now try to use these noun forms.
+  punishment_type_names:
+    ban: "Ban"
+    mute: "Mute"
+    kick: "Kick"
+    warn: "Warning" # Example: "Warning" instead of "Warn"
+    softban: "Softban"
+    freeze: "Freeze"
+    # Add un-types if you want to display them differently for unpunishment logs/messages
+    unban: "Unban"
+    unmute: "Unmute"
+    unwarn: "Unwarn Removal"
+    unsoftban: "Softban Removal"
+    unfreeze: "Unfreeze"
+
+
+  # NEW: Configurable verb forms for punishments (used in `punishment_confirmed` message via {punishment_action_verb})
+  punishment_action_verbs:
+    ban: "banned"
+    mute: "muted"
+    kick: "kicked"
+    warn: "warned"
+    softban: "softbanned"
+    freeze: "frozen"

@@ -240,6 +240,46 @@ public class MainConfigManager {
         return text;
     }
 
+    /**
+     * Gets the configurable display name for a punishment type, supporting noun or verb forms.
+     * Falls back to a capitalized version of the type or type + "ed" if not found.
+     *
+     * @param punishmentType The base punishment type (e.g., "ban", "mute"). Case-insensitive.
+     * @param isVerb         True to get the verb form (e.g., "banned" from placeholders.punishment_action_verbs.ban),
+     *                       false for the noun form (e.g., "Ban" from placeholders.punishment_type_names.ban).
+     * @return The configured display name, or a sensible fallback.
+     */
+    public String getPunishmentDisplayForm(String punishmentType, boolean isVerb) {
+        if (punishmentType == null || punishmentType.isEmpty()) {
+            return "unknown"; // Should not happen with current usage
+        }
+        String typeKey = punishmentType.toLowerCase();
+        String path;
+        String fallback;
+
+        if (isVerb) {
+            path = "placeholders.punishment_action_verbs." + typeKey;
+            // Simple fallback for verbs
+            switch (typeKey) {
+                case "ban": fallback = "banned"; break;
+                case "mute": fallback = "muted"; break;
+                case "kick": fallback = "kicked"; break;
+                case "warn": fallback = "warned"; break;
+                case "softban": fallback = "softbanned"; break;
+                case "freeze": fallback = "frozen"; break;
+                default: fallback = typeKey + "ed"; // Generic fallback
+            }
+        } else { // Noun form
+            path = "placeholders.punishment_type_names." + typeKey;
+            // Fallback for nouns: capitalize the input type
+            fallback = typeKey.substring(0, 1).toUpperCase() + typeKey.substring(1);
+        }
+
+        String configuredName = messagesConfig.getConfig().getString(path, fallback);
+        // If the configuredName itself was the fallback, it's already processed.
+        // If it came from config, apply colors.
+        return MessageUtils.getColorMessage(configuredName);
+    }
 
     /**
      * Gets a message string from messages.yml (from either 'messages' or 'placeholders' section),
@@ -253,15 +293,24 @@ public class MainConfigManager {
         String message = messagesConfig.getConfig().getString(path, "");
         if (message == null || message.isEmpty()) return "";
 
-        message = processPlaceholders(message, null);
+        message = processPlaceholders(message, null); // Process general placeholders
 
         for (int i = 0; i < replacements.length; i += 2) {
             if (i + 1 >= replacements.length) break;
+            String placeholderKey = replacements[i];
             String replacementValue = replacements[i + 1] != null ? replacements[i + 1] : "";
-            message = message.replace(replacements[i], replacementValue);
-        }
 
-        return message;
+            // Special handling for {punishment_type} to use configurable noun forms
+            if (placeholderKey.equals("{punishment_type}")) {
+                // Attempt to get the configured display name for the noun form
+                // The replacementValue here is expected to be the raw type (e.g., "ban")
+                replacementValue = getPunishmentDisplayForm(replacementValue, false);
+            }
+            // MODIFICATION: Changed to use placeholderKey directly
+            message = message.replace(placeholderKey, replacementValue);
+        }
+        // Apply colors at the very end if not already done by getPunishmentDisplayForm
+        return MessageUtils.getColorMessage(message);
     }
 
     /**

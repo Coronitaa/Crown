@@ -1527,15 +1527,29 @@ public class MenuListener implements Listener {
         playSound(player, "punish_error");
     }
 
-    /** Sends a generic punishment confirmation message. */
+    /**
+     * Sends a generic punishment confirmation message.
+     * Uses {punishment_action_verb} and gets the verb form from MainConfigManager.
+     *
+     * @param player           The player who executed the punishment.
+     * @param target           The target player.
+     * @param timeValue        The time string (e.g., "Permanent", "1d").
+     * @param reason           The reason for the punishment.
+     * @param punishmentType   The raw punishment type (e.g., "ban", "mute").
+     */
     private void sendPunishmentConfirmation(Player player, OfflinePlayer target, String timeValue, String reason, String punishmentType) {
         player.closeInventory();
+
+        // Get the configured verb form for the punishment type
+        String punishmentActionVerb = plugin.getConfigManager().getPunishmentDisplayForm(punishmentType, true);
+
         sendConfigMessage(player, "messages.punishment_confirmed",
                 "{target}", target.getName() != null ? target.getName() : target.getUniqueId().toString(),
                 "{time}", timeValue,
                 "{reason}", reason,
-                "{punishment_type}", punishmentType);
+                "{punishment_action_verb}", punishmentActionVerb); // NEW placeholder
     }
+
 
     /** Sends a generic unpunishment confirmation message. */
     private void sendUnpunishConfirmation(Player player, OfflinePlayer target, String punishType) {

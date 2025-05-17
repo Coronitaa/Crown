@@ -105,20 +105,20 @@ punishment_hooks:
       - 'ACTIONBAR_MODS:&d&lFROZEN: &f{target}' # Show on action bar too
 
   on_unpunish: # Actions executed AFTER an unpunishment is applied. The key (e.g., 'ban') refers to the original punishment type being undone.
-    ban: # Hooks for '/unpunish <player> ban' or unban button
+    ban:
       - 'MESSAGE_MODS:{prefix}&a{target} &7was unbanned by &e{player}.'
       - 'PLAY_SOUND_MODS:ENTITY_PLAYER_LEVELUP:1.0:1.2'
       # - 'CONSOLE_COMMAND:discord broadcast Unban {target}' # Example Discord integration
     mute: # Hooks for '/unpunish <player> mute' or unmute button
       - 'MESSAGE_MODS:{prefix}&a{target} &7was unmuted by &e{player}.'
       - 'PLAY_SOUND_MODS:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:1.5'
-    softban: # Hooks for '/unpunish <player> softban' or unsoftban button
+    softban:
       - 'MESSAGE_MODS:{prefix}&a{target} &7was un-softbanned by &e{player}.'
       - 'PLAY_SOUND_MODS:BLOCK_CHAIN_BREAK:1.0:1.2'
-    warn: # Hooks for '/unpunish <player> warn' or unwarn button
+    warn:
       - 'MESSAGE_MODS:{prefix}&a{target}&7''s warning was removed by &e{player}.'
       - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_YES:1.0:1.0'
-    freeze: # Hooks for '/unpunish <player> freeze' or unfreeze button
+    freeze:
       - 'MESSAGE_MODS:{prefix}&a{target} &7was unfrozen by &e{player}.'
       - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:1.2'
 
