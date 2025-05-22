@@ -159,7 +159,7 @@ placeholders:
     unfreeze: "Unfreeze"
 
 
-  # NEW: Configurable verb forms for punishments (used in `punishment_confirmed` message via {punishment_action_verb})
+  # Configurable verb forms for punishments (used in `punishment_confirmed` message via {punishment_action_verb})
   punishment_action_verbs:
     ban: "banned"
     mute: "muted"

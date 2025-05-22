@@ -26,14 +26,14 @@ database:
 # Command configurations for different punishment types executed by the plugin (e.g., ban, mute, kick).
 # These are executed by the CONSOLE unless handled internally (softban, freeze).
 commands:
-  ban_command: 'ban {target} {time} {reason}'
-#  ban_command: 'ba tempban {target} GWEN {time} {reason}' # Ban with aniomation command (Requires BanAnimation plugin: https://www.spigotmc.org/resources/71234/)
-  mute_command: 'mute {target} {time} {reason}'
+  ban_command: 'tempban {target} {time} {reason}'
+#  ban_command: 'ba tempban {target} GWEN {time} {reason}' # Ban with animation command (Requires BanAnimation plugin: https://www.spigotmc.org/resources/71234/)
+  mute_command: 'tempmute {target} {time} {reason}'
   warn_command: 'warn {target} {reason}'
   kick_command: 'kick {target} {reason}'
-  unban_command: 'pardon {target}'
+  unban_command: 'unban {target}'
   unmute_command: 'unmute {target}'
-  unwarn_command: 'unwarn {target}' # Command to remove warn. Leave empty "" if not applicable.
+  unwarn_command: 'unwarn {target}'
 
 # Sound configurations for different actions in the plugin.
 # Uses Bukkit Sound enum names (e.g., ENTITY_EXPERIENCE_ORB_PICKUP). Find names here: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html

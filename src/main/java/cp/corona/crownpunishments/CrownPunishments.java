@@ -1,6 +1,7 @@
 // CrownPunishments.java
 package cp.corona.crownpunishments;
 
+import cp.corona.Metrics;
 import cp.corona.commands.MainCommand;
 import cp.corona.config.MainConfigManager;
 import cp.corona.database.SoftBanDatabaseManager;
@@ -63,6 +64,14 @@ public final class CrownPunishments extends JavaPlugin {
         }
         // Log PlaceholderAPI status
         getLogger().log(Level.INFO, "[CrownPunishments] PlaceholderAPI integration is " + (isPlaceholderAPIEnabled() ? "enabled" : "disabled") + "."); // Log PAPI status
+
+        // Initialize bStats metrics (plugin ID: 25939)
+        try {
+            Metrics metrics = new Metrics(this, 25939);
+            getLogger().log(Level.INFO, "[CrownPunishments] bStats metrics initialized successfully.");
+        } catch (Exception e) {
+            getLogger().log(Level.SEVERE, "[CrownPunishments] Failed to initialize bStats metrics:", e);
+        }
     }
 
 
