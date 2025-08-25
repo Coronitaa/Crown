@@ -1,45 +1,42 @@
-name: CrownPunishments
-version: '1.0.1'
-main: cp.corona.crownpunishments.CrownPunishments
+name: CROWN
+version: '1.2'
+main: cp.corona.CROWN.CROWN
 api-version: '1.18'
-softdepend: [PlaceholderAPI]
 
 commands:
   crown:
-    description: Main command for CrownPunishments.
+    description: Main command for CROWN.
     usage: /<command> [punish|reload|help|unpunish]
-    permission: crown.use
-    permission-message: You do not have permission to use this command.
+
   punish: # Alias command for direct /punish usage - ALIAS OF /CROWN PUNISH
     description: Alias for /crown punish command.
     usage: /<command> <player> [type] [time] [reason]
-    permission: crown.use
-    permission-message: You do not have permission to use this command.
+
   unpunish: # Top level command for unpunishing players directly - SEPARATE TOP LEVEL COMMAND
     description: Command to directly unpunish players.
     usage: /<command> <player> <type>
-    permission: crown.use
-    permission-message: You do not have permission to use this command.
+
   softban: # Top level command for softbanning players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /CROWN PUNISH SOFTBAN
     description: Command to directly softban players.
     usage: /<command> <player> [time] [reason]
-    permission: crown.use # or crown.admin if you want to restrict it to admins only
-    permission-message: You do not have permission to use this command.
+
   freeze: # Top level command for freezing players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /crown punish freeze - NEW
     description: Command to directly freeze players for manual review. # Description for /freeze command - NEW
     usage: /<command> <player> [reason] # Usage for /freeze command - NEW - Reason is now optional
-    permission: crown.use # or crown.admin if you want to restrict it to admins only - NEW
-    permission-message: You do not have permission to use this command.
+
 
 
 permissions:
-  crown.use: # Replaced crown.punish with crown.use
+  crown.use:
     description: Allows player to use basic crown commands and punish menu
     default: op
-  crown.admin:
-    description: Allows player to use admin commands like reload
+  crown.mod:
+    description: Allows player to receive frozen player messages
     default: op
-  crown.punish.ban: # Sub-permissions remain the same
+  crown.admin:
+    description: Allows player to use reload command
+    default: op
+  crown.punish.ban:
     description: Allows player to use ban related features
     default: op
   crown.unpunish.ban:
@@ -63,15 +60,27 @@ permissions:
   crown.punish.warn:
     description: Allows player to use warn related features
     default: op
-  crown.punish.freeze: # NEW: Freeze punish permission
+  crown.punish.freeze:
     description: Allows player to use freeze related features
     default: op
-  crown.unpunish.freeze: # NEW: Freeze unpunish permission
+  crown.unpunish.freeze:
     description: Allows player to use unfreeze related features
     default: op
-  crown.softban.bypass:
+  crown.bypass.softban:
     description: Allows player to bypass softbans
     default: op
-  crown.freeze.bypass: # NEW: Freeze bypass permission
+  crown.bypass.freeze:
     description: Allows player to bypass freeze punishment
+    default: op
+  crown.bypass.ban:
+    description: Allows player to bypass ban punishment
+    default: op
+  crown.bypass.mute:
+    description: Allows player to bypass mute punishment
+    default: op
+  crown.bypass.warn:
+    description: Allows player to bypass warn punishment
+    default: op
+  crown.bypass.kick:
+    description: Allows player to bypass kick punishment
     default: op

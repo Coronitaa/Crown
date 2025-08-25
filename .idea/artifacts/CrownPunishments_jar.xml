@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="CrownPunishments:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/CrownPunishments_jar</output-path>
-    <root id="archive" name="CrownPunishments.jar">
-      <element id="module-output" name="CrownPunishments" />
-    </root>
-  </artifact>
-</component>

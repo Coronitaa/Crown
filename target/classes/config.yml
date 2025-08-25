@@ -1,63 +1,127 @@
-# config.yml
-# Main configuration file for CrownPunishments plugin.
-# Contains settings for plugin prefix, commands, sounds, time units, softban, database, freeze features and logging.
-# Supports color codes (using '&' and RGB hex codes like '#RRGGBB') for messages and display names.
+# Main configuration file for Crown plugin.
+# Contains settings for prefix, external commands, sounds, time units, softban, database, freeze features, post-action hooks, and logging.
+## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
-prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Plugin prefix: Displayed in {prefix} placeholder. Supports color codes and RGB hex codes.
+# Available Placeholders in commands and messages:
+# - {target}: Target player's name.
+# - {time}: Punishment time duration (e.g., "1d", "Permanent").
+# - {reason}: Punishment reason.
+# - {player}: Player who executed the command/action (available in specific contexts like hooks).
+# - {prefix}: Plugin's prefix (defined below).
+# - {punishment_type}: The type of punishment/unpunishment (available in specific contexts like hooks).
+# Refer to messages.yml for menu/message-specific placeholders.
 
-# Command configurations for different punishment types.
-# Placeholders available in commands: {target}, {time}, {reason}
+prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Supports color codes (&) and RGB hex codes (#RRGGBB).
+
+# Database settings for storing softban status and punishment history.
+database:
+  type: 'sqlite' # 'sqlite' (file-based) or 'mysql'.
+  name: 'crown' # File name for SQLite (e.g., crown.db) or database name for MySQL.
+  # MySQL Specific Settings (ignored if type is 'sqlite')
+  address: 'localhost'
+  port: '3306'
+  username: 'username'
+  password: 'password'
+
+# Command configurations for different punishment types executed by the plugin (e.g., ban, mute, kick).
+# These are executed by the CONSOLE unless handled internally (softban, freeze).
 commands:
-  ban_command: 'ban {target} {time} {reason}' # ban_command: Command to ban a player. Example: 'ban {target} {time} You have been banned for: {reason}'
-  mute_command: 'mute {target} {time} {reason}' # mute_command: Command to mute a player. Example: 'mute {target} {time} Silenced for: {reason}'
-  warn_command: 'warn {target} {reason}' # warn_command: Command to warn a player. Example: 'minecraft:warn {target} {reason}' (adjust to your server setup)
-  kick_command: 'kick {target} {reason}' # kick_command: Command to kick a player. Example: 'minecraft:kick {target} {reason}' (adjust to your server setup)
-  unban_command: 'pardon {target}' # unban_command: Command to unban a player. Example: 'pardon {target}'
-  unmute_command: 'unmute {target}' # unmute_command: Command to unmute a player. Example: 'unmute {target}'
-  unwarn_command: 'unwarn {target}' # unwarn_command: Command to unwarn a player. Example: 'unwarn {target}' (if your server has an unwarn command)
+  ban_command: 'tempban {target} {time} {reason}'
+#  ban_command: 'ba tempban {target} GWEN {time} {reason}' # Ban with animation command (Requires BanAnimation plugin: https://www.spigotmc.org/resources/71234/)
+  mute_command: 'tempmute {target} {time} {reason}'
+  warn_command: 'warn {target} {reason}'
+  kick_command: 'kick {target} {reason}'
+  unban_command: 'unban {target}'
+  unmute_command: 'unmute {target}'
+  unwarn_command: 'unwarn {target}'
 
 # Sound configurations for different actions in the plugin.
-# Uses Bukkit Sound enum names. List of sounds: https://helpch.at/docs/1.19.4/org/bukkit/Sound.html
+# Uses Bukkit Sound enum names (e.g., ENTITY_EXPERIENCE_ORB_PICKUP). Find names here: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
 sounds:
-  punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP' # punish_confirm: Sound for punishment confirmation. Example: 'ENTITY_VILLAGER_YES'
+  punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP'
   punish_error: 'ENTITY_VILLAGER_NO'
 
-# Time unit configurations for formatting and parsing time durations.
+# Time unit configurations for formatting and parsing time durations (e.g., "1d", "2h30m").
 time_units:
-  default: 's' # default: Default time unit if not specified, in seconds.
-  seconds: 's' # seconds: Unit for seconds (e.g., 's', 'sec').
-  minutes: 'm' # minutes: Unit for minutes (e.g., 'm', 'min').
-  hours: 'h' # hours: Unit for hours (e.g., 'h', 'hour').
-  day: 'd' # day: Unit for days (e.g., 'd', 'day').
-  years: 'y' # years: Unit for years (e.g., 'y', 'year').
+  default: 's'   # Default unit if only a number is provided (e.g., "30" -> 30s).
+  seconds: 's'   # Character(s) representing seconds.
+  minutes: 'm'   # Character(s) representing minutes.
+  hours: 'h'     # Character(s) representing hours.
+  day: 'd'       # Character(s) representing days.
+  years: 'y'     # Character(s) representing years.
 
 # Softban feature configurations.
 softban:
-  blocked_commands: # blocked_commands: List of commands blocked for softbanned players.
-    - examplecommand # Commands are case-insensitive.
-    - kit # Example: 'kit'
-    - daily # Example: 'daily'
+  blocked_commands: # List of commands (lowercase, without '/') blocked for softbanned players.
+    - examplecommand
+    - kit
+    - daily
 
-# Database settings for storing softban and punishment history data.
-database:
-  type: 'sqlite' # database type: 'sqlite' for file-based, 'mysql' for MySQL server. Options: 'sqlite', 'mysql'
-  name: 'crownpunishments' # database name: File name for SQLite or database name for MySQL. Example: 'punishments'
-  address: 'localhost' # database address: MySQL address (if type is 'mysql'). Example: 'your_mysql_host.com'
-  port: '3306' # database port: MySQL port (if type is 'mysql'). Default: 3306
-  username: 'username' # database username: MySQL username (if type is 'mysql'). Example: 'db_user'
-  password: 'password' # database password: MySQL password (if type is 'mysql'). Example: 'db_password'
 
-# Freeze punishment feature configurations. - NEW
-freeze: # freeze: Configuration section for freeze punishment feature. - NEW
-  disconnect_ban_time: 'permanent' # disconnect_ban_time: Ban time for disconnected frozen players. Formats: '1d', '2h', 'permanent'.
-  disconnect_ban_reason: 'Disconnected while frozen for review' # disconnect_ban_reason: Ban reason for disconnected frozen players.
-  freeze_actions: # freeze_actions: Actions to execute repeatedly while player is frozen. - NEW
-    interval: 40 # interval: Interval in ticks for action execution (20 ticks = 1 second). Example: 20 (every second)
-    actions: # actions: List of actions to execute for frozen players. - NEW
-      - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.' # Example: Send message.
-      - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0' # Example: Play sound. Format: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :5:5:5" # Example: Display title. Format: 'TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout>'
+# Freeze punishment feature configurations.
+freeze:
+  disconnect_commands:
+    - 'crown punish {target} ban 365d &cDisconnected while frozen!'
+    - 'tellraw @a "&e&lᴄʀᴏᴡɴ &6🜲&r &ePlayer &b{target} &edisconnected while frozen! &cApplying actions&e."'
+    # - 'discord broadcast alert Player {target} disconnected while frozen!'
+  freeze_actions:
+    interval: 40 # Interval in ticks (20 ticks = 1 second) to run the actions below.
+    actions: # List of actions (see menu action list) executed repeatedly on the frozen player.
+      - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.'
+      - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0'
+      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :5:5:5"
 
-# Logging configurations for debugging purposes.
+# --- Post-Action Hooks ---
+# Defines lists of actions to execute AFTER a punishment or unpunishment is successfully confirmed and logged.
+# Uses the same action format as menu items (see menu YAML files for syntax).
+# Available Placeholders within these hook actions:
+# - {player}: Name of the player/console executing the punishment/unpunishment.
+# - {target}: Name of the player being punished/unpunished.
+# - {reason}: The reason provided for the punishment (or a default like "Unbanned" for unpunishment).
+# - {time}: The time duration specified for the punishment (e.g., "1d", "Permanent", "N/A").
+# - {punishment_type}: The type of punishment (e.g., "ban", "kick", "softban"). Note: For unpunish hooks, this is the *original* type being undone (e.g., "ban" for the unban hook).
+# - {prefix}: Plugin's prefix.
+punishment_hooks:
+  on_punish: # Actions executed AFTER a punishment is applied.
+    ban:
+      - 'MESSAGE_MODS:{prefix}&c{target} &7was banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+      - 'PLAY_SOUND_MODS:ENTITY_ENDER_DRAGON_GROWL:1.0:0.8'
+      # - 'CONSOLE_COMMAND:discord broadcast Ban {target} {reason} {time}' # Example Discord integration
+    mute:
+      - 'MESSAGE_MODS:{prefix}&e{target} &7was muted by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+      - 'PLAY_SOUND_MODS:ENTITY_VEX_CHARGE:1.0:1.0'
+    softban:
+      - 'MESSAGE_MODS:{prefix}&3{target} &7was soft-banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+      - 'PLAY_SOUND_MODS:BLOCK_CHAIN_PLACE:1.0:1.2'
+    kick:
+      - 'MESSAGE_MODS:{prefix}&9{target} &7was kicked by &e{player}&7. Reason: &f{reason}'
+      - 'PLAY_SOUND_MODS:ENTITY_GHAST_SHOOT:1.0:1.0'
+    warn:
+      - 'MESSAGE_MODS:{prefix}&6{target} &7was warned by &e{player}&7. Reason: &f{reason}'
+      - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_NO:1.0:0.8'
+    freeze:
+      - 'MESSAGE_MODS:{prefix}&5{target} &7was frozen by &e{player}&7. Reason: &f{reason}'
+      - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:0.7'
+      - 'ACTIONBAR_MODS:&d&lFROZEN: &f{target}' # Show on action bar too
+
+  on_unpunish: # Actions executed AFTER an unpunishment is applied. The key (e.g., 'ban') refers to the original punishment type being undone.
+    ban:
+      - 'MESSAGE_MODS:{prefix}&a{target} &7was unbanned by &e{player}.'
+      - 'PLAY_SOUND_MODS:ENTITY_PLAYER_LEVELUP:1.0:1.2'
+      # - 'CONSOLE_COMMAND:discord broadcast Unban {target}' # Example Discord integration
+    mute: # Hooks for '/unpunish <player> mute' or unmute button
+      - 'MESSAGE_MODS:{prefix}&a{target} &7was unmuted by &e{player}.'
+      - 'PLAY_SOUND_MODS:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:1.5'
+    softban:
+      - 'MESSAGE_MODS:{prefix}&a{target} &7was un-softbanned by &e{player}.'
+      - 'PLAY_SOUND_MODS:BLOCK_CHAIN_BREAK:1.0:1.2'
+    warn:
+      - 'MESSAGE_MODS:{prefix}&a{target}&7''s warning was removed by &e{player}.'
+      - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_YES:1.0:1.0'
+    freeze:
+      - 'MESSAGE_MODS:{prefix}&a{target} &7was unfrozen by &e{player}.'
+      - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:1.2'
+
+# Logging configurations.
 logging:
-  debug: false # debug: Enable debug logging for detailed console output. Options: true, false
+  debug: false # Set to true for detailed console output for troubleshooting.

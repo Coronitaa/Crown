@@ -2,7 +2,7 @@
 package cp.corona.utils;
 
 import cp.corona.config.MainConfigManager;
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -144,10 +144,10 @@ public class TimeUtils {
     }
 
     // Static reference to the plugin instance - needed for logging in static context
-    private static CrownPunishments plugin = null;
+    private static Crown plugin = null;
 
     // Method to initialize the plugin reference (call this from onEnable)
-    public static void initialize(CrownPunishments instance) {
+    public static void initialize(Crown instance) {
         plugin = instance;
     }
 }

@@ -1,7 +1,7 @@
 // utils/MessageUtils.java
 package cp.corona.utils;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -43,7 +43,7 @@ public class MessageUtils {
      * @param path Path to the message in messages.yml.
      * @param replacements Placeholders to replace in the message.
      */
-    public static void sendConfigMessage(CrownPunishments plugin, CommandSender sender, String path, String... replacements) {
+    public static void sendConfigMessage(Crown plugin, CommandSender sender, String path, String... replacements) {
         String message = plugin.getConfigManager().getMessage(path, replacements);
         sender.sendMessage(MessageUtils.getColorMessage(message));
     }

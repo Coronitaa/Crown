@@ -1,43 +1,74 @@
-# punish_menu.yml
+# Configuration file for the main punish menu.
+# Allows selecting punishment types and viewing player info.
+
+# --- Available Actions ---
+# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:ban_details)
+# - CONSOLE_COMMAND:<command>        (e.g., CONSOLE_COMMAND:say {target} is being punished by {player})
+# - PLAYER_COMMAND:<command>         (e.g., PLAYER_COMMAND:msg {target} Check your history!)
+# - PLAYER_COMMAND_OP:<command>      (e.g., PLAYER_COMMAND_OP:gamemode creative {target})
+# - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0)
+# - PLAY_SOUND_TARGET:<sound>:<vol>:<pitch> (Plays sound to the target player)
+# - TITLE_TARGET:<title>:<subtitle>:<stay>:<fadein>:<fadeout> (Shows title to target. Time in ticks)
+# - MESSAGE_TARGET:<message>         (Sends chat message to target)
+# - GIVE_EFFECT_TARGET:<effect>:<duration_secs>:<amplifier>[:particles] (Gives effect to target. Particles default true)
+# - MESSAGE:<message>                (Sends chat message to the clicking player)
+# - ACTIONBAR:<message>              (Shows action bar to the clicking player)
+# - ACTIONBAR_TARGET:<message>       (Shows action bar to the target player)
+# - ACTIONBAR_MODS:<message>         (Shows action bar to players with crown.mod permission)
+# - MESSAGE_MODS:<message>           (Sends chat message to players with crown.mod permission)
+# - TITLE_MODS:<title>:<subtitle>:<stay>:<fadein>:<fadeout> (Shows title to players with crown.mod permission)
+# - PLAY_SOUND_MODS:<sound>:<vol>:<pitch> (Plays sound to players with crown.mod permission)
+# - REQUEST_INPUT:<input_type>       (e.g., REQUEST_INPUT:change_target)
+# - NO_ACTION:                       (Does nothing)
+
+# --- Available Placeholders ---
+# (Refer to messages.yml for the full list, especially target info placeholders like {target_online}, {ban_count} etc.)
+# - {target}: Target player's name.
+# - {player}: Player viewing/interacting with the menu.
+# - {prefix}: Plugin prefix.
+
 menu:
-  title: '#ea3a1a&lᴘᴜɴɪꜱʜ ᴍᴇɴᴜ'
+  title: '#ea3a1a&lPUNISH MENU'
   open_actions:
     - 'PLAY_SOUND:BLOCK_SHROOMLIGHT_PLACE:1.0:1.0'
   items:
     background_fill_1:
-      material: 'GRAY_STAINED_GLASS_PANE'
+      material: 'BLACK_STAINED_GLASS_PANE'
       name: ' '
       slot: '0-2,9,11,18-20,27-29,36,38,45-47'
     background_fill_2:
       material: 'RED_STAINED_GLASS_PANE'
       name: ' '
-      slot: '3-8,12,17,21,24-26,30-35,39,44,48-53'
+      slot: '3-8,12,17,21,26,30-35,39,44,48-53'
+    background_fill_3:
+      material: 'GRAY_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '24,25'
 
     info:
       material: 'PLAYER_HEAD'
-      player_head: '{target}'
+      player_head: '{target}' # Uses target's skin
       slot: '10'
       name: '&bPlayer Information'
       lore:
-        - '&7Information about'
-        - '&7player &b{target}&7:'
+        - '&7Info for &b{target}&7:'
         - ''
         - '&7Online: &b{target_online}'
         - '&7IP: &b{target_ip}'
         - '&7Coords: &b{target_coords}'
         - '&7World: &b{target_world}'
         - ''
-        - '&7Softban Status: {target_softban_status}'
-        - '&7Softban Remaining: {target_softban_remaining_time}'
+        - '&7Softbanned: {target_softban_status}'
+        - '&7Softban Ends: &6{target_softban_remaining_time}'
         - ''
-        - '&eLeft-Click to change player.'
+        - '&eLeft-Click to change target.'
         - '&eRight-Click to spectate.'
       left_click_actions:
         - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0'
-        - 'OPEN_MENU:change_target'
+        - 'REQUEST_INPUT:change_target' # Request new target name input
       right_click_actions:
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
-        - 'CONSOLE_COMMAND:gamemode spectator {player}'
+        - 'PLAY_SOUND:ENTITY_EVOKER_CAST_SPELL:1.0:0.6'
+        - 'CONSOLE_COMMAND:gamemode spectator {player}' # Use CONSOLE_COMMAND for permission safety
         - 'CONSOLE_COMMAND:tp {player} {target}'
 
     ban:
@@ -46,11 +77,8 @@ menu:
       slot: '13'
       name: '&c&lBan'
       lore:
-        - '&7Left-Click to ban'
-        - '&7player &b{target}&7.'
-      click_sound: 'UI_BUTTON_CLICK'
-      click_volume: 1.0
-      click_pitch: 1.0
+        - '&7Left-Click to configure'
+        - '&7a ban for &b{target}&7.'
       left_click_actions:
         - 'OPEN_MENU:ban_details'
       right_click_actions:
@@ -62,8 +90,8 @@ menu:
       slot: '22'
       name: '&e&lMute'
       lore:
-        - '&7Left-Click to mute'
-        - '&7player &b{target}&7.'
+        - '&7Left-Click to configure'
+        - '&7a mute for &b{target}&7.'
       left_click_actions:
         - 'OPEN_MENU:mute_details'
       right_click_actions:
@@ -75,13 +103,12 @@ menu:
       slot: '14'
       name: '&3&lSoftBan'
       lore:
-        - '&7Left-Click to softban'
-        - '&7player &b{target}&7.'
+        - '&7Left-Click to configure'
+        - '&7a softban for &b{target}&7.'
       left_click_actions:
         - 'OPEN_MENU:softban_details'
       right_click_actions:
         - 'OPEN_MENU:softban_details'
-
 
     kick:
       material: 'PLAYER_HEAD'
@@ -89,8 +116,8 @@ menu:
       slot: '15'
       name: '&9&lKick'
       lore:
-        - '&7Left-Click to kick'
-        - '&7player &b{target}&7.'
+        - '&7Left-Click to configure'
+        - '&7a kick for &b{target}&7.'
       left_click_actions:
         - 'OPEN_MENU:kick_details'
       right_click_actions:
@@ -102,8 +129,8 @@ menu:
       slot: '16'
       name: '&6&lWarn'
       lore:
-        - '&7Left-Click to warn'
-        - '&7player &b{target}&7.'
+        - '&7Left-Click to configure'
+        - '&7a warning for &b{target}&7.'
       left_click_actions:
         - 'OPEN_MENU:warn_details'
       right_click_actions:
@@ -115,8 +142,8 @@ menu:
       slot: '23'
       name: '&5&lFreeze'
       lore:
-        - '&7Left-Click to freeze'
-        - '&7player &b{target}&7 for review.'
+        - '&7Left-Click to configure'
+        - '&7a freeze for &b{target}&7.'
       left_click_actions:
         - 'OPEN_MENU:freeze_details'
       right_click_actions:
@@ -130,19 +157,25 @@ menu:
       lore:
         - '&7Left-Click to view punishment'
         - '&7history for &b{target}&7.'
-        - "" # Empty line for spacing
-        - "&7Punishment Summary:" # Header for Punishment Summary - NEW FEATURE
-        - "&c Bans: &e{ban_count}" # Ban count with placeholder - NEW FEATURE
-        - "&e Mutes: &e{mute_count}" # Mute count with placeholder - NEW FEATURE
-        - "&9 Kicks: &e{kick_count}" # Kick count with placeholder - NEW FEATURE
-        - "&3 Softbans: &e{softban_count}" # Softban count with placeholder - NEW FEATURE
-        - "&6 Warns: &e{warn_count}" # Warn count with placeholder - NEW FEATURE
-        - "&5 Freezes: &e{freeze_count}" # Freeze count with placeholder - NEW FEATURE
+        - ""
+        - "&7Punishment Summary:"
+        - "&c Bans: &e{ban_count}"
+        - "&e Mutes: &e{mute_count}"
+        - "&9 Kicks: &e{kick_count}"
+        - "&3 Softbans: &e{softban_count}"
+        - "&6 Warns: &e{warn_count}"
+        - "&5 Freezes: &e{freeze_count}"
+        - ""
 
       left_click_actions:
         - 'OPEN_MENU:history_menu'
+        - 'PLAY_SOUND:UI_CARTOGRAPHY_TABLE_TAKE_RESULT:1.0:1.0' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
       right_click_actions:
         - 'OPEN_MENU:history_menu'
+        - 'PLAY_SOUND:UI_CARTOGRAPHY_TABLE_TAKE_RESULT:1.0:1.0'
+
+
+##Some example buttons:
 
     invsee:
       material: 'PLAYER_HEAD'
@@ -168,9 +201,9 @@ menu:
         - '&7Click to TP &b{target}'
         - '&7to your actual location.'
       left_click_actions:
-        - 'PLAYER_COMMAND:tp {target} {player}'
-        - 'PLAY_SOUND:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6'
-        - 'PLAY_SOUND_TARGET:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6'
+        - 'PLAYER_COMMAND:tp {target} {player}' # Player command action. Syntax: 'PLAYER_COMMAND:<command>'
+        - 'PLAY_SOUND:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'PLAY_SOUND_TARGET:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6' # Play sound to target action. Syntax: 'PLAY_SOUND_TARGET:<sound_name>:<volume>:<pitch>'
       right_click_actions:
         - 'PLAYER_COMMAND:tp {target} {player}'
         - 'PLAY_SOUND:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6'
@@ -186,12 +219,12 @@ menu:
         - '&7Click to clear'
         - "&7player's &finventory&7."
       left_click_actions:
-        - 'PLAYER_COMMAND_OP:clearinventory {target}'
-        - 'PLAY_SOUND:ENTITY_ALLAY_ITEM_THROWN:1.0:0.5'
-        - 'MESSAGE_TARGET:&c&nYour inventory has been deleted by an administrator.'
+        - 'PLAYER_COMMAND_OP:clearinventory {target}' # Player command OP action. Syntax: 'PLAYER_COMMAND_OP:<command>'
+        - 'PLAY_SOUND:ENTITY_WITHER_SHOOT:1.0:0.5' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'MESSAGE_TARGET:&c&nYour inventory has been deleted by an administrator.' # Message to target action. Syntax: 'MESSAGE_TARGET:<message>'
       right_click_actions:
         - 'PLAYER_COMMAND_OP:clearinventory {target}'
-        - 'PLAY_SOUND:ENTITY_ALLAY_ITEM_THROWN:1.0:0.5'
+        - 'PLAY_SOUND:ENTITY_WITHER_SHOOT:1.0:0.5'
         - 'MESSAGE_TARGET:&c&nYour inventory has been deleted by an administrator.'
 
     kill:
@@ -204,15 +237,15 @@ menu:
         - '&7player to &4death&7.'
         - ''
         - '&fRight-Click to &aheal'
-      left_click_actions:
-        - 'PLAY_SOUND:ENTITY_WITCH_CELEBRATE:1.0:0.6'
-        - 'GIVE_EFFECT_TARGET:WITHER:9999:3:true'
-        - 'PLAY_SOUND_TARGET:ENTITY_WITHER_SHOOT:1.0:0.6'
-        - 'TITLE_TARGET:#481358&lYou Have Been Sentenced to Death:&8&nYou will not escape the claws of death.:30:20:20'
+      left_click_actions: # Actions performed on left click.
+        - 'PLAY_SOUND:ENTITY_WITCH_CELEBRATE:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
+        - 'GIVE_EFFECT_TARGET:WITHER:9999:3:true' # Give effect to target action. Syntax: 'GIVE_EFFECT_TARGET:<effect_type>:<duration_seconds>:<amplifier>:<show_particles(optional)>'
+        - 'PLAY_SOUND_TARGET:ENTITY_WITHER_SHOOT:1.0:0.6' # Play sound to target action. Syntax: 'PLAY_SOUND_TARGET:<sound_name>:<volume>:<pitch>'
+        - 'TITLE_TARGET:#481358&lYou Have Been Sentenced to Death:&8&nYou will not escape the claws of death.:30:20:20' # Title to target action. Syntax: 'TITLE_TARGET:<title>:<subtitle>:<time_seconds>:<fade_in_ticks>:<fade_out_ticks>'
         - 'MESSAGE:'
-        - 'MESSAGE:#9feadc&l{target} #481358&lHas Been Sentenced to Death.'
+        - 'MESSAGE:#9feadc&l{target} #481358&lHas Been Sentenced to Death.' # Message action. Syntax: 'MESSAGE:<message>'
         - 'MESSAGE:'
-      right_click_actions:
+      right_click_actions: # Actions performed on right click.
         - 'PLAY_SOUND:ENTITY_PILLAGER_AMBIENT:1.0:0.6'
         - 'CONSOLE_COMMAND:heal {target}'
         - 'TITLE_TARGET:#9feadc&lYou Have Been Blessed:#d8f69c&lWith Forgiveness! &e&nLucky you!:10:20:20'

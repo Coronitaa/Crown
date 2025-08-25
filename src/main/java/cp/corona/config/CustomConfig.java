@@ -1,7 +1,7 @@
 // CustomConfig.java
 package cp.corona.config;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -12,7 +12,7 @@ import java.util.logging.Level;
 
 /**
  * ////////////////////////////////////////////////
- * //             CrownPunishments             //
+ * //             Crown             //
  * //         Developed with passion by         //
  * //                   Corona                 //
  * ////////////////////////////////////////////////
@@ -21,7 +21,7 @@ import java.util.logging.Level;
  * Handles file creation, loading, and reloading of YAML configurations.
  */
 public class CustomConfig {
-    private final CrownPunishments plugin;
+    private final Crown plugin;
     private final String fileName;
     private FileConfiguration fileConfiguration = null;
     private File file = null;
@@ -36,7 +36,7 @@ public class CustomConfig {
      * @param plugin     Instance of the main plugin class.
      * @param newFile    Whether to create a new file if it doesn't exist.
      */
-    public CustomConfig(String fileName, String folderName, CrownPunishments plugin, boolean newFile) {
+    public CustomConfig(String fileName, String folderName, Crown plugin, boolean newFile) {
         this.fileName = fileName;
         this.folderName = folderName;
         this.plugin = plugin;

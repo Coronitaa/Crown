@@ -1,7 +1,7 @@
 // CommandBlockerListener.java
 package cp.corona.listeners;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,7 +17,7 @@ import java.util.logging.Level;
  */
 public class CommandBlockerListener implements Listener {
 
-    private final CrownPunishments plugin;
+    private final Crown plugin;
     private final List<String> blockedCommands;
 
     /**
@@ -25,7 +25,7 @@ public class CommandBlockerListener implements Listener {
      *
      * @param plugin Instance of the main plugin class.
      */
-    public CommandBlockerListener(CrownPunishments plugin) {
+    public CommandBlockerListener(Crown plugin) {
         this.plugin = plugin;
         this.blockedCommands = plugin.getConfigManager().getBlockedCommands(); // Load blocked commands from config
     }

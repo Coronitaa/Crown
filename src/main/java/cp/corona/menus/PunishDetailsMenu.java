@@ -1,7 +1,7 @@
 // PunishDetailsMenu.java
 package cp.corona.menus;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 /**
  * ////////////////////////////////////////////////
- * //             CrownPunishments             //
+ * //             Crown             //
  * //         Developed with passion by         //
  * //                   Corona                 //
  * ////////////////////////////////////////////////
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class PunishDetailsMenu implements InventoryHolder {
     private final Inventory inventory;
     private final UUID targetUUID;
-    private final CrownPunishments plugin;
+    private final Crown plugin;
     private final String punishmentType;
     private String banTime;
     private String banReason;
@@ -79,7 +79,7 @@ public class PunishDetailsMenu implements InventoryHolder {
      * @param plugin Instance of the main plugin class.
      * @param punishmentType Type of punishment (ban, mute, softban, kick, warn, freeze).
      */
-    public PunishDetailsMenu(UUID targetUUID, CrownPunishments plugin, String punishmentType) {
+    public PunishDetailsMenu(UUID targetUUID, Crown plugin, String punishmentType) {
         this.targetUUID = targetUUID;
         this.plugin = plugin;
         this.punishmentType = punishmentType.toLowerCase(); // Ensure lowercase for consistency

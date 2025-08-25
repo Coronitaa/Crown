@@ -1,11 +1,11 @@
-name: CrownPunishments
+name: CROWN
 version: '1.2'
-main: cp.corona.crownpunishments.CrownPunishments
+main: cp.corona.CROWN.CROWN
 api-version: '1.18'
 
 commands:
   crown:
-    description: Main command for CrownPunishments.
+    description: Main command for CROWN.
     usage: /<command> [punish|reload|help|unpunish]
 
   punish: # Alias command for direct /punish usage - ALIAS OF /CROWN PUNISH

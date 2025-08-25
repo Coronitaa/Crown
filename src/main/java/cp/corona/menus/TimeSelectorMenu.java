@@ -1,6 +1,6 @@
 package cp.corona.menus;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
@@ -22,7 +22,7 @@ import java.util.logging.Level;
 public class TimeSelectorMenu implements InventoryHolder {
     private final Inventory inventory;
     private final PunishDetailsMenu punishDetailsMenu;
-    private final CrownPunishments plugin;
+    private final Crown plugin;
     private int currentTimeSeconds = 0;
     private ItemStack timeDisplayItem;
 
@@ -50,7 +50,7 @@ public class TimeSelectorMenu implements InventoryHolder {
      * @param punishDetailsMenu The PunishDetailsMenu that opened this time selector.
      * @param plugin            Instance of the main plugin class.
      */
-    public TimeSelectorMenu(PunishDetailsMenu punishDetailsMenu, CrownPunishments plugin) {
+    public TimeSelectorMenu(PunishDetailsMenu punishDetailsMenu, Crown plugin) {
         this.punishDetailsMenu = punishDetailsMenu;
         this.plugin = plugin;
         OfflinePlayer target = Bukkit.getOfflinePlayer(punishDetailsMenu.getTargetUUID());

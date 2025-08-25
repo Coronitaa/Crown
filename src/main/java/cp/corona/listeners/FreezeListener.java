@@ -1,7 +1,7 @@
 // FreezeListener.java
 package cp.corona.listeners;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
@@ -40,7 +40,7 @@ import java.util.logging.Level;
  */
 public class FreezeListener implements Listener {
 
-    private final CrownPunishments plugin;
+    private final Crown plugin;
     private final HashMap<UUID, BukkitTask> freezeActionTasks = new HashMap<>();
 
     /**
@@ -48,7 +48,7 @@ public class FreezeListener implements Listener {
      *
      * @param plugin Instance of the main plugin class.
      */
-    public FreezeListener(CrownPunishments plugin) {
+    public FreezeListener(Crown plugin) {
         this.plugin = plugin;
     }
 

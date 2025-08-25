@@ -1,4 +1,4 @@
-# Main configuration file for CrownPunishments plugin.
+# Main configuration file for Crown plugin.
 # Contains settings for prefix, external commands, sounds, time units, softban, database, freeze features, post-action hooks, and logging.
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
@@ -16,7 +16,7 @@ prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Supports color codes (&) and RGB he
 # Database settings for storing softban status and punishment history.
 database:
   type: 'sqlite' # 'sqlite' (file-based) or 'mysql'.
-  name: 'crownpunishments' # File name for SQLite (e.g., crownpunishments.db) or database name for MySQL.
+  name: 'crown' # File name for SQLite (e.g., crown.db) or database name for MySQL.
   # MySQL Specific Settings (ignored if type is 'sqlite')
   address: 'localhost'
   port: '3306'

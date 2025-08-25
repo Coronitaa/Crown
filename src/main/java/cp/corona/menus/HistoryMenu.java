@@ -1,8 +1,8 @@
 // HistoryMenu.java
 package cp.corona.menus;
 
-import cp.corona.crownpunishments.CrownPunishments;
-import cp.corona.database.SoftBanDatabaseManager;
+import cp.corona.crown.Crown;
+import cp.corona.database.DatabaseManager;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
@@ -32,7 +32,7 @@ public class HistoryMenu implements InventoryHolder {
 
     private final Inventory inventory;
     private final UUID targetUUID;
-    private final CrownPunishments plugin;
+    private final Crown plugin;
     private int page = 1;
     // Number of history entries per page: 28 (4 rows of 7 entries)
     private final int entriesPerPage = 28;
@@ -61,7 +61,7 @@ public class HistoryMenu implements InventoryHolder {
      * @param targetUUID The UUID of the target player.
      * @param plugin     The main plugin instance.
      */
-    public HistoryMenu(UUID targetUUID, CrownPunishments plugin) {
+    public HistoryMenu(UUID targetUUID, Crown plugin) {
         this.targetUUID = targetUUID;
         this.plugin = plugin;
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
@@ -112,13 +112,13 @@ public class HistoryMenu implements InventoryHolder {
     private void loadHistoryPage(OfflinePlayer target, int page) {
         clearHistoryEntries(); // Clear previous entries
         // getPunishmentHistory() uses the page number to calculate the proper offset internally.
-        List<SoftBanDatabaseManager.PunishmentEntry> history =
+        List<DatabaseManager.PunishmentEntry> history =
                 plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, page, entriesPerPage);
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         historyEntryItems.clear();
 
         int index = 0;
-        for (SoftBanDatabaseManager.PunishmentEntry entry : history) {
+        for (DatabaseManager.PunishmentEntry entry : history) {
             if (index >= validSlots.size()) break;
             int slot = validSlots.get(index);
 
@@ -163,7 +163,7 @@ public class HistoryMenu implements InventoryHolder {
      * @param entry The punishment entry.
      * @return The formatted duration string.
      */
-    private String getDurationDisplay(SoftBanDatabaseManager.PunishmentEntry entry) {
+    private String getDurationDisplay(DatabaseManager.PunishmentEntry entry) {
         if (entry.getType().equalsIgnoreCase("warn") || entry.getType().equalsIgnoreCase("kick")) {
             return "Permanent";
         } else if (entry.getType().equalsIgnoreCase("mute") ||

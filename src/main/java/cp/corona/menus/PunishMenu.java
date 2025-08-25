@@ -1,7 +1,7 @@
 // PunishMenu.java
 package cp.corona.menus;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -18,7 +18,7 @@ import java.util.UUID;
 
 /**
  * ////////////////////////////////////////////////
- * //             CrownPunishments             //
+ * //             Crown             //
  * //         Developed with passion by         //
  * //                   Corona                 //
  * ////////////////////////////////////////////////
@@ -33,7 +33,7 @@ import java.util.UUID;
 public class PunishMenu implements InventoryHolder {
     private final Inventory inventory;
     private final UUID targetUUID;
-    private final CrownPunishments plugin;
+    private final Crown plugin;
 
     /**
      * Stores the item keys in a Set, dynamically loaded from config.
@@ -46,7 +46,7 @@ public class PunishMenu implements InventoryHolder {
      * @param targetUUID UUID of the target player.
      * @param plugin     Instance of the main plugin class.
      */
-    public PunishMenu(UUID targetUUID, CrownPunishments plugin) {
+    public PunishMenu(UUID targetUUID, Crown plugin) {
         this.targetUUID = targetUUID;
         this.plugin = plugin;
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);

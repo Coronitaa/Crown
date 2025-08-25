@@ -1,34 +1,34 @@
-// CrownPunishments.java
-package cp.corona.crownpunishments;
+// Crown.java
+package cp.corona.crown;
 
 import cp.corona.Metrics;
 import cp.corona.commands.MainCommand;
 import cp.corona.config.MainConfigManager;
-import cp.corona.database.SoftBanDatabaseManager;
+import cp.corona.database.DatabaseManager;
 import cp.corona.listeners.CommandBlockerListener;
-import cp.corona.listeners.FreezeListener; // Import FreezeListener - NEW
+import cp.corona.listeners.FreezeListener;
 import cp.corona.listeners.MenuListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.HashMap; // Import HashMap - NEW
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.logging.Level;
 
 /**
- * Main plugin class for CrownPunishments.
+ * Main plugin class for Crown.
  * Initializes and manages plugin components, commands, and listeners.
  */
-public final class CrownPunishments extends JavaPlugin {
+public final class Crown extends JavaPlugin {
     private final String version = getDescription().getVersion();
     private MainConfigManager configManager;
-    private SoftBanDatabaseManager softBanDatabaseManager; // Database Manager
+    private DatabaseManager databaseManager;
     private boolean placeholderAPIEnabled;
-    private final HashMap<UUID, Boolean> pluginFrozenPlayers = new HashMap<>(); // Track frozen players - NEW
+    private final HashMap<UUID, Boolean> pluginFrozenPlayers = new HashMap<>();
 
-    private MenuListener menuListener; // Add MenuListener field
+    private MenuListener menuListener;
     private FreezeListener freezeListener;
 
     /**
@@ -40,7 +40,7 @@ public final class CrownPunishments extends JavaPlugin {
         // Initialize configuration manager
         this.configManager = new MainConfigManager(this);
         // Initialize database manager, setting up database connection and tables
-        this.softBanDatabaseManager = new SoftBanDatabaseManager(this);
+        this.databaseManager = new DatabaseManager(this);
 
         // Check if PlaceholderAPI is installed and enabled - Now done in MainConfigManager
         this.placeholderAPIEnabled = configManager.isPlaceholderAPIEnabled(); // Get status from config manager
@@ -60,17 +60,17 @@ public final class CrownPunishments extends JavaPlugin {
                 configManager.getMessage("messages.plugin_enabled") + " Version: " + version));
         // Log debug mode status if enabled in config
         if (configManager.isDebugEnabled()) {
-            getLogger().log(Level.INFO, "[CrownPunishments] Debug mode is enabled.");
+            getLogger().log(Level.INFO, "[Crown] Debug mode is enabled.");
         }
         // Log PlaceholderAPI status
-        getLogger().log(Level.INFO, "[CrownPunishments] PlaceholderAPI integration is " + (isPlaceholderAPIEnabled() ? "enabled" : "disabled") + "."); // Log PAPI status
+        getLogger().log(Level.INFO, "[Crown] PlaceholderAPI integration is " + (isPlaceholderAPIEnabled() ? "enabled" : "disabled") + "."); // Log PAPI status
 
         // Initialize bStats metrics (plugin ID: 25939)
         try {
             Metrics metrics = new Metrics(this, 25939);
-            getLogger().log(Level.INFO, "[CrownPunishments] bStats metrics initialized successfully.");
+            getLogger().log(Level.INFO, "[Crown] bStats metrics initialized successfully.");
         } catch (Exception e) {
-            getLogger().log(Level.SEVERE, "[CrownPunishments] Failed to initialize bStats metrics:", e);
+            getLogger().log(Level.SEVERE, "[Crown] Failed to initialize bStats metrics:", e);
         }
     }
 
@@ -208,12 +208,12 @@ public final class CrownPunishments extends JavaPlugin {
     }
 
     /**
-     * Gets the SoftBanDatabaseManager instance.
+     * Gets the DatabaseManager instance.
      *
-     * @return SoftBanDatabaseManager instance.
+     * @return DatabaseManager instance.
      */
-    public SoftBanDatabaseManager getSoftBanDatabaseManager() {
-        return softBanDatabaseManager;
+    public DatabaseManager getSoftBanDatabaseManager() {
+        return databaseManager;
     }
 
     /**

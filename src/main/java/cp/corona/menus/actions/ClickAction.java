@@ -3,7 +3,7 @@ package cp.corona.menus.actions;
 
 /**
  * ////////////////////////////////////////////////
- * //             CrownPunishments             //
+ * //             Crown             //
  * //         Developed with passion by         //
  * //                   Corona                 //
  * ////////////////////////////////////////////////

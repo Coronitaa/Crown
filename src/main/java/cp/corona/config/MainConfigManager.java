@@ -1,11 +1,10 @@
 // MainConfigManager.java
 package cp.corona.config;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.menus.items.MenuItem.ClickActionData;
-import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -18,7 +17,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -47,7 +45,7 @@ public class MainConfigManager {
     private final CustomConfig timeSelectorMenuConfig;
     private final CustomConfig historyMenuConfig;
 
-    private final CrownPunishments plugin;
+    private final Crown plugin;
     private final String defaultTimeUnit;
 
 
@@ -55,7 +53,7 @@ public class MainConfigManager {
     private boolean placeholderAPIEnabled;
     private CrownPunishmentsPlaceholders placeholders;
 
-    public MainConfigManager(CrownPunishments plugin) {
+    public MainConfigManager(Crown plugin) {
         this.plugin = plugin;
 
         messagesConfig = new CustomConfig("messages.yml", null, plugin, false);
@@ -901,7 +899,7 @@ public class MainConfigManager {
 
     /** Gets the configured database name (file name for SQLite, DB name for MySQL). */
     public String getDatabaseName() {
-        return pluginConfig.getConfig().getString("database.name", "crownpunishments");
+        return pluginConfig.getConfig().getString("database.name", "crown");
     }
 
     /** Gets the configured database server address (for MySQL). */
@@ -1032,17 +1030,17 @@ public class MainConfigManager {
 
     /**
      * Inner class extending PlaceholderAPI's PlaceholderExpansion.
-     * Handles the registration and replacement logic for custom placeholders provided by CrownPunishments.
+     * Handles the registration and replacement logic for custom placeholders provided by Crown.
      */
     private class CrownPunishmentsPlaceholders extends PlaceholderExpansion {
 
-        private final CrownPunishments plugin;
+        private final Crown plugin;
 
         /**
          * Constructor for the PAPI expansion.
-         * @param plugin The main CrownPunishments plugin instance.
+         * @param plugin The main Crown plugin instance.
          */
-        public CrownPunishmentsPlaceholders(CrownPunishments plugin) {
+        public CrownPunishmentsPlaceholders(Crown plugin) {
             this.plugin = plugin;
         }
 
@@ -1058,11 +1056,11 @@ public class MainConfigManager {
         /**
          * Returns the unique identifier for this expansion.
          * Placeholders will be prefixed with this identifier (e.g., %crownpunishments_...).
-         * @return The identifier string "crownpunishments".
+         * @return The identifier string "crown".
          */
         @Override
         public @NotNull String getIdentifier() {
-            return "crownpunishments";
+            return "crown";
         }
 
         /**

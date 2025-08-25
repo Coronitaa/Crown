@@ -1,7 +1,7 @@
-// database/SoftBanDatabaseManager.java
+// database/DatabaseManager.java
 package cp.corona.database;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -17,20 +17,20 @@ import java.util.logging.Level;
  * and checking softban status and expiry. Supports SQLite and MySQL.
  * Also handles punishment history logging.
  */
-public class SoftBanDatabaseManager {
-    private final CrownPunishments plugin;
+public class DatabaseManager {
+    private final Crown plugin;
     private final String dbURL;
     private final String dbUsername; // Store credentials for MySQL
     private final String dbPassword; // Store credentials for MySQL
     private final String dbType; // Store db type
 
     /**
-     * Constructor for SoftBanDatabaseManager.
+     * Constructor for DatabaseManager.
      * Initializes database connection based on configuration and sets up tables.
      *
      * @param plugin Instance of the main plugin class.
      */
-    public SoftBanDatabaseManager(CrownPunishments plugin) {
+    public DatabaseManager(Crown plugin) {
         this.plugin = plugin;
         // Retrieve database configuration from MainConfigManager
         this.dbType = plugin.getConfigManager().getDatabaseType();

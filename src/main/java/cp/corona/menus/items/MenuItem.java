@@ -2,7 +2,7 @@
 package cp.corona.menus.items;
 
 import cp.corona.config.MainConfigManager;
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.menus.actions.ClickAction;
 import cp.corona.utils.MessageUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 /**
  * ////////////////////////////////////////////////
- * //             CrownPunishments             //
+ * //             Crown             //
  * //         Developed with passion by         //
  * //                   Corona                 //
  * ////////////////////////////////////////////////
@@ -322,7 +322,7 @@ public class MenuItem {
         return processedText;
     }
 
-    private static CrownPunishments plugin = (CrownPunishments) Bukkit.getPluginManager().getPlugin("CrownPunishments");
+    private static Crown plugin = (Crown) Bukkit.getPluginManager().getPlugin("Crown");
 
     /**
      * Plays the configured click sound for this MenuItem to a player.

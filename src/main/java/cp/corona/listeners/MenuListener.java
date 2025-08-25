@@ -1,7 +1,7 @@
 package cp.corona.listeners;
 
 import cp.corona.config.MainConfigManager;
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.menus.HistoryMenu;
 import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.PunishMenu;
@@ -32,7 +32,6 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory; // Import Inventory
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta; // Needed for potential meta manipulation
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -46,12 +45,12 @@ import java.util.stream.Collectors; // Import Collectors
 
 /**
  * ////////////////////////////////////////////////
- * //             CrownPunishments             //
+ * //             Crown             //
  * //         Developed with passion by         //
  * //                   Corona                 //
  * ////////////////////////////////////////////////
  *
- * Menu interaction listener for CrownPunishments plugin.
+ * Menu interaction listener for Crown plugin.
  * Handles inventory clicks, chat input, and menu actions.
  * Implements various click actions including commands, sounds, titles, messages,
  * action bars, and target/moderator specific variations.
@@ -66,7 +65,7 @@ import java.util.stream.Collectors; // Import Collectors
  * - Added `executeSpecificHookAction` to handle action execution with both executor and target context.
  */
 public class MenuListener implements Listener {
-    private final CrownPunishments plugin;
+    private final Crown plugin;
     // Input tracking maps
     private final HashMap<UUID, BukkitTask> inputTimeouts = new HashMap<>();
     private final HashMap<UUID, PunishDetailsMenu> pendingDetailsMenus = new HashMap<>();
@@ -100,7 +99,7 @@ public class MenuListener implements Listener {
      * Constructor for MenuListener.
      * @param plugin Instance of the main plugin class.
      */
-    public MenuListener(CrownPunishments plugin) {
+    public MenuListener(Crown plugin) {
         this.plugin = plugin;
     }
 
@@ -1730,7 +1729,7 @@ public class MenuListener implements Listener {
      * Focuses only on executing the action logic itself.
      * (Logic inside this method is now correct after previous modification)
      */
-    private void executeSpecificHookAction(CommandSender executor, OfflinePlayer target, ClickAction action, String[] actionArgs, CrownPunishments plugin) {
+    private void executeSpecificHookAction(CommandSender executor, OfflinePlayer target, ClickAction action, String[] actionArgs, Crown plugin) {
         // (Logic inside this method remains the same as the previous correct version)
         if (action == ClickAction.NO_ACTION) return;
 
@@ -1820,7 +1819,7 @@ public class MenuListener implements Listener {
     /**
      * Helper method to log target missing warning.
      */
-    private void logTargetMissing(ClickAction action, CrownPunishments plugin) {
+    private void logTargetMissing(ClickAction action, Crown plugin) {
         plugin.getLogger().warning("Cannot execute hook action " + action + ": Target player context is missing.");
     }
 
@@ -1828,7 +1827,7 @@ public class MenuListener implements Listener {
     /**
      * Helper method to log invalid arguments warning.
      */
-    private void logInvalidArgs(ClickAction action, String[] args, CrownPunishments plugin) {
+    private void logInvalidArgs(ClickAction action, String[] args, Crown plugin) {
         plugin.getLogger().warning("Invalid arguments for hook action " + action + ": " + Arrays.toString(args));
     }
 

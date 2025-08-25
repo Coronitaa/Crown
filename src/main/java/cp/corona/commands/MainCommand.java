@@ -1,7 +1,7 @@
 // MainCommand.java
 package cp.corona.commands;
 
-import cp.corona.crownpunishments.CrownPunishments;
+import cp.corona.crown.Crown;
 import cp.corona.listeners.MenuListener; // Import MenuListener
 import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.PunishMenu;
@@ -21,12 +21,12 @@ import java.util.stream.Collectors;
 
 /**
  * ////////////////////////////////////////////////
- * //             CrownPunishments             //
+ * //             Crown             //
  * //         Developed with passion by         //
  * //                   Corona                 //
  * ////////////////////////////////////////////////
  *
- * Handles the main command and subcommands for the CrownPunishments plugin.
+ * Handles the main command and subcommands for the Crown plugin.
  * Implements CommandExecutor and TabCompleter for command handling and tab completion,
  * treating /crown, /punish, /softban, and /unpunish as COMPLETELY SEPARATE top-level commands.
  * This version includes robust input validation for time arguments and a correction for the softban time calculation bug.
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  *              for any of the plugin's commands.
  */
 public class MainCommand implements CommandExecutor, TabCompleter {
-    private final CrownPunishments plugin;
+    private final Crown plugin;
 
     // Command and subcommand names constants for maintainability
     private static final String RELOAD_SUBCOMMAND = "reload";
@@ -69,7 +69,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
      * Constructor for MainCommand.
      * @param plugin Instance of the main plugin class.
      */
-    public MainCommand(CrownPunishments plugin) {
+    public MainCommand(Crown plugin) {
         this.plugin = plugin;
     }
 
