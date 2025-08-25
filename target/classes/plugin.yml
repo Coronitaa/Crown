@@ -1,5 +1,5 @@
 name: Crown
-version: '1.2'
+version: '1.0'
 main: cp.corona.crown.Crown
 api-version: '1.18'
 
