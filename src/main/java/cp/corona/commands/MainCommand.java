@@ -314,18 +314,19 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
 
         String commandToExecute = "";
-        long punishmentEndTime = 0L;
         String durationForLog = time;
         String permanentDisplay = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
+        String punishmentId = null;
 
         switch (punishType.toLowerCase()) {
             case "ban":
                 commandToExecute = plugin.getConfigManager().getBanCommand();
-                punishmentEndTime = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
+                long punishmentEndTimeBan = TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis();
                 if (time.equalsIgnoreCase("permanent") || time.equalsIgnoreCase(permanentDisplay)) {
-                    punishmentEndTime = Long.MAX_VALUE;
+                    punishmentEndTimeBan = Long.MAX_VALUE;
                     durationForLog = permanentDisplay;
                 }
+                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), punishmentEndTimeBan, durationForLog);
                 if (commandToExecute.isEmpty()) {
                     long banDuration = TimeUtils.parseTime(time, plugin.getConfigManager());
                     Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
@@ -340,31 +341,31 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "mute":
                 commandToExecute = plugin.getConfigManager().getMuteCommand();
                 boolean isPermanentMute = time.equalsIgnoreCase("permanent") || time.equalsIgnoreCase(permanentDisplay);
-                punishmentEndTime = isPermanentMute ? Long.MAX_VALUE : (TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis());
+                long punishmentEndTimeMute = isPermanentMute ? Long.MAX_VALUE : (TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis());
                 durationForLog = isPermanentMute ? permanentDisplay : time;
                 if (commandToExecute.isEmpty()) {
-                    plugin.getSoftBanDatabaseManager().mutePlayer(target.getUniqueId(), punishmentEndTime, reason, sender.getName());
+                    punishmentId = plugin.getSoftBanDatabaseManager().mutePlayer(target.getUniqueId(), punishmentEndTimeMute, reason, sender.getName());
                     if (target.isOnline()) {
-                        String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", durationForLog, "{reason}", reason);
+                        String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                         target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
                     }
                 } else {
+                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), punishmentEndTimeMute, durationForLog);
                     commandToExecute = commandToExecute.replace("{target}", target.getName()).replace("{time}", time).replace("{reason}", reason);
                 }
                 break;
             case "softban":
                 boolean isPermanentSoftban = time.equalsIgnoreCase("permanent") || time.equalsIgnoreCase(permanentDisplay);
-                punishmentEndTime = isPermanentSoftban ? Long.MAX_VALUE : (TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis());
-                if (!isPermanentSoftban && punishmentEndTime > 0) {
-                    punishmentEndTime += 1000L;
+                long punishmentEndTimeSoftban = isPermanentSoftban ? Long.MAX_VALUE : (TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis());
+                if (!isPermanentSoftban && punishmentEndTimeSoftban > 0) {
+                    punishmentEndTimeSoftban += 1000L;
                 }
-                durationForLog = isPermanentSoftban ? permanentDisplay : time;
-                plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTime, reason, sender.getName());
+                punishmentId = plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTimeSoftban, reason, sender.getName());
                 break;
             case "kick":
                 commandToExecute = plugin.getConfigManager().getKickCommand();
                 durationForLog = "N/A";
-                punishmentEndTime = 0L;
+                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), 0L, durationForLog);
                 if (commandToExecute.isEmpty()) {
                     if (target.isOnline()) {
                         target.getPlayer().kickPlayer(reason);
@@ -376,7 +377,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "warn":
                 commandToExecute = plugin.getConfigManager().getWarnCommand();
                 durationForLog = "N/A";
-                punishmentEndTime = 0L;
+                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), 0L, durationForLog);
                 if (commandToExecute.isEmpty()) {
                     if (target.isOnline()) {
                         target.getPlayer().sendMessage(MessageUtils.getColorMessage(reason));
@@ -388,7 +389,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "freeze":
                 plugin.getPluginFrozenPlayers().put(target.getUniqueId(), true);
                 durationForLog = permanentDisplay;
-                punishmentEndTime = Long.MAX_VALUE;
+                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), Long.MAX_VALUE, durationForLog);
                 Player onlineTarget = target.getPlayer();
                 if (onlineTarget != null && !onlineTarget.hasPermission("crown.bypass.freeze")) {
                     sendConfigMessage(onlineTarget, "messages.you_are_frozen");
@@ -401,8 +402,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return;
         }
 
-        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), punishmentEndTime, durationForLog);
-        sendConfigMessage(sender, "messages.direct_punishment_confirmed", "{target}", target.getName(), "{time}", durationForLog, "{reason}", reason, "{punishment_type}", punishType);
+        sendConfigMessage(sender, "messages.direct_punishment_confirmed", "{target}", target.getName(), "{time}", durationForLog, "{reason}", reason, "{punishment_type}", punishType, "{punishment_id}", punishmentId);
 
         if (!commandToExecute.isEmpty()) {
             final String finalCommandToExecute = commandToExecute;
@@ -424,6 +424,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         switch (punishType.toLowerCase()) {
             case "ban":
                 commandToExecute = plugin.getConfigManager().getUnbanCommand();
+                logReason = "Unbanned";
+                plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                 if (commandToExecute.isEmpty()) {
                     if (!target.isBanned()) {
                         sendConfigMessage(sender, "messages.not_banned");
@@ -433,10 +435,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 } else {
                     commandToExecute = commandToExecute.replace("{target}", target.getName());
                 }
-                logReason = "Unbanned";
                 break;
             case "mute":
                 commandToExecute = plugin.getConfigManager().getUnmuteCommand();
+                logReason = "Unmuted";
                 if (commandToExecute.isEmpty()) {
                     if (!plugin.getSoftBanDatabaseManager().isMuted(target.getUniqueId())) {
                         sendConfigMessage(sender, "messages.not_muted");
@@ -444,9 +446,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     }
                     plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName());
                 } else {
+                    plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                     commandToExecute = commandToExecute.replace("{target}", target.getName());
                 }
-                logReason = "Unmuted";
                 break;
             case "softban":
                 plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName());
@@ -454,12 +456,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 break;
             case "warn":
                 String unwarnCommand = plugin.getConfigManager().getUnwarnCommand();
+                logReason = "Unwarned";
+                plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                 if (unwarnCommand != null && !unwarnCommand.isEmpty()) {
                     commandToExecute = unwarnCommand.replace("{target}", target.getName());
                 } else {
                     plugin.getLogger().warning("Unwarn command is empty, internal unwarn is not supported.");
                 }
-                logReason = "Unwarned";
                 break;
             case "freeze":
                 boolean removed = plugin.getPluginFrozenPlayers().remove(target.getUniqueId()) != null;
@@ -468,6 +471,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     return;
                 }
                 logReason = "Unfrozen";
+                plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                 Player onlineTargetUnfreeze = target.getPlayer();
                 if (onlineTargetUnfreeze != null) {
                     sendConfigMessage(onlineTargetUnfreeze, "messages.you_are_unfrozen");
@@ -482,7 +486,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return;
         }
 
-        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
         sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", punishType);
 
         if (!commandToExecute.isEmpty()) {

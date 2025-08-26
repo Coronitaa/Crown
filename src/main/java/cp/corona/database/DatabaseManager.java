@@ -8,8 +8,9 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.sql.*;
-import java.util.*;
 import java.util.Date; // Keep this import
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 
 /**
@@ -59,25 +60,21 @@ public class DatabaseManager {
         try (Connection connection = getConnection();
              Statement statement = connection.createStatement()) {
 
-            String autoIncrementKeyword = "mysql".equalsIgnoreCase(dbType) ? "AUTO_INCREMENT" : "AUTOINCREMENT";
-
-            // Softbans Table
             String createSoftbansTableSQL = "CREATE TABLE IF NOT EXISTS softbans (" +
                     "uuid VARCHAR(36) PRIMARY KEY," +
                     "endTime BIGINT NOT NULL," +
                     "reason TEXT)";
             statement.execute(createSoftbansTableSQL);
 
-            // Mutes Table
             String createMutesTableSQL = "CREATE TABLE IF NOT EXISTS mutes (" +
                     "uuid VARCHAR(36) PRIMARY KEY," +
                     "endTime BIGINT NOT NULL," +
                     "reason TEXT)";
             statement.execute(createMutesTableSQL);
 
-            // History Table
             String createHistoryTableSQL = "CREATE TABLE IF NOT EXISTS punishment_history (" +
-                    "id INTEGER PRIMARY KEY " + autoIncrementKeyword + "," +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "punishment_id VARCHAR(8) NOT NULL UNIQUE," +
                     "player_uuid VARCHAR(36) NOT NULL," +
                     "punishment_type VARCHAR(50) NOT NULL," +
                     "reason TEXT," +
@@ -85,6 +82,19 @@ public class DatabaseManager {
                     "punisher_name VARCHAR(255)," +
                     "punishment_time BIGINT DEFAULT 0," +
                     "duration_string VARCHAR(50) DEFAULT 'permanent')";
+
+            if ("sqlite".equalsIgnoreCase(dbType)) {
+                createHistoryTableSQL = "CREATE TABLE IF NOT EXISTS punishment_history (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "punishment_id VARCHAR(8) NOT NULL UNIQUE," +
+                        "player_uuid VARCHAR(36) NOT NULL," +
+                        "punishment_type VARCHAR(50) NOT NULL," +
+                        "reason TEXT," +
+                        "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                        "punisher_name VARCHAR(255)," +
+                        "punishment_time BIGINT DEFAULT 0," +
+                        "duration_string VARCHAR(50) DEFAULT 'permanent')";
+            }
             statement.execute(createHistoryTableSQL);
 
         } catch (SQLException e) {
@@ -122,7 +132,7 @@ public class DatabaseManager {
         }, 0L, 6000L);
     }
 
-    public void softBanPlayer(UUID uuid, long endTime, String reason, String punisherName) {
+    public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName) {
         long currentEndTime = getSoftBanEndTime(uuid);
         long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis() || currentEndTime == Long.MAX_VALUE)
                 ? endTime
@@ -139,28 +149,31 @@ public class DatabaseManager {
             ps.setLong(2, finalEndTime);
             ps.setString(3, reason);
             ps.executeUpdate();
-            logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString);
+            String punishmentId = logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString);
 
             Player targetPlayer = Bukkit.getPlayer(uuid);
             if (targetPlayer != null && targetPlayer.isOnline()) {
-                String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationString, "{reason}", reason);
+                String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationString, "{reason}", reason, "{punishment_id}", punishmentId);
                 targetPlayer.sendMessage(softbanMessage);
             }
+            return punishmentId;
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database operation failed while softbanning player!", e);
         }
+        return null;
     }
 
-    public void unSoftBanPlayer(UUID uuid, String punisherName) {
+    public String unSoftBanPlayer(UUID uuid, String punisherName) {
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement("DELETE FROM softbans WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
-                logPunishment(uuid, "unsoftban", "Softban Removed", punisherName, 0L, "N/A");
+                return logPunishment(uuid, "unsoftban", "Softban Removed", punisherName, 0L, "N/A");
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not un-soft ban player!", e);
         }
+        return null;
     }
 
     public boolean isSoftBanned(UUID uuid) {
@@ -179,7 +192,7 @@ public class DatabaseManager {
         return getPunishmentEndTime("softbans", uuid);
     }
 
-    public void mutePlayer(UUID uuid, long endTime, String reason, String punisherName) {
+    public String mutePlayer(UUID uuid, long endTime, String reason, String punisherName) {
         long currentEndTime = getMuteEndTime(uuid);
         long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis() || currentEndTime == Long.MAX_VALUE)
                 ? endTime
@@ -192,21 +205,27 @@ public class DatabaseManager {
             ps.setLong(2, finalEndTime);
             ps.setString(3, reason);
             ps.executeUpdate();
-            // The logPunishment call has been removed from here to prevent duplication.
+            String durationString = (finalEndTime == Long.MAX_VALUE)
+                    ? plugin.getConfigManager().getMessage("placeholders.permanent_time_display")
+                    : TimeUtils.formatTime((int) ((finalEndTime - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+            return logPunishment(uuid, "mute", reason, punisherName, finalEndTime, durationString);
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database operation failed while muting player!", e);
         }
+        return null;
     }
 
-    public void unmutePlayer(UUID uuid, String punisherName) {
+    public String unmutePlayer(UUID uuid, String punisherName) {
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement("DELETE FROM mutes WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
-            ps.executeUpdate();
-            // The logPunishment call has been removed from here.
+            if (ps.executeUpdate() > 0) {
+                return logPunishment(uuid, "unmute", "Mute Removed", punisherName, 0L, "N/A");
+            }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not unmute player!", e);
         }
+        return null;
     }
 
     public long getMuteEndTime(UUID uuid) {
@@ -243,25 +262,29 @@ public class DatabaseManager {
         return 0;
     }
 
-    public void logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString) {
-        String sql = "INSERT INTO punishment_history (player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string) VALUES (?, ?, ?, ?, ?, ?)";
+    public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString) {
+        String punishmentId = generatePunishmentId();
+        String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, playerUUID.toString());
-            ps.setString(2, punishmentType);
-            ps.setString(3, reason);
-            ps.setString(4, punisherName);
-            ps.setLong(5, punishmentEndTime);
-            ps.setString(6, durationString);
+            ps.setString(1, punishmentId);
+            ps.setString(2, playerUUID.toString());
+            ps.setString(3, punishmentType);
+            ps.setString(4, reason);
+            ps.setString(5, punisherName);
+            ps.setLong(6, punishmentEndTime);
+            ps.setString(7, durationString);
             ps.executeUpdate();
+            return punishmentId;
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error logging punishment!", e);
         }
+        return null;
     }
 
     public List<PunishmentEntry> getPunishmentHistory(UUID playerUUID, int page, int entriesPerPage) {
         List<PunishmentEntry> history = new ArrayList<>();
         int offset = (page - 1) * entriesPerPage;
-        String sql = "SELECT punishment_type, reason, timestamp, punisher_name, punishment_time, duration_string FROM punishment_history WHERE player_uuid = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?";
+        String sql = "SELECT punishment_id, punishment_type, reason, timestamp, punisher_name, punishment_time, duration_string FROM punishment_history WHERE player_uuid = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             ps.setInt(2, entriesPerPage);
@@ -269,6 +292,7 @@ public class DatabaseManager {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     history.add(new PunishmentEntry(
+                            rs.getString("punishment_id"),
                             rs.getString("punishment_type"),
                             rs.getString("reason"),
                             rs.getTimestamp("timestamp"),
@@ -316,7 +340,17 @@ public class DatabaseManager {
         return counts;
     }
 
+    private String generatePunishmentId() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder idBuilder = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            idBuilder.append(chars.charAt(ThreadLocalRandom.current().nextInt(chars.length())));
+        }
+        return idBuilder.toString();
+    }
+
     public static class PunishmentEntry {
+        private final String punishmentId;
         private final String type;
         private final String reason;
         private final Timestamp timestamp;
@@ -324,7 +358,8 @@ public class DatabaseManager {
         private final long punishmentTime;
         private final String durationString;
 
-        public PunishmentEntry(String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString) {
+        public PunishmentEntry(String punishmentId, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString) {
+            this.punishmentId = punishmentId;
             this.type = type;
             this.reason = reason;
             this.timestamp = timestamp;
@@ -333,6 +368,7 @@ public class DatabaseManager {
             this.durationString = durationString;
         }
 
+        public String getPunishmentId() { return punishmentId; }
         public String getType() { return type; }
         public String getReason() { return reason; }
         public Timestamp getTimestamp() { return timestamp; }

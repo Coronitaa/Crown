@@ -30,6 +30,7 @@ menu:
       material: 'BOOK'
       name: '&e{punishment_type}'
       lore:
+        - '&7ID: &f{punishment_id}'
         - '&7Reason: &f{reason}'
         - '&7Date: &b{date}'
         - '&7By: &b{punisher}'
