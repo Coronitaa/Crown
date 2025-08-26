@@ -21,11 +21,10 @@ public class PlayerChatListener implements Listener {
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         if (plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId())) {
-            // Cancel the event to prevent the message from being sent
             event.setCancelled(true);
-            // Optionally, send a message to the player informing them they are muted.
-            // You can configure this message in your messages.yml
-            player.sendMessage(MessageUtils.getColorMessage("&cYou are currently muted."));
+            // Use the configurable message from messages.yml
+            String mutedMessage = plugin.getConfigManager().getMessage("messages.chat_while_muted");
+            player.sendMessage(MessageUtils.getColorMessage(mutedMessage));
         }
     }
 }

@@ -866,7 +866,6 @@ public class MenuListener implements Listener {
         String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified";
 
         if (commandTemplate.isEmpty()) {
-            // Internal handling
             if (punishmentType.equalsIgnoreCase(BAN_PUNISHMENT_TYPE)) {
                 long banDuration = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
                 Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
@@ -878,6 +877,13 @@ public class MenuListener implements Listener {
                 long muteDuration = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
                 long endTime = (muteDuration > 0) ? System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(muteDuration) : Long.MAX_VALUE;
                 plugin.getSoftBanDatabaseManager().mutePlayer(target.getUniqueId(), endTime, reason, player.getName());
+
+                if (target.isOnline()) {
+                    String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted",
+                            "{time}", timeInput,
+                            "{reason}", reason);
+                    target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
+                }
             }
             executePunishmentCommandAndLog(player, "", target, detailsMenu, punishmentType, timeInput, reason);
         } else {
@@ -887,8 +893,6 @@ public class MenuListener implements Listener {
                     .replace("{reason}", reason);
             executePunishmentCommandAndLog(player, processedCommand, target, detailsMenu, punishmentType, timeInput, reason);
         }
-
-        executeHookActions(player, target, punishmentType, timeInput, reason, false);
     }
 
     private void confirmSoftBan(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -942,6 +946,7 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Kicked by moderator";
         String commandTemplate = plugin.getConfigManager().getKickCommand();
+
         if (commandTemplate.isEmpty()) {
             if (target.isOnline()) {
                 target.getPlayer().kickPlayer(reason);
@@ -953,7 +958,6 @@ public class MenuListener implements Listener {
                     .replace("{reason}", reason);
             executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, KICK_PUNISHMENT_TYPE, "N/A", reason);
         }
-        executeHookActions(player, target, KICK_PUNISHMENT_TYPE, "N/A", reason, false);
     }
 
     private void confirmWarn(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -961,6 +965,7 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Warned by moderator";
         String commandTemplate = plugin.getConfigManager().getWarnCommand();
+
         if (commandTemplate.isEmpty()) {
             if (target.isOnline()) {
                 target.getPlayer().sendMessage(MessageUtils.getColorMessage(reason));
@@ -972,8 +977,9 @@ public class MenuListener implements Listener {
                     .replace("{reason}", reason);
             executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, WARN_PUNISHMENT_TYPE, "N/A", reason);
         }
-        executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", reason, false);
     }
+
+
 
     private void confirmUnsoftban(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
@@ -1015,7 +1021,7 @@ public class MenuListener implements Listener {
 
         if (commandTemplate.isEmpty()) {
             if (!target.isBanned()) {
-                player.sendMessage(MessageUtils.getColorMessage("&cThat player is not banned."));
+                sendConfigMessage(player, "messages.not_banned");
                 return;
             }
             Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
@@ -1027,8 +1033,10 @@ public class MenuListener implements Listener {
         plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unban", reason, player.getName(), 0L, "N/A");
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, BAN_PUNISHMENT_TYPE);
+
         executeHookActions(player, target, BAN_PUNISHMENT_TYPE, "N/A", reason, true);
     }
+
     private void executeUnmuteAction(Player player, InventoryHolder holder) {
         PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
         UUID targetUUID = detailsMenu.getTargetUUID();
@@ -1038,7 +1046,7 @@ public class MenuListener implements Listener {
 
         if (commandTemplate.isEmpty()) {
             if (!plugin.getSoftBanDatabaseManager().isMuted(target.getUniqueId())) {
-                player.sendMessage(MessageUtils.getColorMessage("&cThat player is not muted."));
+                sendConfigMessage(player, "messages.not_muted");
                 return;
             }
             plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), player.getName());
@@ -1050,6 +1058,7 @@ public class MenuListener implements Listener {
         plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unmute", reason, player.getName(), 0L, "N/A");
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, MUTE_PUNISHMENT_TYPE);
+
         executeHookActions(player, target, MUTE_PUNISHMENT_TYPE, "N/A", reason, true);
     }
 
@@ -1239,7 +1248,7 @@ public class MenuListener implements Listener {
     }
 
     private void executePunishmentCommandAndLog(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu, String punishmentType, String timeValue, String reason) {
-        if (!command.isEmpty()) {
+        if (command != null && !command.isEmpty()) {
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command));
         }
 
@@ -1258,6 +1267,7 @@ public class MenuListener implements Listener {
         }
 
         plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishmentType, reason, player.getName(), punishmentEndTime, durationString);
+        executeHookActions(player, target, punishmentType, timeValue, reason, false);
     }
 
     public void executeHookActions(CommandSender executor, OfflinePlayer target, String punishmentType, String time, String reason, boolean isUnpunish) {

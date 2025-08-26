@@ -63,6 +63,9 @@ messages:
   unpunish_not_supported: '{prefix}&cCannot unpunish type: &b{punishment_type}&c.'
   unpunish_command_not_configured: '{prefix}&cThe unpunish command for &b{punishment_type}&c is not set in config.yml.'
 
+  not_banned: '{prefix}&cThat player is not banned.'
+  not_muted: '{prefix}&cThat player is not muted.'
+
   prompt_new_target: '&aEnter the target player name (or type ''cancel''):'
   prompt_ban_reason: '&aEnter ban reason (or type ''cancel''):'
   prompt_mute_reason: '&aEnter mute reason (or type ''cancel''):'
@@ -94,6 +97,13 @@ messages:
     &cDuration: &e{time}
     &cReason: &e{reason}
     &7Certain commands are blocked during this time.
+  you_are_muted: |
+    &c&lYou have been muted!
+    &cDuration: &e{time}
+    &cReason: &e{reason}
+    &7You cannot send messages during this time.
+
+  chat_while_muted: '{prefix}&cYou are currently muted and cannot send messages.'
 
   invalid_punishment_type: '{prefix}&cInvalid punishment type. Available: &b{types}'
   direct_punishment_confirmed: '{prefix}&aApplied {punishment_type} to &b{target}&a. Time: &b{time}&a, Reason: &f{reason}' # {punishment_type} refers to the configurable noun form here

@@ -185,10 +185,6 @@ public class DatabaseManager {
                 ? endTime
                 : currentEndTime + (endTime - System.currentTimeMillis());
 
-        String durationString = (finalEndTime == Long.MAX_VALUE)
-                ? plugin.getConfigManager().getMessage("placeholders.permanent_time_display")
-                : TimeUtils.formatTime((int)((finalEndTime - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
-
         String sql = "mysql".equalsIgnoreCase(dbType) ? "REPLACE INTO mutes (uuid, endTime, reason) VALUES (?, ?, ?)" : "INSERT OR REPLACE INTO mutes (uuid, endTime, reason) VALUES (?, ?, ?)";
 
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -196,8 +192,7 @@ public class DatabaseManager {
             ps.setLong(2, finalEndTime);
             ps.setString(3, reason);
             ps.executeUpdate();
-            logPunishment(uuid, "mute", reason, punisherName, finalEndTime, durationString);
-
+            // The logPunishment call has been removed from here to prevent duplication.
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database operation failed while muting player!", e);
         }
@@ -207,9 +202,8 @@ public class DatabaseManager {
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement("DELETE FROM mutes WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
-            if (ps.executeUpdate() > 0) {
-                logPunishment(uuid, "unmute", "Mute Removed", punisherName, 0L, "N/A");
-            }
+            ps.executeUpdate();
+            // The logPunishment call has been removed from here.
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not unmute player!", e);
         }
