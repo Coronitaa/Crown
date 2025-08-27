@@ -8,13 +8,15 @@ import cp.corona.database.DatabaseManager;
 import cp.corona.listeners.CommandBlockerListener;
 import cp.corona.listeners.FreezeListener;
 import cp.corona.listeners.MenuListener;
-import cp.corona.listeners.PlayerChatListener; // New import
+import cp.corona.listeners.PlayerChatListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -27,6 +29,7 @@ public final class Crown extends JavaPlugin {
 
     private MenuListener menuListener;
     private FreezeListener freezeListener;
+    private final Set<String> registeredCommands = new HashSet<>();
 
     @Override
     public void onEnable() {
@@ -66,35 +69,37 @@ public final class Crown extends JavaPlugin {
 
     public void registerCommands() {
         MainCommand mainCommand = new MainCommand(this);
-        getCommand("crown").setExecutor(mainCommand);
-        getCommand("crown").setTabCompleter(mainCommand);
-        getCommand("punish").setExecutor(mainCommand);
-        getCommand("punish").setTabCompleter(mainCommand);
-        getCommand("unpunish").setExecutor(mainCommand);
-        getCommand("unpunish").setTabCompleter(mainCommand);
-        getCommand("softban").setExecutor(mainCommand);
-        getCommand("softban").setTabCompleter(mainCommand);
-        getCommand("freeze").setExecutor(mainCommand);
-        getCommand("freeze").setTabCompleter(mainCommand);
-        getCommand("ban").setExecutor(mainCommand);
-        getCommand("ban").setTabCompleter(mainCommand);
-        getCommand("kick").setExecutor(mainCommand);
-        getCommand("kick").setTabCompleter(mainCommand);
-        getCommand("mute").setExecutor(mainCommand);
-        getCommand("mute").setTabCompleter(mainCommand);
-        getCommand("warn").setExecutor(mainCommand);
-        getCommand("warn").setTabCompleter(mainCommand);
-        getCommand("unban").setExecutor(mainCommand);
-        getCommand("unban").setTabCompleter(mainCommand);
-        getCommand("unwarn").setExecutor(mainCommand);
-        getCommand("unwarn").setTabCompleter(mainCommand);
-        getCommand("unmute").setExecutor(mainCommand);
-        getCommand("unmute").setTabCompleter(mainCommand);
-        getCommand("unfreeze").setExecutor(mainCommand);
-        getCommand("unfreeze").setTabCompleter(mainCommand);
-        getCommand("unsoftban").setExecutor(mainCommand);
-        getCommand("unsoftban").setTabCompleter(mainCommand);
+        // Register all commands and their aliases
+        registerCommand("crown", mainCommand);
+        registerCommand("punish", mainCommand);
+        registerCommand("unpunish", mainCommand);
+        registerCommand("softban", mainCommand);
+        registerCommand("freeze", mainCommand);
+        registerCommand("ban", mainCommand);
+        registerCommand("kick", mainCommand);
+        registerCommand("mute", mainCommand);
+        registerCommand("warn", mainCommand);
+        registerCommand("unban", mainCommand);
+        registerCommand("unwarn", mainCommand);
+        registerCommand("unmute", mainCommand);
+        registerCommand("unfreeze", mainCommand);
+        registerCommand("unsoftban", mainCommand);
     }
+
+    private void registerCommand(String commandName, MainCommand executor) {
+        PluginCommand command = getCommand(commandName);
+        if (command != null) {
+            command.setExecutor(executor);
+            command.setTabCompleter(executor);
+            registeredCommands.add(commandName.toLowerCase());
+            if (command.getAliases() != null) {
+                for (String alias : command.getAliases()) {
+                    registeredCommands.add(alias.toLowerCase());
+                }
+            }
+        }
+    }
+
 
     public void registerEvents() {
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
@@ -126,5 +131,9 @@ public final class Crown extends JavaPlugin {
 
     public HashMap<UUID, Boolean> getPluginFrozenPlayers() {
         return pluginFrozenPlayers;
+    }
+
+    public Set<String> getRegisteredCommands() {
+        return registeredCommands;
     }
 }

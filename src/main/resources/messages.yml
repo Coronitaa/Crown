@@ -156,6 +156,12 @@ messages:
   bypass_error_warn: '{prefix}&cCannot warn &b{target}&c (has bypass permission).'
   bypass_error_kick: '{prefix}&cCannot kick &b{target}&c (has bypass permission).'
 
+  invalid_player_name: '{prefix}&cPlease enter a valid player name (3-16 characters).'
+  command_loop_error: '{prefix}&cError: The command ''{command}'' is an internal plugin command. Using it would create a loop. Please use a command from another plugin.'
+  command_dispatch_error: '{prefix}&cThe command ''{command}'' could not be executed. Please check the console for errors.'
+  command_not_found: '{prefix}&cThe command ''{command}'' was not found. Please check your configuration.'
+
+
 
 # Section for reusable placeholder display values.
 placeholders:
