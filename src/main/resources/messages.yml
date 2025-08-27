@@ -163,6 +163,7 @@ placeholders:
   display_no: "&c❌"
   not_set: '&c❌ Not Set'
   set: '&a✔ Set'
+  optional_not_set: '&e❌ Not set'
   permanent_time_display: 'Permanent'
 
   punishment_type_names:

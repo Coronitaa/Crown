@@ -132,7 +132,6 @@ public class TimeSelectorMenu implements InventoryHolder {
         }
     }
 
-    // TimeSelectorMenu.java
     private ItemStack getTimeDisplayItem(OfflinePlayer target) {
         MenuItem timeDisplayConfig = plugin.getConfigManager().getTimeSelectorMenuItemConfig(TIME_DISPLAY_KEY);
         if (timeDisplayConfig == null) return null;
@@ -140,14 +139,20 @@ public class TimeSelectorMenu implements InventoryHolder {
         ItemStack item = timeDisplayConfig.toItemStack(target, plugin.getConfigManager());
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            String formattedTime = getFormattedTime();
+            String formattedTime;
+            // Check if time is actually set
+            if (currentTimeSeconds > 0) {
+                formattedTime = getFormattedTime();
+            } else {
+                formattedTime = plugin.getConfigManager().getMessage("placeholders.not_set");
+            }
             if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().log(Level.INFO, "[TimeSelectorMenu] Formatted Time for TimeDisplay: " + formattedTime); // Log formatted time
-                plugin.getLogger().log(Level.INFO, "[TimeSelectorMenu] Calling getDetailsMenuItemLore with params: punishType=" + punishDetailsMenu.getPunishmentType() + ", itemKey=set_time, target=" + target.getName() + ", time=" + formattedTime); // Log params
+                plugin.getLogger().log(Level.INFO, "[TimeSelectorMenu] Formatted Time for TimeDisplay: " + formattedTime);
+                plugin.getLogger().log(Level.INFO, "[TimeSelectorMenu] Calling getDetailsMenuItemLore with params: punishType=" + punishDetailsMenu.getPunishmentType() + ", itemKey=set_time, target=" + target.getName() + ", time=" + formattedTime);
             }
             List<String> lore = plugin.getConfigManager().getDetailsMenuItemLore(punishDetailsMenu.getPunishmentType(), "set_time", target, "{time}", formattedTime);
             if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().log(Level.INFO, "[TimeSelectorMenu] Lore returned from getDetailsMenuItemLore: " + lore); // Log returned lore
+                plugin.getLogger().log(Level.INFO, "[TimeSelectorMenu] Lore returned from getDetailsMenuItemLore: " + lore);
             }
             meta.setLore(lore);
             item.setItemMeta(meta);

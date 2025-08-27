@@ -135,11 +135,12 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     /**
      * Sets whether reason is required for confirmation based on punishment type.
-     * Reason is optional for Freeze.
+     * Reason is optional for every punishment.
      * @param type Type of punishment (lowercase).
      */
     private void setReasonRequiredForConfirmationByType(String type) {
-        this.reasonRequiredForConfirmation = !type.equals("freeze");
+        // Set to false for all types to make reason optional
+        this.reasonRequiredForConfirmation = false;
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().info("[PunishDetailsMenu] Reason required for confirmation for type '" + type + "': " + this.reasonRequiredForConfirmation);
         }
@@ -421,17 +422,15 @@ public class PunishDetailsMenu implements InventoryHolder {
     /**
      * Gets the formatted status text for reason, indicating if it's set.
      * Uses the configurable text from messages.yml (placeholders section).
-     * Handles cases where reason is not required for confirmation (freeze).
+     * Handles cases where reason is not required for confirmation.
      * @return Formatted reason status text.
      */
     private String getReasonStatusText() {
         if (!reasonRequiredForConfirmation) {
-            // Optionally make "Optional" configurable, e.g., placeholders.optional
-            return MessageUtils.getColorMessage("&eOptional"); // Indicate reason is optional
+            return MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.optional_not_set"));
         }
-        // Use the correct path "placeholders.set" or "placeholders.not_set"
-        return reasonSet ? MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.set")) // CORRECTED PATH
-                : MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.not_set")); // CORRECTED PATH
+        return reasonSet ? MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.set"))
+                : MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.not_set"));
     }
 
     /**
