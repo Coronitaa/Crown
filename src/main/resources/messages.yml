@@ -62,6 +62,11 @@ messages:
   help_mute_command: '&b/mute <player> [time] [reason] &7- Quick mute.'
   help_kick_command: '&b/kick <player> [reason] &7- Quick kick.'
   help_warn_command: '&b/warn <player> [reason] &7- Quick warn.'
+  help_unban_command: '&b/unban <player> &7- Quick unban.'
+  help_unmute_command: '&b/unmute <player> &7- Quick unmute.'
+  help_unwarn_command: '&b/unwarn <player> &7- Quick unwarn.'
+  help_unsoftban_command: '&b/unsoftban <player> &7- Quick unsoftban.'
+  help_unfreeze_command: '&b/unfreeze <player> &7- Quick unfreeze.'
   help_reload: '&b/crown reload &7- Reload configuration.'
 
   unpunish_not_supported: '{prefix}&cCannot unpunish type: &b{punishment_type}&c.'

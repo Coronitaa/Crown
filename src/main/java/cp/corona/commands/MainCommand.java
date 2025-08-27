@@ -35,6 +35,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String MUTE_COMMAND_ALIAS = "mute";
     private static final String KICK_COMMAND_ALIAS = "kick";
     private static final String WARN_COMMAND_ALIAS = "warn";
+    private static final String UNBAN_COMMAND_ALIAS = "unban";
+    private static final String UNMUTE_COMMAND_ALIAS = "unmute";
+    private static final String UNWARN_COMMAND_ALIAS = "unwarn";
+    private static final String UNSOFTBAN_COMMAND_ALIAS = "unsoftban";
+    private static final String UNFREEZE_COMMAND_ALIAS = "unfreeze";
     private static final String ADMIN_PERMISSION = "crown.admin";
     private static final String USE_PERMISSION = "crown.use";
     private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban";
@@ -115,6 +120,26 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         if (alias.equalsIgnoreCase(WARN_COMMAND_ALIAS)) {
             return handleWarnCommand(sender, args);
+        }
+
+        if (alias.equalsIgnoreCase(UNBAN_COMMAND_ALIAS)) {
+            return handleUnbanCommand(sender, args);
+        }
+
+        if (alias.equalsIgnoreCase(UNMUTE_COMMAND_ALIAS)) {
+            return handleUnmuteCommand(sender, args);
+        }
+
+        if (alias.equalsIgnoreCase(UNWARN_COMMAND_ALIAS)) {
+            return handleUnwarnCommand(sender, args);
+        }
+
+        if (alias.equalsIgnoreCase(UNSOFTBAN_COMMAND_ALIAS)) {
+            return handleUnsoftbanCommand(sender, args);
+        }
+
+        if (alias.equalsIgnoreCase(UNFREEZE_COMMAND_ALIAS)) {
+            return handleUnfreezeCommand(sender, args);
         }
 
         return false;
@@ -364,6 +389,76 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             System.arraycopy(args, 1, newArgs, 2, args.length - 1);
         }
         return handlePunishCommand(sender, newArgs);
+    }
+
+    private boolean handleUnbanCommand(CommandSender sender, String[] args) {
+        String[] newArgs = new String[args.length + 1];
+        if (args.length > 0) {
+            newArgs[0] = args[0];
+        } else {
+            return handleUnpunishCommand(sender, new String[0]);
+        }
+        newArgs[1] = "ban";
+        if (args.length > 1) {
+            System.arraycopy(args, 1, newArgs, 2, args.length - 1);
+        }
+        return handleUnpunishCommand(sender, newArgs);
+    }
+
+    private boolean handleUnmuteCommand(CommandSender sender, String[] args) {
+        String[] newArgs = new String[args.length + 1];
+        if (args.length > 0) {
+            newArgs[0] = args[0];
+        } else {
+            return handleUnpunishCommand(sender, new String[0]);
+        }
+        newArgs[1] = "mute";
+        if (args.length > 1) {
+            System.arraycopy(args, 1, newArgs, 2, args.length - 1);
+        }
+        return handleUnpunishCommand(sender, newArgs);
+    }
+
+    private boolean handleUnwarnCommand(CommandSender sender, String[] args) {
+        String[] newArgs = new String[args.length + 1];
+        if (args.length > 0) {
+            newArgs[0] = args[0];
+        } else {
+            return handleUnpunishCommand(sender, new String[0]);
+        }
+        newArgs[1] = "warn";
+        if (args.length > 1) {
+            System.arraycopy(args, 1, newArgs, 2, args.length - 1);
+        }
+        return handleUnpunishCommand(sender, newArgs);
+    }
+
+    private boolean handleUnsoftbanCommand(CommandSender sender, String[] args) {
+        String[] newArgs = new String[args.length + 1];
+        if (args.length > 0) {
+            newArgs[0] = args[0];
+        } else {
+            return handleUnpunishCommand(sender, new String[0]);
+        }
+        newArgs[1] = "softban";
+        if (args.length > 1) {
+            System.arraycopy(args, 1, newArgs, 2, args.length - 1);
+        }
+        return handleUnpunishCommand(sender, newArgs);
+    }
+
+    private boolean handleUnfreezeCommand(CommandSender sender, String[] args) {
+        String[] newArgs = new String[args.length + 1];
+        if (args.length > 0) {
+            newArgs[0] = args[0];
+        } else {
+            return handleUnpunishCommand(sender, new String[0]);
+        }
+        newArgs[1] = "freeze";
+        if (args.length > 1) {
+            System.arraycopy(args, 1, newArgs, 2, args.length - 1);
+        }
+        return handleUnpunishCommand(sender, newArgs);
     }
 
     private void confirmDirectPunishment(final CommandSender sender, final OfflinePlayer target, final String punishType, final String time, final String reason) {
@@ -628,10 +723,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        if (alias.equalsIgnoreCase("unpunish")) {
+        if (alias.equalsIgnoreCase("unpunish") || alias.equalsIgnoreCase(UNBAN_COMMAND_ALIAS) || alias.equalsIgnoreCase(UNMUTE_COMMAND_ALIAS) || alias.equalsIgnoreCase(UNWARN_COMMAND_ALIAS) || alias.equalsIgnoreCase(UNSOFTBAN_COMMAND_ALIAS) || alias.equalsIgnoreCase(UNFREEZE_COMMAND_ALIAS)) {
             if (args.length == 1) {
                 StringUtil.copyPartialMatches(args[0], playerNames, completions);
-            } else if (args.length == 2) {
+            } else if (args.length == 2 && alias.equalsIgnoreCase("unpunish")) {
                 StringUtil.copyPartialMatches(args[1], UNPUNISHMENT_TYPES, completions);
             }
         }
@@ -718,6 +813,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_mute_command")));
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_kick_command")));
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_warn_command")));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unban_command")));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unmute_command")));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unwarn_command")));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unsoftban_command")));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unfreeze_command")));
         if (sender.hasPermission(ADMIN_PERMISSION)) {
             sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_reload")));
         }

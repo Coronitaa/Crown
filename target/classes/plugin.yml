@@ -23,6 +23,33 @@ commands:
   freeze: # Top level command for freezing players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /crown punish freeze - NEW
     description: Command to directly freeze players for manual review. # Description for /freeze command - NEW
     usage: /<command> <player> [reason] # Usage for /freeze command - NEW - Reason is now optional
+  ban:
+    description: Command to directly ban players.
+    usage: /<command> <player> [time] [reason]
+  kick:
+    description: Command to directly kick players.
+    usage: /<command> <player> [reason]
+  mute:
+    description: Command to directly mute players.
+    usage: /<command> <player> [time] [reason]
+  warn:
+    description: Command to directly warn players.
+    usage: /<command> <player> [reason]
+  unban:
+    description: Command to directly unban players.
+    usage: /<command> <player>
+  unwarn:
+    description: Command to directly unwarn players.
+    usage: /<command> <player>
+  unmute:
+    description: Command to directly unmute players.
+    usage: /<command> <player>
+  unfreeze:
+    description: Command to directly unfreeze players.
+    usage: /<command> <player>
+  unsoftban:
+    description: Command to directly unsoftban players.
+    usage: /<command> <player>
 
 
 
