@@ -76,6 +76,14 @@ public final class Crown extends JavaPlugin {
         getCommand("softban").setTabCompleter(mainCommand);
         getCommand("freeze").setExecutor(mainCommand);
         getCommand("freeze").setTabCompleter(mainCommand);
+        getCommand("ban").setExecutor(mainCommand);
+        getCommand("ban").setTabCompleter(mainCommand);
+        getCommand("kick").setExecutor(mainCommand);
+        getCommand("kick").setTabCompleter(mainCommand);
+        getCommand("mute").setExecutor(mainCommand);
+        getCommand("mute").setTabCompleter(mainCommand);
+        getCommand("warn").setExecutor(mainCommand);
+        getCommand("warn").setTabCompleter(mainCommand);
     }
 
     public void registerEvents() {
