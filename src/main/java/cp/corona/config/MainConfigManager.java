@@ -219,6 +219,10 @@ public class MainConfigManager {
         return punishDetailsMenuConfig;
     }
 
+    public String getSoundName(String soundKey) {
+        return pluginConfig.getConfig().getString("sounds." + soundKey, "");
+    }
+
     public CustomConfig getTimeSelectorMenuConfig() {
         return timeSelectorMenuConfig;
     }

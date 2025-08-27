@@ -1186,7 +1186,7 @@ public class MenuListener implements Listener {
     }
 
     private void playSound(Player player, String soundKey) {
-        String soundName = plugin.getConfigManager().getMessage("sounds." + soundKey);
+        String soundName = plugin.getConfigManager().getSoundName(soundKey);
         if (soundName != null && !soundName.isEmpty()) {
             try { Sound sound = Sound.valueOf(soundName.toUpperCase()); player.playSound(player.getLocation(), sound, 1.0f, 1.0f); }
             catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound configured for key '" + soundKey + "': " + soundName); }
