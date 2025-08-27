@@ -1,0 +1,9 @@
+# Configuration for kick punishment.
+use-internal: false # If true, the plugin will handle the kick internally. If false, it will use the command below.
+punish-command: 'kick {target} {reason}'
+
+# Post-action hooks for kick.
+hooks:
+  on-punish:
+    - 'MESSAGE_MODS:{prefix}&9{target} &7was kicked by &e{player}&7. Reason: &f{reason}'
+    - 'PLAY_SOUND_MODS:ENTITY_GHAST_SHOOT:1.0:1.0'

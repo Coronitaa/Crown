@@ -1,0 +1,13 @@
+# Configuration for ban punishment.
+use-internal: true # If true, the plugin will handle the ban internally. If false, it will use the command below.
+punish-command: 'tempban {target} {time} {reason}'
+unpunish-command: 'unban {target}'
+
+# Post-action hooks for ban.
+hooks:
+  on-punish:
+    - 'MESSAGE_MODS:{prefix}&c{target} &7was banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+    - 'PLAY_SOUND_MODS:ENTITY_ENDER_DRAGON_GROWL:1.0:0.8'
+  on-unpunish:
+    - 'MESSAGE_MODS:{prefix}&a{target} &7was unbanned by &e{player}.'
+    - 'PLAY_SOUND_MODS:ENTITY_PLAYER_LEVELUP:1.0:1.2'

@@ -1,0 +1,25 @@
+# Configuration for freeze punishment.
+use-internal: true # If true, the plugin will handle the freeze internally. If false, it will use the command below.
+punish-command: 'freeze {target} {reason}'
+unpunish-command: 'unfreeze {target}'
+
+disconnect_commands:
+  - 'crown punish {target} ban 365d &cDisconnected while frozen!'
+  - 'tellraw @a "&e&lᴄʀᴏᴡɴ &6🜲&r &ePlayer &b{target} &edisconnected while frozen! &cApplying actions&e."'
+
+freeze_actions:
+  interval: 40
+  actions:
+    - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.'
+    - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0'
+    - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :5:5:5"
+
+# Post-action hooks for freeze.
+hooks:
+  on-punish:
+    - 'MESSAGE_MODS:{prefix}&5{target} &7was frozen by &e{player}&7. Reason: &f{reason}'
+    - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:0.7'
+    - 'ACTIONBAR_MODS:&d&lFROZEN: &f{target}'
+  on-unpunish:
+    - 'MESSAGE_MODS:{prefix}&a{target} &7was unfrozen by &e{player}.'
+    - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:1.2'

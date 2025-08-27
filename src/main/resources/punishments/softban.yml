@@ -1,0 +1,18 @@
+# Configuration for softban punishment.
+use-internal: true # If true, the plugin will handle the softban internally. If false, it will use the command below.
+punish-command: 'softban {target} {time} {reason}'
+unpunish-command: 'unsoftban {target}'
+
+blocked_commands:
+  - examplecommand
+  - kit
+  - daily
+
+# Post-action hooks for softban.
+hooks:
+  on-punish:
+    - 'MESSAGE_MODS:{prefix}&3{target} &7was soft-banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+    - 'PLAY_SOUND_MODS:BLOCK_CHAIN_PLACE:1.0:1.2'
+  on-unpunish:
+    - 'MESSAGE_MODS:{prefix}&a{target} &7was un-softbanned by &e{player}.'
+    - 'PLAY_SOUND_MODS:BLOCK_CHAIN_BREAK:1.0:1.2'

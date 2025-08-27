@@ -1,15 +1,5 @@
 # Main configuration file for Crown plugin.
-# Contains settings for prefix, external commands, sounds, time units, softban, database, freeze features, post-action hooks, and logging.
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
-
-# Available Placeholders in commands and messages:
-# - {target}: Target player's name.
-# - {time}: Punishment time duration (e.g., "1d", "Permanent").
-# - {reason}: Punishment reason.
-# - {player}: Player who executed the command/action (available in specific contexts like hooks).
-# - {prefix}: Plugin's prefix (defined below).
-# - {punishment_type}: The type of punishment/unpunishment (available in specific contexts like hooks).
-# Refer to messages.yml for menu/message-specific placeholders.
 
 prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Supports color codes (&) and RGB hex codes (#RRGGBB).
 
@@ -23,17 +13,6 @@ database:
   username: 'username'
   password: 'password'
 
-# Command configurations for different punishment types executed by the plugin (e.g., ban, mute, kick).
-# These are executed by the CONSOLE unless handled internally (softban, freeze).
-commands:
-  ban_command: 'tempban {target} {time} {reason}'
-#  ban_command: 'ba tempban {target} GWEN {time} {reason}' # Ban with animation command (Requires BanAnimation plugin: https://www.spigotmc.org/resources/71234/)
-  mute_command: 'tempmute {target} {time} {reason}'
-  warn_command: 'warn {target} {reason}'
-  kick_command: 'kick {target} {reason}'
-  unban_command: 'unban {target}'
-  unmute_command: 'unmute {target}'
-  unwarn_command: 'unwarn {target}'
 
 # Sound configurations for different actions in the plugin.
 # Uses Bukkit Sound enum names (e.g., ENTITY_EXPERIENCE_ORB_PICKUP). Find names here: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
@@ -49,78 +28,6 @@ time_units:
   hours: 'h'     # Character(s) representing hours.
   day: 'd'       # Character(s) representing days.
   years: 'y'     # Character(s) representing years.
-
-# Softban feature configurations.
-softban:
-  blocked_commands: # List of commands (lowercase, without '/') blocked for softbanned players.
-    - examplecommand
-    - kit
-    - daily
-
-
-# Freeze punishment feature configurations.
-freeze:
-  disconnect_commands:
-    - 'crown punish {target} ban 365d &cDisconnected while frozen!'
-    - 'tellraw @a "&e&lᴄʀᴏᴡɴ &6🜲&r &ePlayer &b{target} &edisconnected while frozen! &cApplying actions&e."'
-    # - 'discord broadcast alert Player {target} disconnected while frozen!'
-  freeze_actions:
-    interval: 40 # Interval in ticks (20 ticks = 1 second) to run the actions below.
-    actions: # List of actions (see menu action list) executed repeatedly on the frozen player.
-      - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.'
-      - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0'
-      - "TITLE:&b&lYou are FROZEN:&fDon't leave the server :5:5:5"
-
-# --- Post-Action Hooks ---
-# Defines lists of actions to execute AFTER a punishment or unpunishment is successfully confirmed and logged.
-# Uses the same action format as menu items (see menu YAML files for syntax).
-# Available Placeholders within these hook actions:
-# - {player}: Name of the player/console executing the punishment/unpunishment.
-# - {target}: Name of the player being punished/unpunished.
-# - {reason}: The reason provided for the punishment (or a default like "Unbanned" for unpunishment).
-# - {time}: The time duration specified for the punishment (e.g., "1d", "Permanent", "N/A").
-# - {punishment_type}: The type of punishment (e.g., "ban", "kick", "softban"). Note: For unpunish hooks, this is the *original* type being undone (e.g., "ban" for the unban hook).
-# - {prefix}: Plugin's prefix.
-punishment_hooks:
-  on_punish: # Actions executed AFTER a punishment is applied.
-    ban:
-      - 'MESSAGE_MODS:{prefix}&c{target} &7was banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
-      - 'PLAY_SOUND_MODS:ENTITY_ENDER_DRAGON_GROWL:1.0:0.8'
-      # - 'CONSOLE_COMMAND:discord broadcast Ban {target} {reason} {time}' # Example Discord integration
-    mute:
-      - 'MESSAGE_MODS:{prefix}&e{target} &7was muted by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
-      - 'PLAY_SOUND_MODS:ENTITY_VEX_CHARGE:1.0:1.0'
-    softban:
-      - 'MESSAGE_MODS:{prefix}&3{target} &7was soft-banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
-      - 'PLAY_SOUND_MODS:BLOCK_CHAIN_PLACE:1.0:1.2'
-    kick:
-      - 'MESSAGE_MODS:{prefix}&9{target} &7was kicked by &e{player}&7. Reason: &f{reason}'
-      - 'PLAY_SOUND_MODS:ENTITY_GHAST_SHOOT:1.0:1.0'
-    warn:
-      - 'MESSAGE_MODS:{prefix}&6{target} &7was warned by &e{player}&7. Reason: &f{reason}'
-      - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_NO:1.0:0.8'
-    freeze:
-      - 'MESSAGE_MODS:{prefix}&5{target} &7was frozen by &e{player}&7. Reason: &f{reason}'
-      - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:0.7'
-      - 'ACTIONBAR_MODS:&d&lFROZEN: &f{target}' # Show on action bar too
-
-  on_unpunish: # Actions executed AFTER an unpunishment is applied. The key (e.g., 'ban') refers to the original punishment type being undone.
-    ban:
-      - 'MESSAGE_MODS:{prefix}&a{target} &7was unbanned by &e{player}.'
-      - 'PLAY_SOUND_MODS:ENTITY_PLAYER_LEVELUP:1.0:1.2'
-      # - 'CONSOLE_COMMAND:discord broadcast Unban {target}' # Example Discord integration
-    mute: # Hooks for '/unpunish <player> mute' or unmute button
-      - 'MESSAGE_MODS:{prefix}&a{target} &7was unmuted by &e{player}.'
-      - 'PLAY_SOUND_MODS:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:1.5'
-    softban:
-      - 'MESSAGE_MODS:{prefix}&a{target} &7was un-softbanned by &e{player}.'
-      - 'PLAY_SOUND_MODS:BLOCK_CHAIN_BREAK:1.0:1.2'
-    warn:
-      - 'MESSAGE_MODS:{prefix}&a{target}&7''s warning was removed by &e{player}.'
-      - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_YES:1.0:1.0'
-    freeze:
-      - 'MESSAGE_MODS:{prefix}&a{target} &7was unfrozen by &e{player}.'
-      - 'PLAY_SOUND_MODS:BLOCK_GLASS_BREAK:1.0:1.2'
 
 # Logging configurations.
 logging:

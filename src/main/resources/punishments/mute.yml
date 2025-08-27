@@ -1,0 +1,13 @@
+# Configuration for mute punishment.
+use-internal: true # If true, the plugin will handle the mute internally. If false, it will use the command below.
+punish-command: 'tempmute {target} {time} {reason}'
+unpunish-command: 'unmute {target}'
+
+# Post-action hooks for mute.
+hooks:
+  on-punish:
+    - 'MESSAGE_MODS:{prefix}&e{target} &7was muted by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+    - 'PLAY_SOUND_MODS:ENTITY_VEX_CHARGE:1.0:1.0'
+  on-unpunish:
+    - 'MESSAGE_MODS:{prefix}&a{target} &7was unmuted by &e{player}.'
+    - 'PLAY_SOUND_MODS:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:1.5'
