@@ -16,6 +16,7 @@
 # Punishment Specific:
 # - {time}: Punishment time duration (e.g., "1d", "Permanent").
 # - {reason}: Punishment reason.
+# - {punishment_id}: The unique ID of the punishment record.
 # - {punishment_type}: (DEPRECATED in punishment_confirmed, use {punishment_action_verb} or specific type names)
 # - {punishment_action_verb}: The verb form of the punishment (e.g., "banned", "muted").
 # Menu Specific:
@@ -112,7 +113,7 @@ messages:
     &cID: &e{punishment_id}
     &cDuration: &e{time}
     &cReason: &e{reason}
-    &7You cannot send messages during this time.
+    &7You cannot send messages or use certain commands during this time.
 
   chat_while_muted: '{prefix}&cYou are currently muted and cannot send messages.'
 
@@ -124,7 +125,7 @@ messages:
   mute_usage: '{prefix}&cUsage: /mute <player> [time] [reason]'
   kick_usage: '{prefix}&cUsage: /kick <player> [reason]'
   warn_usage: '{prefix}&cUsage: /warn <player> [reason]'
-  direct_unpunishment_confirmed: '{prefix}&aRemoved {punishment_type} from &b{target}&a.'
+  direct_unpunishment_confirmed: '{prefix}&aRemoved {punishment_type} from &b{target}&a. (ID: &e{punishment_id}&a)'
   direct_unsoftban_confirmed: '{prefix}&aRemoved softban from &b{target}&a.'
   direct_kick_confirmed: '{prefix}&aPlayer &b{target}&a kicked. Reason: &f{reason}'
   direct_warn_confirmed: '{prefix}&aPlayer &b{target}&a warned. Reason: &f{reason}'

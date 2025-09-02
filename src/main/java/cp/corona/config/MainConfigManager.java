@@ -112,6 +112,12 @@ public class MainConfigManager {
         return config.getConfig().getStringList("blocked_commands");
     }
 
+    public List<String> getBlockedMuteCommands() {
+        CustomConfig config = punishmentConfigs.get("mute");
+        if (config == null) return Collections.emptyList();
+        return config.getConfig().getStringList("blocked_commands");
+    }
+
     public List<String> getFreezeDisconnectCommands() {
         CustomConfig config = punishmentConfigs.get("freeze");
         if (config == null) return Collections.emptyList();

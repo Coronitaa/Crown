@@ -1,5 +1,5 @@
 # Configuration for kick punishment.
-use-internal: false # If true, the plugin will handle the kick internally. If false, it will use the command below.
+use-internal: true # If true, the plugin will handle the kick internally. If false, it will use the command below.
 punish-command: 'kick {target} {reason}'
 
 # Post-action hooks for kick.

@@ -3,6 +3,13 @@ use-internal: true # If true, the plugin will handle the mute internally. If fal
 punish-command: 'tempmute {target} {time} {reason}'
 unpunish-command: 'unmute {target}'
 
+# Commands that will be blocked when a player is muted.
+blocked_commands:
+  - msg
+  - tell
+  - r
+  - say
+
 # Post-action hooks for mute.
 hooks:
   on-punish:

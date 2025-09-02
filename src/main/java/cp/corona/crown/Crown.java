@@ -8,7 +8,7 @@ import cp.corona.database.DatabaseManager;
 import cp.corona.listeners.CommandBlockerListener;
 import cp.corona.listeners.FreezeListener;
 import cp.corona.listeners.MenuListener;
-import cp.corona.listeners.PlayerChatListener;
+import cp.corona.listeners.MuteListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.PluginCommand;
@@ -105,7 +105,7 @@ public final class Crown extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
         getServer().getPluginManager().registerEvents(new CommandBlockerListener(this), this);
         getServer().getPluginManager().registerEvents(new FreezeListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerChatListener(this), this); // Register new listener
+        getServer().getPluginManager().registerEvents(new MuteListener(this), this);
         freezeListener = new FreezeListener(this);
     }
 
