@@ -438,11 +438,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
 
         String logReason = "Unpunished";
+        String punishmentId = null;
+
 
         switch (punishType.toLowerCase()) {
             case "ban":
                 logReason = "Unbanned";
-                plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                 if (useInternal) {
                     if (!target.isBanned()) {
                         sendConfigMessage(sender, "messages.not_banned");
@@ -460,24 +462,24 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         sendConfigMessage(sender, "messages.not_muted");
                         return;
                     }
-                    plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName());
+                    punishmentId = plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName());
                 } else {
-                    plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
                 }
                 break;
             case "softban":
                 logReason = "Un-softbanned";
                 if (useInternal) {
-                    plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName());
+                    punishmentId = plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName());
                 } else {
-                    plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
                 }
                 break;
             case "warn":
                 logReason = "Unwarned";
-                plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                 if (useInternal) {
                     plugin.getLogger().warning("Unwarn command is empty, internal unwarn is not supported.");
                 } else {
@@ -492,14 +494,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         sendConfigMessage(sender, "messages.no_active_freeze", "{target}", target.getName());
                         return;
                     }
-                    plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                     Player onlineTargetUnfreeze = target.getPlayer();
                     if (onlineTargetUnfreeze != null) {
                         sendConfigMessage(onlineTargetUnfreeze, "messages.you_are_unfrozen");
                         plugin.getFreezeListener().stopFreezeActionsTask(target.getUniqueId());
                     }
                 } else {
-                    plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
                 }
                 break;
@@ -511,7 +513,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return;
         }
 
-        sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", punishType);
+        sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", punishType, "{punishment_id}", punishmentId);
 
         MenuListener menuListener = plugin.getMenuListener();
         if (menuListener != null) {
