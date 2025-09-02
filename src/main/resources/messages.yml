@@ -74,6 +74,7 @@ messages:
   unpunish_command_not_configured: '{prefix}&cThe unpunish command for &b{punishment_type}&c is not set in config.yml.'
 
   not_banned: '{prefix}&cThat player is not banned.'
+  not_softbanned: '{prefix}&cThat player is not SoftBanned.'
   not_muted: '{prefix}&cThat player is not muted.'
 
   prompt_new_target: '&aEnter the target player name (or type ''cancel''):'

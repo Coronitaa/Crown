@@ -2,6 +2,8 @@
 use-internal: false # If true, the plugin will handle the warn internally. If false, it will use the command below.
 punish-command: 'warn {target} {reason}'
 unpunish-command: 'unwarn {target}'
+default-reason: "Warned by a moderator."
+default-unpunish-reason: "Unwarned by {player}."
 
 # Post-action hooks for warn.
 hooks:

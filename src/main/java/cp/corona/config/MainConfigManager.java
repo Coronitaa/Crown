@@ -169,6 +169,18 @@ public class MainConfigManager {
                 .collect(Collectors.toList());
     }
 
+    public String getDefaultPunishmentReason(String punishmentType) {
+        CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
+        if (config == null) return "No reason specified.";
+        return config.getConfig().getString("default-reason", "No reason specified.");
+    }
+
+    public String getDefaultUnpunishmentReason(String punishmentType) {
+        CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
+        if (config == null) return "Unpunished by a moderator.";
+        return config.getConfig().getString("default-unpunish-reason", "Unpunished by a moderator.");
+    }
+
     public String getMenuText(String path, OfflinePlayer target) {
         String text = punishMenuConfig.getConfig().getString("menu." + path, "");
         if (text == null) return "";

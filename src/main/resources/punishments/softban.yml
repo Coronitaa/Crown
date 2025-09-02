@@ -2,6 +2,8 @@
 use-internal: true # If true, the plugin will handle the softban internally. If false, it will use the command below.
 punish-command: 'softban {target} {time} {reason}'
 unpunish-command: 'unsoftban {target}'
+default-reason: "Softbanned by a moderator."
+default-unpunish-reason: "Un-softbanned by {player}."
 
 blocked_commands:
   - examplecommand

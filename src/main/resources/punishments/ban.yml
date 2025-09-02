@@ -2,6 +2,8 @@
 use-internal: true # If true, the plugin will handle the ban internally. If false, it will use the command below.
 punish-command: 'tempban {target} {time} {reason}'
 unpunish-command: 'unban {target}'
+default-reason: "Banned by a moderator."
+default-unpunish-reason: "Unbanned by {player}."
 
 # Post-action hooks for ban.
 hooks:

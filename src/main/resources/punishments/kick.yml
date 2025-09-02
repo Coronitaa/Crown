@@ -1,6 +1,7 @@
 # Configuration for kick punishment.
 use-internal: true # If true, the plugin will handle the kick internally. If false, it will use the command below.
 punish-command: 'kick {target} {reason}'
+default-reason: "Kicked by a moderator."
 
 # Post-action hooks for kick.
 hooks:

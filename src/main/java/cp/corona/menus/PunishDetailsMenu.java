@@ -491,18 +491,8 @@ public class PunishDetailsMenu implements InventoryHolder {
      * @return Ban reason string or null.
      */
     public String getBanReason() {
-        // Return a default reason if none is set and it's required, or just the reason/null
         if (banReason == null || banReason.trim().isEmpty()) {
-            // Provide a default reason if none set, especially for types like kick/warn/freeze
-            // where it might be expected even if not explicitly prompted.
-            // Could be made configurable.
-            switch(this.punishmentType) {
-                case "kick": return "Kicked by moderator";
-                case "warn": return "Warned by moderator";
-                case "freeze": return "Frozen by moderator";
-                // For ban/mute/softban, null/empty is fine if not set yet
-                default: return banReason;
-            }
+            return plugin.getConfigManager().getDefaultPunishmentReason(this.punishmentType);
         }
         return banReason;
     }
