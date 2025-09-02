@@ -1,4 +1,4 @@
-// database/DatabaseManager.java
+// src/main/java/cp/corona/database/DatabaseManager.java
 package cp.corona.database;
 
 import cp.corona.crown.Crown;
@@ -168,7 +168,9 @@ public class DatabaseManager {
              PreparedStatement ps = connection.prepareStatement("DELETE FROM softbans WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
-                return logPunishment(uuid, "unsoftban", "Softban Removed", punisherName, 0L, "N/A");
+                String originalPunishmentId = getLatestPunishmentId(uuid, "softban");
+                String reason = "Softban Removed" + (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
+                return logPunishment(uuid, "unsoftban", reason, punisherName, 0L, "N/A");
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not un-soft ban player!", e);
@@ -220,7 +222,9 @@ public class DatabaseManager {
              PreparedStatement ps = connection.prepareStatement("DELETE FROM mutes WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
-                return logPunishment(uuid, "unmute", "Mute Removed", punisherName, 0L, "N/A");
+                String originalPunishmentId = getLatestPunishmentId(uuid, "mute");
+                String reason = "Mute Removed" + (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
+                return logPunishment(uuid, "unmute", reason, punisherName, 0L, "N/A");
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not unmute player!", e);
@@ -349,6 +353,22 @@ public class DatabaseManager {
         return idBuilder.toString();
     }
 
+    public String getLatestPunishmentId(UUID playerUUID, String punishmentType) {
+        String sql = "SELECT punishment_id FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? ORDER BY timestamp DESC LIMIT 1";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ps.setString(2, punishmentType);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("punishment_id");
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest punishment ID!", e);
+        }
+        return null;
+    }
+
     public static class PunishmentEntry {
         private final String punishmentId;
         private final String type;
@@ -357,6 +377,8 @@ public class DatabaseManager {
         private final String punisherName;
         private final long punishmentTime;
         private final String durationString;
+        private String status;
+
 
         public PunishmentEntry(String punishmentId, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString) {
             this.punishmentId = punishmentId;
@@ -375,5 +397,7 @@ public class DatabaseManager {
         public String getPunisherName() { return punisherName; }
         public long getPunishmentTime() { return punishmentTime; }
         public String getDurationString() { return durationString; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
     }
 }

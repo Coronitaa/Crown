@@ -1,10 +1,11 @@
-// HistoryMenu.java
+// src/main/java/cp/corona/menus/HistoryMenu.java
 package cp.corona.menus;
 
 import cp.corona.crown.Crown;
 import cp.corona.database.DatabaseManager;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
+import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -17,6 +18,9 @@ import org.jetbrains.annotations.NotNull;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class HistoryMenu implements InventoryHolder {
 
@@ -27,12 +31,13 @@ public class HistoryMenu implements InventoryHolder {
     private final int entriesPerPage = 28;
     private List<MenuItem> historyEntryItems = new ArrayList<>();
     private final Set<String> menuItemKeys = new HashSet<>();
+    private List<DatabaseManager.PunishmentEntry> allHistoryEntries;
+
 
     private static final String BACK_BUTTON_KEY = "back_button";
     private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
     private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
     private static final String HISTORY_ENTRY_ITEM_KEY = "history_entry";
-    private static final String WARN_HISTORY_ENTRY_ITEM_KEY = "warn_history_entry";
     private static final String BACKGROUND_FILL_KEY = "background_fill";
 
     private static final List<Integer> validSlots = List.of(
@@ -49,8 +54,39 @@ public class HistoryMenu implements InventoryHolder {
         String title = plugin.getConfigManager().getHistoryMenuTitle(target);
         inventory = Bukkit.createInventory(this, 54, title);
         loadMenuItems();
+        loadAndProcessAllHistory();
         initializeItems(target);
     }
+
+    private void loadAndProcessAllHistory() {
+        allHistoryEntries = plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, 1, Integer.MAX_VALUE);
+
+        List<DatabaseManager.PunishmentEntry> unpunishments = allHistoryEntries.stream()
+                .filter(e -> e.getType().startsWith("un"))
+                .collect(Collectors.toList());
+
+        for (DatabaseManager.PunishmentEntry entry : allHistoryEntries) {
+            if (!entry.getType().startsWith("un")) {
+                String unpunishType = "un" + entry.getType();
+                DatabaseManager.PunishmentEntry correspondingUnpunishment = null;
+                for (DatabaseManager.PunishmentEntry unpunishment : unpunishments) {
+                    if (unpunishment.getType().equals(unpunishType) && unpunishment.getTimestamp().after(entry.getTimestamp())) {
+                        correspondingUnpunishment = unpunishment;
+                        break;
+                    }
+                }
+
+                if (correspondingUnpunishment != null) {
+                    entry.setStatus("&7(removed)");
+                    unpunishments.remove(correspondingUnpunishment);
+                } else {
+                    boolean isActive = entry.getPunishmentTime() > System.currentTimeMillis() || entry.getPunishmentTime() == Long.MAX_VALUE;
+                    entry.setStatus(isActive ? "&a(active)" : "&c(expired)");
+                }
+            }
+        }
+    }
+
 
     private void initializeItems(OfflinePlayer target) {
         setItemInMenu(BACK_BUTTON_KEY,
@@ -75,19 +111,21 @@ public class HistoryMenu implements InventoryHolder {
 
     private void loadHistoryPage(OfflinePlayer target, int page) {
         clearHistoryEntries();
-        List<DatabaseManager.PunishmentEntry> history =
-                plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, page, entriesPerPage);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         historyEntryItems.clear();
 
+        int start = (page - 1) * entriesPerPage;
+        int end = Math.min(start + entriesPerPage, allHistoryEntries.size());
+        List<DatabaseManager.PunishmentEntry> historyForPage = (start < allHistoryEntries.size()) ? allHistoryEntries.subList(start, end) : Collections.emptyList();
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
         int index = 0;
-        for (DatabaseManager.PunishmentEntry entry : history) {
+        for (DatabaseManager.PunishmentEntry entry : historyForPage) {
             if (index >= validSlots.size()) break;
             int slot = validSlots.get(index);
 
             String entryTypeConfigName = entry.getType().toLowerCase() + "_history_entry";
             MenuItem historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(entryTypeConfigName);
-            String duration = getDurationDisplay(entry);
 
             if (historyItemConfig == null) {
                 historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(HISTORY_ENTRY_ITEM_KEY);
@@ -97,16 +135,43 @@ public class HistoryMenu implements InventoryHolder {
             MenuItem historyEntryItem = new MenuItem();
             historyEntryItem.setMaterial(historyItemConfig.getMaterial());
             historyEntryItem.setPlayerHead(historyItemConfig.getPlayerHead());
-            String entryName = plugin.getConfigManager().getHistoryMenuText("items.history_entry.name", target)
-                    .replace("{punishment_type}", entry.getType());
+
+            String status = entry.getStatus() != null ? entry.getStatus() : "";
+            String entryName = plugin.getConfigManager().getHistoryMenuText("items." + HISTORY_ENTRY_ITEM_KEY + ".name", target)
+                    .replace("{punishment_type}", entry.getType())
+                    .replace("{status}", status);
             historyEntryItem.setName(MessageUtils.getColorMessage(entryName));
-            List<String> lore = plugin.getConfigManager().getHistoryMenuItemLore(HISTORY_ENTRY_ITEM_KEY, target,
-                    "{punishment_id}", entry.getPunishmentId(),
-                    "{punishment_type}", entry.getType(),
-                    "{reason}", entry.getReason(),
-                    "{date}", dateFormat.format(entry.getTimestamp()),
-                    "{punisher}", entry.getPunisherName(),
-                    "{duration}", duration);
+
+            List<String> lore = new ArrayList<>();
+            String originalPunishmentId = entry.getPunishmentId();
+            String reason = entry.getReason();
+
+            if (entry.getType().startsWith("un")) {
+                Pattern pattern = Pattern.compile("\\(ID: (\\w+)\\)");
+                Matcher matcher = pattern.matcher(entry.getReason());
+                if (matcher.find()) {
+                    originalPunishmentId = matcher.group(1);
+                    reason = entry.getReason().substring(0, matcher.start()).trim();
+                }
+            }
+
+            List<String> configLore = plugin.getConfigManager().getHistoryMenuItemLore(HISTORY_ENTRY_ITEM_KEY, target);
+            for (String line : configLore) {
+                String processedLine = line.replace("{punishment_id}", originalPunishmentId)
+                        .replace("{reason}", reason)
+                        .replace("{date}", dateFormat.format(entry.getTimestamp()))
+                        .replace("{punisher}", entry.getPunisherName())
+                        .replace("{duration}", getDurationDisplay(entry));
+                lore.add(processedLine);
+            }
+
+            if ("&a(active)".equals(status)) {
+                String expiresAt = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Never" : dateFormat.format(new Date(entry.getPunishmentTime()));
+                long remainingMillis = entry.getPunishmentTime() - System.currentTimeMillis();
+                String timeLeft = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
+                lore.add("&7Expires: &b" + expiresAt + " (" + timeLeft + ")");
+            }
+
             historyEntryItem.setLore(lore);
             historyEntryItem.setSlots(List.of(slot));
 
@@ -116,7 +181,6 @@ public class HistoryMenu implements InventoryHolder {
         }
         updatePageButtons(target);
     }
-
 
 
     private String getDurationDisplay(DatabaseManager.PunishmentEntry entry) {
@@ -137,7 +201,7 @@ public class HistoryMenu implements InventoryHolder {
     }
 
     private void updatePageButtons(OfflinePlayer target) {
-        int totalCount = plugin.getSoftBanDatabaseManager().getPunishmentHistoryCount(targetUUID);
+        int totalCount = allHistoryEntries.size();
         boolean hasNextPage = totalCount > (page * entriesPerPage);
 
         if (page <= 1) {
@@ -200,21 +264,6 @@ public class HistoryMenu implements InventoryHolder {
         }
     }
 
-    private String getPunishmentIcon(String punishmentType) {
-        return switch (punishmentType.toLowerCase()) {
-            case "ban" -> "BARRIER";
-            case "mute" -> "NOTE_BLOCK";
-            case "softban" -> "IRON_DOOR";
-            case "kick" -> "LEATHER_BOOTS";
-            case "warn" -> "PAPER";
-            case "unsoftban" -> "LIME_DYE";
-            case "unban" -> "GREEN_WOOL";
-            case "unmute" -> "EMERALD";
-            case "freeze" -> "ICE";
-            default -> "BOOK";
-        };
-    }
-
     private void setItemInMenu(String itemKey, MenuItem menuItemConfig, OfflinePlayer target, int slot) {
         if (menuItemConfig != null) {
             ItemStack itemStack = menuItemConfig.toItemStack(target, plugin.getConfigManager());
@@ -244,46 +293,12 @@ public class HistoryMenu implements InventoryHolder {
         player.openInventory(inventory);
     }
 
-
-    private ItemStack createPunishmentCountsItem(OfflinePlayer target) {
-        MenuItem countsConfig = plugin.getConfigManager().getHistoryMenuItemConfig("punishment_counts_item");
-        if (countsConfig == null) return null;
-
-        ItemStack itemStack = countsConfig.toItemStack(target, plugin.getConfigManager());
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            HashMap<String, Integer> counts = plugin.getSoftBanDatabaseManager().getPunishmentCounts(targetUUID);
-            List<String> lore = plugin.getConfigManager().getHistoryMenuItemLore("punishment_counts_item", target,
-                    "{ban_count}", String.valueOf(counts.getOrDefault("ban", 0)),
-                    "{mute_count}", String.valueOf(counts.getOrDefault("mute", 0)),
-                    "{kick_count}", String.valueOf(counts.getOrDefault("kick", 0)),
-                    "{softban_count}", String.valueOf(counts.getOrDefault("softban", 0)),
-                    "{warn_count}", String.valueOf(counts.getOrDefault("warn", 0)),
-                    "{freeze_count}", String.valueOf(counts.getOrDefault("freeze", 0))
-            );
-            meta.setLore(lore);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    private void addPunishmentCountsItem(OfflinePlayer target) {
-        ItemStack countsItem = createPunishmentCountsItem(target);
-        if (countsItem != null) {
-            inventory.setItem(49, countsItem);
-        }
-    }
-
-    private void handleMenuOpenActions(Player player) {
-        plugin.getMenuListener().executeMenuOpenActions(player, this);
-    }
-
     public UUID getTargetUUID() {
         return targetUUID;
     }
 
     public void nextPage(Player player) {
-        int totalCount = plugin.getSoftBanDatabaseManager().getPunishmentHistoryCount(targetUUID);
+        int totalCount = allHistoryEntries.size();
         if (totalCount <= (page * entriesPerPage)) {
             return;
         }
@@ -314,7 +329,6 @@ public class HistoryMenu implements InventoryHolder {
     public Set<String> getMenuItemKeys() {
         return menuItemKeys;
     }
-
 
     private void loadMenuItems() {
         menuItemKeys.clear();

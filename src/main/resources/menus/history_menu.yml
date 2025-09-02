@@ -28,7 +28,7 @@ menu:
     # --- History Entry Definitions ---
     history_entry: # Default template for entries if no specific type matches below
       material: 'BOOK'
-      name: '&e{punishment_type}'
+      name: '&e{punishment_type} {status}'
       lore:
         - '&7ID: &f{punishment_id}'
         - '&7Reason: &f{reason}'
