@@ -8,6 +8,10 @@ import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.PunishMenu;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.BanList;
 import org.bukkit.OfflinePlayer;
@@ -204,7 +208,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
                 sendConfigMessage(sender, "messages.check_info_header", "{id}", punishmentId);
                 sendConfigMessage(sender, "messages.check_info_player", "{player}", target.getName(), "{uuid}", target.getUniqueId().toString());
-                sendConfigMessage(sender, "messages.check_info_details", "{type}", entry.getType(), "{status}", status, "{reason}", entry.getReason(), "{punisher}", entry.getPunisherName(), "{date}", dateFormat.format(entry.getTimestamp()), "{duration}", entry.getDurationString(), "{time_left}", timeLeft);
+                sendConfigMessage(sender, "messages.check_info_type", "{type}", entry.getType());
+                sendConfigMessage(sender, "messages.check_info_status", "{status}", status);
+                sendConfigMessage(sender, "messages.check_info_reason", "{reason}", entry.getReason());
+                sendConfigMessage(sender, "messages.check_info_punisher", "{punisher}", entry.getPunisherName());
+                sendConfigMessage(sender, "messages.check_info_date", "{date}", dateFormat.format(entry.getTimestamp()));
+                sendConfigMessage(sender, "messages.check_info_duration", "{duration}", entry.getDurationString());
+                sendConfigMessage(sender, "messages.check_info_expires", "{time_left}", timeLeft);
 
                 DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
                 if (playerInfo != null) {
@@ -240,6 +250,26 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 if (!entry.isActive()) {
                     sendConfigMessage(sender, "messages.check_info_removed", "{remover}", entry.getRemovedByName(), "{remove_date}", dateFormat.format(entry.getRemovedAt()), "{remove_reason}", entry.getRemovedReason());
                 }
+
+                if (sender instanceof Player) {
+                    TextComponent repunishButton = new TextComponent(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.check_info_repunish_button")));
+                    repunishButton.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/check " + punishmentId + " repunish"));
+                    repunishButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Click to repunish")));
+
+                    TextComponent unpunishButton = new TextComponent(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.check_info_unpunish_button")));
+                    unpunishButton.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/check " + punishmentId + " unpunish"));
+                    unpunishButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Click to unpunish")));
+
+                    TextComponent separator = new TextComponent(MessageUtils.getColorMessage(" &7| "));
+
+                    TextComponent actionMessage = new TextComponent("");
+                    actionMessage.addExtra(repunishButton);
+                    actionMessage.addExtra(separator);
+                    actionMessage.addExtra(unpunishButton);
+
+                    sender.spigot().sendMessage(actionMessage);
+                }
+
                 break;
             case "repunish":
                 if (sender instanceof Player) {
