@@ -128,6 +128,13 @@ messages:
   check_info_header: '&6&lPunishment Information for ID: &e{id}'
   check_info_player: '&7Player: &b{player} &7({uuid})'
   check_info_details: '&7Type: &b{type} &7Status: {status} &7Reason: &f{reason}\n&7Punisher: &b{punisher} &7Date: &b{date}\n&7Duration: &e{duration} &7(Expires in: &e{time_left}&7)'
+  check_info_extra_header: '&6&lPlayer Information at time of punishment:'
+  check_info_ip: '&7IP: &b{ip}'
+  check_info_location: '&7Location: &b{location}'
+  check_info_gamemode: '&7Gamemode: &b{gamemode}'
+  check_info_health: '&7Health: &b{health}'
+  check_info_hunger: '&7Hunger: &b{hunger}'
+  check_info_exp_level: '&7EXP Level: &b{exp_level}'
   check_info_removed: '&7Removed by: &b{remover} &7at &b{remove_date} &7Reason: &f{remove_reason}'
   ban_usage: '{prefix}&cUsage: /ban <player> [time] [reason]'
   mute_usage: '{prefix}&cUsage: /mute <player> [time] [reason]'
@@ -169,6 +176,7 @@ messages:
   command_loop_error: '{prefix}&cError: The command ''{command}'' is an internal plugin command. Using it would create a loop. Please use a command from another plugin.'
   command_dispatch_error: '{prefix}&cThe command ''{command}'' could not be executed. Please check the console for errors.'
   command_not_found: '{prefix}&cThe command ''{command}'' was not found. Please check your configuration.'
+
 
 
 

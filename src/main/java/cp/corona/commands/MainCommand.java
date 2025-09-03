@@ -205,6 +205,18 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 sendConfigMessage(sender, "messages.check_info_header", "{id}", punishmentId);
                 sendConfigMessage(sender, "messages.check_info_player", "{player}", target.getName(), "{uuid}", target.getUniqueId().toString());
                 sendConfigMessage(sender, "messages.check_info_details", "{type}", entry.getType(), "{status}", status, "{reason}", entry.getReason(), "{punisher}", entry.getPunisherName(), "{date}", dateFormat.format(entry.getTimestamp()), "{duration}", entry.getDurationString(), "{time_left}", timeLeft);
+
+                DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                if (playerInfo != null) {
+                    sendConfigMessage(sender, "messages.check_info_extra_header");
+                    sendConfigMessage(sender, "messages.check_info_ip", "{ip}", playerInfo.getIp());
+                    sendConfigMessage(sender, "messages.check_info_location", "{location}", playerInfo.getLocation());
+                    sendConfigMessage(sender, "messages.check_info_gamemode", "{gamemode}", playerInfo.getGamemode());
+                    sendConfigMessage(sender, "messages.check_info_health", "{health}", String.valueOf(playerInfo.getHealth()));
+                    sendConfigMessage(sender, "messages.check_info_hunger", "{hunger}", String.valueOf(playerInfo.getHunger()));
+                    sendConfigMessage(sender, "messages.check_info_exp_level", "{exp_level}", String.valueOf(playerInfo.getExpLevel()));
+                }
+
                 if (!entry.isActive()) {
                     sendConfigMessage(sender, "messages.check_info_removed", "{remover}", entry.getRemovedByName(), "{remove_date}", dateFormat.format(entry.getRemovedAt()), "{remove_reason}", entry.getRemovedReason());
                 }

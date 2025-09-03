@@ -104,12 +104,37 @@ public class DatabaseManager {
                         "removed_reason TEXT)";
             }
             statement.execute(createHistoryTableSQL);
+
+            String createPlayerInfoTableSQL = "CREATE TABLE IF NOT EXISTS player_info (" +
+                    "punishment_id VARCHAR(8) PRIMARY KEY," +
+                    "ip VARCHAR(45)," +
+                    "location VARCHAR(255)," +
+                    "gamemode VARCHAR(50)," +
+                    "health DOUBLE," +
+                    "hunger INT," +
+                    "exp_level INT," +
+                    "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
+
+            if ("sqlite".equalsIgnoreCase(dbType)) {
+                createPlayerInfoTableSQL = "CREATE TABLE IF NOT EXISTS player_info (" +
+                        "punishment_id VARCHAR(8) PRIMARY KEY," +
+                        "ip VARCHAR(45)," +
+                        "location VARCHAR(255)," +
+                        "gamemode VARCHAR(50)," +
+                        "health DOUBLE," +
+                        "hunger INT," +
+                        "exp_level INT," +
+                        "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
+            }
+            statement.execute(createPlayerInfoTableSQL);
+
             updateTableStructure(connection);
 
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not initialize database!", e);
         }
     }
+
     private void updateTableStructure(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             if (!columnExists(connection, "punishment_history", "active")) {
@@ -320,9 +345,55 @@ public class DatabaseManager {
             ps.setString(7, durationString);
             ps.setBoolean(8, true); // New punishments are active
             ps.executeUpdate();
+
+            Player targetPlayer = Bukkit.getPlayer(playerUUID);
+            if (targetPlayer != null) {
+                logPlayerInfo(punishmentId, targetPlayer);
+            }
+
             return punishmentId;
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error logging punishment!", e);
+        }
+        return null;
+    }
+
+    public void logPlayerInfo(String punishmentId, Player player) {
+        String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, punishmentId);
+            ps.setString(2, player.getAddress().getAddress().getHostAddress());
+            ps.setString(3, player.getWorld().getName() + "," + player.getLocation().getX() + "," + player.getLocation().getY() + "," + player.getLocation().getZ());
+            ps.setString(4, player.getGameMode().toString());
+            ps.setDouble(5, player.getHealth());
+            ps.setInt(6, player.getFoodLevel());
+            ps.setInt(7, player.getLevel());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error logging player info!", e);
+        }
+    }
+
+    public PlayerInfo getPlayerInfo(String punishmentId) {
+        String sql = "SELECT * FROM player_info WHERE punishment_id = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, punishmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new PlayerInfo(
+                            rs.getString("punishment_id"),
+                            rs.getString("ip"),
+                            rs.getString("location"),
+                            rs.getString("gamemode"),
+                            rs.getDouble("health"),
+                            rs.getInt("hunger"),
+                            rs.getInt("exp_level")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving player info!", e);
         }
         return null;
     }
@@ -553,6 +624,53 @@ public class DatabaseManager {
 
         public String getRemovedReason() {
             return removedReason;
+        }
+    }
+    public static class PlayerInfo {
+        private final String punishmentId;
+        private final String ip;
+        private final String location;
+        private final String gamemode;
+        private final double health;
+        private final int hunger;
+        private final int expLevel;
+
+        public PlayerInfo(String punishmentId, String ip, String location, String gamemode, double health, int hunger, int expLevel) {
+            this.punishmentId = punishmentId;
+            this.ip = ip;
+            this.location = location;
+            this.gamemode = gamemode;
+            this.health = health;
+            this.hunger = hunger;
+            this.expLevel = expLevel;
+        }
+
+        public String getPunishmentId() {
+            return punishmentId;
+        }
+
+        public String getIp() {
+            return ip;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public String getGamemode() {
+            return gamemode;
+        }
+
+        public double getHealth() {
+            return health;
+        }
+
+        public int getHunger() {
+            return hunger;
+        }
+
+        public int getExpLevel() {
+            return expLevel;
         }
     }
 }
