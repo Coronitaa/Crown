@@ -1,4 +1,4 @@
-// utils/TimeUtils.java
+// src/main/java/cp/corona/utils/TimeUtils.java
 package cp.corona.utils;
 
 import cp.corona.config.MainConfigManager;
@@ -142,6 +142,34 @@ public class TimeUtils {
 
         return totalSeconds;
     }
+
+    public static boolean isValidTimeFormat(String timeString, MainConfigManager configManager) {
+        if (timeString == null || timeString.trim().isEmpty()) {
+            return false;
+        }
+        if (timeString.equalsIgnoreCase("permanent")) {
+            return true;
+        }
+
+        String yearsUnit = configManager.getYearsTimeUnit();
+        String dayUnit = configManager.getDayTimeUnit();
+        String hoursUnit = configManager.getHoursTimeUnit();
+        String minutesUnit = configManager.getMinutesTimeUnit();
+        String secondsUnit = configManager.getSecondsTimeUnit();
+
+        String patternString = "(\\d+)\\s*(" +
+                Pattern.quote(yearsUnit) + "|" +
+                Pattern.quote(dayUnit) + "|" +
+                Pattern.quote(hoursUnit) + "|" +
+                Pattern.quote(minutesUnit) + "|" +
+                Pattern.quote(secondsUnit) + ")";
+
+        Pattern r = Pattern.compile(patternString, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = r.matcher(timeString);
+
+        return matcher.find();
+    }
+
 
     // Static reference to the plugin instance - needed for logging in static context
     private static Crown plugin = null;

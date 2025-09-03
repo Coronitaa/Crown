@@ -199,19 +199,23 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
 
-            String timeForPunishment = "permanent";
+            String timeForPunishment;
             String reason;
+            int reasonStartIndex;
 
             if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) {
-                if (args.length < 3) {
-                    timeForPunishment = "permanent";
-                    reason = plugin.getConfigManager().getDefaultPunishmentReason(punishType);
-                } else {
+                if (args.length > 2 && TimeUtils.isValidTimeFormat(args[2], plugin.getConfigManager())) {
                     timeForPunishment = args[2];
-                    reason = (args.length > 3) ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)) : plugin.getConfigManager().getDefaultPunishmentReason(punishType);
+                    reasonStartIndex = 3;
+                } else {
+                    timeForPunishment = "permanent";
+                    reasonStartIndex = 2;
                 }
+                reason = (args.length > reasonStartIndex) ? String.join(" ", Arrays.copyOfRange(args, reasonStartIndex, args.length)) : plugin.getConfigManager().getDefaultPunishmentReason(punishType);
             } else {
-                reason = (args.length > 2) ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : plugin.getConfigManager().getDefaultPunishmentReason(punishType);
+                timeForPunishment = "permanent"; // Not applicable for kick, warn, freeze
+                reasonStartIndex = 2;
+                reason = (args.length > reasonStartIndex) ? String.join(" ", Arrays.copyOfRange(args, reasonStartIndex, args.length)) : plugin.getConfigManager().getDefaultPunishmentReason(punishType);
             }
 
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[MainCommand] Direct punishment confirmed for " + target.getName() + ", type: " + punishType);
