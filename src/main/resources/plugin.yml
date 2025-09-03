@@ -16,6 +16,11 @@ commands:
     description: Command to directly unpunish players.
     usage: /<command> <player> <type>
 
+  check:
+    description: Command to check a punishment by ID.
+    usage: /<command> <id> [info|repunish|unpunish]
+    aliases: [c]
+
   softban: # Top level command for softbanning players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /CROWN PUNISH SOFTBAN
     description: Command to directly softban players.
     usage: /<command> <player> [time] [reason]
@@ -56,6 +61,9 @@ commands:
 permissions:
   crown.use:
     description: Allows player to use basic crown commands and punish menu
+    default: op
+  crown.check:
+    description: Allows player to check punishments by ID
     default: op
   crown.mod:
     description: Allows player to receive frozen player messages

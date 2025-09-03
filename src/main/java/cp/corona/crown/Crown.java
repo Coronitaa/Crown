@@ -1,4 +1,4 @@
-// Crown.java
+// src/main/java/cp/corona/crown/Crown.java
 package cp.corona.crown;
 
 import cp.corona.Metrics;
@@ -73,6 +73,7 @@ public final class Crown extends JavaPlugin {
         registerCommand("crown", mainCommand);
         registerCommand("punish", mainCommand);
         registerCommand("unpunish", mainCommand);
+        registerCommand("check", mainCommand);
         registerCommand("softban", mainCommand);
         registerCommand("freeze", mainCommand);
         registerCommand("ban", mainCommand);

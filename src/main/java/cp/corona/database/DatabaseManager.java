@@ -353,6 +353,35 @@ public class DatabaseManager {
         }
         return history;
     }
+    public PunishmentEntry getPunishmentById(String punishmentId) {
+        String sql = "SELECT * FROM punishment_history WHERE punishment_id = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, punishmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new PunishmentEntry(
+                            rs.getString("punishment_id"),
+                            UUID.fromString(rs.getString("player_uuid")),
+                            rs.getString("punishment_type"),
+                            rs.getString("reason"),
+                            rs.getTimestamp("timestamp"),
+                            rs.getString("punisher_name"),
+                            rs.getLong("punishment_time"),
+                            rs.getString("duration_string"),
+                            rs.getBoolean("active"),
+                            rs.getString("removed_by_name"),
+                            rs.getTimestamp("removed_at"),
+                            rs.getString("removed_reason")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving punishment by ID!", e);
+        }
+        return null;
+    }
+
 
     public int getPunishmentHistoryCount(UUID playerUUID) {
         int count = 0;
@@ -442,6 +471,8 @@ public class DatabaseManager {
 
     public static class PunishmentEntry {
         private final String punishmentId;
+
+        private final UUID playerUUID;
         private final String type;
         private final String reason;
         private final Timestamp timestamp;
@@ -450,25 +481,78 @@ public class DatabaseManager {
         private final String durationString;
         private String status;
 
+        private final boolean active;
+
+        private final String removedByName;
+
+        private final Timestamp removedAt;
+
+        private final String removedReason;
+
 
         public PunishmentEntry(String punishmentId, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString) {
             this.punishmentId = punishmentId;
+            this.playerUUID = null;
             this.type = type;
             this.reason = reason;
             this.timestamp = timestamp;
             this.punisherName = punisherName;
             this.punishmentTime = punishmentTime;
             this.durationString = durationString;
+            this.active = true;
+            this.removedAt = null;
+            this.removedByName = null;
+            this.removedReason = null;
+        }
+
+        public PunishmentEntry(String punishmentId, UUID playerUUID, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString, boolean active, String removedByName, Timestamp removedAt, String removedReason) {
+            this.punishmentId = punishmentId;
+            this.playerUUID = playerUUID;
+            this.type = type;
+            this.reason = reason;
+            this.timestamp = timestamp;
+            this.punisherName = punisherName;
+            this.punishmentTime = punishmentTime;
+            this.durationString = durationString;
+            this.active = active;
+            this.removedByName = removedByName;
+            this.removedAt = removedAt;
+            this.removedReason = removedReason;
         }
 
         public String getPunishmentId() { return punishmentId; }
         public String getType() { return type; }
         public String getReason() { return reason; }
         public Timestamp getTimestamp() { return timestamp; }
+
+        public UUID getPlayerUUID() {
+            return playerUUID;
+        }
+
         public String getPunisherName() { return punisherName; }
         public long getPunishmentTime() { return punishmentTime; }
         public String getDurationString() { return durationString; }
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
+
+        public long getEndTime() {
+            return punishmentTime;
+        }
+
+        public boolean isActive() {
+            return active;
+        }
+
+        public String getRemovedByName() {
+            return removedByName;
+        }
+
+        public Timestamp getRemovedAt() {
+            return removedAt;
+        }
+
+        public String getRemovedReason() {
+            return removedReason;
+        }
     }
 }
