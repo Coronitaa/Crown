@@ -426,6 +426,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private void confirmDirectUnpunish(final CommandSender sender, final OfflinePlayer target, final String punishType) {
         String commandTemplate = plugin.getConfigManager().getUnpunishCommand(punishType);
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishType);
+        String punishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(target.getUniqueId(), punishType);
+
+        if (punishmentId == null && useInternal) {
+            sendConfigMessage(sender, "messages.no_active_" + punishType, "{target}", target.getName());
+            return;
+        }
 
         if (!useInternal && commandTemplate != null && !commandTemplate.isEmpty()) {
             String baseCommand = commandTemplate.split(" ")[0].toLowerCase();
@@ -435,10 +441,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        String originalPunishmentId = plugin.getSoftBanDatabaseManager().getLatestPunishmentId(target.getUniqueId(), punishType);
-        String reasonSuffix = (originalPunishmentId != null) ? " (ID: " + originalPunishmentId + ")" : "";
-        String logReason = plugin.getConfigManager().getDefaultUnpunishmentReason(punishType).replace("{player}", sender.getName()) + reasonSuffix;
-        String punishmentId = null;
+        String logReason = plugin.getConfigManager().getDefaultUnpunishmentReason(punishType).replace("{player}", sender.getName());
 
         switch (punishType.toLowerCase()) {
             case "ban":
@@ -451,7 +454,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 } else {
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
                 }
-                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                 break;
             case "mute":
                 if (useInternal) {
@@ -459,9 +462,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         sendConfigMessage(sender, "messages.not_muted");
                         return;
                     }
-                    punishmentId = plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName());
+                    plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName());
                 } else {
-                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                    plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
                 }
                 break;
@@ -471,14 +474,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     return;
                 }
                 if (useInternal) {
-                    punishmentId = plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName());
+                    plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName());
                 } else {
-                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                    plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
                 }
                 break;
             case "warn":
-                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                 if (useInternal) {
                     plugin.getLogger().warning("Unwarn command is empty, internal unwarn is not supported.");
                 } else {
@@ -492,14 +495,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         sendConfigMessage(sender, "messages.no_active_freeze", "{target}", target.getName());
                         return;
                     }
-                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                    plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                     Player onlineTargetUnfreeze = target.getPlayer();
                     if (onlineTargetUnfreeze != null) {
                         sendConfigMessage(onlineTargetUnfreeze, "messages.you_are_unfrozen");
                         plugin.getFreezeListener().stopFreezeActionsTask(target.getUniqueId());
                     }
                 } else {
-                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+                    plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
                 }
                 break;
@@ -520,7 +523,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             plugin.getLogger().warning("MenuListener instance is null, cannot execute unpunishment hooks.");
         }
     }
-
 
     private void sendConfigMessage(CommandSender sender, String path, String... replacements) {
         String message = plugin.getConfigManager().getMessage(path, replacements);

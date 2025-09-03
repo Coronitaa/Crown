@@ -81,7 +81,11 @@ public class DatabaseManager {
                     "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
                     "punisher_name VARCHAR(255)," +
                     "punishment_time BIGINT DEFAULT 0," +
-                    "duration_string VARCHAR(50) DEFAULT 'permanent')";
+                    "duration_string VARCHAR(50) DEFAULT 'permanent'," +
+                    "active BOOLEAN DEFAULT 1," +
+                    "removed_by_name VARCHAR(255)," +
+                    "removed_at DATETIME," +
+                    "removed_reason TEXT)";
 
             if ("sqlite".equalsIgnoreCase(dbType)) {
                 createHistoryTableSQL = "CREATE TABLE IF NOT EXISTS punishment_history (" +
@@ -93,14 +97,43 @@ public class DatabaseManager {
                         "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
                         "punisher_name VARCHAR(255)," +
                         "punishment_time BIGINT DEFAULT 0," +
-                        "duration_string VARCHAR(50) DEFAULT 'permanent')";
+                        "duration_string VARCHAR(50) DEFAULT 'permanent'," +
+                        "active BOOLEAN DEFAULT 1," +
+                        "removed_by_name VARCHAR(255)," +
+                        "removed_at DATETIME," +
+                        "removed_reason TEXT)";
             }
             statement.execute(createHistoryTableSQL);
+            updateTableStructure(connection);
 
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not initialize database!", e);
         }
     }
+    private void updateTableStructure(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            if (!columnExists(connection, "punishment_history", "active")) {
+                statement.execute("ALTER TABLE punishment_history ADD COLUMN active BOOLEAN DEFAULT 1");
+            }
+            if (!columnExists(connection, "punishment_history", "removed_by_name")) {
+                statement.execute("ALTER TABLE punishment_history ADD COLUMN removed_by_name VARCHAR(255)");
+            }
+            if (!columnExists(connection, "punishment_history", "removed_at")) {
+                statement.execute("ALTER TABLE punishment_history ADD COLUMN removed_at DATETIME");
+            }
+            if (!columnExists(connection, "punishment_history", "removed_reason")) {
+                statement.execute("ALTER TABLE punishment_history ADD COLUMN removed_reason TEXT");
+            }
+        }
+    }
+
+    private boolean columnExists(Connection connection, String tableName, String columnName) throws SQLException {
+        DatabaseMetaData md = connection.getMetaData();
+        try (ResultSet rs = md.getColumns(null, null, tableName, columnName)) {
+            return rs.next();
+        }
+    }
+
 
     private void startExpiryCheckTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
@@ -164,19 +197,23 @@ public class DatabaseManager {
     }
 
     public String unSoftBanPlayer(UUID uuid, String punisherName) {
+        String activePunishmentId = getLatestActivePunishmentId(uuid, "softban");
+        if (activePunishmentId == null) {
+            return null; // No active softban to remove
+        }
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement("DELETE FROM softbans WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
-                String originalPunishmentId = getLatestPunishmentId(uuid, "softban");
-                String reason = "Softban Removed" + (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
-                return logPunishment(uuid, "unsoftban", reason, punisherName, 0L, "N/A");
+                updatePunishmentAsRemoved(activePunishmentId, punisherName, "Unsoftbanned");
+                return activePunishmentId;
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not un-soft ban player!", e);
         }
         return null;
     }
+
 
     public boolean isSoftBanned(UUID uuid) {
         return getPunishmentEndTime("softbans", uuid) > System.currentTimeMillis();
@@ -218,19 +255,23 @@ public class DatabaseManager {
     }
 
     public String unmutePlayer(UUID uuid, String punisherName) {
+        String activePunishmentId = getLatestActivePunishmentId(uuid, "mute");
+        if (activePunishmentId == null) {
+            return null; // No active mute to remove
+        }
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement("DELETE FROM mutes WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
-                String originalPunishmentId = getLatestPunishmentId(uuid, "mute");
-                String reason = "Mute Removed" + (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
-                return logPunishment(uuid, "unmute", reason, punisherName, 0L, "N/A");
+                updatePunishmentAsRemoved(activePunishmentId, punisherName, "Unmuted");
+                return activePunishmentId;
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not unmute player!", e);
         }
         return null;
     }
+
 
     public long getMuteEndTime(UUID uuid) {
         return getPunishmentEndTime("mutes", uuid);
@@ -268,7 +309,7 @@ public class DatabaseManager {
 
     public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString) {
         String punishmentId = generatePunishmentId();
-        String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
             ps.setString(2, playerUUID.toString());
@@ -277,6 +318,7 @@ public class DatabaseManager {
             ps.setString(5, punisherName);
             ps.setLong(6, punishmentEndTime);
             ps.setString(7, durationString);
+            ps.setBoolean(8, true); // New punishments are active
             ps.executeUpdate();
             return punishmentId;
         } catch (SQLException e) {
@@ -288,7 +330,7 @@ public class DatabaseManager {
     public List<PunishmentEntry> getPunishmentHistory(UUID playerUUID, int page, int entriesPerPage) {
         List<PunishmentEntry> history = new ArrayList<>();
         int offset = (page - 1) * entriesPerPage;
-        String sql = "SELECT punishment_id, punishment_type, reason, timestamp, punisher_name, punishment_time, duration_string FROM punishment_history WHERE player_uuid = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?";
+        String sql = "SELECT * FROM punishment_history WHERE player_uuid = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             ps.setInt(2, entriesPerPage);
@@ -330,7 +372,7 @@ public class DatabaseManager {
 
     public HashMap<String, Integer> getPunishmentCounts(UUID playerUUID) {
         HashMap<String, Integer> counts = new HashMap<>();
-        String sql = "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? GROUP BY punishment_type";
+        String sql = "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? AND active = 1 GROUP BY punishment_type";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             try (ResultSet rs = ps.executeQuery()) {
@@ -368,6 +410,35 @@ public class DatabaseManager {
         }
         return null;
     }
+    public String getLatestActivePunishmentId(UUID playerUUID, String punishmentType) {
+        String sql = "SELECT punishment_id FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 ORDER BY timestamp DESC LIMIT 1";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ps.setString(2, punishmentType);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("punishment_id");
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment ID!", e);
+        }
+        return null;
+    }
+    public boolean updatePunishmentAsRemoved(String punishmentId, String removedByName, String removedReason) {
+        String sql = "UPDATE punishment_history SET active = 0, removed_by_name = ?, removed_reason = ?, removed_at = ? WHERE punishment_id = ?";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, removedByName);
+            ps.setString(2, removedReason);
+            ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            ps.setString(4, punishmentId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to update punishment status", e);
+            return false;
+        }
+    }
+
 
     public static class PunishmentEntry {
         private final String punishmentId;
