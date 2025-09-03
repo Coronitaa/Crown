@@ -215,6 +215,26 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     sendConfigMessage(sender, "messages.check_info_health", "{health}", String.valueOf(playerInfo.getHealth()));
                     sendConfigMessage(sender, "messages.check_info_hunger", "{hunger}", String.valueOf(playerInfo.getHunger()));
                     sendConfigMessage(sender, "messages.check_info_exp_level", "{exp_level}", String.valueOf(playerInfo.getExpLevel()));
+                    sendConfigMessage(sender, "messages.check_info_balance", "{balance}", String.valueOf(playerInfo.getBalance()));
+                    sendConfigMessage(sender, "messages.check_info_playtime", "{playtime}", TimeUtils.formatTime((int) (playerInfo.getPlaytime() / 20), plugin.getConfigManager()));
+                    sendConfigMessage(sender, "messages.check_info_ping", "{ping}", String.valueOf(playerInfo.getPing()));
+                    sendConfigMessage(sender, "messages.check_info_first_joined", "{first_joined}", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(playerInfo.getFirstJoined())));
+                    sendConfigMessage(sender, "messages.check_info_last_joined", "{last_joined}", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(playerInfo.getLastJoined())));
+                }
+                List<String> chatHistory = plugin.getSoftBanDatabaseManager().getChatHistory(target.getUniqueId(), 10);
+                if (!chatHistory.isEmpty()) {
+                    sendConfigMessage(sender, "messages.check_info_chat_history_header");
+                    for (String msg : chatHistory) {
+                        sendConfigMessage(sender, "messages.check_info_chat_history_entry", "{message}", msg);
+                    }
+                }
+
+                if (playerInfo != null) {
+                    List<String> associatedAccounts = plugin.getSoftBanDatabaseManager().getPlayersByIp(playerInfo.getIp());
+                    if (!associatedAccounts.isEmpty()) {
+                        sendConfigMessage(sender, "messages.check_info_associated_accounts_header");
+                        sendConfigMessage(sender, "messages.check_info_associated_accounts_entry", "{accounts}", String.join(", ", associatedAccounts));
+                    }
                 }
 
                 if (!entry.isActive()) {

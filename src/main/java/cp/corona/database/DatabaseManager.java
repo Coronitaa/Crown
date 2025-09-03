@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.Date; // Keep this import
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -48,7 +49,7 @@ public class DatabaseManager {
         startMuteExpiryCheckTask(); // Task for mutes
     }
 
-    private Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         if ("mysql".equalsIgnoreCase(dbType)) {
             return DriverManager.getConnection(dbURL, this.dbUsername, this.dbPassword);
         } else {
@@ -113,6 +114,11 @@ public class DatabaseManager {
                     "health DOUBLE," +
                     "hunger INT," +
                     "exp_level INT," +
+                    "balance DOUBLE," +
+                    "playtime BIGINT," +
+                    "ping INT," +
+                    "first_joined BIGINT," +
+                    "last_joined BIGINT," +
                     "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
 
             if ("sqlite".equalsIgnoreCase(dbType)) {
@@ -124,9 +130,29 @@ public class DatabaseManager {
                         "health DOUBLE," +
                         "hunger INT," +
                         "exp_level INT," +
+                        "balance DOUBLE," +
+                        "playtime BIGINT," +
+                        "ping INT," +
+                        "first_joined BIGINT," +
+                        "last_joined BIGINT," +
                         "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
             }
             statement.execute(createPlayerInfoTableSQL);
+
+            String createPlayerChatHistoryTableSQL = "CREATE TABLE IF NOT EXISTS player_chat_history (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "player_uuid VARCHAR(36) NOT NULL," +
+                    "message TEXT," +
+                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)";
+            if ("sqlite".equalsIgnoreCase(dbType)) {
+                createPlayerChatHistoryTableSQL = "CREATE TABLE IF NOT EXISTS player_chat_history (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "player_uuid VARCHAR(36) NOT NULL," +
+                        "message TEXT," +
+                        "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)";
+            }
+            statement.execute(createPlayerChatHistoryTableSQL);
+
 
             updateTableStructure(connection);
 
@@ -359,7 +385,7 @@ public class DatabaseManager {
     }
 
     public void logPlayerInfo(String punishmentId, Player player) {
-        String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level, balance, playtime, ping, first_joined, last_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
             ps.setString(2, player.getAddress().getAddress().getHostAddress());
@@ -368,6 +394,12 @@ public class DatabaseManager {
             ps.setDouble(5, player.getHealth());
             ps.setInt(6, player.getFoodLevel());
             ps.setInt(7, player.getLevel());
+            ps.setDouble(8, plugin.getVaultManager().getBalance(player));
+            ps.setLong(9, player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE));
+            ps.setInt(10, player.getPing());
+            ps.setLong(11, player.getFirstPlayed());
+            ps.setLong(12, player.getLastPlayed());
+
             ps.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error logging player info!", e);
@@ -388,7 +420,12 @@ public class DatabaseManager {
                             rs.getString("gamemode"),
                             rs.getDouble("health"),
                             rs.getInt("hunger"),
-                            rs.getInt("exp_level")
+                            rs.getInt("exp_level"),
+                            rs.getDouble("balance"),
+                            rs.getLong("playtime"),
+                            rs.getInt("ping"),
+                            rs.getLong("first_joined"),
+                            rs.getLong("last_joined")
                     );
                 }
             }
@@ -539,6 +576,42 @@ public class DatabaseManager {
         }
     }
 
+    public List<String> getChatHistory(UUID playerUUID, int limit) {
+        List<String> chatHistory = new ArrayList<>();
+        String sql = "SELECT message, timestamp FROM player_chat_history WHERE player_uuid = ? ORDER BY timestamp DESC LIMIT ?";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    chatHistory.add(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(rs.getTimestamp("timestamp")) + " - " + rs.getString("message"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving chat history!", e);
+        }
+        return chatHistory;
+    }
+
+    public List<String> getPlayersByIp(String ip) {
+        List<String> players = new ArrayList<>();
+        String sql = "SELECT DISTINCT player_uuid FROM punishment_history WHERE punishment_id IN (SELECT punishment_id FROM player_info WHERE ip = ?)";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, ip);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    UUID playerUUID = UUID.fromString(rs.getString("player_uuid"));
+                    players.add(Bukkit.getOfflinePlayer(playerUUID).getName());
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving players by IP!", e);
+        }
+        return players;
+    }
+
 
     public static class PunishmentEntry {
         private final String punishmentId;
@@ -634,8 +707,14 @@ public class DatabaseManager {
         private final double health;
         private final int hunger;
         private final int expLevel;
+        private final double balance;
+        private final long playtime;
+        private final int ping;
+        private final long firstJoined;
+        private final long lastJoined;
 
-        public PlayerInfo(String punishmentId, String ip, String location, String gamemode, double health, int hunger, int expLevel) {
+
+        public PlayerInfo(String punishmentId, String ip, String location, String gamemode, double health, int hunger, int expLevel, double balance, long playtime, int ping, long firstJoined, long lastJoined) {
             this.punishmentId = punishmentId;
             this.ip = ip;
             this.location = location;
@@ -643,6 +722,11 @@ public class DatabaseManager {
             this.health = health;
             this.hunger = hunger;
             this.expLevel = expLevel;
+            this.balance = balance;
+            this.playtime = playtime;
+            this.ping = ping;
+            this.firstJoined = firstJoined;
+            this.lastJoined = lastJoined;
         }
 
         public String getPunishmentId() {
@@ -671,6 +755,26 @@ public class DatabaseManager {
 
         public int getExpLevel() {
             return expLevel;
+        }
+
+        public double getBalance() {
+            return balance;
+        }
+
+        public long getPlaytime() {
+            return playtime;
+        }
+
+        public int getPing() {
+            return ping;
+        }
+
+        public long getFirstJoined() {
+            return firstJoined;
+        }
+
+        public long getLastJoined() {
+            return lastJoined;
         }
     }
 }
