@@ -602,7 +602,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "ban":
                 if (useInternal) {
                     if (!target.isBanned()) {
-                        sendConfigMessage(sender, "messages.not_active_ban");
+                        sendConfigMessage(sender, "messages.no_active_ban", "{target}", target.getName());
                         return;
                     }
                     Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
@@ -614,7 +614,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "mute":
                 if (useInternal) {
                     if (!plugin.getSoftBanDatabaseManager().isMuted(target.getUniqueId())) {
-                        sendConfigMessage(sender, "messages.not_active_mute");
+                        sendConfigMessage(sender, "messages.no_active_mute", "{target}", target.getName());
                         return;
                     }
                     plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName());
@@ -625,7 +625,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 break;
             case "softban":
                 if (!plugin.getSoftBanDatabaseManager().isSoftBanned(target.getUniqueId())) {
-                    sendConfigMessage(sender, "messages.not_active_softban");
+                    sendConfigMessage(sender, "messages.no_active_softban", "{target}", target.getName());
                     return;
                 }
                 if (useInternal) {
