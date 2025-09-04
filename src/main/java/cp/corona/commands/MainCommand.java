@@ -203,8 +203,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         switch (action) {
             case "info":
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                String status = entry.isActive() ? (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE ? "&a(Active)" : "&c(Expired)") : "&7(Removed)";
-                String timeLeft = entry.isActive() && entry.getEndTime() != Long.MAX_VALUE ? TimeUtils.formatTime((int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager()) : "N/A";
+
+                String type = entry.getType().toLowerCase();
+                String status;
+                if (type.equals("kick") || type.equals("freeze")) {
+                    status = "N/A";
+                } else {
+                    status = entry.isActive() ? (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE ? "&a(Active)" : "&c(Expired)") : "&7(Removed)";
+                }
+
+                String timeLeft = "N/A";
+                if (!type.equals("kick") && !type.equals("freeze")) {
+                    timeLeft = entry.isActive() && entry.getEndTime() != Long.MAX_VALUE ? TimeUtils.formatTime((int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager()) : "N/A";
+                }
+
 
                 sendConfigMessage(sender, "messages.check_info_header", "{id}", punishmentId);
                 sendConfigMessage(sender, "messages.check_info_player", "{player}", target.getName(), "{uuid}", target.getUniqueId().toString());

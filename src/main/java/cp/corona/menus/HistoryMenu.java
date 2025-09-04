@@ -62,7 +62,12 @@ public class HistoryMenu implements InventoryHolder {
         allHistoryEntries = plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, 1, Integer.MAX_VALUE);
 
         for (DatabaseManager.PunishmentEntry entry : allHistoryEntries) {
-            if (entry.getType().startsWith("un")) {
+            String type = entry.getType().toLowerCase();
+            if (type.startsWith("un")) {
+                continue;
+            }
+            if (type.equals("kick") || type.equals("freeze")) {
+                entry.setStatus(""); // Set status to blank for kick and freeze
                 continue;
             }
             if (!entry.isActive()) {
@@ -158,7 +163,16 @@ public class HistoryMenu implements InventoryHolder {
                 long remainingMillis = entry.getPunishmentTime() - System.currentTimeMillis();
                 String timeLeft = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
                 lore.add("&7Expires: &b" + expiresAt + " (" + timeLeft + ")");
+            } else if ("&7(removed)".equals(status)) {
+                if (entry.getRemovedByName() != null && entry.getRemovedAt() != null) {
+                    lore.add("&cRemoved by: &e" + entry.getRemovedByName());
+                    lore.add("&cAt: &e" + dateFormat.format(entry.getRemovedAt()));
+                    if (entry.getRemovedReason() != null && !entry.getRemovedReason().isEmpty()) {
+                        lore.add("&cReason: &e" + entry.getRemovedReason());
+                    }
+                }
             }
+
 
             historyEntryItem.setLore(lore);
             historyEntryItem.setSlots(List.of(slot));

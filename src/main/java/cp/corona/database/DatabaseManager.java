@@ -452,7 +452,7 @@ public class DatabaseManager {
                 while (rs.next()) {
                     history.add(new PunishmentEntry(
                             rs.getString("punishment_id"),
-                            UUID.fromString(rs.getString("player_uuid")),
+                            playerUUID,
                             rs.getString("punishment_type"),
                             rs.getString("reason"),
                             rs.getTimestamp("timestamp"),
@@ -471,7 +471,6 @@ public class DatabaseManager {
         }
         return history;
     }
-
     public PunishmentEntry getPunishmentById(String punishmentId) {
         String sql = "SELECT * FROM punishment_history WHERE punishment_id = ?";
         try (Connection connection = getConnection();
@@ -643,23 +642,6 @@ public class DatabaseManager {
         private final Timestamp removedAt;
 
         private final String removedReason;
-
-
-        public PunishmentEntry(String punishmentId, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString) {
-            this.punishmentId = punishmentId;
-            this.playerUUID = null;
-            this.type = type;
-            this.reason = reason;
-            this.timestamp = timestamp;
-            this.punisherName = punisherName;
-            this.punishmentTime = punishmentTime;
-            this.durationString = durationString;
-            this.active = true;
-            this.removedAt = null;
-            this.removedByName = null;
-            this.removedReason = null;
-        }
-
         public PunishmentEntry(String punishmentId, UUID playerUUID, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString, boolean active, String removedByName, Timestamp removedAt, String removedReason) {
             this.punishmentId = punishmentId;
             this.playerUUID = playerUUID;
