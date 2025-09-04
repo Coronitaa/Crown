@@ -359,9 +359,9 @@ public class DatabaseManager {
     }
 
     public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString) {
-        String activePunishmentId = getLatestActivePunishmentId(playerUUID, punishmentType);
-        if (activePunishmentId != null) {
-            updatePunishmentAsRemoved(activePunishmentId, "System", "Superseded by new punishment.");
+        PunishmentEntry activePunishment = getLatestActivePunishment(playerUUID, punishmentType);
+        if (activePunishment != null && (activePunishment.getEndTime() > System.currentTimeMillis() || activePunishment.getEndTime() == Long.MAX_VALUE)) {
+            updatePunishmentAsRemoved(activePunishment.getPunishmentId(), "System", "Superseded by new punishment.");
         }
 
         String punishmentId = generatePunishmentId();
@@ -569,6 +569,36 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment ID!", e);
+        }
+        return null;
+    }
+
+    public PunishmentEntry getLatestActivePunishment(UUID playerUUID, String punishmentType) {
+        String sql = "SELECT * FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 ORDER BY timestamp DESC LIMIT 1";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ps.setString(2, punishmentType);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new PunishmentEntry(
+                            rs.getString("punishment_id"),
+                            UUID.fromString(rs.getString("player_uuid")),
+                            rs.getString("punishment_type"),
+                            rs.getString("reason"),
+                            rs.getTimestamp("timestamp"),
+                            rs.getString("punisher_name"),
+                            rs.getLong("punishment_time"),
+                            rs.getString("duration_string"),
+                            rs.getBoolean("active"),
+                            rs.getString("removed_by_name"),
+                            rs.getTimestamp("removed_at"),
+                            rs.getString("removed_reason")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment!", e);
         }
         return null;
     }
