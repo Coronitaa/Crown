@@ -452,12 +452,17 @@ public class DatabaseManager {
                 while (rs.next()) {
                     history.add(new PunishmentEntry(
                             rs.getString("punishment_id"),
+                            UUID.fromString(rs.getString("player_uuid")),
                             rs.getString("punishment_type"),
                             rs.getString("reason"),
                             rs.getTimestamp("timestamp"),
                             rs.getString("punisher_name"),
                             rs.getLong("punishment_time"),
-                            rs.getString("duration_string")
+                            rs.getString("duration_string"),
+                            rs.getBoolean("active"),
+                            rs.getString("removed_by_name"),
+                            rs.getTimestamp("removed_at"),
+                            rs.getString("removed_reason")
                     ));
                 }
             }
@@ -466,6 +471,7 @@ public class DatabaseManager {
         }
         return history;
     }
+
     public PunishmentEntry getPunishmentById(String punishmentId) {
         String sql = "SELECT * FROM punishment_history WHERE punishment_id = ?";
         try (Connection connection = getConnection();
