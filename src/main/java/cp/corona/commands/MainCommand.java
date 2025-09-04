@@ -577,7 +577,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        String logReason = plugin.getConfigManager().getDefaultUnpunishmentReason(punishType).replace("{player}", sender.getName());
+        String logReason = plugin.getConfigManager().getDefaultUnpunishmentReason(punishType).replace("{player}", sender.getName()) + " (ID: " + punishmentId + ")";
+        String unpunishId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+
 
         switch (punishType.toLowerCase()) {
             case "ban":
@@ -650,7 +652,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return;
         }
 
-        sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", punishType, "{punishment_id}", punishmentId);
+        sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", punishType, "{punishment_id}", unpunishId);
 
         MenuListener menuListener = plugin.getMenuListener();
         if (menuListener != null) {

@@ -359,6 +359,11 @@ public class DatabaseManager {
     }
 
     public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString) {
+        String activePunishmentId = getLatestActivePunishmentId(playerUUID, punishmentType);
+        if (activePunishmentId != null) {
+            updatePunishmentAsRemoved(activePunishmentId, "System", "Superseded by new punishment.");
+        }
+
         String punishmentId = generatePunishmentId();
         String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
