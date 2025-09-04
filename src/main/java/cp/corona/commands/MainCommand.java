@@ -576,6 +576,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishType);
         String punishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(target.getUniqueId(), punishType);
 
+        if (!UNPUNISHMENT_TYPES.contains(punishType)) {
+            sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
+            return;
+        }
+
         if (punishmentId == null && useInternal) {
             sendConfigMessage(sender, "messages.no_active_" + punishType, "{target}", target.getName());
             return;
