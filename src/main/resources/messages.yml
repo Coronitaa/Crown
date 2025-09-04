@@ -74,10 +74,6 @@ messages:
   unpunish_not_supported: '{prefix}&cCannot unpunish type: &b{punishment_type}&c.'
   unpunish_command_not_configured: '{prefix}&cThe unpunish command for &b{punishment_type}&c is not set in config.yml.'
 
-  not_banned: '{prefix}&cThat player is not banned.'
-  not_softbanned: '{prefix}&cThat player is not SoftBanned.'
-  not_muted: '{prefix}&cThat player is not muted.'
-
   prompt_new_target: '&aEnter the target player name (or type ''cancel''):'
   prompt_ban_reason: '&aEnter ban reason (or type ''cancel''):'
   prompt_mute_reason: '&aEnter mute reason (or type ''cancel''):'
@@ -104,6 +100,7 @@ messages:
   softban_command_blocked: '{prefix}&cCommand blocked due to active SoftBan.'
   no_active_softban: '{prefix}&cPlayer &b{target}&c does not have an active softban.'
   no_active_ban: '{prefix}&cPlayer &b{target}&c does not have an active ban.'
+  no_active_mute: '{prefix}&cPlayer &b{target}&c does not have an active mute.'
   unsoftban_success: '{prefix}&aSuccessfully removed softban from &b{target}&a.'
   you_are_softbanned: |
     &c&lYou have been SoftBanned!

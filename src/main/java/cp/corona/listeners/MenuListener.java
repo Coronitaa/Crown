@@ -1053,7 +1053,7 @@ public class MenuListener implements Listener {
 
         if (useInternal) {
             if (!target.isBanned()) {
-                sendConfigMessage(player, "messages.not_banned");
+                sendConfigMessage(player, "messages.not_active_ban");
                 return;
             }
             Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
@@ -1082,7 +1082,7 @@ public class MenuListener implements Listener {
 
         if (useInternal) {
             if (!plugin.getSoftBanDatabaseManager().isMuted(target.getUniqueId())) {
-                sendConfigMessage(player, "messages.not_muted");
+                sendConfigMessage(player, "messages.not_active_mute");
                 return;
             }
             punishmentId = plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), player.getName());

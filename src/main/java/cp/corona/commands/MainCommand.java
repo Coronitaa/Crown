@@ -578,14 +578,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
 
         String logReason = plugin.getConfigManager().getDefaultUnpunishmentReason(punishType).replace("{player}", sender.getName()) + " (ID: " + punishmentId + ")";
-        String unpunishId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
+        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
 
 
         switch (punishType.toLowerCase()) {
             case "ban":
                 if (useInternal) {
                     if (!target.isBanned()) {
-                        sendConfigMessage(sender, "messages.not_banned");
+                        sendConfigMessage(sender, "messages.not_active_ban");
                         return;
                     }
                     Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
@@ -597,7 +597,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "mute":
                 if (useInternal) {
                     if (!plugin.getSoftBanDatabaseManager().isMuted(target.getUniqueId())) {
-                        sendConfigMessage(sender, "messages.not_muted");
+                        sendConfigMessage(sender, "messages.not_active_mute");
                         return;
                     }
                     plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName());
@@ -608,7 +608,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 break;
             case "softban":
                 if (!plugin.getSoftBanDatabaseManager().isSoftBanned(target.getUniqueId())) {
-                    sendConfigMessage(sender, "messages.not_softbanned");
+                    sendConfigMessage(sender, "messages.not_active_softban");
                     return;
                 }
                 if (useInternal) {
@@ -652,7 +652,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return;
         }
 
-        sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", punishType, "{punishment_id}", unpunishId);
+        sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", punishType, "{punishment_id}", punishmentId);
 
         MenuListener menuListener = plugin.getMenuListener();
         if (menuListener != null) {

@@ -61,28 +61,16 @@ public class HistoryMenu implements InventoryHolder {
     private void loadAndProcessAllHistory() {
         allHistoryEntries = plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, 1, Integer.MAX_VALUE);
 
-        List<DatabaseManager.PunishmentEntry> unpunishments = allHistoryEntries.stream()
-                .filter(e -> e.getType().startsWith("un"))
-                .collect(Collectors.toList());
-
         for (DatabaseManager.PunishmentEntry entry : allHistoryEntries) {
-            if (!entry.getType().startsWith("un")) {
-                String unpunishType = "un" + entry.getType();
-                DatabaseManager.PunishmentEntry correspondingUnpunishment = null;
-                for (DatabaseManager.PunishmentEntry unpunishment : unpunishments) {
-                    if (unpunishment.getType().equals(unpunishType) && unpunishment.getTimestamp().after(entry.getTimestamp())) {
-                        correspondingUnpunishment = unpunishment;
-                        break;
-                    }
-                }
-
-                if (correspondingUnpunishment != null) {
-                    entry.setStatus("&7(removed)");
-                    unpunishments.remove(correspondingUnpunishment);
-                } else {
-                    boolean isActive = entry.getPunishmentTime() > System.currentTimeMillis() || entry.getPunishmentTime() == Long.MAX_VALUE;
-                    entry.setStatus(isActive ? "&a(active)" : "&c(expired)");
-                }
+            if (entry.getType().startsWith("un")) {
+                continue;
+            }
+            if (!entry.isActive()) {
+                entry.setStatus("&7(removed)");
+            } else if (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE) {
+                entry.setStatus("&a(active)");
+            } else {
+                entry.setStatus("&c(expired)");
             }
         }
     }
