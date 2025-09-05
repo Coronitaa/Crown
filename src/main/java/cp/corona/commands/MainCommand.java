@@ -12,8 +12,8 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
 import org.bukkit.BanList;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -146,21 +146,21 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleUnpunishmentTypeAlias(CommandSender sender, String unpunishmentCommand, String[] args) {
-        // unban -> ban
         String punishmentType = unpunishmentCommand.substring(2);
-        String[] newArgs = new String[args.length + 1];
+        String[] newArgs;
 
-        if (args.length > 0) {
-            newArgs[0] = args[0]; // Player name
-        } else {
-            // if just /unban, show usage from unpunish
+        if (args.length == 0) {
             return handleUnpunishCommand(sender, new String[0]);
         }
-        newArgs[1] = punishmentType; // The type to unpunish
+
+        newArgs = new String[args.length + 1];
+        newArgs[0] = args[0]; // player name
+        newArgs[1] = punishmentType;
+
         if (args.length > 1) {
-            // This case should not happen for unpunish commands but is here for safety
-            System.arraycopy(args, 1, newArgs, 2, args.length - 1);
+            System.arraycopy(args, 1, newArgs, 2, args.length - 1); // reason
         }
+
         return handleUnpunishCommand(sender, newArgs);
     }
 
@@ -293,7 +293,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
             case "unpunish":
-                confirmDirectUnpunish(sender, target, entry.getType());
+                confirmDirectUnpunish(sender, target, entry.getType(), plugin.getConfigManager().getDefaultUnpunishmentReason(entry.getType()));
                 break;
             default:
                 sendConfigMessage(sender, "messages.check_usage");
@@ -370,13 +370,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private boolean handleUnpunishCommand(CommandSender sender, String[] args) {
         if (args.length < 2) {
             String commandLabel = (sender instanceof Player) ? "unpunish" : "crown unpunish";
-            sendConfigMessage(sender, "messages.unpunish_usage", "{usage}", "/" + commandLabel + " <player> <type>");
+            sendConfigMessage(sender, "messages.unpunish_usage", "{usage}", "/" + commandLabel + " <player> <type> [reason]");
             return true;
         }
 
         String targetName = args[0];
         if (targetName.length() < 3 || targetName.length() > 16) {
-            sendConfigMessage(sender, "messages.invalid_player_name");
+            sendConfigMessage(sender, "messages.invalid_player_name", "{input}", targetName);
             return true;
         }
 
@@ -398,9 +398,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        confirmDirectUnpunish(sender, target, punishType);
+        String reason = (args.length > 2) ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : plugin.getConfigManager().getDefaultUnpunishmentReason(punishType);
+        confirmDirectUnpunish(sender, target, punishType, reason);
         return true;
     }
+
 
     private void executePunishmentCommand(CommandSender sender, String commandTemplate, OfflinePlayer target, String time, String reason) {
         if (commandTemplate == null || commandTemplate.isEmpty()) {
@@ -570,7 +572,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private void confirmDirectUnpunish(final CommandSender sender, final OfflinePlayer target, final String punishType) {
+    private void confirmDirectUnpunish(final CommandSender sender, final OfflinePlayer target, final String punishType, final String reason) {
         String commandTemplate = plugin.getConfigManager().getUnpunishCommand(punishType);
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishType);
         String punishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(target.getUniqueId(), punishType);
@@ -593,7 +595,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        String logReason = plugin.getConfigManager().getDefaultUnpunishmentReason(punishType).replace("{player}", sender.getName()) + " (ID: " + punishmentId + ")";
+        String logReason = reason;
+        if (reason.equals(plugin.getConfigManager().getDefaultUnpunishmentReason(punishType))) {
+            logReason = reason.replace("{player}", sender.getName()) + " (ID: " + punishmentId + ")";
+        }
+
         plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
 
 
@@ -606,7 +612,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     }
                     Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
                 } else {
-                    executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
+                    executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
                 }
                 plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                 break;
@@ -616,10 +622,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         sendConfigMessage(sender, "messages.no_active_mute", "{target}", target.getName());
                         return;
                     }
-                    plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName());
+                    plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName(), reason);
                 } else {
                     plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
-                    executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
+                    executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
                 }
                 break;
             case "softban":
@@ -628,10 +634,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     return;
                 }
                 if (useInternal) {
-                    plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName());
+                    plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName(), reason);
                 } else {
                     plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
-                    executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
+                    executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
                 }
                 break;
             case "warn":
@@ -639,7 +645,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 if (useInternal) {
                     plugin.getLogger().warning("Unwarn command is empty, internal unwarn is not supported.");
                 } else {
-                    executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
+                    executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
                 }
                 break;
             case "freeze":
@@ -657,7 +663,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     }
                 } else {
                     plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
-                    executePunishmentCommand(sender, commandTemplate, target, "N/A", "N/A");
+                    executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
                 }
                 break;
             case "kick":
@@ -677,6 +683,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             plugin.getLogger().warning("MenuListener instance is null, cannot execute unpunishment hooks.");
         }
     }
+
 
     private void sendConfigMessage(CommandSender sender, String path, String... replacements) {
         String message = plugin.getConfigManager().getMessage(path, replacements);
@@ -745,6 +752,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 StringUtil.copyPartialMatches(args[0], playerNames, completions);
             } else if (args.length == 2 && alias.equalsIgnoreCase("unpunish")) {
                 StringUtil.copyPartialMatches(args[1], UNPUNISHMENT_TYPES, completions);
+            } else if (args.length >= 3) {
+                completions.add("reason here...");
             }
         }
 

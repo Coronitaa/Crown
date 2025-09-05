@@ -14,7 +14,7 @@ commands:
 
   unpunish: # Top level command for unpunishing players directly - SEPARATE TOP LEVEL COMMAND
     description: Command to directly unpunish players.
-    usage: /<command> <player> <type>
+    usage: /<command> <player> <type> [reason]
 
   check:
     description: Command to check a punishment by ID.
@@ -42,19 +42,19 @@ commands:
     usage: /<command> <player> [reason]
   unban:
     description: Command to directly unban players.
-    usage: /<command> <player>
+    usage: /<command> <player> [reason]
   unwarn:
     description: Command to directly unwarn players.
-    usage: /<command> <player>
+    usage: /<command> <player> [reason]
   unmute:
     description: Command to directly unmute players.
-    usage: /<command> <player>
+    usage: /<command> <player> [reason]
   unfreeze:
     description: Command to directly unfreeze players.
-    usage: /<command> <player>
+    usage: /<command> <player> [reason]
   unsoftban:
     description: Command to directly unsoftban players.
-    usage: /<command> <player>
+    usage: /<command> <player> [reason]
 
 
 

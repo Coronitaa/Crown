@@ -245,7 +245,7 @@ public class DatabaseManager {
         return null;
     }
 
-    public String unSoftBanPlayer(UUID uuid, String punisherName) {
+    public String unSoftBanPlayer(UUID uuid, String punisherName, String reason) {
         String activePunishmentId = getLatestActivePunishmentId(uuid, "softban");
         if (activePunishmentId == null) {
             return null; // No active softban to remove
@@ -254,7 +254,7 @@ public class DatabaseManager {
              PreparedStatement ps = connection.prepareStatement("DELETE FROM softbans WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
-                updatePunishmentAsRemoved(activePunishmentId, punisherName, "Unsoftbanned");
+                updatePunishmentAsRemoved(activePunishmentId, punisherName, reason);
                 return activePunishmentId;
             }
         } catch (SQLException e) {
@@ -303,7 +303,7 @@ public class DatabaseManager {
         return null;
     }
 
-    public String unmutePlayer(UUID uuid, String punisherName) {
+    public String unmutePlayer(UUID uuid, String punisherName, String reason) {
         String activePunishmentId = getLatestActivePunishmentId(uuid, "mute");
         if (activePunishmentId == null) {
             return null; // No active mute to remove
@@ -312,7 +312,7 @@ public class DatabaseManager {
              PreparedStatement ps = connection.prepareStatement("DELETE FROM mutes WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
-                updatePunishmentAsRemoved(activePunishmentId, punisherName, "Unmuted");
+                updatePunishmentAsRemoved(activePunishmentId, punisherName, reason);
                 return activePunishmentId;
             }
         } catch (SQLException e) {
