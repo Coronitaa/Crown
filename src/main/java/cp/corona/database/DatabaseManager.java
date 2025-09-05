@@ -114,7 +114,6 @@ public class DatabaseManager {
                     "health DOUBLE," +
                     "hunger INT," +
                     "exp_level INT," +
-                    "balance DOUBLE," +
                     "playtime BIGINT," +
                     "ping INT," +
                     "first_joined BIGINT," +
@@ -130,7 +129,6 @@ public class DatabaseManager {
                         "health DOUBLE," +
                         "hunger INT," +
                         "exp_level INT," +
-                        "balance DOUBLE," +
                         "playtime BIGINT," +
                         "ping INT," +
                         "first_joined BIGINT," +
@@ -390,7 +388,7 @@ public class DatabaseManager {
     }
 
     public void logPlayerInfo(String punishmentId, Player player) {
-        String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level, balance, playtime, ping, first_joined, last_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level, playtime, ping, first_joined, last_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
             ps.setString(2, player.getAddress().getAddress().getHostAddress());
@@ -399,11 +397,10 @@ public class DatabaseManager {
             ps.setDouble(5, player.getHealth());
             ps.setInt(6, player.getFoodLevel());
             ps.setInt(7, player.getLevel());
-            ps.setDouble(8, plugin.getVaultManager().getBalance(player));
-            ps.setLong(9, player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE));
-            ps.setInt(10, player.getPing());
-            ps.setLong(11, player.getFirstPlayed());
-            ps.setLong(12, player.getLastPlayed());
+            ps.setLong(8, player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE));
+            ps.setInt(9, player.getPing());
+            ps.setLong(10, player.getFirstPlayed());
+            ps.setLong(11, player.getLastPlayed());
 
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -426,7 +423,6 @@ public class DatabaseManager {
                             rs.getDouble("health"),
                             rs.getInt("hunger"),
                             rs.getInt("exp_level"),
-                            rs.getDouble("balance"),
                             rs.getLong("playtime"),
                             rs.getInt("ping"),
                             rs.getLong("first_joined"),
@@ -730,14 +726,13 @@ public class DatabaseManager {
         private final double health;
         private final int hunger;
         private final int expLevel;
-        private final double balance;
         private final long playtime;
         private final int ping;
         private final long firstJoined;
         private final long lastJoined;
 
 
-        public PlayerInfo(String punishmentId, String ip, String location, String gamemode, double health, int hunger, int expLevel, double balance, long playtime, int ping, long firstJoined, long lastJoined) {
+        public PlayerInfo(String punishmentId, String ip, String location, String gamemode, double health, int hunger, int expLevel, long playtime, int ping, long firstJoined, long lastJoined) {
             this.punishmentId = punishmentId;
             this.ip = ip;
             this.location = location;
@@ -745,7 +740,6 @@ public class DatabaseManager {
             this.health = health;
             this.hunger = hunger;
             this.expLevel = expLevel;
-            this.balance = balance;
             this.playtime = playtime;
             this.ping = ping;
             this.firstJoined = firstJoined;
@@ -778,10 +772,6 @@ public class DatabaseManager {
 
         public int getExpLevel() {
             return expLevel;
-        }
-
-        public double getBalance() {
-            return balance;
         }
 
         public long getPlaytime() {

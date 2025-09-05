@@ -83,11 +83,5 @@
             <version>2.11.3</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>com.github.MilkBowl</groupId>
-            <artifactId>VaultAPI</artifactId>
-            <version>1.7</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 </project>

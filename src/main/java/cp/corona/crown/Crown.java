@@ -6,7 +6,6 @@ import cp.corona.commands.MainCommand;
 import cp.corona.config.MainConfigManager;
 import cp.corona.database.DatabaseManager;
 import cp.corona.listeners.*;
-import cp.corona.utils.VaultManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.PluginCommand;
@@ -22,7 +21,6 @@ public final class Crown extends JavaPlugin {
     private final String version = getDescription().getVersion();
     private MainConfigManager configManager;
     private DatabaseManager databaseManager;
-    private VaultManager vaultManager;
     private boolean placeholderAPIEnabled;
     private final HashMap<UUID, Boolean> pluginFrozenPlayers = new HashMap<>();
 
@@ -34,7 +32,6 @@ public final class Crown extends JavaPlugin {
     public void onEnable() {
         this.configManager = new MainConfigManager(this);
         this.databaseManager = new DatabaseManager(this);
-        this.vaultManager = new VaultManager(this);
         this.placeholderAPIEnabled = configManager.isPlaceholderAPIEnabled();
 
         if (placeholderAPIEnabled) {
@@ -125,10 +122,6 @@ public final class Crown extends JavaPlugin {
 
     public DatabaseManager getSoftBanDatabaseManager() {
         return databaseManager;
-    }
-
-    public VaultManager getVaultManager() {
-        return vaultManager;
     }
 
     public boolean isPlaceholderAPIEnabled() {
