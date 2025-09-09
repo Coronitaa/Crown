@@ -10,6 +10,7 @@ ban-screen:
   - ''
   - '&7Reason: &f{reason}'
   - '&7Expires in: &f{time_left}'
+  - '&7Date: &f{date}'
   - '&7Punishment ID: &f{punishment_id}'
   - ''
   - '&7Appeal at: &b{support_link}'
