@@ -485,7 +485,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
                     Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), reason, expiration, sender.getName());
                     if (target.isOnline()) {
-                        target.getPlayer().kickPlayer(reason);
+                        String kickMessage = getKickMessage(plugin.getConfigManager().getBanScreen(), reason, durationForLog, punishmentId, expiration);
+                        target.getPlayer().kickPlayer(kickMessage);
                     }
                 } else {
                     executePunishmentCommand(sender, commandTemplate, target, time, reason);
@@ -524,7 +525,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), 0L, durationForLog);
                 if (useInternal) {
                     if (target.isOnline()) {
-                        target.getPlayer().kickPlayer(reason);
+                        String kickMessage = getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null);
+                        target.getPlayer().kickPlayer(kickMessage);
                     }
                 } else {
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
@@ -607,7 +609,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "ban":
                 if (useInternal) {
                     if (!target.isBanned()) {
-                        sendConfigMessage(sender, "messages.no_active_ban", "{target}", target.getName());
+                        sendConfigMessage(sender, "messages.not_banned", "{target}", target.getName());
                         return;
                     }
                     Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
@@ -619,7 +621,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "mute":
                 if (useInternal) {
                     if (!plugin.getSoftBanDatabaseManager().isMuted(target.getUniqueId())) {
-                        sendConfigMessage(sender, "messages.no_active_mute", "{target}", target.getName());
+                        sendConfigMessage(sender, "messages.not_muted", "{target}", target.getName());
                         return;
                     }
                     plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName(), reason);
@@ -778,7 +780,21 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         Collections.sort(completions);
         return completions;
     }
+    private String getKickMessage(List<String> lines, String reason, String timeLeft, String punishmentId, Date expiration) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String date = dateFormat.format(new Date());
+        String dateUntil = expiration != null ? dateFormat.format(expiration) : "Never";
 
+        return lines.stream()
+                .map(MessageUtils::getColorMessage)
+                .map(line -> line.replace("{reason}", reason))
+                .map(line -> line.replace("{time_left}", timeLeft))
+                .map(line -> line.replace("{punishment_id}", punishmentId))
+                .map(line -> line.replace("{date}", date))
+                .map(line -> line.replace("{date_until}", dateUntil))
+                .map(line -> line.replace("{support_link}", plugin.getConfigManager().getSupportLink()))
+                .collect(Collectors.joining("\n"));
+    }
     private boolean checkPunishDetailsPermission(CommandSender sender, String punishType) {
         switch (punishType.toLowerCase()) {
             case "ban": return sender.hasPermission(PUNISH_BAN_PERMISSION);
