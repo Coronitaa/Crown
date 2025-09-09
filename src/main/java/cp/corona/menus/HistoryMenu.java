@@ -186,21 +186,16 @@ public class HistoryMenu implements InventoryHolder {
 
 
     private String getDurationDisplay(DatabaseManager.PunishmentEntry entry) {
-        if (entry.getType().equalsIgnoreCase("warn") || entry.getType().equalsIgnoreCase("kick")) {
-            return "Permanent";
-        } else if (entry.getType().equalsIgnoreCase("mute") ||
-                entry.getType().equalsIgnoreCase("ban") ||
-                entry.getType().equalsIgnoreCase("softban")) {
-            if (entry.getDurationString().equalsIgnoreCase("permanent")) {
-                return "Permanent";
-            } else if (!entry.getDurationString().isEmpty()) {
-                return entry.getDurationString();
-            } else {
-                return "N/A";
-            }
+        String type = entry.getType().toLowerCase();
+        if (type.equals("warn") || type.equals("kick") || type.equals("freeze") ||
+                (entry.getDurationString() != null && entry.getDurationString().equalsIgnoreCase("permanent"))) {
+            return plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
+        } else if (!entry.getDurationString().isEmpty()) {
+            return entry.getDurationString();
         }
         return "N/A";
     }
+
 
     private void updatePageButtons(OfflinePlayer target) {
         int totalCount = allHistoryEntries.size();

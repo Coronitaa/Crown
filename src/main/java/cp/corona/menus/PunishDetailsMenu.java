@@ -412,7 +412,7 @@ public class PunishDetailsMenu implements InventoryHolder {
     private String getTimeStatusText() {
         if (!timeRequired) {
             // Optionally make "N/A" configurable too, e.g., placeholders.not_applicable
-            return MessageUtils.getColorMessage("&a\u2705 N/A"); // Checkmark + N/A if time not needed
+            return MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.not_applicable"));
         }
         // Use the correct path "placeholders.set" or "placeholders.not_set"
         return timeSet ? MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.set")) // CORRECTED PATH
@@ -432,6 +432,7 @@ public class PunishDetailsMenu implements InventoryHolder {
         return reasonSet ? MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.set"))
                 : MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.not_set"));
     }
+
 
     /**
      * Returns the Inventory object for this menu.

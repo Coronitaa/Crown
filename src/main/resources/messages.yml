@@ -55,8 +55,8 @@ messages:
   help_punish: '&b/crown punish <player> &7- Open punishment menu.'
   help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Direct punish (ban, mute, softban, kick, warn, freeze).'
   help_punish_alias: '&b/punish <player> <type> [time] [reason] &7- Quick punish (ban, mute, softban, kick, warn, freeze).'
-  help_unpunish: '&b/crown unpunish <player> <type> &7- Remove punishment (ban, mute, softban, warn, freeze).'
-  help_unpunish_alias: '&b/unpunish <player> <type> &7- Quick unpunish (ban, mute, softban, warn, freeze).'
+  help_unpunish: '&b/crown unpunish <player> <type> [reason] &7- Remove punishment (ban, mute, softban, warn, freeze).'
+  help_unpunish_alias: '&b/unpunish <player> <type> [reason] &7- Quick unpunish (ban, mute, softban, warn, freeze).'
   help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban.'
   help_freeze_command: '&b/freeze <player> [reason] &7- Quick freeze.'
   help_check_command: '&b/check <id> [info|repunish|unpunish] &7- Check a punishment by ID.'
@@ -64,15 +64,18 @@ messages:
   help_mute_command: '&b/mute <player> [time] [reason] &7- Quick mute.'
   help_kick_command: '&b/kick <player> [reason] &7- Quick kick.'
   help_warn_command: '&b/warn <player> [reason] &7- Quick warn.'
-  help_unban_command: '&b/unban <player> &7- Quick unban.'
-  help_unmute_command: '&b/unmute <player> &7- Quick unmute.'
-  help_unwarn_command: '&b/unwarn <player> &7- Quick unwarn.'
-  help_unsoftban_command: '&b/unsoftban <player> &7- Quick unsoftban.'
-  help_unfreeze_command: '&b/unfreeze <player> &7- Quick unfreeze.'
+  help_unban_command: '&b/unban <player> [reason] &7- Quick unban.'
+  help_unmute_command: '&b/unmute <player> [reason] &7- Quick unmute.'
+  help_unwarn_command: '&b/unwarn <player> [reason] &7- Quick unwarn.'
+  help_unsoftban_command: '&b/unsoftban <player> [reason] &7- Quick unsoftban.'
+  help_unfreeze_command: '&b/unfreeze <player> [reason] &7- Quick unfreeze.'
   help_reload: '&b/crown reload &7- Reload configuration.'
 
   unpunish_not_supported: '{prefix}&cCannot unpunish type: &b{punishment_type}&c.'
   unpunish_command_not_configured: '{prefix}&cThe unpunish command for &b{punishment_type}&c is not set in config.yml.'
+
+  not_banned: '{prefix}&cThat player is not banned.'
+  not_muted: '{prefix}&cThat player is not muted.'
 
   prompt_new_target: '&aEnter the target player name (or type ''cancel''):'
   prompt_ban_reason: '&aEnter ban reason (or type ''cancel''):'
@@ -99,8 +102,6 @@ messages:
   softban_received: '&c&lSoftBan Alert!&r&c You received a SoftBan. Reason: &e{reason}&c.'
   softban_command_blocked: '{prefix}&cCommand blocked due to active SoftBan.'
   no_active_softban: '{prefix}&cPlayer &b{target}&c does not have an active softban.'
-  no_active_ban: '{prefix}&cPlayer &b{target}&c does not have an active ban.'
-  no_active_mute: '{prefix}&cPlayer &b{target}&c does not have an active mute.'
   unsoftban_success: '{prefix}&aSuccessfully removed softban from &b{target}&a.'
   you_are_softbanned: |
     &c&lYou have been SoftBanned!
@@ -113,7 +114,7 @@ messages:
     &cID: &e{punishment_id}
     &cDuration: &e{time}
     &cReason: &e{reason}
-    &7You cannot send messages or use certain commands during this time.
+    &7You cannot send messages during this time.
 
   chat_while_muted: '{prefix}&cYou are currently muted and cannot send messages.'
 
@@ -154,7 +155,7 @@ messages:
   mute_usage: '{prefix}&cUsage: /mute <player> [time] [reason]'
   kick_usage: '{prefix}&cUsage: /kick <player> [reason]'
   warn_usage: '{prefix}&cUsage: /warn <player> [reason]'
-  direct_unpunishment_confirmed: '{prefix}&aRemoved {punishment_type} from &b{target}&a. (ID: &e{punishment_id}&a)'
+  direct_unpunishment_confirmed: '{prefix}&aRemoved {punishment_type} from &b{target}&a.'
   direct_unsoftban_confirmed: '{prefix}&aRemoved softban from &b{target}&a.'
   direct_kick_confirmed: '{prefix}&aPlayer &b{target}&a kicked. Reason: &f{reason}'
   direct_warn_confirmed: '{prefix}&aPlayer &b{target}&a warned. Reason: &f{reason}'
@@ -191,16 +192,28 @@ messages:
   command_dispatch_error: '{prefix}&cThe command ''{command}'' could not be executed. Please check the console for errors.'
   command_not_found: '{prefix}&cThe command ''{command}'' was not found. Please check your configuration.'
 
-
-
+  default_reasons:
+    no_reason: "No reason specified."
+    ban: "Banned by a moderator."
+    mute: "Muted by a moderator."
+    kick: "Kicked by a moderator."
+    warn: "Warned by a moderator."
+    softban: "Softbanned by a moderator."
+    freeze: "Frozen by a moderator."
+    unban: "Ban punishment removed."
+    unmute: "Mute removed."
+    unwarn: "Warn removed."
+    unsoftban: "Softban removed."
+    unfreeze: "Freeze removed."
 
 # Section for reusable placeholder display values.
 placeholders:
   display_yes: "&a✔"
   display_no: "&c❌"
-  not_set: '&c❌ Not Set'
   set: '&a✔ Set'
+  not_set: '&c❌ Not Set'
   optional_not_set: '&e❌ Not set'
+  not_applicable: 'N/A'
   permanent_time_display: 'Permanent'
 
   punishment_type_names:
