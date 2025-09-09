@@ -86,7 +86,21 @@ public class MainConfigManager {
             placeholders.register();
         }
     }
+    public String getSupportLink() {
+        return pluginConfig.getConfig().getString("support-link", "your.discord.gg");
+    }
 
+    public List<String> getBanScreen() {
+        CustomConfig config = punishmentConfigs.get("ban");
+        if (config == null) return Collections.emptyList();
+        return config.getConfig().getStringList("ban-screen");
+    }
+
+    public List<String> getKickScreen() {
+        CustomConfig config = punishmentConfigs.get("kick");
+        if (config == null) return Collections.emptyList();
+        return config.getConfig().getStringList("kick-screen");
+    }
     public boolean isPunishmentInternal(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
         if (config == null) return false;
@@ -410,7 +424,8 @@ public class MainConfigManager {
                                 onlineTarget.getLocation().getBlockY(),
                                 onlineTarget.getLocation().getBlockZ()) : "-")
                 .replace("{target_world}", onlineTarget != null ?
-                        onlineTarget.getWorld().getName() : "-");
+                        onlineTarget.getWorld().getName() : "-")
+                .replace("{support_link}", getSupportLink());
 
         boolean isSoftBanned = plugin.getSoftBanDatabaseManager().isSoftBanned(target.getUniqueId());
         String softbanStatus = isSoftBanned ? displayYes : displayNo;

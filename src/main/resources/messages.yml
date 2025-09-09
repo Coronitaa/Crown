@@ -19,6 +19,10 @@
 # - {punishment_id}: The unique ID of the punishment record.
 # - {punishment_type}: (DEPRECATED in punishment_confirmed, use {punishment_action_verb} or specific type names)
 # - {punishment_action_verb}: The verb form of the punishment (e.g., "banned", "muted").
+# - {date}: The date of the punishment.
+# - {date_until}: The date the punishment expires.
+# - {time_left}: The time remaining for the punishment.
+# - {support_link}: The support link from config.yml.
 # Menu Specific:
 # - {action}: Action name (e.g., 'ban details').
 # - {time_status}: Status of time setting ('Set'/'Not Set').

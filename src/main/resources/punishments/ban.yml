@@ -5,6 +5,15 @@ unpunish-command: 'unban {target}'
 default-reason: "Banned by a moderator."
 default-unpunish-reason: "Unbanned by {player}."
 
+ban-screen:
+  - '&c&lYou have been banned from the server.'
+  - ''
+  - '&7Reason: &f{reason}'
+  - '&7Expires in: &f{time_left}'
+  - '&7Punishment ID: &f{punishment_id}'
+  - ''
+  - '&7Appeal at: &b{support_link}'
+
 # Post-action hooks for ban.
 hooks:
   on-punish:

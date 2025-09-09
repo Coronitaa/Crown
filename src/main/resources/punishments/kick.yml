@@ -3,6 +3,15 @@ use-internal: true # If true, the plugin will handle the kick internally. If fal
 punish-command: 'kick {target} {reason}'
 default-reason: "Kicked by a moderator."
 
+kick-screen:
+  - '&c&lYou have been kicked from the server.'
+  - ''
+  - '&7Reason: &f{reason}'
+  - '&7Punishment ID: &f{punishment_id}'
+  - ''
+  - '&7Join back or contact us at: &b{support_link}'
+
+
 # Post-action hooks for kick.
 hooks:
   on-punish:

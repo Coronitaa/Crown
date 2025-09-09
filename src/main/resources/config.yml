@@ -3,6 +3,8 @@
 
 prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Supports color codes (&) and RGB hex codes (#RRGGBB).
 
+support-link: "your.discord.gg" # Add your support link here.
+
 # Database settings for storing softban status and punishment history.
 database:
   type: 'sqlite' # 'sqlite' (file-based) or 'mysql'.
