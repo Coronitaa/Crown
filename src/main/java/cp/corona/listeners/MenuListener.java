@@ -875,7 +875,7 @@ public class MenuListener implements Listener {
                 Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
                 String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, punishmentType, reason, player.getName(), expiration != null ? expiration.getTime() : Long.MAX_VALUE, timeInput);
 
-                boolean banByIp = plugin.getConfigManager().isBanByIp();
+                boolean banByIp = plugin.getConfigManager().isPunishmentByIp("ban");
                 String targetIdentifier = target.getName();
                 Player onlineTarget = target.getPlayer();
 
@@ -896,10 +896,7 @@ public class MenuListener implements Listener {
                     target.getPlayer().kickPlayer(kickMessage);
                 }
 
-                playSound(player, "punish_confirm");
-                sendPunishmentConfirmation(player, target, timeInput, reason, punishmentType, punishmentId);
-                executeHookActions(player, target, punishmentType, timeInput, reason, false);
-                player.closeInventory();
+                executePunishmentCommandAndLog(player, "", target, detailsMenu, punishmentType, timeInput, reason, punishmentId);
             } else if (punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE)) {
                 long muteDuration = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
                 long endTime = (muteDuration > 0) ? System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(muteDuration) : Long.MAX_VALUE;
@@ -1098,7 +1095,7 @@ public class MenuListener implements Listener {
                 playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(latestBanId);
             }
 
-            boolean banByIp = plugin.getConfigManager().isBanByIp();
+            boolean banByIp = plugin.getConfigManager().isPunishmentByIp("ban");
             boolean pardoned = false;
 
             if (banByIp && playerInfo != null && playerInfo.getIp() != null) {
@@ -1117,7 +1114,7 @@ public class MenuListener implements Listener {
             }
 
             if (!pardoned) {
-                sendConfigMessage(player, "messages.not_banned", "{target}", target.getName());
+                sendConfigMessage(player, "messages.not_banned");
                 return;
             }
         } else {

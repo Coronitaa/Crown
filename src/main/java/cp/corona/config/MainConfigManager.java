@@ -97,8 +97,8 @@ public class MainConfigManager {
         return config.getConfig().getStringList("ban-screen");
     }
 
-    public boolean isBanByIp() {
-        CustomConfig config = punishmentConfigs.get("ban");
+    public boolean isPunishmentByIp(String punishmentType) {
+        CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
         if (config == null) return false;
         return config.getConfig().getBoolean("punish-by-ip", false);
     }

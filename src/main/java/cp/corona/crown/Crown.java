@@ -105,7 +105,7 @@ public final class Crown extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new FreezeListener(this), this);
         getServer().getPluginManager().registerEvents(new MuteListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerChatListener(this), this);
-        getServer().getPluginManager().registerEvents(new BanListener(this), this);
+        getServer().getPluginManager().registerEvents(new PunishmentListener(this), this);
         freezeListener = new FreezeListener(this);
     }
 

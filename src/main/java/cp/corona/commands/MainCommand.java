@@ -484,7 +484,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     long banDuration = TimeUtils.parseTime(time, plugin.getConfigManager());
                     Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
 
-                    boolean banByIp = plugin.getConfigManager().isBanByIp();
+                    boolean banByIp = plugin.getConfigManager().isPunishmentByIp("ban");
                     String targetIdentifier = target.getName();
                     Player onlineTarget = target.getPlayer();
 
@@ -629,7 +629,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
                     }
 
-                    boolean banByIp = plugin.getConfigManager().isBanByIp();
+                    boolean banByIp = plugin.getConfigManager().isPunishmentByIp("ban");
                     boolean pardoned = false;
 
                     if (banByIp && playerInfo != null && playerInfo.getIp() != null) {
