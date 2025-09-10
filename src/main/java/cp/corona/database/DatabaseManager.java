@@ -598,6 +598,39 @@ public class DatabaseManager {
         }
         return null;
     }
+
+    public PunishmentEntry getLatestActivePunishmentByIp(String ip, String punishmentType) {
+        String sql = "SELECT ph.* FROM punishment_history ph " +
+                "JOIN player_info pi ON ph.punishment_id = pi.punishment_id " +
+                "WHERE pi.ip = ? AND ph.punishment_type = ? AND ph.active = 1 " +
+                "ORDER BY ph.timestamp DESC LIMIT 1";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, ip);
+            ps.setString(2, punishmentType);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new PunishmentEntry(
+                            rs.getString("punishment_id"),
+                            UUID.fromString(rs.getString("player_uuid")),
+                            rs.getString("punishment_type"),
+                            rs.getString("reason"),
+                            rs.getTimestamp("timestamp"),
+                            rs.getString("punisher_name"),
+                            rs.getLong("punishment_time"),
+                            rs.getString("duration_string"),
+                            rs.getBoolean("active"),
+                            rs.getString("removed_by_name"),
+                            rs.getTimestamp("removed_at"),
+                            rs.getString("removed_reason")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment by IP!", e);
+        }
+        return null;
+    }
     public boolean updatePunishmentAsRemoved(String punishmentId, String removedByName, String removedReason) {
         String sql = "UPDATE punishment_history SET active = 0, removed_by_name = ?, removed_reason = ?, removed_at = ? WHERE punishment_id = ?";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {

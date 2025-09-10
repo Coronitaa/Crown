@@ -483,7 +483,23 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 if (useInternal) {
                     long banDuration = TimeUtils.parseTime(time, plugin.getConfigManager());
                     Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
-                    Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), reason, expiration, sender.getName());
+
+                    boolean banByIp = plugin.getConfigManager().isBanByIp();
+                    String targetIdentifier = target.getName();
+                    Player onlineTarget = target.getPlayer();
+
+                    if (banByIp) {
+                        if (onlineTarget != null && onlineTarget.getAddress() != null) {
+                            targetIdentifier = onlineTarget.getAddress().getAddress().getHostAddress();
+                            Bukkit.getBanList(BanList.Type.IP).addBan(targetIdentifier, reason, expiration, sender.getName());
+                        } else {
+                            sendConfigMessage(sender, "messages.player_not_online_for_ipban", "{target}", target.getName());
+                            return;
+                        }
+                    } else {
+                        Bukkit.getBanList(BanList.Type.NAME).addBan(targetIdentifier, reason, expiration, sender.getName());
+                    }
+
                     if (target.isOnline()) {
                         String kickMessage = getKickMessage(plugin.getConfigManager().getBanScreen(), reason, durationForLog, punishmentId, expiration);
                         target.getPlayer().kickPlayer(kickMessage);
@@ -608,11 +624,33 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         switch (punishType.toLowerCase()) {
             case "ban":
                 if (useInternal) {
-                    if (!target.isBanned()) {
+                    DatabaseManager.PlayerInfo playerInfo = null;
+                    if (punishmentId != null) {
+                        playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                    }
+
+                    boolean banByIp = plugin.getConfigManager().isBanByIp();
+                    boolean pardoned = false;
+
+                    if (banByIp && playerInfo != null && playerInfo.getIp() != null) {
+                        String ip = playerInfo.getIp();
+                        if (Bukkit.getBanList(BanList.Type.IP).isBanned(ip)) {
+                            Bukkit.getBanList(BanList.Type.IP).pardon(ip);
+                            pardoned = true;
+                        }
+                    }
+
+                    if (!pardoned) {
+                        if (target.isBanned()) {
+                            Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
+                            pardoned = true;
+                        }
+                    }
+
+                    if (!pardoned) {
                         sendConfigMessage(sender, "messages.not_banned", "{target}", target.getName());
                         return;
                     }
-                    Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
                 } else {
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
                 }

@@ -3,6 +3,7 @@ package cp.corona.listeners;
 
 import cp.corona.config.MainConfigManager;
 import cp.corona.crown.Crown;
+import cp.corona.database.DatabaseManager;
 import cp.corona.menus.HistoryMenu;
 import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.PunishMenu;
@@ -874,13 +875,31 @@ public class MenuListener implements Listener {
                 Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
                 String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, punishmentType, reason, player.getName(), expiration != null ? expiration.getTime() : Long.MAX_VALUE, timeInput);
 
+                boolean banByIp = plugin.getConfigManager().isBanByIp();
+                String targetIdentifier = target.getName();
+                Player onlineTarget = target.getPlayer();
+
+                if (banByIp) {
+                    if (onlineTarget != null && onlineTarget.getAddress() != null) {
+                        targetIdentifier = onlineTarget.getAddress().getAddress().getHostAddress();
+                        Bukkit.getBanList(BanList.Type.IP).addBan(targetIdentifier, reason, expiration, player.getName());
+                    } else {
+                        sendConfigMessage(player, "messages.player_not_online_for_ipban", "{target}", target.getName());
+                        return;
+                    }
+                } else {
+                    Bukkit.getBanList(BanList.Type.NAME).addBan(targetIdentifier, reason, expiration, player.getName());
+                }
+
                 if (target.isOnline()) {
                     String kickMessage = getKickMessage(plugin.getConfigManager().getBanScreen(), reason, timeInput, punishmentId, expiration);
                     target.getPlayer().kickPlayer(kickMessage);
                 }
-                Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), reason, expiration, player.getName());
 
-                executePunishmentCommandAndLog(player, "", target, detailsMenu, punishmentType, timeInput, reason, punishmentId);
+                playSound(player, "punish_confirm");
+                sendPunishmentConfirmation(player, target, timeInput, reason, punishmentType, punishmentId);
+                executeHookActions(player, target, punishmentType, timeInput, reason, false);
+                player.closeInventory();
             } else if (punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE)) {
                 long muteDuration = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
                 long endTime = (muteDuration > 0) ? System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(muteDuration) : Long.MAX_VALUE;
@@ -1073,11 +1092,34 @@ public class MenuListener implements Listener {
 
 
         if (useInternal) {
-            if (!target.isBanned()) {
-                sendConfigMessage(player, "messages.not_banned");
+            String latestBanId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(targetUUID, "ban");
+            DatabaseManager.PlayerInfo playerInfo = null;
+            if (latestBanId != null) {
+                playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(latestBanId);
+            }
+
+            boolean banByIp = plugin.getConfigManager().isBanByIp();
+            boolean pardoned = false;
+
+            if (banByIp && playerInfo != null && playerInfo.getIp() != null) {
+                String ip = playerInfo.getIp();
+                if (Bukkit.getBanList(BanList.Type.IP).isBanned(ip)) {
+                    Bukkit.getBanList(BanList.Type.IP).pardon(ip);
+                    pardoned = true;
+                }
+            }
+
+            if (!pardoned) {
+                if (target.isBanned()) {
+                    Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
+                    pardoned = true;
+                }
+            }
+
+            if (!pardoned) {
+                sendConfigMessage(player, "messages.not_banned", "{target}", target.getName());
                 return;
             }
-            Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
         } else {
             String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));

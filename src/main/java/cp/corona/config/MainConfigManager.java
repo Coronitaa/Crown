@@ -1,3 +1,4 @@
+// src/main/java/cp/corona/config/MainConfigManager.java
 package cp.corona.config;
 
 import cp.corona.crown.Crown;
@@ -94,6 +95,12 @@ public class MainConfigManager {
         CustomConfig config = punishmentConfigs.get("ban");
         if (config == null) return Collections.emptyList();
         return config.getConfig().getStringList("ban-screen");
+    }
+
+    public boolean isBanByIp() {
+        CustomConfig config = punishmentConfigs.get("ban");
+        if (config == null) return false;
+        return config.getConfig().getBoolean("punish-by-ip", false);
     }
 
     public List<String> getKickScreen() {

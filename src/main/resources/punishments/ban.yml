@@ -1,5 +1,6 @@
 # Configuration for ban punishment.
 use-internal: true # If true, the plugin will handle the ban internally. If false, it will use the command below.
+punish-by-ip: false # If true, the internal ban will be by IP address instead of player name.
 punish-command: 'tempban {target} {time} {reason}'
 unpunish-command: 'unban {target}'
 default-reason: "Banned by a moderator."

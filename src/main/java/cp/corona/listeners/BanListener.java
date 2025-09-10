@@ -8,10 +8,10 @@ import cp.corona.utils.TimeUtils;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -27,34 +27,51 @@ public class BanListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler
-    public void onPlayerLogin(PlayerLoginEvent event) {
-        OfflinePlayer player = Bukkit.getOfflinePlayer(event.getPlayer().getUniqueId());
-        if (player.isBanned()) {
-            BanList banList = Bukkit.getBanList(BanList.Type.NAME);
-            BanEntry banEntry = banList.getBanEntry(player.getName());
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
+        String playerName = event.getName();
+        UUID playerUUID = event.getUniqueId();
+        String playerIP = event.getAddress().getHostAddress();
 
-            if (banEntry != null) {
-                String reason = banEntry.getReason() != null ? banEntry.getReason() : plugin.getConfigManager().getDefaultPunishmentReason("ban");
-                Date expiration = banEntry.getExpiration();
-                String timeLeft = "Permanent";
-                if (expiration != null) {
-                    long remainingMillis = expiration.getTime() - System.currentTimeMillis();
-                    if (remainingMillis > 0) {
-                        timeLeft = TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
-                    } else {
-                        banList.pardon(player.getName());
-                        return;
-                    }
+        BanList nameBanList = Bukkit.getBanList(BanList.Type.NAME);
+        BanList ipBanList = Bukkit.getBanList(BanList.Type.IP);
+
+        BanEntry banEntry = null;
+        boolean isIpBan = false;
+        if (ipBanList.isBanned(playerIP)) {
+            banEntry = ipBanList.getBanEntry(playerIP);
+            isIpBan = true;
+        } else if (nameBanList.isBanned(playerName)) {
+            banEntry = nameBanList.getBanEntry(playerName);
+        }
+
+        if (banEntry != null) {
+            String reason = banEntry.getReason() != null ? banEntry.getReason() : plugin.getConfigManager().getDefaultPunishmentReason("ban");
+            Date expiration = banEntry.getExpiration();
+            String timeLeft = "Permanent";
+            if (expiration != null) {
+                long remainingMillis = expiration.getTime() - System.currentTimeMillis();
+                if (remainingMillis > 0) {
+                    timeLeft = TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
+                } else {
+                    // Pardon both just in case
+                    nameBanList.pardon(playerName);
+                    ipBanList.pardon(playerIP);
+                    return;
                 }
-
-                DatabaseManager.PunishmentEntry punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(player.getUniqueId(), "ban");
-                String punishmentId = (punishmentEntry != null) ? punishmentEntry.getPunishmentId() : "N/A";
-
-                List<String> banScreenLines = plugin.getConfigManager().getBanScreen();
-                String kickMessage = getKickMessage(banScreenLines, reason, timeLeft, punishmentId, expiration);
-                event.disallow(PlayerLoginEvent.Result.KICK_BANNED, kickMessage);
             }
+
+            DatabaseManager.PunishmentEntry punishmentEntry;
+            if (isIpBan) {
+                punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "ban");
+            } else {
+                punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(playerUUID, "ban");
+            }
+            String punishmentId = (punishmentEntry != null) ? punishmentEntry.getPunishmentId() : "N/A";
+
+            List<String> banScreenLines = plugin.getConfigManager().getBanScreen();
+            String kickMessage = getKickMessage(banScreenLines, reason, timeLeft, punishmentId, expiration);
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, kickMessage);
         }
     }
 
