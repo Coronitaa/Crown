@@ -121,9 +121,6 @@ public class PunishmentListener implements Listener {
 
                 // Unfreeze chat after delay
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    for (int i = 0; i < 100; i++) {
-                        player.sendMessage("");
-                    }
                     chatFrozenPlayers.remove(player.getUniqueId());
                 }, plugin.getConfigManager().getJoinAlertDuration() * 20L);
             }
