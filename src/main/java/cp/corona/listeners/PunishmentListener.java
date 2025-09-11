@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class PunishmentListener implements Listener {
@@ -30,45 +31,58 @@ public class PunishmentListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
-        String playerIP = event.getAddress().getHostAddress();
-        BanList ipBanList = Bukkit.getBanList(BanList.Type.IP);
+        final BanList nameBanList = Bukkit.getBanList(BanList.Type.NAME);
+        final BanList ipBanList = Bukkit.getBanList(BanList.Type.IP);
 
-        if (ipBanList.isBanned(playerIP)) {
-            BanEntry banEntry = ipBanList.getBanEntry(playerIP);
-            String reason = plugin.getConfigManager().getDefaultPunishmentReason("ban");
-            Date expiration = null;
-            String timeLeft = "Permanent";
-            if (banEntry != null) {
-                reason = banEntry.getReason() != null ? banEntry.getReason() : reason;
-                expiration = banEntry.getExpiration();
-            }
+        final String playerName = event.getName();
+        final String playerIP = event.getAddress().getHostAddress();
+
+        BanEntry banEntry = null;
+        if (nameBanList.isBanned(playerName)) {
+            banEntry = nameBanList.getBanEntry(playerName);
+        } else if (ipBanList.isBanned(playerIP)) {
+            banEntry = ipBanList.getBanEntry(playerIP);
+        }
+
+        if (banEntry != null) {
+            String reason = banEntry.getReason() != null ? banEntry.getReason() : plugin.getConfigManager().getDefaultPunishmentReason("ban");
+            Date expiration = banEntry.getExpiration();
+            String timeLeft = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
 
             if (expiration != null) {
                 long remainingMillis = expiration.getTime() - System.currentTimeMillis();
                 if (remainingMillis > 0) {
                     timeLeft = TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
                 } else {
-                    ipBanList.pardon(playerIP);
+                    // Pardon if the ban has expired
+                    if (nameBanList.isBanned(playerName)) {
+                        nameBanList.pardon(playerName);
+                    }
+                    if (ipBanList.isBanned(playerIP)) {
+                        ipBanList.pardon(playerIP);
+                    }
                     return;
                 }
             }
 
-            DatabaseManager.PunishmentEntry punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "ban");
+            DatabaseManager.PunishmentEntry punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(event.getUniqueId(), "ban");
+            if (punishmentEntry == null) {
+                punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "ban");
+            }
             String punishmentId = (punishmentEntry != null) ? punishmentEntry.getPunishmentId() : "N/A";
 
             List<String> banScreenLines = plugin.getConfigManager().getBanScreen();
             String kickMessage = getKickMessage(banScreenLines, reason, timeLeft, punishmentId, expiration);
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, kickMessage);
-
         }
     }
+
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         String playerIP = player.getAddress().getAddress().getHostAddress();
 
-        // Check for IP-based mute
         if (plugin.getConfigManager().isPunishmentByIp("mute")) {
             DatabaseManager.PunishmentEntry muteEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "mute");
             if (muteEntry != null) {
@@ -80,7 +94,6 @@ public class PunishmentListener implements Listener {
             }
         }
 
-        // Check for IP-based softban
         if (plugin.getConfigManager().isPunishmentByIp("softban")) {
             DatabaseManager.PunishmentEntry softbanEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "softban");
             if (softbanEntry != null) {
