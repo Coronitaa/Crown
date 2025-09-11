@@ -8,10 +8,12 @@ import cp.corona.utils.TimeUtils;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -54,6 +56,36 @@ public class PunishmentListener implements Listener {
                 List<String> banScreenLines = plugin.getConfigManager().getBanScreen();
                 String kickMessage = getKickMessage(banScreenLines, reason, timeLeft, punishmentId, expiration);
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, kickMessage);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerLogin(PlayerLoginEvent event) {
+        Player player = event.getPlayer();
+        String playerIP = event.getAddress().getHostAddress();
+
+        // Check for IP-based mute
+        if (plugin.getConfigManager().isPunishmentByIp("mute")) {
+            DatabaseManager.PunishmentEntry muteEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "mute");
+            if (muteEntry != null) {
+                String timeLeft = TimeUtils.formatTime((int) ((muteEntry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_muted",
+                        "{time}", timeLeft,
+                        "{reason}", muteEntry.getReason(),
+                        "{punishment_id}", muteEntry.getPunishmentId())));
+            }
+        }
+
+        // Check for IP-based softban
+        if (plugin.getConfigManager().isPunishmentByIp("softban")) {
+            DatabaseManager.PunishmentEntry softbanEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "softban");
+            if (softbanEntry != null) {
+                String timeLeft = TimeUtils.formatTime((int) ((softbanEntry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_softbanned",
+                        "{time}", timeLeft,
+                        "{reason}", softbanEntry.getReason(),
+                        "{punishment_id}", softbanEntry.getPunishmentId())));
             }
         }
     }

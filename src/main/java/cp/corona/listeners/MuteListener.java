@@ -2,6 +2,7 @@
 package cp.corona.listeners;
 
 import cp.corona.crown.Crown;
+import cp.corona.database.DatabaseManager;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -26,7 +27,9 @@ public class MuteListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        if (plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId())) {
+        if (plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId()) ||
+                (plugin.getConfigManager().isPunishmentByIp("mute") &&
+                        plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(player.getAddress().getAddress().getHostAddress(), "mute") != null)) {
             event.setCancelled(true);
             String mutedMessage = plugin.getConfigManager().getMessage("messages.chat_while_muted");
             player.sendMessage(MessageUtils.getColorMessage(mutedMessage));
@@ -36,7 +39,9 @@ public class MuteListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
-        if (plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId())) {
+        if (plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId()) ||
+                (plugin.getConfigManager().isPunishmentByIp("mute") &&
+                        plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(player.getAddress().getAddress().getHostAddress(), "mute") != null)) {
             String command = event.getMessage().substring(1).split(" ")[0].toLowerCase();
             if (blockedCommands.contains(command)) {
                 event.setCancelled(true);

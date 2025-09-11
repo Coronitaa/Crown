@@ -48,7 +48,9 @@ public class CommandBlockerListener implements Listener {
         }
 
         // Check if player is softbanned
-        if (plugin.getSoftBanDatabaseManager().isSoftBanned(player.getUniqueId())) {
+        if (plugin.getSoftBanDatabaseManager().isSoftBanned(player.getUniqueId()) ||
+                (plugin.getConfigManager().isPunishmentByIp("softban") &&
+                        plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(player.getAddress().getAddress().getHostAddress(), "softban") != null)) {
             String command = event.getMessage().substring(1).split(" ")[0].toLowerCase(); // Extract command from message
 
             // Debug logging to show attempted command by softbanned player
@@ -63,7 +65,7 @@ public class CommandBlockerListener implements Listener {
                     // Send message to player indicating command is blocked due to softban
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.softban_command_blocked")));
                     // Send softban received message with reason
-                    player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.softban_received", "{reason}", plugin.getSoftBanDatabaseManager().getSoftBanReason(player.getUniqueId()))));
+                    //player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.softban_received", "{reason}", plugin.getSoftBanDatabaseManager().getSoftBanReason(player.getUniqueId()))));
                     // Debug logging for blocked command
                     if (plugin.getConfigManager().isDebugEnabled()) {
                         plugin.getLogger().log(Level.INFO, "Command " + command + " BLOCKED for softbanned player " + player.getName());
