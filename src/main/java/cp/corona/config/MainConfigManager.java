@@ -1,4 +1,4 @@
-// src/main/java/cp/corona/config/MainConfigManager.java
+// coronitaa/crown/Crown-0a35d634fd87d2a5ccf97c7763b7f53746dff78b/src/main/java/cp/corona/config/MainConfigManager.java
 package cp.corona.config;
 
 import cp.corona.crown.Crown;
@@ -89,6 +89,18 @@ public class MainConfigManager {
     }
     public String getSupportLink() {
         return pluginConfig.getConfig().getString("support-link", "your.discord.gg");
+    }
+
+    public boolean isJoinAlertEnabled() {
+        return pluginConfig.getConfig().getBoolean("on-join-alert.enabled", true);
+    }
+
+    public int getJoinAlertDuration() {
+        return pluginConfig.getConfig().getInt("on-join-alert.freeze-chat-duration", 5);
+    }
+
+    public String getJoinAlertSound() {
+        return pluginConfig.getConfig().getString("on-join-alert.sound", "BLOCK_NOTE_BLOCK_PLING");
     }
 
     public List<String> getBanScreen() {

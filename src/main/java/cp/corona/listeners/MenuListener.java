@@ -1,4 +1,4 @@
-// src/main/java/cp/corona/listeners/MenuListener.java
+// coronitaa/crown/Crown-0a35d634fd87d2a5ccf97c7763b7f53746dff78b/src/main/java/cp/corona/listeners/MenuListener.java
 package cp.corona.listeners;
 
 import cp.corona.config.MainConfigManager;
@@ -1414,12 +1414,16 @@ public class MenuListener implements Listener {
         }
 
         final String executorName = (executor instanceof Player) ? executor.getName() : "Console";
-        final String targetName = (target != null && target.getName() != null) ? target.getName() : (target != null ? target.getUniqueId().toString() : "Unknown");
+        String targetName = (target != null && target.getName() != null) ? target.getName() : (target != null ? target.getUniqueId().toString() : "Unknown");
         final String finalTime = (time != null) ? time : "N/A";
         final String finalReason = (reason != null) ? reason : "N/A";
         final String finalPunishmentTypePlaceholder = punishmentType;
 
         boolean byIp = plugin.getConfigManager().isPunishmentByIp(punishmentType) && target.isOnline();
+        if (byIp && !isUnpunish) {
+            targetName += " &c(IP)";
+        }
+
 
         for (ClickActionData actionData : actions) {
             String[] originalArgs = actionData.getActionData();
@@ -1433,9 +1437,6 @@ public class MenuListener implements Listener {
                     currentArg = currentArg.replace("{reason}", finalReason);
                     currentArg = currentArg.replace("{time}", finalTime);
                     currentArg = currentArg.replace("{punishment_type}", finalPunishmentTypePlaceholder);
-                    if (byIp && !isUnpunish) {
-                        currentArg += " &c(IP)";
-                    }
                     currentArg = plugin.getConfigManager().processPlaceholders(currentArg, null);
                     processedHookArgs[i] = MessageUtils.getColorMessage(currentArg);
                 } else {

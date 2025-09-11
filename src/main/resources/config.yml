@@ -1,3 +1,4 @@
+# coronitaa/crown/Crown-0a35d634fd87d2a5ccf97c7763b7f53746dff78b/src/main/resources/config.yml
 # Main configuration file for Crown plugin.
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
@@ -15,7 +16,6 @@ database:
   username: 'username'
   password: 'password'
 
-
 # Sound configurations for different actions in the plugin.
 # Uses Bukkit Sound enum names (e.g., ENTITY_EXPERIENCE_ORB_PICKUP). Find names here: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
 sounds:
@@ -30,6 +30,12 @@ time_units:
   hours: 'h'     # Character(s) representing hours.
   day: 'd'       # Character(s) representing days.
   years: 'y'     # Character(s) representing years.
+
+# On-join alert for active punishments.
+on-join-alert:
+  enabled: true
+  freeze-chat-duration: 10 # in seconds
+  sound: 'BLOCK_NOTE_BLOCK_BASS' # Sound to play when the alert is shown. Set to '' to disable.
 
 # Logging configurations.
 logging:

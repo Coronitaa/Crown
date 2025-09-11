@@ -1,3 +1,4 @@
+// coronitaa/crown/Crown-0a35d634fd87d2a5ccf97c7763b7f53746dff78b/src/main/java/cp/corona/database/DatabaseManager.java
 // src/main/java/cp/corona/database/DatabaseManager.java
 package cp.corona.database;
 
@@ -181,6 +182,40 @@ public class DatabaseManager {
         try (ResultSet rs = md.getColumns(null, null, tableName, columnName)) {
             return rs.next();
         }
+    }
+
+    public List<PunishmentEntry> getAllActivePunishments(UUID playerUUID, String playerIP) {
+        List<PunishmentEntry> activePunishments = new ArrayList<>();
+        String sql = "SELECT * FROM punishment_history WHERE (player_uuid = ? OR punishment_id IN (SELECT punishment_id FROM player_info WHERE ip = ?)) AND active = 1 AND (punishment_time > ? OR punishment_time = ?)";
+
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ps.setString(2, playerIP);
+            ps.setLong(3, System.currentTimeMillis());
+            ps.setLong(4, Long.MAX_VALUE);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    activePunishments.add(new PunishmentEntry(
+                            rs.getString("punishment_id"),
+                            UUID.fromString(rs.getString("player_uuid")),
+                            rs.getString("punishment_type"),
+                            rs.getString("reason"),
+                            rs.getTimestamp("timestamp"),
+                            rs.getString("punisher_name"),
+                            rs.getLong("punishment_time"),
+                            rs.getString("duration_string"),
+                            rs.getBoolean("active"),
+                            rs.getString("removed_by_name"),
+                            rs.getTimestamp("removed_at"),
+                            rs.getString("removed_reason")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving all active punishments!", e);
+        }
+        return activePunishments;
     }
 
 

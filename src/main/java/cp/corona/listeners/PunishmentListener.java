@@ -1,4 +1,4 @@
-// src/main/java/cp/corona/listeners/PunishmentListener.java
+// coronitaa/crown/Crown-0a35d634fd87d2a5ccf97c7763b7f53746dff78b/src/main/java/cp/corona/listeners/PunishmentListener.java
 package cp.corona.listeners;
 
 import cp.corona.crown.Crown;
@@ -8,22 +8,28 @@ import cp.corona.utils.TimeUtils;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class PunishmentListener implements Listener {
 
     private final Crown plugin;
+    private final Set<UUID> chatFrozenPlayers = new HashSet<>();
+
 
     public PunishmentListener(Crown plugin) {
         this.plugin = plugin;
@@ -81,28 +87,54 @@ public class PunishmentListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        String playerIP = player.getAddress().getAddress().getHostAddress();
+        if (plugin.getConfigManager().isJoinAlertEnabled()) {
+            List<DatabaseManager.PunishmentEntry> activePunishments = plugin.getSoftBanDatabaseManager().getAllActivePunishments(player.getUniqueId(), player.getAddress().getAddress().getHostAddress());
+            if (!activePunishments.isEmpty()) {
+                chatFrozenPlayers.add(player.getUniqueId());
 
-        if (plugin.getConfigManager().isPunishmentByIp("mute")) {
-            DatabaseManager.PunishmentEntry muteEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "mute");
-            if (muteEntry != null) {
-                String timeLeft = TimeUtils.formatTime((int) ((muteEntry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
-                player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_muted",
-                        "{time}", timeLeft,
-                        "{reason}", muteEntry.getReason(),
-                        "{punishment_id}", muteEntry.getPunishmentId())));
+                // Clear chat and send messages
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    for (int i = 0; i < 100; i++) {
+                        player.sendMessage("");
+                    }
+                    player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_header")));
+                    for (DatabaseManager.PunishmentEntry punishment : activePunishments) {
+                        String timeLeft = (punishment.getEndTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) ((punishment.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishment_entry",
+                                "{id}", punishment.getPunishmentId(),
+                                "{type}", punishment.getType(),
+                                "{time_left}", timeLeft)));
+                    }
+                    player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_footer")));
+
+                    String soundName = plugin.getConfigManager().getJoinAlertSound();
+                    if (soundName != null && !soundName.isEmpty()) {
+                        try {
+                            Sound sound = Sound.valueOf(soundName.toUpperCase());
+                            player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+                        } catch (IllegalArgumentException e) {
+                            plugin.getLogger().warning("Invalid sound name configured for on-join-alert: " + soundName);
+                        }
+                    }
+
+                }, 20L); // 1 second delay to ensure chat is cleared after other plugins
+
+                // Unfreeze chat after delay
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    for (int i = 0; i < 100; i++) {
+                        player.sendMessage("");
+                    }
+                    chatFrozenPlayers.remove(player.getUniqueId());
+                }, plugin.getConfigManager().getJoinAlertDuration() * 20L);
             }
         }
+    }
 
-        if (plugin.getConfigManager().isPunishmentByIp("softban")) {
-            DatabaseManager.PunishmentEntry softbanEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "softban");
-            if (softbanEntry != null) {
-                String timeLeft = TimeUtils.formatTime((int) ((softbanEntry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
-                player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_softbanned",
-                        "{time}", timeLeft,
-                        "{reason}", softbanEntry.getReason(),
-                        "{punishment_id}", softbanEntry.getPunishmentId())));
-            }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
+        if (chatFrozenPlayers.contains(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
         }
     }
 
