@@ -24,12 +24,21 @@ public class MuteListener implements Listener {
         this.blockedCommands = plugin.getConfigManager().getBlockedMuteCommands();
     }
 
+    private boolean isPlayerMuted(Player player) {
+        if (plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId())) {
+            return true;
+        }
+        if (plugin.getConfigManager().isPunishmentByIp("mute")) {
+            DatabaseManager.PunishmentEntry muteEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(player.getAddress().getAddress().getHostAddress(), "mute");
+            return muteEntry != null && (muteEntry.getEndTime() > System.currentTimeMillis() || muteEntry.getEndTime() == Long.MAX_VALUE);
+        }
+        return false;
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        if (plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId()) ||
-                (plugin.getConfigManager().isPunishmentByIp("mute") &&
-                        plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(player.getAddress().getAddress().getHostAddress(), "mute") != null)) {
+        if (isPlayerMuted(player)) {
             event.setCancelled(true);
             String mutedMessage = plugin.getConfigManager().getMessage("messages.chat_while_muted");
             player.sendMessage(MessageUtils.getColorMessage(mutedMessage));
@@ -39,9 +48,7 @@ public class MuteListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
-        if (plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId()) ||
-                (plugin.getConfigManager().isPunishmentByIp("mute") &&
-                        plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(player.getAddress().getAddress().getHostAddress(), "mute") != null)) {
+        if (isPlayerMuted(player)) {
             String command = event.getMessage().substring(1).split(" ")[0].toLowerCase();
             if (blockedCommands.contains(command)) {
                 event.setCancelled(true);
