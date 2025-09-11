@@ -22,6 +22,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
+import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -548,7 +549,17 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 if (useInternal) {
                     if (target.isOnline()) {
                         String kickMessage = getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null);
-                        target.getPlayer().kickPlayer(kickMessage);
+                        if (byIp) {
+                            InetAddress targetAddress = target.getPlayer().getAddress().getAddress();
+                            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                                InetAddress onlinePlayerAddress = onlinePlayer.getAddress().getAddress();
+                                if (onlinePlayerAddress.equals(targetAddress) || (onlinePlayerAddress.isLoopbackAddress() && targetAddress.isLoopbackAddress())) {
+                                    onlinePlayer.kickPlayer(kickMessage);
+                                }
+                            }
+                        } else {
+                            target.getPlayer().kickPlayer(kickMessage);
+                        }
                     }
                 } else {
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);

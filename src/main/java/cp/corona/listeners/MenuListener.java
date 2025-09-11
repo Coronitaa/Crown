@@ -41,6 +41,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
+import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -1004,13 +1005,24 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Kicked by moderator";
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal("kick");
+        boolean byIp = plugin.getConfigManager().isPunishmentByIp("kick");
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand("kick");
         String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), KICK_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A");
 
         if (useInternal) {
             if (target.isOnline()) {
                 String kickMessage = getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null);
-                target.getPlayer().kickPlayer(kickMessage);
+                if (byIp) {
+                    InetAddress targetAddress = target.getPlayer().getAddress().getAddress();
+                    for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                        InetAddress onlinePlayerAddress = onlinePlayer.getAddress().getAddress();
+                        if (onlinePlayerAddress.equals(targetAddress) || (onlinePlayerAddress.isLoopbackAddress() && targetAddress.isLoopbackAddress())) {
+                            onlinePlayer.kickPlayer(kickMessage);
+                        }
+                    }
+                } else {
+                    target.getPlayer().kickPlayer(kickMessage);
+                }
             }
             executePunishmentCommandAndLog(player, "", target, punishDetailsMenu, KICK_PUNISHMENT_TYPE, "N/A", reason, punishmentId);
         } else {
