@@ -456,6 +456,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(punishType);
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishType);
+        boolean byIp = plugin.getConfigManager().isPunishmentByIp(punishType);
+
+        if (byIp && !target.isOnline()) {
+            sendConfigMessage(sender, "messages.player_not_online_for_ip_punishment", "{target}", target.getName());
+            return;
+        }
 
         if (!useInternal) {
             if (commandTemplate != null && !commandTemplate.isEmpty()) {
@@ -580,7 +586,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return;
         }
 
-        sendConfigMessage(sender, "messages.direct_punishment_confirmed", "{target}", target.getName(), "{time}", durationForLog, "{reason}", reason, "{punishment_type}", punishType, "{punishment_id}", punishmentId);
+        String messageKey = byIp ? "messages.direct_punishment_confirmed_ip" : "messages.direct_punishment_confirmed";
+        sendConfigMessage(sender, messageKey, "{target}", target.getName(), "{time}", durationForLog, "{reason}", reason, "{punishment_type}", punishType, "{punishment_id}", punishmentId);
 
         MenuListener menuListener = plugin.getMenuListener();
         if (menuListener != null) {

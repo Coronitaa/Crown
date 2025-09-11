@@ -54,7 +54,7 @@ messages:
   invalid_player: '{prefix}&cInvalid player specified. Usage: {usage}'
   never_played: '{prefix}&cPlayer &b{input}&c has never played on this server.'
   player_not_online: '{prefix}&cPlayer &b{input}&c is not currently online.'
-  player_not_online_for_ipban: '{prefix}&cPlayer &b{target}&c must be online to be IP banned.'
+  player_not_online_for_ip_punishment: '{prefix}&cPlayer &b{target}&c must be online to be IP punished.'
 
   help_header: '&6&lCrownPunishments Commands:'
   help_punish: '&b/crown punish <player> &7- Open punishment menu.'
@@ -99,6 +99,7 @@ messages:
   target_player_not_found: '{prefix}&cTarget player not found.'
 
   punishment_confirmed: '{prefix}&aPlayer &b{target}&a has been {punishment_action_verb}. (ID: &e{punishment_id}&a) Duration: &b{time}&a Reason: &f{reason}'
+  punishment_confirmed_ip: '{prefix}&aPlayer &b{target}&a has been {punishment_action_verb} &c(IP)&a. (ID: &e{punishment_id}&a) Duration: &b{time}&a Reason: &f{reason}'
   set_time_reason_before_confirm: '{prefix}&cPlease set time and reason before confirming.'
   set_time_before_confirm: '{prefix}&cPlease set the time before confirming.'
   set_reason_before_confirm: '{prefix}&cPlease set the reason before confirming.'
@@ -128,6 +129,7 @@ messages:
 
   invalid_punishment_type: '{prefix}&cInvalid punishment type. Available: &b{types}'
   direct_punishment_confirmed: '{prefix}&aApplied {punishment_type} to &b{target}&a. (ID: &e{punishment_id}&a) Time: &b{time}&a, Reason: &f{reason}'
+  direct_punishment_confirmed_ip: '{prefix}&aApplied {punishment_type} to &b{target}&a &c(IP)&a. (ID: &e{punishment_id}&a) Time: &b{time}&a, Reason: &f{reason}'
   unpunish_usage: '{prefix}&cUsage: {usage}'
   punish_usage: '{prefix}&cUsage: {usage}'
   check_usage: '{prefix}&cUsage: /check <id> [info|repunish|unpunish]'

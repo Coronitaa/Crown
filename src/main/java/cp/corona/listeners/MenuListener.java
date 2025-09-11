@@ -865,9 +865,15 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String punishmentType = detailsMenu.getPunishmentType();
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishmentType);
+        boolean byIp = plugin.getConfigManager().isPunishmentByIp(punishmentType);
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(punishmentType);
         String timeInput = detailsMenu.getBanTime() != null ? detailsMenu.getBanTime() : "permanent";
         String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified";
+
+        if (byIp && !target.isOnline()) {
+            sendConfigMessage(player, "messages.player_not_online_for_ip_punishment", "{target}", target.getName());
+            return;
+        }
 
         if (useInternal) {
             if (punishmentType.equalsIgnoreCase(BAN_PUNISHMENT_TYPE)) {
@@ -875,11 +881,10 @@ public class MenuListener implements Listener {
                 Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
                 String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, punishmentType, reason, player.getName(), expiration != null ? expiration.getTime() : Long.MAX_VALUE, timeInput);
 
-                boolean banByIp = plugin.getConfigManager().isPunishmentByIp("ban");
                 String targetIdentifier = target.getName();
                 Player onlineTarget = target.getPlayer();
 
-                if (banByIp) {
+                if (byIp) {
                     if (onlineTarget != null && onlineTarget.getAddress() != null) {
                         targetIdentifier = onlineTarget.getAddress().getAddress().getHostAddress();
                         Bukkit.getBanList(BanList.Type.IP).addBan(targetIdentifier, reason, expiration, player.getName());
@@ -929,7 +934,13 @@ public class MenuListener implements Listener {
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Softbanned by moderator";
         String timeInput = punishDetailsMenu.getBanTime() != null ? punishDetailsMenu.getBanTime() : "permanent";
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal("softban");
+        boolean byIp = plugin.getConfigManager().isPunishmentByIp("softban");
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand("softban");
+
+        if (byIp && !target.isOnline()) {
+            sendConfigMessage(player, "messages.player_not_online_for_ip_punishment", "{target}", target.getName());
+            return;
+        }
 
         long endTime = calculateEndTime(timeInput);
         String durationString = timeInput;
@@ -1296,8 +1307,10 @@ public class MenuListener implements Listener {
 
     private void sendPunishmentConfirmation(Player player, OfflinePlayer target, String timeValue, String reason, String punishmentType, String punishmentId) {
         player.closeInventory();
+        boolean byIp = plugin.getConfigManager().isPunishmentByIp(punishmentType) && target.isOnline();
+        String messageKey = byIp ? "messages.punishment_confirmed_ip" : "messages.punishment_confirmed";
         String punishmentActionVerb = plugin.getConfigManager().getPunishmentDisplayForm(punishmentType, true);
-        sendConfigMessage(player, "messages.punishment_confirmed",
+        sendConfigMessage(player, messageKey,
                 "{target}", target.getName() != null ? target.getName() : target.getUniqueId().toString(),
                 "{time}", timeValue,
                 "{reason}", reason,
@@ -1394,6 +1407,8 @@ public class MenuListener implements Listener {
         final String finalReason = (reason != null) ? reason : "N/A";
         final String finalPunishmentTypePlaceholder = punishmentType;
 
+        boolean byIp = plugin.getConfigManager().isPunishmentByIp(punishmentType) && target.isOnline();
+
         for (ClickActionData actionData : actions) {
             String[] originalArgs = actionData.getActionData();
             String[] processedHookArgs = new String[originalArgs.length];
@@ -1406,6 +1421,9 @@ public class MenuListener implements Listener {
                     currentArg = currentArg.replace("{reason}", finalReason);
                     currentArg = currentArg.replace("{time}", finalTime);
                     currentArg = currentArg.replace("{punishment_type}", finalPunishmentTypePlaceholder);
+                    if (byIp && !isUnpunish) {
+                        currentArg += " &c(IP)";
+                    }
                     currentArg = plugin.getConfigManager().processPlaceholders(currentArg, null);
                     processedHookArgs[i] = MessageUtils.getColorMessage(currentArg);
                 } else {
