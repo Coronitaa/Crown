@@ -65,6 +65,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn", "freeze");
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn", "freeze");
+    private static final List<String> IP_FLAGS = Arrays.asList("-ip", "-i", "-local", "-l");
+    private static final List<String> TIME_SUGGESTIONS = Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent");
+
 
     public MainCommand(Crown plugin) {
         this.plugin = plugin;
@@ -769,91 +772,109 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         final List<String> playerNames = Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList());
 
-        if (alias.equalsIgnoreCase("crown")) {
-            if (args.length == 1) {
-                StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND, CHECK_SUBCOMMAND), completions);
-            } else if (args.length == 2 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) {
-                StringUtil.copyPartialMatches(args[1], playerNames, completions);
-            } else if (args.length == 3 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) {
-                StringUtil.copyPartialMatches(args[2], PUNISHMENT_TYPES, completions);
-            } else if (args.length == 4 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) {
-                String punishType = args[2].toLowerCase();
-                if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) {
-                    StringUtil.copyPartialMatches(args[3], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent", "-ip", "-i", "-local", "-l"), completions);
-                } else {
-                    StringUtil.copyPartialMatches(args[3], Arrays.asList("-ip", "-i", "-local", "-l"), completions);
-                }
-            } else if (args.length >= 5 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) {
-                completions.add("reason here...");
-            } else if (args.length == 2 && args[0].equalsIgnoreCase(UNPUNISH_SUBCOMMAND)) {
-                StringUtil.copyPartialMatches(args[1], playerNames, completions);
-            } else if (args.length == 3 && args[0].equalsIgnoreCase(UNPUNISH_SUBCOMMAND)) {
-                StringUtil.copyPartialMatches(args[2], UNPUNISHMENT_TYPES, completions);
-            } else if (args.length == 2 && args[0].equalsIgnoreCase(CHECK_SUBCOMMAND)) {
-                completions.add("<punishment_id>");
-            } else if (args.length == 3 && args[0].equalsIgnoreCase(CHECK_SUBCOMMAND)) {
-                StringUtil.copyPartialMatches(args[2], Arrays.asList("info", "repunish", "unpunish"), completions);
-            }
-        }
+        String commandLabel = command.getName().toLowerCase();
 
-        if (alias.equalsIgnoreCase("punish")) {
+        // Main /crown command
+        if (commandLabel.equals("crown")) {
             if (args.length == 1) {
-                StringUtil.copyPartialMatches(args[0], playerNames, completions);
-            } else if (args.length == 2) {
-                StringUtil.copyPartialMatches(args[1], PUNISHMENT_TYPES, completions);
-            } else if (args.length == 3) {
-                String punishType = args[1].toLowerCase();
-                if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) {
-                    StringUtil.copyPartialMatches(args[2], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent", "-ip", "-i", "-local", "-l"), completions);
-                } else {
-                    StringUtil.copyPartialMatches(args[2], Arrays.asList("-ip", "-i", "-local", "-l"), completions);
-                }
-            } else if (args.length >= 4) {
-                completions.add("reason here...");
+                StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, CHECK_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND), completions);
+            } else if (args.length > 1 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) {
+                String[] punishArgs = Arrays.copyOfRange(args, 1, args.length);
+                handlePunishTab(punishArgs, completions, playerNames, "punish");
             }
-        }
-        if (alias.equalsIgnoreCase("check")) {
-            if (args.length == 1) {
-                completions.add("<punishment_id>");
-            } else if (args.length == 2) {
-                StringUtil.copyPartialMatches(args[1], Arrays.asList("info", "repunish", "unpunish"), completions);
-            }
-        }
-
-
-        if (alias.equalsIgnoreCase("unpunish") || alias.equalsIgnoreCase(UNBAN_COMMAND_ALIAS) || alias.equalsIgnoreCase(UNMUTE_COMMAND_ALIAS) || alias.equalsIgnoreCase(UNWARN_COMMAND_ALIAS) || alias.equalsIgnoreCase(UNSOFTBAN_COMMAND_ALIAS) || alias.equalsIgnoreCase(UNFREEZE_COMMAND_ALIAS)) {
-            if (args.length == 1) {
-                StringUtil.copyPartialMatches(args[0], playerNames, completions);
-            } else if (args.length == 2 && alias.equalsIgnoreCase("unpunish")) {
-                StringUtil.copyPartialMatches(args[1], UNPUNISHMENT_TYPES, completions);
-            } else if (args.length >= 3) {
-                completions.add("reason here...");
-            }
-        }
-
-        if (alias.equalsIgnoreCase("softban") || alias.equalsIgnoreCase("ban") || alias.equalsIgnoreCase("mute")) {
-            if (args.length == 1) {
-                StringUtil.copyPartialMatches(args[0], playerNames, completions);
-            } else if (args.length == 2) {
-                StringUtil.copyPartialMatches(args[1], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent", "-ip", "-i", "-local", "-l"), completions);
-            } else if (args.length >= 3) {
-                completions.add("reason here...");
-            }
-        }
-
-        if (alias.equalsIgnoreCase("freeze") || alias.equalsIgnoreCase("kick") || alias.equalsIgnoreCase("warn")) {
-            if (args.length == 1) {
-                StringUtil.copyPartialMatches(args[0], playerNames, completions);
-            } else if (args.length == 2) {
-                StringUtil.copyPartialMatches(args[1], Arrays.asList("-ip", "-i", "-local", "-l", "reason"), completions);
-            } else if (args.length >= 3) {
-                completions.add("reason here...");
-            }
+        } else if (commandLabel.equals("punish")) {
+            handlePunishTab(args, completions, playerNames, "punish");
+        } else if (PUNISHMENT_TYPES.contains(commandLabel)) {
+            handlePunishTab(args, completions, playerNames, commandLabel);
         }
 
         Collections.sort(completions);
         return completions;
     }
+
+    private void handlePunishTab(String[] args, List<String> completions, List<String> playerNames, String commandLabel) {
+        if (args.length == 0) return;
+
+        List<String> currentArgs = new ArrayList<>(Arrays.asList(args));
+        String currentArg = currentArgs.get(currentArgs.size() - 1);
+
+        if (commandLabel.equals("punish")) {
+            if (currentArgs.size() == 1) { // Player name
+                StringUtil.copyPartialMatches(currentArg, playerNames, completions);
+                return;
+            }
+            if (currentArgs.size() == 2) { // Punishment type
+                StringUtil.copyPartialMatches(currentArg, PUNISHMENT_TYPES, completions);
+                return;
+            }
+
+            String punishType = currentArgs.get(1).toLowerCase();
+            boolean ipSupported = plugin.getConfigManager().isIpPunishmentSupported(punishType);
+            boolean timeSupported = punishType.equals("ban") || punishType.equals("mute") || punishType.equals("softban");
+
+            if (currentArgs.size() == 3) {
+                List<String> suggestions = new ArrayList<>();
+                if (ipSupported) suggestions.addAll(IP_FLAGS);
+                if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
+                suggestions.add("<reason>");
+                StringUtil.copyPartialMatches(currentArg, suggestions, completions);
+                return;
+            }
+
+            if (currentArgs.size() == 4) {
+                String thirdArg = currentArgs.get(2);
+                boolean isIpFlag = IP_FLAGS.stream().anyMatch(flag -> flag.equalsIgnoreCase(thirdArg));
+                if (isIpFlag && ipSupported) {
+                    List<String> suggestions = new ArrayList<>();
+                    if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
+                    suggestions.add("<reason>");
+                    StringUtil.copyPartialMatches(currentArg, suggestions, completions);
+                } else if (timeSupported) {
+                    completions.add("<reason>");
+                }
+                return;
+            }
+        } else { // It's an alias like /ban
+            String punishType = commandLabel;
+            boolean ipSupported = plugin.getConfigManager().isIpPunishmentSupported(punishType);
+            boolean timeSupported = punishType.equals("ban") || punishType.equals("mute") || punishType.equals("softban");
+
+            if (currentArgs.size() == 1) { // Player name
+                StringUtil.copyPartialMatches(currentArg, playerNames, completions);
+                return;
+            }
+
+            if (currentArgs.size() == 2) {
+                List<String> suggestions = new ArrayList<>();
+                if (ipSupported) suggestions.addAll(IP_FLAGS);
+                if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
+                suggestions.add("<reason>");
+                StringUtil.copyPartialMatches(currentArg, suggestions, completions);
+                return;
+            }
+
+            if (currentArgs.size() == 3) {
+                String secondArg = currentArgs.get(1);
+                boolean isIpFlag = IP_FLAGS.stream().anyMatch(flag -> flag.equalsIgnoreCase(secondArg));
+
+                if (isIpFlag && ipSupported) {
+                    List<String> suggestions = new ArrayList<>();
+                    if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
+                    suggestions.add("<reason>");
+                    StringUtil.copyPartialMatches(currentArg, suggestions, completions);
+                } else if (timeSupported) {
+                    completions.add("<reason>");
+                }
+                return;
+            }
+        }
+
+        if (currentArgs.size() >= 4) {
+            completions.add("<reason>");
+        }
+    }
+
+
     private String getKickMessage(List<String> lines, String reason, String timeLeft, String punishmentId, Date expiration) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String date = dateFormat.format(new Date());
