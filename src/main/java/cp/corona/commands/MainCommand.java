@@ -132,18 +132,17 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handlePunishmentTypeAlias(CommandSender sender, String punishmentType, String[] args) {
-        String[] newArgs = new String[args.length + 1];
+        List<String> newArgsList = new ArrayList<>();
         if (args.length > 0) {
-            newArgs[0] = args[0]; // Player name
+            newArgsList.add(args[0]);
         } else {
-            // If just /ban, show usage from punish command
-            return handlePunishCommand(sender, new String[0]);
+            return handlePunishCommand(sender, new String[]{});
         }
-        newArgs[1] = punishmentType; // The alias is the punishment type
+        newArgsList.add(punishmentType);
         if (args.length > 1) {
-            System.arraycopy(args, 1, newArgs, 2, args.length - 1);
+            newArgsList.addAll(Arrays.asList(args).subList(1, args.length));
         }
-        return handlePunishCommand(sender, newArgs);
+        return handlePunishCommand(sender, newArgsList.toArray(new String[0]));
     }
 
     private boolean handleUnpunishmentTypeAlias(CommandSender sender, String unpunishmentCommand, String[] args) {
@@ -343,27 +342,41 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
 
-            String timeForPunishment;
-            String reason;
-            int reasonStartIndex;
+            List<String> argsList = new ArrayList<>(Arrays.asList(args));
+            argsList.remove(0); // remove target
+            argsList.remove(0); // remove type
 
-            if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) {
-                if (args.length > 2 && TimeUtils.isValidTimeFormat(args[2], plugin.getConfigManager())) {
-                    timeForPunishment = args[2];
-                    reasonStartIndex = 3;
-                } else {
-                    timeForPunishment = "permanent";
-                    reasonStartIndex = 2;
+            Boolean byIpOverride = null;
+            if (!argsList.isEmpty() && plugin.getConfigManager().isIpPunishmentSupported(punishType)) {
+                String firstArg = argsList.get(0);
+                if (firstArg.equalsIgnoreCase("-IP") || firstArg.equalsIgnoreCase("-i")) {
+                    byIpOverride = true;
+                    argsList.remove(0);
+                } else if (firstArg.equalsIgnoreCase("-LOCAL") || firstArg.equalsIgnoreCase("-L")) {
+                    byIpOverride = false;
+                    argsList.remove(0);
                 }
-                reason = (args.length > reasonStartIndex) ? String.join(" ", Arrays.copyOfRange(args, reasonStartIndex, args.length)) : plugin.getConfigManager().getDefaultPunishmentReason(punishType);
-            } else {
-                timeForPunishment = "permanent"; // Not applicable for kick, warn, freeze
-                reasonStartIndex = 2;
-                reason = (args.length > reasonStartIndex) ? String.join(" ", Arrays.copyOfRange(args, reasonStartIndex, args.length)) : plugin.getConfigManager().getDefaultPunishmentReason(punishType);
             }
 
+            String timeForPunishment;
+            String reason;
+
+            if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) {
+                if (!argsList.isEmpty() && TimeUtils.isValidTimeFormat(argsList.get(0), plugin.getConfigManager())) {
+                    timeForPunishment = argsList.get(0);
+                    argsList.remove(0);
+                } else {
+                    timeForPunishment = "permanent";
+                }
+            } else {
+                timeForPunishment = "permanent"; // Not applicable for kick, warn, freeze
+            }
+
+            reason = !argsList.isEmpty() ? String.join(" ", argsList) : plugin.getConfigManager().getDefaultPunishmentReason(punishType);
+
+
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[MainCommand] Direct punishment confirmed for " + target.getName() + ", type: " + punishType);
-            confirmDirectPunishment(sender, target, punishType, timeForPunishment, reason);
+            confirmDirectPunishment(sender, target, punishType, timeForPunishment, reason, byIpOverride);
         }
         return true;
     }
@@ -432,7 +445,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
 
-    private void confirmDirectPunishment(final CommandSender sender, final OfflinePlayer target, final String punishType, final String time, final String reason) {
+    private void confirmDirectPunishment(final CommandSender sender, final OfflinePlayer target, final String punishType, final String time, final String reason, final Boolean byIpOverride) {
         if (target instanceof Player) {
             Player playerTarget = (Player) target;
             if (punishType.equalsIgnoreCase("softban") && playerTarget.hasPermission("crown.bypass.softban")) {
@@ -457,7 +470,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(punishType);
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishType);
-        boolean byIp = plugin.getConfigManager().isPunishmentByIp(punishType);
+        boolean byIp = byIpOverride != null ? byIpOverride : plugin.getConfigManager().isPunishmentByIp(punishType);
 
         if (byIp && !target.isOnline()) {
             sendConfigMessage(sender, "messages.player_not_online_for_ip_punishment", "{target}", target.getName());
@@ -491,11 +504,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     long banDuration = TimeUtils.parseTime(time, plugin.getConfigManager());
                     Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
 
-                    boolean banByIp = plugin.getConfigManager().isPunishmentByIp("ban");
                     String targetIdentifier = target.getName();
                     Player onlineTarget = target.getPlayer();
 
-                    if (banByIp) {
+                    if (byIp) {
                         if (onlineTarget != null && onlineTarget.getAddress() != null) {
                             targetIdentifier = onlineTarget.getAddress().getAddress().getHostAddress();
                             Bukkit.getBanList(BanList.Type.IP).addBan(targetIdentifier, reason, expiration, sender.getName());
@@ -767,7 +779,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             } else if (args.length == 4 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) {
                 String punishType = args[2].toLowerCase();
                 if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) {
-                    StringUtil.copyPartialMatches(args[3], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent"), completions);
+                    StringUtil.copyPartialMatches(args[3], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent", "-ip", "-i", "-local", "-l"), completions);
+                } else {
+                    StringUtil.copyPartialMatches(args[3], Arrays.asList("-ip", "-i", "-local", "-l"), completions);
                 }
             } else if (args.length >= 5 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) {
                 completions.add("reason here...");
@@ -790,7 +804,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             } else if (args.length == 3) {
                 String punishType = args[1].toLowerCase();
                 if (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("mute") || punishType.equalsIgnoreCase("softban")) {
-                    StringUtil.copyPartialMatches(args[2], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent"), completions);
+                    StringUtil.copyPartialMatches(args[2], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent", "-ip", "-i", "-local", "-l"), completions);
+                } else {
+                    StringUtil.copyPartialMatches(args[2], Arrays.asList("-ip", "-i", "-local", "-l"), completions);
                 }
             } else if (args.length >= 4) {
                 completions.add("reason here...");
@@ -819,7 +835,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             if (args.length == 1) {
                 StringUtil.copyPartialMatches(args[0], playerNames, completions);
             } else if (args.length == 2) {
-                StringUtil.copyPartialMatches(args[1], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent"), completions);
+                StringUtil.copyPartialMatches(args[1], Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent", "-ip", "-i", "-local", "-l"), completions);
             } else if (args.length >= 3) {
                 completions.add("reason here...");
             }
@@ -828,7 +844,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (alias.equalsIgnoreCase("freeze") || alias.equalsIgnoreCase("kick") || alias.equalsIgnoreCase("warn")) {
             if (args.length == 1) {
                 StringUtil.copyPartialMatches(args[0], playerNames, completions);
-            } else if (args.length >= 2) {
+            } else if (args.length == 2) {
+                StringUtil.copyPartialMatches(args[1], Arrays.asList("-ip", "-i", "-local", "-l", "reason"), completions);
+            } else if (args.length >= 3) {
                 completions.add("reason here...");
             }
         }

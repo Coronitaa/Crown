@@ -1,4 +1,4 @@
-// coronitaa/crown/Crown-0a35d634fd87d2a5ccf97c7763b7f53746dff78b/src/main/java/cp/corona/config/MainConfigManager.java
+// src/main/java/cp/corona/config/MainConfigManager.java
 package cp.corona.config;
 
 import cp.corona.crown.Crown;
@@ -107,6 +107,12 @@ public class MainConfigManager {
         CustomConfig config = punishmentConfigs.get("ban");
         if (config == null) return Collections.emptyList();
         return config.getConfig().getStringList("ban-screen");
+    }
+
+    public boolean isIpPunishmentSupported(String punishmentType) {
+        CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
+        if (config == null) return false;
+        return config.getConfig().contains("punish-by-ip");
     }
 
     public boolean isPunishmentByIp(String punishmentType) {
