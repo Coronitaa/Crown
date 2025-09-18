@@ -5,6 +5,10 @@ import cp.corona.crown.Crown;
 import cp.corona.database.DatabaseManager;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
@@ -29,7 +33,6 @@ public class PunishmentListener implements Listener {
 
     private final Crown plugin;
     private final Set<UUID> chatFrozenPlayers = new HashSet<>();
-
 
     public PunishmentListener(Crown plugin) {
         this.plugin = plugin;
@@ -60,7 +63,6 @@ public class PunishmentListener implements Listener {
                 if (remainingMillis > 0) {
                     timeLeft = TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
                 } else {
-                    // Pardon if the ban has expired
                     if (nameBanList.isBanned(playerName)) {
                         nameBanList.pardon(playerName);
                     }
@@ -83,7 +85,6 @@ public class PunishmentListener implements Listener {
         }
     }
 
-
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
@@ -92,11 +93,7 @@ public class PunishmentListener implements Listener {
             if (!activePunishments.isEmpty()) {
                 chatFrozenPlayers.add(player.getUniqueId());
 
-                // Clear chat and send messages
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    for (int i = 0; i < 100; i++) {
-                        player.sendMessage("");
-                    }
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_header")));
                     for (DatabaseManager.PunishmentEntry punishment : activePunishments) {
                         String timeLeft = (punishment.getEndTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) ((punishment.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
@@ -106,6 +103,12 @@ public class PunishmentListener implements Listener {
                                 "{time_left}", timeLeft)));
                     }
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_footer")));
+
+                    TextComponent supportMessage = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.support_link_message", "{support_link}", plugin.getConfigManager().getSupportLink()))));
+                    supportMessage.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://" + plugin.getConfigManager().getSupportLink()));
+                    supportMessage.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Click to open the support link").create()));
+                    player.spigot().sendMessage(supportMessage);
+
 
                     String soundName = plugin.getConfigManager().getJoinAlertSound();
                     if (soundName != null && !soundName.isEmpty()) {
@@ -117,9 +120,8 @@ public class PunishmentListener implements Listener {
                         }
                     }
 
-                }, 20L); // 1 second delay to ensure chat is cleared after other plugins
+                }, 20L);
 
-                // Unfreeze chat after delay
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     chatFrozenPlayers.remove(player.getUniqueId());
                 }, plugin.getConfigManager().getJoinAlertDuration() * 20L);
@@ -127,11 +129,12 @@ public class PunishmentListener implements Listener {
         }
     }
 
-
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         if (chatFrozenPlayers.contains(event.getPlayer().getUniqueId())) {
-            event.setCancelled(true);
+            if (!event.getMessage().startsWith("/")) {
+                event.setCancelled(true);
+            }
         }
     }
 

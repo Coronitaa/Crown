@@ -79,6 +79,7 @@ messages:
   active_punishments_header: '&c&lYou have active punishments:'
   active_punishment_entry: '&c- &7({id}) &e{type} &7- Expires in: &f{time_left}'
   active_punishments_footer: '&7Please follow the rules.'
+  support_link_message: '&7Or get support at: &b&n{support_link}'
 
   unpunish_not_supported: '{prefix}&cCannot unpunish type: &b{punishment_type}&c.'
   unpunish_command_not_configured: '{prefix}&cThe unpunish command for &b{punishment_type}&c is not set in config.yml.'
