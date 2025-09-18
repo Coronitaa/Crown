@@ -693,6 +693,8 @@ public class MainConfigManager {
         return pluginConfig.getConfig().getString("time_units.day", "d");
     }
 
+    public String getMonthsTimeUnit() { return pluginConfig.getConfig().getString("time_units.months", "M"); }
+
     public String getYearsTimeUnit() {
         return pluginConfig.getConfig().getString("time_units.years", "y");
     }

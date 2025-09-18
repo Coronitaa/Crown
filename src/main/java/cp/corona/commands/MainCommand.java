@@ -66,7 +66,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn", "freeze");
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn", "freeze");
     private static final List<String> IP_FLAGS = Arrays.asList("-ip", "-i", "-local", "-l");
-    private static final List<String> TIME_SUGGESTIONS = Arrays.asList("1s", "1m", "1h", "1d", "1y", "permanent");
+    private static final List<String> TIME_SUGGESTIONS = Arrays.asList("1s", "1m", "1h", "1d", "1M", "1y", "permanent");
 
 
     public MainCommand(Crown plugin) {

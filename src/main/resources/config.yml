@@ -29,6 +29,7 @@ time_units:
   minutes: 'm'   # Character(s) representing minutes.
   hours: 'h'     # Character(s) representing hours.
   day: 'd'       # Character(s) representing days.
+  months: 'M'    # Character(s) representing months.
   years: 'y'     # Character(s) representing years.
 
 # On-join alert for active punishments.
