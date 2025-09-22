@@ -89,7 +89,12 @@ public class PunishmentListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         if (plugin.getConfigManager().isJoinAlertEnabled()) {
-            List<DatabaseManager.PunishmentEntry> activePunishments = plugin.getSoftBanDatabaseManager().getAllActivePunishments(player.getUniqueId(), player.getAddress().getAddress().getHostAddress());
+            List<DatabaseManager.PunishmentEntry> activePunishments = plugin.getSoftBanDatabaseManager()
+                    .getAllActivePunishments(player.getUniqueId(), player.getAddress().getAddress().getHostAddress())
+                    .stream()
+                    .filter(p -> !p.getType().equalsIgnoreCase("freeze"))
+                    .collect(Collectors.toList());
+
             if (!activePunishments.isEmpty()) {
                 chatFrozenPlayers.add(player.getUniqueId());
 
