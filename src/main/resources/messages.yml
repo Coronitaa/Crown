@@ -54,7 +54,9 @@ messages:
   invalid_player: '{prefix}&cInvalid player specified. Usage: {usage}'
   never_played: '{prefix}&cPlayer &b{input}&c has never played on this server.'
   player_not_online: '{prefix}&cPlayer &b{input}&c is not currently online.'
-  player_not_online_for_ip_punishment: '{prefix}&cPlayer &b{target}&c must be online to be IP punished.'
+  player_not_online_for_ip_punishment: '{prefix}&cPlayer &b{target}&c is not online.'
+  player_ip_not_found: '{prefix}&cCould not find a last known IP address for &b{target}&c.'
+
 
   help_header: '&6&lCrownPunishments Commands:'
   help_punish: '&b/crown punish <player> &7- Open punishment menu.'

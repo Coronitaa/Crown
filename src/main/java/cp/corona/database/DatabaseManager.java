@@ -1,4 +1,3 @@
-// coronitaa/crown/Crown-0a35d634fd87d2a5ccf97c7763b7f53746dff78b/src/main/java/cp/corona/database/DatabaseManager.java
 // src/main/java/cp/corona/database/DatabaseManager.java
 package cp.corona.database;
 
@@ -407,12 +406,14 @@ public class DatabaseManager {
             ps.setString(5, punisherName);
             ps.setLong(6, punishmentEndTime);
             ps.setString(7, durationString);
-            ps.setBoolean(8, true); // New punishments are active
+            ps.setBoolean(8, true);
             ps.executeUpdate();
 
             Player targetPlayer = Bukkit.getPlayer(playerUUID);
             if (targetPlayer != null) {
                 logPlayerInfo(punishmentId, targetPlayer);
+            } else {
+                logPlayerInfo(punishmentId, playerUUID, getLastKnownIp(playerUUID));
             }
 
             return punishmentId;
@@ -423,25 +424,44 @@ public class DatabaseManager {
     }
 
     public void logPlayerInfo(String punishmentId, Player player) {
+        logPlayerInfo(punishmentId, player.getUniqueId(), player.getAddress().getAddress().getHostAddress());
+    }
+
+    private void logPlayerInfo(String punishmentId, UUID playerUUID, String ipAddress) {
         String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level, playtime, ping, first_joined, last_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            Player player = Bukkit.getPlayer(playerUUID);
             ps.setString(1, punishmentId);
-            ps.setString(2, player.getAddress().getAddress().getHostAddress());
-            ps.setString(3, player.getWorld().getName() + "," + player.getLocation().getX() + "," + player.getLocation().getY() + "," + player.getLocation().getZ());
-            ps.setString(4, player.getGameMode().toString());
-            ps.setDouble(5, player.getHealth());
-            ps.setInt(6, player.getFoodLevel());
-            ps.setInt(7, player.getLevel());
-            ps.setLong(8, player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE));
-            ps.setInt(9, player.getPing());
-            ps.setLong(10, player.getFirstPlayed());
-            ps.setLong(11, player.getLastPlayed());
+            ps.setString(2, ipAddress);
+            if (player != null) {
+                ps.setString(3, player.getWorld().getName() + "," + player.getLocation().getX() + "," + player.getLocation().getY() + "," + player.getLocation().getZ());
+                ps.setString(4, player.getGameMode().toString());
+                ps.setDouble(5, player.getHealth());
+                ps.setInt(6, player.getFoodLevel());
+                ps.setInt(7, player.getLevel());
+                ps.setLong(8, player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE));
+                ps.setInt(9, player.getPing());
+                ps.setLong(10, player.getFirstPlayed());
+                ps.setLong(11, player.getLastPlayed());
+            } else {
+                ps.setNull(3, Types.VARCHAR);
+                ps.setNull(4, Types.VARCHAR);
+                ps.setNull(5, Types.DOUBLE);
+                ps.setNull(6, Types.INTEGER);
+                ps.setNull(7, Types.INTEGER);
+                ps.setNull(8, Types.BIGINT);
+                ps.setNull(9, Types.INTEGER);
+                ps.setLong(10, Bukkit.getOfflinePlayer(playerUUID).getFirstPlayed());
+                ps.setLong(11, Bukkit.getOfflinePlayer(playerUUID).getLastPlayed());
+            }
+
 
             ps.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error logging player info!", e);
         }
     }
+
 
     public PlayerInfo getPlayerInfo(String punishmentId) {
         String sql = "SELECT * FROM player_info WHERE punishment_id = ?";
@@ -630,6 +650,22 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment!", e);
+        }
+        return null;
+    }
+
+    public String getLastKnownIp(UUID playerUUID) {
+        String sql = "SELECT ip FROM player_info pi JOIN punishment_history ph ON pi.punishment_id = ph.punishment_id WHERE ph.player_uuid = ? ORDER BY ph.timestamp DESC LIMIT 1";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("ip");
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving last known IP!", e);
         }
         return null;
     }

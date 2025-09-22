@@ -475,10 +475,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishType);
         boolean byIp = byIpOverride != null ? byIpOverride : plugin.getConfigManager().isPunishmentByIp(punishType);
 
-        if (byIp && !target.isOnline()) {
-            sendConfigMessage(sender, "messages.player_not_online_for_ip_punishment", "{target}", target.getName());
-            return;
+        String ipAddress = null;
+        if (byIp) {
+            if (target.isOnline()) {
+                ipAddress = target.getPlayer().getAddress().getAddress().getHostAddress();
+            } else {
+                ipAddress = plugin.getSoftBanDatabaseManager().getLastKnownIp(target.getUniqueId());
+            }
+
+            if (ipAddress == null) {
+                sendConfigMessage(sender, "messages.player_ip_not_found", "{target}", target.getName());
+                return;
+            }
         }
+
 
         if (!useInternal) {
             if (commandTemplate != null && !commandTemplate.isEmpty()) {
@@ -507,20 +517,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     long banDuration = TimeUtils.parseTime(time, plugin.getConfigManager());
                     Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
 
-                    String targetIdentifier = target.getName();
-                    Player onlineTarget = target.getPlayer();
-
-                    if (byIp) {
-                        if (onlineTarget != null && onlineTarget.getAddress() != null) {
-                            targetIdentifier = onlineTarget.getAddress().getAddress().getHostAddress();
-                            Bukkit.getBanList(BanList.Type.IP).addBan(targetIdentifier, reason, expiration, sender.getName());
-                        } else {
-                            sendConfigMessage(sender, "messages.player_not_online_for_ipban", "{target}", target.getName());
-                            return;
-                        }
-                    } else {
-                        Bukkit.getBanList(BanList.Type.NAME).addBan(targetIdentifier, reason, expiration, sender.getName());
-                    }
+                    String targetIdentifier = byIp ? ipAddress : target.getName();
+                    BanList.Type banType = byIp ? BanList.Type.IP : BanList.Type.NAME;
+                    Bukkit.getBanList(banType).addBan(targetIdentifier, reason, expiration, sender.getName());
 
                     if (target.isOnline()) {
                         String kickMessage = getKickMessage(plugin.getConfigManager().getBanScreen(), reason, durationForLog, punishmentId, expiration);
