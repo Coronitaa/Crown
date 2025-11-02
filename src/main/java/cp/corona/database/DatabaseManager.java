@@ -2,9 +2,13 @@
 package cp.corona.database;
 
 import cp.corona.crown.Crown;
+import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.sql.*;
@@ -218,6 +222,7 @@ public class DatabaseManager {
     }
 
 
+    // This task remains as a backup to clean DB, but does not notify.
     private void startExpiryCheckTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             try (Connection connection = getConnection();
@@ -233,6 +238,7 @@ public class DatabaseManager {
         }, 0L, 6000L);
     }
 
+    // This task remains as a backup to clean DB, but does not notify.
     private void startMuteExpiryCheckTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             try (Connection connection = getConnection();
@@ -267,6 +273,10 @@ public class DatabaseManager {
             ps.executeUpdate();
             String punishmentId = logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString);
 
+            if (finalEndTime != Long.MAX_VALUE) {
+                scheduleExpiryNotification(uuid, finalEndTime, "softban", punishmentId);
+            }
+
             Player targetPlayer = Bukkit.getPlayer(uuid);
             if (targetPlayer != null && targetPlayer.isOnline()) {
                 String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationString, "{reason}", reason, "{punishment_id}", punishmentId);
@@ -289,6 +299,8 @@ public class DatabaseManager {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
                 updatePunishmentAsRemoved(activePunishmentId, punisherName, reason);
+                // Notify player upon successful manual removal
+                sendRemovalNotification(uuid, "softban");
                 return activePunishmentId;
             }
         } catch (SQLException e) {
@@ -330,7 +342,14 @@ public class DatabaseManager {
             String durationString = (finalEndTime == Long.MAX_VALUE)
                     ? plugin.getConfigManager().getMessage("placeholders.permanent_time_display")
                     : TimeUtils.formatTime((int) ((finalEndTime - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
-            return logPunishment(uuid, "mute", reason, punisherName, finalEndTime, durationString);
+
+            String punishmentId = logPunishment(uuid, "mute", reason, punisherName, finalEndTime, durationString);
+
+            if (finalEndTime != Long.MAX_VALUE) {
+                scheduleExpiryNotification(uuid, finalEndTime, "mute", punishmentId);
+            }
+
+            return punishmentId;
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database operation failed while muting player!", e);
         }
@@ -347,6 +366,8 @@ public class DatabaseManager {
             ps.setString(1, uuid.toString());
             if (ps.executeUpdate() > 0) {
                 updatePunishmentAsRemoved(activePunishmentId, punisherName, reason);
+                // Notify player upon successful manual removal
+                sendRemovalNotification(uuid, "mute");
                 return activePunishmentId;
             }
         } catch (SQLException e) {
@@ -713,6 +734,94 @@ public class DatabaseManager {
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to update punishment status", e);
             return false;
+        }
+    }
+
+    private void scheduleExpiryNotification(UUID uuid, long endTime, String punishmentType, String punishmentId) {
+        long durationMillis = endTime - System.currentTimeMillis();
+        if (durationMillis <= 0) return; // Expired instantly or in the past
+        long durationTicks = durationMillis / 50; // Convert millis to server ticks
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // This task runs ASYNC when the punishment should expire
+                String table = punishmentType.equals("mute") ? "mutes" : "softbans";
+                long currentEndTimeInDb = getPunishmentEndTime(table, uuid); // DB call, safe in async
+
+                // If 0 (no longer punished) or times don't match (superseded by new punishment)
+                if (currentEndTimeInDb == 0 || currentEndTimeInDb != endTime) {
+                    return; // Do nothing, it was manually removed or changed
+                }
+
+                boolean removed = false;
+                try (Connection connection = getConnection();
+                     PreparedStatement ps = connection.prepareStatement("DELETE FROM " + table + " WHERE uuid = ?")) {
+                    ps.setString(1, uuid.toString());
+                    if (ps.executeUpdate() > 0) {
+                        removed = true;
+                    }
+                } catch (SQLException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Could not remove expired " + punishmentType, e);
+                }
+
+                if (removed) {
+                    // Mark as inactive in history (also async)
+                    updatePunishmentAsRemoved(punishmentId, "System", "Expired");
+
+                    // Schedule the sync task for notification
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
+                            if (offlinePlayer.isOnline()) {
+                                Player player = offlinePlayer.getPlayer();
+                                if (player != null) {
+                                    String messageKey = "messages." + punishmentType + "_expired";
+                                    String message = plugin.getConfigManager().getMessage(messageKey);
+                                    player.sendMessage(MessageUtils.getColorMessage(message));
+
+                                    String soundName = plugin.getConfigManager().getSoundName("punishment_expired");
+                                    if (soundName != null && !soundName.isEmpty()) {
+                                        try {
+                                            Sound sound = Sound.valueOf(soundName.toUpperCase());
+                                            player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+                                        } catch (IllegalArgumentException e) {
+                                            plugin.getLogger().warning("Invalid sound name configured for punishment_expired: " + soundName);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }.runTask(plugin);
+                }
+            }
+        }.runTaskLaterAsynchronously(plugin, durationTicks);
+    }
+
+    /**
+     * Notifies an online player that their punishment was manually removed.
+     * This method MUST be called from the main server thread.
+     */
+    private void sendRemovalNotification(UUID uuid, String punishmentType) {
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
+        if (offlinePlayer.isOnline()) {
+            Player player = offlinePlayer.getPlayer();
+            if (player != null) {
+                String messageKey = "messages." + (punishmentType.equals("mute") ? "unmute_notification" : "unsoftban_notification");
+                String message = plugin.getConfigManager().getMessage(messageKey);
+                player.sendMessage(MessageUtils.getColorMessage(message));
+
+                String soundName = plugin.getConfigManager().getSoundName("punishment_removed");
+                if (soundName != null && !soundName.isEmpty()) {
+                    try {
+                        Sound sound = Sound.valueOf(soundName.toUpperCase());
+                        player.playSound(player.getLocation(), sound, 1.0f, 1.2f); // Slightly higher pitch
+                    } catch (IllegalArgumentException e) {
+                        plugin.getLogger().warning("Invalid sound name configured for punishment_removed: " + soundName);
+                    }
+                }
+            }
         }
     }
 

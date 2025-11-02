@@ -21,6 +21,8 @@ database:
 sounds:
   punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP'
   punish_error: 'ENTITY_VILLAGER_NO'
+  punishment_expired: 'BLOCK_NOTE_BLOCK_CHIME' # Sound for when a mute/softban expires
+  punishment_removed: 'BLOCK_NOTE_BLOCK_CHIME' # Sound for when a mute/softban expires
 
 # Time unit configurations for formatting and parsing time durations (e.g., "1d", "2h30m").
 time_units:
