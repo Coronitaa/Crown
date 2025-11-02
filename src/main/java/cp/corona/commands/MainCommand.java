@@ -667,7 +667,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             logReason = reason.replace("{player}", sender.getName()) + " (ID: " + punishmentId + ")";
         }
 
-        plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), "un" + punishType, logReason, sender.getName(), 0L, "N/A");
 
 
         switch (punishType.toLowerCase()) {

@@ -63,9 +63,10 @@ public class HistoryMenu implements InventoryHolder {
 
         for (DatabaseManager.PunishmentEntry entry : allHistoryEntries) {
             String type = entry.getType().toLowerCase();
-            if (type.startsWith("un")) {
-                continue;
-            }
+            // REMOVED: if (type.startsWith("un")) { continue; }
+            // We no longer create "un..." entries, so this is not needed.
+            // We want to show all entries, including those that are now inactive (removed).
+
             if (type.equals("kick") || type.equals("freeze")) {
                 entry.setStatus(""); // Set status to blank for kick and freeze
                 continue;
@@ -120,6 +121,12 @@ public class HistoryMenu implements InventoryHolder {
             String entryTypeConfigName = entry.getType().toLowerCase() + "_history_entry";
             MenuItem historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(entryTypeConfigName);
 
+            // Handle "un..." types which might not have a specific entry config
+            if (historyItemConfig == null && entry.getType().startsWith("un")) {
+                entryTypeConfigName = entry.getType().substring(2).toLowerCase() + "_history_entry"; // Try "ban_history_entry" for "unban"
+                historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(entryTypeConfigName);
+            }
+
             if (historyItemConfig == null) {
                 historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(HISTORY_ENTRY_ITEM_KEY);
                 if (historyItemConfig == null) continue;
@@ -136,17 +143,11 @@ public class HistoryMenu implements InventoryHolder {
             historyEntryItem.setName(MessageUtils.getColorMessage(entryName));
 
             List<String> lore = new ArrayList<>();
-            String originalPunishmentId = entry.getPunishmentId();
-            String reason = entry.getReason();
+            String originalPunishmentId = entry.getPunishmentId(); // Use the entry's ID directly
+            String reason = entry.getReason(); // Use the entry's reason directly
 
-            if (entry.getType().startsWith("un")) {
-                Pattern pattern = Pattern.compile("\\(ID: (\\w+)\\)");
-                Matcher matcher = pattern.matcher(entry.getReason());
-                if (matcher.find()) {
-                    originalPunishmentId = matcher.group(1);
-                    reason = entry.getReason().substring(0, matcher.start()).trim();
-                }
-            }
+            // REMOVED: Logic to parse ID from reason for "un..." types
+            // if (entry.getType().startsWith("un")) { ... }
 
             List<String> configLore = plugin.getConfigManager().getHistoryMenuItemLore(HISTORY_ENTRY_ITEM_KEY, target);
             for (String line : configLore) {
