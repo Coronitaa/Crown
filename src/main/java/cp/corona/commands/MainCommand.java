@@ -43,12 +43,15 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String MUTE_COMMAND_ALIAS = "mute";
     private static final String KICK_COMMAND_ALIAS = "kick";
     private static final String WARN_COMMAND_ALIAS = "warn";
+
+    // Added constants for unpunish aliases and check alias
     private static final String UNBAN_COMMAND_ALIAS = "unban";
     private static final String UNMUTE_COMMAND_ALIAS = "unmute";
     private static final String UNWARN_COMMAND_ALIAS = "unwarn";
-    private static final String CHECK_COMMAND_ALIAS = "check";
     private static final String UNSOFTBAN_COMMAND_ALIAS = "unsoftban";
     private static final String UNFREEZE_COMMAND_ALIAS = "unfreeze";
+    private static final String CHECK_COMMAND_ALIAS = "c"; // From plugin.yml
+
     private static final String ADMIN_PERMISSION = "crown.admin";
     private static final String USE_PERMISSION = "crown.use";
     private static final String CHECK_PERMISSION = "crown.check";
@@ -63,10 +66,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn";
     private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze";
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
+
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn", "freeze");
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn", "freeze");
+
+    // Added constants for tab completion
+    private static final List<String> UNPUNISH_ALIASES = Arrays.asList(
+            UNBAN_COMMAND_ALIAS, UNMUTE_COMMAND_ALIAS, UNWARN_COMMAND_ALIAS,
+            UNSOFTBAN_COMMAND_ALIAS, UNFREEZE_COMMAND_ALIAS
+    );
     private static final List<String> IP_FLAGS = Arrays.asList("-ip", "-i", "-local", "-l");
     private static final List<String> TIME_SUGGESTIONS = Arrays.asList("1s", "1m", "1h", "1d", "1M", "1y", "permanent");
+    private static final List<String> CHECK_ACTIONS = Arrays.asList("info", "repunish", "unpunish");
+    private static final List<String> ID_SUGGESTION = Arrays.asList("<ID: XXXXXX>");
+    private static final List<String> REASON_SUGGESTION = Arrays.asList("<reason>");
 
 
     public MainCommand(Crown plugin) {
@@ -90,6 +103,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "unpunish":
                 return handleUnpunishCommand(sender, args);
             case "check":
+            case "c": // Handle alias from plugin.yml
                 return handleCheckCommand(sender, args);
             case "softban":
             case "freeze":
@@ -139,6 +153,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (args.length > 0) {
             newArgsList.add(args[0]);
         } else {
+            // Show usage if no player specified
             return handlePunishCommand(sender, new String[]{});
         }
         newArgsList.add(punishmentType);
@@ -149,10 +164,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleUnpunishmentTypeAlias(CommandSender sender, String unpunishmentCommand, String[] args) {
-        String punishmentType = unpunishmentCommand.substring(2);
+        String punishmentType = unpunishmentCommand.substring(2); // "unban" -> "ban"
         String[] newArgs;
 
         if (args.length == 0) {
+            // Show usage if no player specified
             return handleUnpunishCommand(sender, new String[0]);
         }
 
@@ -161,7 +177,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         newArgs[1] = punishmentType;
 
         if (args.length > 1) {
-            System.arraycopy(args, 1, newArgs, 2, args.length - 1); // reason
+            // Copy reason args
+            System.arraycopy(args, 1, newArgs, 2, args.length - 1);
         }
 
         return handleUnpunishCommand(sender, newArgs);
@@ -777,14 +794,38 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (commandLabel.equals("crown")) {
             if (args.length == 1) {
                 StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, CHECK_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND), completions);
-            } else if (args.length > 1 && args[0].equalsIgnoreCase(PUNISH_SUBCOMMAND)) {
-                String[] punishArgs = Arrays.copyOfRange(args, 1, args.length);
-                handlePunishTab(punishArgs, completions, playerNames, "punish");
+            } else if (args.length > 1) {
+                String subcommand = args[0].toLowerCase();
+                String[] subArgs = Arrays.copyOfRange(args, 1, args.length);
+
+                if (subcommand.equals(PUNISH_SUBCOMMAND)) {
+                    handlePunishTab(subArgs, completions, playerNames, PUNISH_SUBCOMMAND);
+                } else if (subcommand.equals(UNPUNISH_SUBCOMMAND)) {
+                    handleUnpunishTab(subArgs, completions, playerNames, UNPUNISH_SUBCOMMAND);
+                } else if (subcommand.equals(CHECK_SUBCOMMAND)) {
+                    handleCheckTab(subArgs, completions);
+                }
             }
-        } else if (commandLabel.equals("punish")) {
-            handlePunishTab(args, completions, playerNames, "punish");
-        } else if (PUNISHMENT_TYPES.contains(commandLabel)) {
+        }
+        // /punish command
+        else if (commandLabel.equals(PUNISH_SUBCOMMAND)) {
+            handlePunishTab(args, completions, playerNames, PUNISH_SUBCOMMAND);
+        }
+        // /ban, /mute, etc. aliases
+        else if (PUNISHMENT_TYPES.contains(commandLabel)) {
             handlePunishTab(args, completions, playerNames, commandLabel);
+        }
+        // /unpunish command
+        else if (commandLabel.equals(UNPUNISH_SUBCOMMAND)) {
+            handleUnpunishTab(args, completions, playerNames, UNPUNISH_SUBCOMMAND);
+        }
+        // /unban, /unmute, etc. aliases
+        else if (UNPUNISH_ALIASES.contains(commandLabel)) {
+            handleUnpunishTab(args, completions, playerNames, commandLabel);
+        }
+        // /check or /c command
+        else if (commandLabel.equals(CHECK_SUBCOMMAND) || commandLabel.equals(CHECK_COMMAND_ALIAS)) {
+            handleCheckTab(args, completions);
         }
 
         Collections.sort(completions);
@@ -815,7 +856,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 List<String> suggestions = new ArrayList<>();
                 if (ipSupported) suggestions.addAll(IP_FLAGS);
                 if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
-                suggestions.add("<reason>");
+                if (currentArg.isEmpty()) {
+                    suggestions.addAll(REASON_SUGGESTION);
+                }
                 StringUtil.copyPartialMatches(currentArg, suggestions, completions);
                 return;
             }
@@ -826,10 +869,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 if (isIpFlag && ipSupported) {
                     List<String> suggestions = new ArrayList<>();
                     if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
-                    suggestions.add("<reason>");
+                    if (currentArg.isEmpty()) {
+                        suggestions.addAll(REASON_SUGGESTION);
+                    }
                     StringUtil.copyPartialMatches(currentArg, suggestions, completions);
                 } else if (timeSupported) {
-                    completions.add("<reason>");
+                    if (currentArg.isEmpty()) {
+                        completions.addAll(REASON_SUGGESTION);
+                    }
                 }
                 return;
             }
@@ -847,7 +894,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 List<String> suggestions = new ArrayList<>();
                 if (ipSupported) suggestions.addAll(IP_FLAGS);
                 if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
-                suggestions.add("<reason>");
+                if (currentArg.isEmpty()) {
+                    suggestions.addAll(REASON_SUGGESTION);
+                }
                 StringUtil.copyPartialMatches(currentArg, suggestions, completions);
                 return;
             }
@@ -859,17 +908,71 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 if (isIpFlag && ipSupported) {
                     List<String> suggestions = new ArrayList<>();
                     if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
-                    suggestions.add("<reason>");
+                    if (currentArg.isEmpty()) {
+                        suggestions.addAll(REASON_SUGGESTION);
+                    }
                     StringUtil.copyPartialMatches(currentArg, suggestions, completions);
                 } else if (timeSupported) {
-                    completions.add("<reason>");
+                    if (currentArg.isEmpty()) {
+                        completions.addAll(REASON_SUGGESTION);
+                    }
                 }
                 return;
             }
         }
 
-        if (currentArgs.size() >= 4) {
-            completions.add("<reason>");
+        if (currentArgs.size() >= 3) { // Changed from 4 to 3 to cover reasons earlier
+            if (currentArg.isEmpty()) {
+                completions.addAll(REASON_SUGGESTION);
+            }
+        }
+    }
+
+    private void handleCheckTab(String[] args, List<String> completions) {
+        if (args.length == 1) { // Argument for ID
+            if (args[0].isEmpty()) {
+                completions.addAll(ID_SUGGESTION);
+            } else {
+                StringUtil.copyPartialMatches(args[0], ID_SUGGESTION, completions);
+            }
+        } else if (args.length == 2) { // Argument for action
+            StringUtil.copyPartialMatches(args[1], CHECK_ACTIONS, completions);
+        }
+    }
+
+    private void handleUnpunishTab(String[] args, List<String> completions, List<String> playerNames, String commandLabel) {
+        if (args.length == 0) return;
+
+        String currentArg = args[args.length - 1];
+
+        if (args.length == 1) { // Player name
+            StringUtil.copyPartialMatches(currentArg, playerNames, completions);
+            return;
+        }
+
+        // Specific logic for /unpunish (requires type)
+        if (commandLabel.equals(UNPUNISH_SUBCOMMAND)) {
+            if (args.length == 2) { // Punishment type
+                StringUtil.copyPartialMatches(currentArg, UNPUNISHMENT_TYPES, completions);
+                return;
+            }
+            if (args.length == 3) { // Start of reason
+                if (currentArg.isEmpty()) {
+                    completions.addAll(REASON_SUGGESTION);
+                } else {
+                    StringUtil.copyPartialMatches(currentArg, REASON_SUGGESTION, completions);
+                }
+            }
+        }
+        // Specific logic for aliases (/unban, /unmute)
+        else {
+            if (args.length == 2) { // Start of reason
+                if (currentArg.isEmpty()) {
+                    completions.addAll(REASON_SUGGESTION);
+                } else {
+                    StringUtil.copyPartialMatches(currentArg, REASON_SUGGESTION, completions);
+                }
+            }
         }
     }
 
