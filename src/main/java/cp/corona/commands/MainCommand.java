@@ -611,6 +611,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
             case "kick":
+                if (!target.isOnline()) {
+                    sendConfigMessage(sender, "messages.player_not_online", "{input}", target.getName());
+                    return;
+                }
                 durationForLog = "N/A";
                 punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), 0L, durationForLog, byIp);
                 if (useInternal) {

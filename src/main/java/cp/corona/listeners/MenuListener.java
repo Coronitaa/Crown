@@ -1003,6 +1003,14 @@ public class MenuListener implements Listener {
     private void confirmKick(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+
+        if (!target.isOnline()) {
+            sendConfigMessage(player, "messages.player_not_online", "{input}", target.getName());
+            playSound(player, "punish_error");
+            player.closeInventory();
+            return;
+        }
+
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Kicked by moderator";
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal("kick");
         boolean byIp = punishDetailsMenu.isByIp();
@@ -1010,19 +1018,17 @@ public class MenuListener implements Listener {
         String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), KICK_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A", byIp);
 
         if (useInternal) {
-            if (target.isOnline()) {
-                String kickMessage = getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null);
-                if (byIp) {
-                    InetAddress targetAddress = target.getPlayer().getAddress().getAddress();
-                    for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                        InetAddress onlinePlayerAddress = onlinePlayer.getAddress().getAddress();
-                        if (onlinePlayerAddress.equals(targetAddress) || (onlinePlayerAddress.isLoopbackAddress() && targetAddress.isLoopbackAddress())) {
-                            onlinePlayer.kickPlayer(kickMessage);
-                        }
+            String kickMessage = getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null);
+            if (byIp) {
+                InetAddress targetAddress = target.getPlayer().getAddress().getAddress();
+                for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                    InetAddress onlinePlayerAddress = onlinePlayer.getAddress().getAddress();
+                    if (onlinePlayerAddress.equals(targetAddress) || (onlinePlayerAddress.isLoopbackAddress() && targetAddress.isLoopbackAddress())) {
+                        onlinePlayer.kickPlayer(kickMessage);
                     }
-                } else {
-                    target.getPlayer().kickPlayer(kickMessage);
                 }
+            } else {
+                target.getPlayer().kickPlayer(kickMessage);
             }
             executePunishmentCommandAndLog(player, "", target, punishDetailsMenu, KICK_PUNISHMENT_TYPE, "N/A", reason, punishmentId, byIp);
         } else {
