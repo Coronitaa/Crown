@@ -61,17 +61,32 @@ public class HistoryMenu implements InventoryHolder {
         for (DatabaseManager.PunishmentEntry entry : allHistoryEntries) {
             String type = entry.getType().toLowerCase();
 
-            if (type.equals("kick") || type.equals("freeze")) {
+            // Instantaneous punishments have no active/expired status.
+            if (type.equals("kick") || type.equals("warn")) {
                 entry.setStatus("");
                 continue;
             }
-            if (!entry.isActive()) {
-                entry.setStatus("&7(removed)");
-            } else if (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE) {
-                entry.setStatus("&a(active)");
+
+            String status;
+            if (entry.isActive()) {
+                // If the punishment is marked as active in the DB.
+                if (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE) {
+                    status = "&a(active)"; // Still running.
+                } else {
+                    // Should have been marked as inactive by the expiry task, but as a fallback.
+                    status = "&c(expired)";
+                }
             } else {
-                entry.setStatus("&c(expired)");
+                // It's inactive. We need to know why.
+                // Check if it was automatically expired by the system.
+                if ("System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason())) {
+                    status = "&c(expired)";
+                } else {
+                    // Otherwise, it was manually removed.
+                    status = "&7(removed)";
+                }
             }
+            entry.setStatus(status);
         }
     }
 

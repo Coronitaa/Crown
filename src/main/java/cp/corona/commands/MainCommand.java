@@ -226,10 +226,25 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
                 String type = entry.getType().toLowerCase();
                 String status;
-                if (type.equals("kick") || type.equals("freeze")) {
+
+                if (type.equals("kick") || type.equals("warn")) {
                     status = "N/A";
                 } else {
-                    status = entry.isActive() ? (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE ? "&a(Active)" : "&c(Expired)") : "&7(Removed)";
+                    boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
+
+                    if (entry.isActive()) {
+                        if (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE) {
+                            status = "&a(Active)";
+                        } else {
+                            status = "&c(Expired)";
+                        }
+                    } else { // Not active
+                        if (isSystemExpired) {
+                            status = "&c(Expired)";
+                        } else {
+                            status = "&7(Removed)";
+                        }
+                    }
                 }
 
                 String timeLeft = "N/A";
@@ -280,7 +295,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     }
                 }
 
-                if (!entry.isActive()) {
+                boolean isManuallyRemoved = !entry.isActive() && !("System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason()));
+                if (isManuallyRemoved) {
                     sendConfigMessage(sender, "messages.check_info_removed", "{remover}", entry.getRemovedByName(), "{remove_date}", dateFormat.format(entry.getRemovedAt()), "{remove_reason}", entry.getRemovedReason());
                 }
 
