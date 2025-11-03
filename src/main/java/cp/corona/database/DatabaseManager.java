@@ -1,7 +1,9 @@
 // src/main/java/cp/corona/database/DatabaseManager.java
 package cp.corona.database;
 
+import cp.corona.config.WarnLevel;
 import cp.corona.crown.Crown;
+import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
@@ -51,6 +53,7 @@ public class DatabaseManager {
         initializeDatabase();
         startExpiryCheckTask();
         startMuteExpiryCheckTask(); // Task for mutes
+        startWarningExpiryCheckTask(); // New task for internal warnings
     }
 
     public Connection getConnection() throws SQLException {
@@ -157,6 +160,31 @@ public class DatabaseManager {
             }
             statement.execute(createPlayerChatHistoryTableSQL);
 
+            String createActiveWarningsTableSQL = "CREATE TABLE IF NOT EXISTS active_warnings (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "player_uuid VARCHAR(36) NOT NULL," +
+                    "punishment_id VARCHAR(8) NOT NULL," +
+                    "warn_level INT NOT NULL," +
+                    "start_time BIGINT NOT NULL," +
+                    "end_time BIGINT NOT NULL," +
+                    "is_paused BOOLEAN DEFAULT 0," +
+                    "remaining_time_on_pause BIGINT DEFAULT 0," +
+                    "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
+
+            if ("sqlite".equalsIgnoreCase(dbType)) {
+                createActiveWarningsTableSQL = "CREATE TABLE IF NOT EXISTS active_warnings (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "player_uuid VARCHAR(36) NOT NULL," +
+                        "punishment_id VARCHAR(8) NOT NULL," +
+                        "warn_level INT NOT NULL," +
+                        "start_time BIGINT NOT NULL," +
+                        "end_time BIGINT NOT NULL," +
+                        "is_paused BOOLEAN DEFAULT 0," +
+                        "remaining_time_on_pause BIGINT DEFAULT 0," +
+                        "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
+            }
+            statement.execute(createActiveWarningsTableSQL);
+
 
             updateTableStructure(connection);
 
@@ -258,6 +286,164 @@ public class DatabaseManager {
                 plugin.getLogger().log(Level.WARNING, "Error checking for expired mutes.", e);
             }
         }, 0L, 6000L);
+    }
+
+    private void startWarningExpiryCheckTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                List<ActiveWarningEntry> expiredWarnings = new ArrayList<>();
+                String sql = "SELECT * FROM active_warnings WHERE end_time <= ? AND end_time != -1 AND is_paused = 0";
+                try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                    ps.setLong(1, System.currentTimeMillis());
+                    ResultSet rs = ps.executeQuery();
+                    while (rs.next()) {
+                        expiredWarnings.add(new ActiveWarningEntry(
+                                rs.getInt("id"),
+                                UUID.fromString(rs.getString("player_uuid")),
+                                rs.getString("punishment_id"),
+                                rs.getInt("warn_level"),
+                                rs.getLong("end_time"),
+                                rs.getBoolean("is_paused"),
+                                rs.getLong("remaining_time_on_pause")
+                        ));
+                    }
+                } catch (SQLException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Error fetching expired warnings", e);
+                }
+
+                if (!expiredWarnings.isEmpty()) {
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            for (ActiveWarningEntry warning : expiredWarnings) {
+                                handleWarningExpiration(warning);
+                            }
+                        }
+                    }.runTask(plugin);
+                }
+            }
+        }.runTaskTimerAsynchronously(plugin, 20L * 10, 20L * 30); // Check every 30 seconds
+    }
+
+    private void handleWarningExpiration(ActiveWarningEntry warning) {
+        OfflinePlayer target = Bukkit.getOfflinePlayer(warning.getPlayerUUID());
+        WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(warning.getWarnLevel());
+        if (levelConfig != null) {
+            List<MenuItem.ClickActionData> actions = levelConfig.getOnExpireActions();
+            if (plugin.getMenuListener() != null) {
+                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-expire", "N/A", "Expired", true, actions);
+            }
+        }
+        removeActiveWarning(warning.getPlayerUUID(), warning.getPunishmentId(), "System", "Expired");
+    }
+
+    public void addActiveWarning(UUID playerUUID, String punishmentId, int warnLevel, long endTime) {
+        if ("incremental".equals(plugin.getConfigManager().getWarnExpirationMode())) {
+            pauseLatestActiveWarning(playerUUID);
+        }
+
+        String sql = "INSERT INTO active_warnings (player_uuid, punishment_id, warn_level, start_time, end_time) VALUES (?, ?, ?, ?, ?)";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ps.setString(2, punishmentId);
+            ps.setInt(3, warnLevel);
+            ps.setLong(4, System.currentTimeMillis());
+            ps.setLong(5, endTime);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not add active warning for " + playerUUID, e);
+        }
+    }
+
+    public void removeActiveWarning(UUID playerUUID, String punishmentId, String removerName, String reason) {
+        String sql = "DELETE FROM active_warnings WHERE punishment_id = ?";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, punishmentId);
+            if (ps.executeUpdate() > 0) {
+                updatePunishmentAsRemoved(punishmentId, removerName, reason);
+                if ("incremental".equals(plugin.getConfigManager().getWarnExpirationMode())) {
+                    resumeLatestPausedWarning(playerUUID);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not remove active warning for punishmentId: " + punishmentId, e);
+        }
+    }
+
+    public int getActiveWarningCount(UUID playerUUID) {
+        String sql = "SELECT COUNT(*) FROM active_warnings WHERE player_uuid = ?";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not count active warnings for " + playerUUID, e);
+        }
+        return 0;
+    }
+
+    public ActiveWarningEntry getLatestActiveWarning(UUID playerUUID) {
+        String sql = "SELECT * FROM active_warnings WHERE player_uuid = ? AND is_paused = 0 ORDER BY start_time DESC LIMIT 1";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new ActiveWarningEntry(
+                        rs.getInt("id"),
+                        playerUUID,
+                        rs.getString("punishment_id"),
+                        rs.getInt("warn_level"),
+                        rs.getLong("end_time"),
+                        false, 0
+                );
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not get latest active warning for " + playerUUID, e);
+        }
+        return null;
+    }
+
+    private void pauseLatestActiveWarning(UUID playerUUID) {
+        ActiveWarningEntry latest = getLatestActiveWarning(playerUUID);
+        if (latest == null) return;
+
+        long remainingTime = latest.getEndTime() - System.currentTimeMillis();
+        if (remainingTime <= 0) return; // Already expired, should be handled by task
+
+        String sql = "UPDATE active_warnings SET is_paused = 1, remaining_time_on_pause = ? WHERE id = ?";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, remainingTime);
+            ps.setInt(2, latest.getId());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not pause warning for " + playerUUID, e);
+        }
+    }
+
+    private void resumeLatestPausedWarning(UUID playerUUID) {
+        String sqlSelect = "SELECT * FROM active_warnings WHERE player_uuid = ? AND is_paused = 1 ORDER BY start_time DESC LIMIT 1";
+        try (Connection connection = getConnection(); PreparedStatement psSelect = connection.prepareStatement(sqlSelect)) {
+            psSelect.setString(1, playerUUID.toString());
+            ResultSet rs = psSelect.executeQuery();
+
+            if (rs.next()) {
+                int id = rs.getInt("id");
+                long remainingTime = rs.getLong("remaining_time_on_pause");
+                long newEndTime = (remainingTime == -1) ? -1 : System.currentTimeMillis() + remainingTime;
+
+                String sqlUpdate = "UPDATE active_warnings SET is_paused = 0, end_time = ?, remaining_time_on_pause = 0 WHERE id = ?";
+                try (PreparedStatement psUpdate = connection.prepareStatement(sqlUpdate)) {
+                    psUpdate.setLong(1, newEndTime);
+                    psUpdate.setInt(2, id);
+                    psUpdate.executeUpdate();
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not resume warning for " + playerUUID, e);
+        }
     }
 
     public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp) {
@@ -418,9 +604,11 @@ public class DatabaseManager {
     }
 
     public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp) {
-        PunishmentEntry activePunishment = getLatestActivePunishment(playerUUID, punishmentType);
-        if (activePunishment != null && (activePunishment.getEndTime() > System.currentTimeMillis() || activePunishment.getEndTime() == Long.MAX_VALUE)) {
-            updatePunishmentAsRemoved(activePunishment.getPunishmentId(), "System", "Superseded by new punishment.");
+        if (!"warn".equalsIgnoreCase(punishmentType)) {
+            PunishmentEntry activePunishment = getLatestActivePunishment(playerUUID, punishmentType);
+            if (activePunishment != null && (activePunishment.getEndTime() > System.currentTimeMillis() || activePunishment.getEndTime() == Long.MAX_VALUE)) {
+                updatePunishmentAsRemoved(activePunishment.getPunishmentId(), "System", "Superseded by new punishment.");
+            }
         }
 
         String punishmentId = generatePunishmentId();
@@ -600,7 +788,7 @@ public class DatabaseManager {
 
     public HashMap<String, Integer> getPunishmentCounts(UUID playerUUID) {
         HashMap<String, Integer> counts = new HashMap<>();
-        String sql = "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? AND active = 1 GROUP BY punishment_type";
+        String sql = "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? GROUP BY punishment_type";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             try (ResultSet rs = ps.executeQuery()) {

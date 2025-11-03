@@ -1,7 +1,9 @@
 // src/main/java/cp/corona/commands/MainCommand.java
 package cp.corona.commands;
 
+import cp.corona.config.WarnLevel;
 import cp.corona.crown.Crown;
+import cp.corona.database.ActiveWarningEntry;
 import cp.corona.database.DatabaseManager;
 import cp.corona.listeners.MenuListener;
 import cp.corona.menus.PunishDetailsMenu;
@@ -26,6 +28,7 @@ import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public class MainCommand implements CommandExecutor, TabCompleter {
@@ -615,13 +618,31 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
             case "warn":
-                durationForLog = "N/A";
-                punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), 0L, durationForLog, byIp);
                 if (useInternal) {
-                    if (target.isOnline()) {
-                        target.getPlayer().sendMessage(MessageUtils.getColorMessage(reason));
+                    DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
+                    int nextWarnLevel = dbManager.getActiveWarningCount(target.getUniqueId()) + 1;
+                    WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(nextWarnLevel);
+
+                    if (levelConfig == null) {
+                        sender.sendMessage(MessageUtils.getColorMessage("{prefix}&cNo warning level configured for level " + nextWarnLevel + ". Action cancelled."));
+                        return;
                     }
+
+                    int durationSeconds = TimeUtils.parseTime(levelConfig.getExpiration(), plugin.getConfigManager());
+                    long endTime = (durationSeconds == -1) ? -1 : System.currentTimeMillis() + (durationSeconds * 1000L);
+                    durationForLog = (endTime == -1) ? "Permanent" : TimeUtils.formatTime(durationSeconds, plugin.getConfigManager());
+
+                    punishmentId = dbManager.logPunishment(target.getUniqueId(), "warn", reason, sender.getName(), endTime, durationForLog, false); // byIp not applicable for internal warn
+                    dbManager.addActiveWarning(target.getUniqueId(), punishmentId, nextWarnLevel, endTime);
+
+                    if (plugin.getMenuListener() != null) {
+                        plugin.getMenuListener().executeHookActions(sender, target, "warn", durationForLog, reason, false, levelConfig.getOnWarnActions());
+                    }
+                    // No separate confirmation message needed as it's handled by the hook actions
                 } else {
+                    // External warn command logic
+                    durationForLog = "N/A";
+                    punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), 0L, durationForLog, byIp);
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
                 }
                 break;
@@ -646,14 +667,16 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return;
         }
 
-        String messageKey = byIp ? "messages.direct_punishment_confirmed_ip" : "messages.direct_punishment_confirmed";
-        sendConfigMessage(sender, messageKey, "{target}", target.getName(), "{time}", durationForLog, "{reason}", reason, "{punishment_type}", punishType, "{punishment_id}", punishmentId);
+        if (!punishType.equalsIgnoreCase("warn") || !useInternal) {
+            String messageKey = byIp ? "messages.direct_punishment_confirmed_ip" : "messages.direct_punishment_confirmed";
+            sendConfigMessage(sender, messageKey, "{target}", target.getName(), "{time}", durationForLog, "{reason}", reason, "{punishment_type}", punishType, "{punishment_id}", punishmentId);
 
-        MenuListener menuListener = plugin.getMenuListener();
-        if (menuListener != null) {
-            menuListener.executeHookActions(sender, target, punishType, durationForLog, reason, false);
-        } else {
-            plugin.getLogger().warning("MenuListener instance is null, cannot execute punishment hooks.");
+            MenuListener menuListener = plugin.getMenuListener();
+            if (menuListener != null) {
+                menuListener.executeHookActions(sender, target, punishType, durationForLog, reason, false);
+            } else {
+                plugin.getLogger().warning("MenuListener instance is null, cannot execute punishment hooks.");
+            }
         }
     }
 
@@ -667,7 +690,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        if (punishmentId == null && useInternal) {
+        if (punishmentId == null && useInternal && !punishType.equalsIgnoreCase("warn")) {
             sendConfigMessage(sender, "messages.no_active_" + punishType, "{target}", target.getName());
             return;
         }
@@ -747,10 +770,24 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
             case "warn":
-                plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                 if (useInternal) {
-                    plugin.getLogger().warning("Unwarn command is empty, internal unwarn is not supported.");
+                    DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
+                    ActiveWarningEntry activeWarning = dbManager.getLatestActiveWarning(target.getUniqueId());
+
+                    if (activeWarning == null) {
+                        sendConfigMessage(sender, "messages.no_active_warn", "{target}", target.getName());
+                        return;
+                    }
+
+                    punishmentId = activeWarning.getPunishmentId(); // Update punishmentId for confirmation message
+                    WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(activeWarning.getWarnLevel());
+                    if (levelConfig != null && plugin.getMenuListener() != null) {
+                        plugin.getMenuListener().executeHookActions(sender, target, "unwarn", "N/A", logReason, true, levelConfig.getOnExpireActions());
+                    }
+
+                    dbManager.removeActiveWarning(target.getUniqueId(), activeWarning.getPunishmentId(), sender.getName(), logReason);
                 } else {
+                    plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
                 }
                 break;
@@ -782,11 +819,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", punishType, "{punishment_id}", punishmentId);
 
-        MenuListener menuListener = plugin.getMenuListener();
-        if (menuListener != null) {
-            menuListener.executeHookActions(sender, target, punishType, "N/A", logReason, true);
-        } else {
-            plugin.getLogger().warning("MenuListener instance is null, cannot execute unpunishment hooks.");
+        if (!punishType.equalsIgnoreCase("warn") || !useInternal) {
+            MenuListener menuListener = plugin.getMenuListener();
+            if (menuListener != null) {
+                menuListener.executeHookActions(sender, target, punishType, "N/A", logReason, true);
+            } else {
+                plugin.getLogger().warning("MenuListener instance is null, cannot execute unpunishment hooks.");
+            }
         }
     }
 

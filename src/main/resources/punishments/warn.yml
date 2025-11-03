@@ -1,15 +1,61 @@
-# Configuration for warn punishment.
-use-internal: false # If true, the plugin will handle the warn internally. If false, it will use the command below.
+# C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\resources\punishments\warn.yml
+# Configuration for the internal warning system.
+use-internal: true
 punish-command: 'warn {target} {reason}'
 unpunish-command: 'unwarn {target}'
 default-reason: "Warned by a moderator."
 default-unpunish-reason: "Unwarned by {player}."
 
+# Expiration mode for warnings.
+# 'independent': Each warning has its own separate timer.
+# 'incremental': A new warning pauses the timer of the previous one. The previous timer resumes after the new one expires.
+expiration-mode: 'incremental'
+
+# Define warning levels dynamically. The key is the warning count (level).
+# The system will apply the configuration for the total number of active warnings a player has.
+# If a player's next warning level (e.g., 4) is not defined, the actions of the highest defined level (e.g., 3) will be applied.
+levels:
+  # Level 1: First warning
+  1:
+    # Duration of this warning level. Use 's', 'm', 'h', 'd', 'M', 'y'. Use -1 for permanent.
+    expiration: '7d'
+    # Actions to execute when a player reaches this warning level.
+    on-warn-actions:
+      - 'MESSAGE_TARGET:&cYou have received your first warning for: &e{reason}'
+      - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #1 by &e{player}&7. Reason: &f{reason}'
+    # Actions to execute when this warning expires or is removed.
+    on-expire-actions:
+      - 'MESSAGE_TARGET:&aYour first warning has expired or been removed.'
+
+  # Level 2: Second warning
+  2:
+    expiration: '30d'
+    on-warn-actions:
+      - 'CONSOLE_COMMAND:crown punish {target} mute 1h Muted due to reaching warning level 2.'
+      - 'MESSAGE_TARGET:&cYou have received your second warning for: &e{reason}&c. You are now muted for 1 hour.'
+      - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #2 by &e{player}&7. Muted for 1h.'
+    on-expire-actions:
+      - 'CONSOLE_COMMAND:crown unpunish {target} mute Warning level 2 expired.'
+      - 'MESSAGE_TARGET:&aYour second warning has expired. Your mute has been lifted.'
+
+  # Level 3: Third warning (and any subsequent warnings)
+  3:
+    expiration: '90d'
+    on-warn-actions:
+      - 'CONSOLE_COMMAND:crown punish {target} softban 1d Softbanned due to reaching warning level 3.'
+      - 'MESSAGE_TARGET:&cYou have received your third warning for: &e{reason}&c. You are now softbanned for 1 day.'
+      - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #3 by &e{player}&7. Softbanned for 1d.'
+    on-expire-actions:
+      - 'CONSOLE_COMMAND:crown unpunish {target} softban Warning level 3 expired.'
+      - 'MESSAGE_TARGET:&aYour third warning has expired. Your softban has been lifted.'
+
+
+
 # Post-action hooks for warn.
-hooks:
-  on-punish:
-    - 'MESSAGE_MODS:{prefix}&6{target} &7was warned by &e{player}&7. Reason: &f{reason}'
-    - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_NO:1.0:0.8'
-  on-unpunish:
-    - 'MESSAGE_MODS:{prefix}&a{target}&7''s warning was removed by &e{player}.'
-    - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_YES:1.0:1.0'
+#hooks:
+#  on-punish:
+#    - 'MESSAGE_MODS:{prefix}&6{target} &7was warned by &e{player}&7. Reason: &f{reason}'
+#    - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_NO:1.0:0.8'
+#  on-unpunish:
+#    - 'MESSAGE_MODS:{prefix}&a{target}&7''s warning was removed by &e{player}.'
+#    - 'PLAY_SOUND_MODS:ENTITY_VILLAGER_YES:1.0:1.0'

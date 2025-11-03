@@ -37,6 +37,11 @@ public class MainConfigManager {
     private boolean placeholderAPIEnabled;
     private CrownPunishmentsPlaceholders placeholders;
 
+    // New properties for warn system
+    private final Map<Integer, WarnLevel> warnLevels = new HashMap<>();
+    private String warnExpirationMode;
+
+
     public MainConfigManager(Crown plugin) {
         this.plugin = plugin;
 
@@ -80,6 +85,9 @@ public class MainConfigManager {
             plugin.getLogger().log(Level.INFO, "[MainConfigManager] Configurations reloaded and debug mode is " + (isDebugEnabled() ? "enabled" : "disabled"));
         }
 
+        // Load warn configuration
+        loadWarnLevels();
+
         if (placeholders != null && placeholderAPIEnabled) {
             if (placeholders.isRegistered()) {
                 placeholders.unregister();
@@ -87,6 +95,51 @@ public class MainConfigManager {
             placeholders.register();
         }
     }
+
+    private void loadWarnLevels() {
+        warnLevels.clear();
+        CustomConfig warnConfig = punishmentConfigs.get("warn");
+        if (warnConfig == null || !warnConfig.getConfig().getBoolean("use-internal", false)) {
+            return;
+        }
+
+        this.warnExpirationMode = warnConfig.getConfig().getString("expiration-mode", "independent").toLowerCase();
+        ConfigurationSection levelsSection = warnConfig.getConfig().getConfigurationSection("levels");
+        if (levelsSection == null) {
+            if(isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] 'levels' section not found in warn.yml.");
+            return;
+        }
+
+        for (String key : levelsSection.getKeys(false)) {
+            try {
+                int level = Integer.parseInt(key);
+                ConfigurationSection levelSection = levelsSection.getConfigurationSection(key);
+                if (levelSection != null) {
+                    String expiration = levelSection.getString("expiration", "-1");
+                    List<String> onWarnActions = levelSection.getStringList("on-warn-actions");
+                    List<String> onExpireActions = levelSection.getStringList("on-expire-actions");
+                    warnLevels.put(level, new WarnLevel(expiration, onWarnActions, onExpireActions));
+                }
+            } catch (NumberFormatException e) {
+                plugin.getLogger().warning("[MainConfigManager] Invalid warn level key in warn.yml: " + key + ". It must be a number.");
+            }
+        }
+        if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] Loaded " + warnLevels.size() + " warning levels. Mode: " + this.warnExpirationMode);
+    }
+
+    public String getWarnExpirationMode() {
+        return warnExpirationMode;
+    }
+
+    public WarnLevel getWarnLevel(int level) {
+        if (warnLevels.containsKey(level)) {
+            return warnLevels.get(level);
+        }
+        // Fallback to the highest defined level if the requested level is not explicitly defined
+        return warnLevels.keySet().stream().max(Integer::compareTo)
+                .map(warnLevels::get).orElse(null);
+    }
+
     public String getSupportLink() {
         return pluginConfig.getConfig().getString("support-link", "your.discord.gg");
     }
@@ -209,10 +262,18 @@ public class MainConfigManager {
     }
 
     public String getDefaultPunishmentReason(String punishmentType) {
+        CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
+        if (config != null && config.getConfig().contains("default-reason")) {
+            return config.getConfig().getString("default-reason");
+        }
         return getMessage("messages.default_reasons." + punishmentType.toLowerCase());
     }
 
     public String getDefaultUnpunishmentReason(String punishmentType) {
+        CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
+        if (config != null && config.getConfig().contains("default-unpunish-reason")) {
+            return config.getConfig().getString("default-unpunish-reason");
+        }
         return getMessage("messages.default_reasons.un" + punishmentType.toLowerCase());
     }
 

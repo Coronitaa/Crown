@@ -2,7 +2,9 @@
 package cp.corona.listeners;
 
 import cp.corona.config.MainConfigManager;
+import cp.corona.config.WarnLevel;
 import cp.corona.crown.Crown;
+import cp.corona.database.ActiveWarningEntry;
 import cp.corona.database.DatabaseManager;
 import cp.corona.menus.HistoryMenu;
 import cp.corona.menus.PunishDetailsMenu;
@@ -1034,23 +1036,37 @@ public class MenuListener implements Listener {
     private void confirmWarn(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Warned by moderator";
+        String reason = punishDetailsMenu.getBanReason();
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal("warn");
-        String commandTemplate = plugin.getConfigManager().getPunishmentCommand("warn");
-        boolean byIp = punishDetailsMenu.isByIp();
-        String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), WARN_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A", byIp);
 
         if (useInternal) {
-            if (target.isOnline()) {
-                target.getPlayer().sendMessage(MessageUtils.getColorMessage(reason));
+            DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
+            int nextWarnLevel = dbManager.getActiveWarningCount(targetUUID) + 1;
+            WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(nextWarnLevel);
+
+            if (levelConfig == null) {
+                sendConfigMessage(player, "messages.no_warn_level_configured", "{level}", String.valueOf(nextWarnLevel));
+                playSound(player, "punish_error");
+                return;
             }
-            executePunishmentCommandAndLog(player, "", target, punishDetailsMenu, WARN_PUNISHMENT_TYPE, "N/A", reason, punishmentId, byIp);
+
+            int durationSeconds = TimeUtils.parseTime(levelConfig.getExpiration(), plugin.getConfigManager());
+            long endTime = (durationSeconds == -1) ? -1 : System.currentTimeMillis() + (durationSeconds * 1000L);
+            String durationString = (endTime == -1) ? "Permanent" : TimeUtils.formatTime(durationSeconds, plugin.getConfigManager());
+
+            String punishmentId = dbManager.logPunishment(targetUUID, "warn", reason, player.getName(), endTime, durationString, false);
+            dbManager.addActiveWarning(targetUUID, punishmentId, nextWarnLevel, endTime);
+
+            executeHookActions(player, target, "warn", durationString, reason, false, levelConfig.getOnWarnActions());
         } else {
+            String commandTemplate = plugin.getConfigManager().getPunishmentCommand("warn");
+            String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "warn", reason, player.getName(), 0L, "N/A", false);
             String processedCommand = commandTemplate
                     .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                     .replace("{reason}", reason);
-            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, WARN_PUNISHMENT_TYPE, "N/A", reason, punishmentId, byIp);
+            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, "warn", "N/A", reason, punishmentId, false);
         }
+        player.closeInventory();
     }
 
 
@@ -1194,31 +1210,57 @@ public class MenuListener implements Listener {
         UUID targetUUID = detailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal("warn");
-        String commandTemplate = plugin.getConfigManager().getUnpunishCommand("warn");
-        String originalPunishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(targetUUID, "warn");
 
-        if (originalPunishmentId == null) {
-            sendConfigMessage(player, "messages.no_active_warn", "{target}", target.getName());
-            return;
+        if (useInternal) {
+            DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
+            ActiveWarningEntry activeWarning = dbManager.getLatestActiveWarning(targetUUID);
+
+            if (activeWarning == null) {
+                sendConfigMessage(player, "messages.no_active_warn", "{target}", target.getName());
+                playSound(player, "punish_error");
+                return;
+            }
+
+            String punishmentId = activeWarning.getPunishmentId();
+            String finalReason = reason;
+            if (reason.equals(plugin.getConfigManager().getDefaultUnpunishmentReason(WARN_PUNISHMENT_TYPE))) {
+                finalReason = reason.replace("{player}", player.getName()) + " (ID: " + punishmentId + ")";
+            }
+
+            WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(activeWarning.getWarnLevel());
+            if (levelConfig != null) {
+                executeHookActions(player, target, "unwarn", "N/A", finalReason, true, levelConfig.getOnExpireActions());
+            }
+
+            dbManager.removeActiveWarning(targetUUID, punishmentId, player.getName(), finalReason);
+            sendUnpunishConfirmation(player, target, WARN_PUNISHMENT_TYPE, punishmentId);
+            playSound(player, "punish_confirm");
+
+        } else { // External
+            String commandTemplate = plugin.getConfigManager().getUnpunishCommand("warn");
+            String originalPunishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(targetUUID, "warn");
+
+            if (originalPunishmentId == null) {
+                sendConfigMessage(player, "messages.no_active_warn", "{target}", target.getName());
+                return;
+            }
+
+            String finalReason = reason;
+            if (reason.equals(plugin.getConfigManager().getDefaultUnpunishmentReason(WARN_PUNISHMENT_TYPE))) {
+                finalReason = reason.replace("{player}", player.getName()) + (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
+            }
+
+            plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(originalPunishmentId, player.getName(), finalReason);
+            if (!commandTemplate.isEmpty()) {
+                String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+                Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
+            }
+
+            playSound(player, "punish_confirm");
+            sendUnpunishConfirmation(player, target, WARN_PUNISHMENT_TYPE, originalPunishmentId);
+            executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", finalReason, true);
         }
-
-        String finalReason = reason;
-        if (reason.equals(plugin.getConfigManager().getDefaultUnpunishmentReason(WARN_PUNISHMENT_TYPE))) {
-            finalReason = reason.replace("{player}", player.getName()) +
-                    (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
-        }
-        plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(originalPunishmentId, player.getName(), finalReason);
-
-        if (!useInternal) {
-            String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
-            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
-        } else {
-            plugin.getLogger().warning("Unwarn command is empty, internal unwarn is not supported.");
-        }
-
-        playSound(player, "punish_confirm");
-        sendUnpunishConfirmation(player, target, WARN_PUNISHMENT_TYPE, originalPunishmentId);
-        executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", finalReason, true);
+        player.closeInventory();
     }
 
     private void setPermanentTime(PunishDetailsMenu detailsMenu, Player player) {
@@ -1407,18 +1449,20 @@ public class MenuListener implements Listener {
 
     public void executeHookActions(CommandSender executor, OfflinePlayer target, String punishmentType, String time, String reason, boolean isUnpunish) {
         List<ClickActionData> actions;
-        String hookType = isUnpunish ? "on_unpunish" : "on_punish";
-
         if (isUnpunish) {
             actions = plugin.getConfigManager().getOnUnpunishActions(punishmentType);
         } else {
             actions = plugin.getConfigManager().getOnPunishActions(punishmentType);
         }
+        executeHookActions(executor, target, punishmentType, time, reason, isUnpunish, actions);
+    }
 
-        if (actions.isEmpty()) {
+    public void executeHookActions(CommandSender executor, OfflinePlayer target, String punishmentType, String time, String reason, boolean isUnpunish, List<ClickActionData> actions) {
+        if (actions == null || actions.isEmpty()) {
             return;
         }
 
+        String hookType = isUnpunish ? "on_unpunish" : "on_punish";
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().info("[DEBUG] Preparing to execute " + actions.size() + " hook actions for " + hookType + "." + punishmentType);
         }
@@ -1428,11 +1472,6 @@ public class MenuListener implements Listener {
         final String finalTime = (time != null) ? time : "N/A";
         final String finalReason = (reason != null) ? reason : "N/A";
         final String finalPunishmentTypePlaceholder = punishmentType;
-
-        boolean byIp = plugin.getConfigManager().isPunishmentByIp(punishmentType) && target.isOnline();
-        if (byIp && !isUnpunish) {
-            targetName += " &c(IP)";
-        }
 
 
         for (ClickActionData actionData : actions) {
@@ -1461,6 +1500,7 @@ public class MenuListener implements Listener {
             executeSpecificHookAction(executor, target, actionData.getAction(), processedHookArgs, plugin);
         }
     }
+
     private String getKickMessage(List<String> lines, String reason, String timeLeft, String punishmentId, Date expiration) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String date = dateFormat.format(new Date());
