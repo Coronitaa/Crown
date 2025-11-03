@@ -209,6 +209,10 @@ messages:
   unmute_notification: '{prefix}&aYour mute has been removed.'
   unsoftban_notification: '{prefix}&aYour softban has been removed.'
 
+  no_warn_level_configured: '{prefix}&cNo warn level is configured for level {level}. Action cancelled.'
+  check_info_warn_level: '&7Warn Level: &b{level}'
+  active_warning_entry: '&c- &7({id}) &e{type} (Level {level}) &7- Expires in: &f{time_left}'
+
   invalid_player_name: '{prefix}&cThe player name ''{input}'' is invalid. Please enter a valid player name (3-16 characters).'
   punish_method_not_supported: '{prefix}&cThis punishment type does not support IP/Local toggling.'
   command_loop_error: '{prefix}&cError: The command ''{command}'' is an internal plugin command. Using it would create a loop. Please use a command from another plugin.'
@@ -240,6 +244,10 @@ placeholders:
   permanent_time_display: 'Permanent'
   by_ip: 'IP'
   by_local: 'Local'
+  status_active: '&a(Active)'
+  status_paused: '&6(Paused)'
+  status_expired: '&c(Expired)'
+  status_removed: '&7(Removed)'
 
   punishment_type_names:
     ban: "Ban"

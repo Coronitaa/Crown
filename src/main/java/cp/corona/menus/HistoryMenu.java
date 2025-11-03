@@ -2,6 +2,7 @@
 package cp.corona.menus;
 
 import cp.corona.crown.Crown;
+import cp.corona.database.ActiveWarningEntry;
 import cp.corona.database.DatabaseManager;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
@@ -57,33 +58,34 @@ public class HistoryMenu implements InventoryHolder {
 
     private void loadAndProcessAllHistory() {
         allHistoryEntries = plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, 1, Integer.MAX_VALUE);
+        // Pre-fetch all active/paused warnings for efficiency
+        Map<String, ActiveWarningEntry> activeWarningsMap = plugin.getSoftBanDatabaseManager().getAllActiveAndPausedWarnings(targetUUID)
+                .stream().collect(Collectors.toMap(ActiveWarningEntry::getPunishmentId, w -> w));
 
         for (DatabaseManager.PunishmentEntry entry : allHistoryEntries) {
             String type = entry.getType().toLowerCase();
-
-            // Instantaneous punishments have no active/expired status.
-            if (type.equals("kick") || type.equals("warn")) {
-                entry.setStatus("");
-                continue;
-            }
-
             String status;
-            if (entry.isActive()) {
-                // If the punishment is marked as active in the DB.
-                if (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE) {
-                    status = "&a(active)"; // Still running.
+
+            if (type.equals("warn")) {
+                ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
+                if (activeWarning != null) {
+                    status = activeWarning.isPaused() ? plugin.getConfigManager().getMessage("placeholders.status_paused")
+                            : plugin.getConfigManager().getMessage("placeholders.status_active");
                 } else {
-                    // Should have been marked as inactive by the expiry task, but as a fallback.
-                    status = "&c(expired)";
+                    status = entry.isActive() ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                            : plugin.getConfigManager().getMessage("placeholders.status_removed");
                 }
+            } else if (type.equals("kick")) {
+                status = ""; // No status for instantaneous actions
             } else {
-                // It's inactive. We need to know why.
-                // Check if it was automatically expired by the system.
-                if ("System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason())) {
-                    status = "&c(expired)";
+                if (entry.isActive()) {
+                    status = (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE)
+                            ? plugin.getConfigManager().getMessage("placeholders.status_active")
+                            : plugin.getConfigManager().getMessage("placeholders.status_expired");
                 } else {
-                    // Otherwise, it was manually removed.
-                    status = "&7(removed)";
+                    boolean isSystemExpired = "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
+                    status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                            : plugin.getConfigManager().getMessage("placeholders.status_removed");
                 }
             }
             entry.setStatus(status);

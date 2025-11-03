@@ -1,7 +1,8 @@
-// coronitaa/crown/Crown-0a35d634fd87d2a5ccf97c7763b7f53746dff78b/src/main/java/cp/corona/listeners/PunishmentListener.java
+// src/main/java/cp/corona/listeners/PunishmentListener.java
 package cp.corona.listeners;
 
 import cp.corona.crown.Crown;
+import cp.corona.database.ActiveWarningEntry;
 import cp.corona.database.DatabaseManager;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
@@ -89,17 +90,23 @@ public class PunishmentListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         if (plugin.getConfigManager().isJoinAlertEnabled()) {
-            List<DatabaseManager.PunishmentEntry> activePunishments = plugin.getSoftBanDatabaseManager()
+            DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
+            List<DatabaseManager.PunishmentEntry> activePunishments = dbManager
                     .getAllActivePunishments(player.getUniqueId(), player.getAddress().getAddress().getHostAddress())
                     .stream()
                     .filter(p -> !p.getType().equalsIgnoreCase("freeze"))
                     .collect(Collectors.toList());
 
-            if (!activePunishments.isEmpty()) {
+            // MODIFIED: Also fetch active and paused warnings
+            List<ActiveWarningEntry> activeWarnings = dbManager.getAllActiveAndPausedWarnings(player.getUniqueId());
+
+            if (!activePunishments.isEmpty() || !activeWarnings.isEmpty()) {
                 chatFrozenPlayers.add(player.getUniqueId());
 
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_header")));
+
+                    // Display standard punishments
                     for (DatabaseManager.PunishmentEntry punishment : activePunishments) {
                         String timeLeft = (punishment.getEndTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) ((punishment.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
                         player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishment_entry",
@@ -107,13 +114,31 @@ public class PunishmentListener implements Listener {
                                 "{type}", punishment.getType(),
                                 "{time_left}", timeLeft)));
                     }
+
+                    // MODIFIED: Display warnings
+                    for (ActiveWarningEntry warning : activeWarnings) {
+                        String timeLeft;
+                        if (warning.isPaused()) {
+                            timeLeft = TimeUtils.formatTime((int) (warning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager()) + " &6(Paused)";
+                        } else if (warning.getEndTime() == -1) {
+                            timeLeft = "Permanent";
+                        } else {
+                            timeLeft = TimeUtils.formatTime((int) ((warning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                        }
+
+                        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_warning_entry",
+                                "{id}", warning.getPunishmentId(),
+                                "{type}", "warn",
+                                "{level}", String.valueOf(warning.getWarnLevel()),
+                                "{time_left}", timeLeft)));
+                    }
+
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_footer")));
 
                     TextComponent supportMessage = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.support_link_message", "{support_link}", plugin.getConfigManager().getSupportLink()))));
                     supportMessage.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://" + plugin.getConfigManager().getSupportLink()));
                     supportMessage.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Click to open the support link").create()));
                     player.spigot().sendMessage(supportMessage);
-
 
                     String soundName = plugin.getConfigManager().getJoinAlertSound();
                     if (soundName != null && !soundName.isEmpty()) {
@@ -124,7 +149,6 @@ public class PunishmentListener implements Listener {
                             plugin.getLogger().warning("Invalid sound name configured for on-join-alert: " + soundName);
                         }
                     }
-
                 }, 20L);
 
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {

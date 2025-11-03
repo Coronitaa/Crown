@@ -385,6 +385,51 @@ public class DatabaseManager {
         return 0;
     }
 
+    public List<ActiveWarningEntry> getAllActiveAndPausedWarnings(UUID playerUUID) {
+        List<ActiveWarningEntry> warnings = new ArrayList<>();
+        String sql = "SELECT * FROM active_warnings WHERE player_uuid = ? ORDER BY start_time DESC";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, playerUUID.toString());
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                warnings.add(new ActiveWarningEntry(
+                        rs.getInt("id"),
+                        playerUUID,
+                        rs.getString("punishment_id"),
+                        rs.getInt("warn_level"),
+                        rs.getLong("end_time"),
+                        rs.getBoolean("is_paused"),
+                        rs.getLong("remaining_time_on_pause")
+                ));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not get all active/paused warnings for " + playerUUID, e);
+        }
+        return warnings;
+    }
+
+    public ActiveWarningEntry getActiveWarningByPunishmentId(String punishmentId) {
+        String sql = "SELECT * FROM active_warnings WHERE punishment_id = ?";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, punishmentId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new ActiveWarningEntry(
+                        rs.getInt("id"),
+                        UUID.fromString(rs.getString("player_uuid")),
+                        rs.getString("punishment_id"),
+                        rs.getInt("warn_level"),
+                        rs.getLong("end_time"),
+                        rs.getBoolean("is_paused"),
+                        rs.getLong("remaining_time_on_pause")
+                );
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not get active warning by punishment ID: " + punishmentId, e);
+        }
+        return null;
+    }
+
     public ActiveWarningEntry getLatestActiveWarning(UUID playerUUID) {
         String sql = "SELECT * FROM active_warnings WHERE player_uuid = ? AND is_paused = 0 ORDER BY start_time DESC LIMIT 1";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {

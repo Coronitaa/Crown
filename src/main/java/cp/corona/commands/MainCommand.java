@@ -228,35 +228,52 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
                 String type = entry.getType().toLowerCase();
-                String status;
+                String status = "N/A";
+                String timeLeft = "N/A";
 
-                if (type.equals("kick") || type.equals("warn")) {
+                // MODIFIED: Special handling for 'warn' type
+                if (type.equals("warn")) {
+                    ActiveWarningEntry activeWarning = plugin.getSoftBanDatabaseManager().getActiveWarningByPunishmentId(punishmentId);
+                    if (activeWarning != null) {
+                        sendConfigMessage(sender, "messages.check_info_warn_level", "{level}", String.valueOf(activeWarning.getWarnLevel()));
+                        if (activeWarning.isPaused()) {
+                            status = plugin.getConfigManager().getMessage("placeholders.status_paused");
+                            timeLeft = TimeUtils.formatTime((int)(activeWarning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
+                        } else {
+                            status = plugin.getConfigManager().getMessage("placeholders.status_active");
+                            if (activeWarning.getEndTime() != -1) {
+                                timeLeft = TimeUtils.formatTime((int)((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                            } else {
+                                timeLeft = "Permanent";
+                            }
+                        }
+                    } else {
+                        if (entry.isActive()) {
+                            status = plugin.getConfigManager().getMessage("placeholders.status_expired"); // It's not in active_warnings, so it must be expired
+                        } else {
+                            status = plugin.getConfigManager().getMessage("placeholders.status_removed");
+                        }
+                    }
+                } else if (type.equals("kick")) {
                     status = "N/A";
                 } else {
                     boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
 
                     if (entry.isActive()) {
                         if (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE) {
-                            status = "&a(Active)";
+                            status = plugin.getConfigManager().getMessage("placeholders.status_active");
                         } else {
-                            status = "&c(Expired)";
+                            status = plugin.getConfigManager().getMessage("placeholders.status_expired");
                         }
-                    } else { // Not active
-                        if (isSystemExpired) {
-                            status = "&c(Expired)";
-                        } else {
-                            status = "&7(Removed)";
-                        }
+                    } else {
+                        status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired") : plugin.getConfigManager().getMessage("placeholders.status_removed");
+                    }
+                    if (!type.equals("freeze")) {
+                        timeLeft = entry.isActive() && entry.getEndTime() != Long.MAX_VALUE ? TimeUtils.formatTime((int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager()) : "N/A";
                     }
                 }
 
-                String timeLeft = "N/A";
-                if (!type.equals("kick") && !type.equals("freeze")) {
-                    timeLeft = entry.isActive() && entry.getEndTime() != Long.MAX_VALUE ? TimeUtils.formatTime((int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager()) : "N/A";
-                }
-
                 String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
-
 
                 sendConfigMessage(sender, "messages.check_info_header", "{id}", punishmentId);
                 sendConfigMessage(sender, "messages.check_info_player", "{player}", target.getName(), "{uuid}", target.getUniqueId().toString());
