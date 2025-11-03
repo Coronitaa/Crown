@@ -18,7 +18,7 @@ levels:
   # Level 1: First warning
   1:
     # Duration of this warning level. Use 's', 'm', 'h', 'd', 'M', 'y'. Use -1 for permanent.
-    expiration: '7d'
+    expiration: '1m'
     # Actions to execute when a player reaches this warning level.
     on-warn-actions:
       - 'MESSAGE_TARGET:&cYou have received your first warning for: &e{reason}'
@@ -29,7 +29,7 @@ levels:
 
   # Level 2: Second warning
   2:
-    expiration: '30d'
+    expiration: '2m'
     on-warn-actions:
       - 'CONSOLE_COMMAND:crown punish {target} mute 1h Muted due to reaching warning level 2.'
       - 'MESSAGE_TARGET:&cYou have received your second warning for: &e{reason}&c. You are now muted for 1 hour.'

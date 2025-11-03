@@ -231,7 +231,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 String status = "N/A";
                 String timeLeft = "N/A";
 
-                // MODIFIED: Special handling for 'warn' type
                 if (type.equals("warn")) {
                     ActiveWarningEntry activeWarning = plugin.getSoftBanDatabaseManager().getActiveWarningByPunishmentId(punishmentId);
                     if (activeWarning != null) {
@@ -248,11 +247,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                             }
                         }
                     } else {
-                        if (entry.isActive()) {
-                            status = plugin.getConfigManager().getMessage("placeholders.status_expired"); // It's not in active_warnings, so it must be expired
-                        } else {
-                            status = plugin.getConfigManager().getMessage("placeholders.status_removed");
-                        }
+                        status = entry.isActive() ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                                : plugin.getConfigManager().getMessage("placeholders.status_removed");
                     }
                 } else if (type.equals("kick")) {
                     status = "N/A";
@@ -266,7 +262,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                             status = plugin.getConfigManager().getMessage("placeholders.status_expired");
                         }
                     } else {
-                        status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired") : plugin.getConfigManager().getMessage("placeholders.status_removed");
+                        status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                                : plugin.getConfigManager().getMessage("placeholders.status_removed");
                     }
                     if (!type.equals("freeze")) {
                         timeLeft = entry.isActive() && entry.getEndTime() != Long.MAX_VALUE ? TimeUtils.formatTime((int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager()) : "N/A";
@@ -274,6 +271,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
 
                 String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
+
 
                 sendConfigMessage(sender, "messages.check_info_header", "{id}", punishmentId);
                 sendConfigMessage(sender, "messages.check_info_player", "{player}", target.getName(), "{uuid}", target.getUniqueId().toString());
@@ -486,8 +484,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 .replace("{time}", time)
                 .replace("{reason}", reason);
 
-        // Loop check is now performed before calling this method.
-
         Bukkit.getScheduler().runTask(plugin, () -> {
             try {
                 boolean success = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
@@ -641,7 +637,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(nextWarnLevel);
 
                     if (levelConfig == null) {
-                        sender.sendMessage(MessageUtils.getColorMessage("{prefix}&cNo warning level configured for level " + nextWarnLevel + ". Action cancelled."));
+                        sendConfigMessage(sender, "messages.no_warn_level_configured", "{level}", String.valueOf(nextWarnLevel));
                         return;
                     }
 
@@ -649,15 +645,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     long endTime = (durationSeconds == -1) ? -1 : System.currentTimeMillis() + (durationSeconds * 1000L);
                     durationForLog = (endTime == -1) ? "Permanent" : TimeUtils.formatTime(durationSeconds, plugin.getConfigManager());
 
-                    punishmentId = dbManager.logPunishment(target.getUniqueId(), "warn", reason, sender.getName(), endTime, durationForLog, false); // byIp not applicable for internal warn
+                    punishmentId = dbManager.logPunishment(target.getUniqueId(), "warn", reason, sender.getName(), endTime, durationForLog, false);
                     dbManager.addActiveWarning(target.getUniqueId(), punishmentId, nextWarnLevel, endTime);
 
                     if (plugin.getMenuListener() != null) {
                         plugin.getMenuListener().executeHookActions(sender, target, "warn", durationForLog, reason, false, levelConfig.getOnWarnActions());
                     }
-                    // No separate confirmation message needed as it's handled by the hook actions
                 } else {
-                    // External warn command logic
                     durationForLog = "N/A";
                     punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), 0L, durationForLog, byIp);
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
@@ -796,7 +790,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         return;
                     }
 
-                    punishmentId = activeWarning.getPunishmentId(); // Update punishmentId for confirmation message
+                    punishmentId = activeWarning.getPunishmentId();
                     WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(activeWarning.getWarnLevel());
                     if (levelConfig != null && plugin.getMenuListener() != null) {
                         plugin.getMenuListener().executeHookActions(sender, target, "unwarn", "N/A", logReason, true, levelConfig.getOnExpireActions());
@@ -863,7 +857,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         String commandLabel = command.getName().toLowerCase();
 
-        // Main /crown command
         if (commandLabel.equals("crown")) {
             if (args.length == 1) {
                 StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, CHECK_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND), completions);
@@ -880,23 +873,18 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
             }
         }
-        // /punish command
         else if (commandLabel.equals(PUNISH_SUBCOMMAND)) {
             handlePunishTab(args, completions, playerNames, PUNISH_SUBCOMMAND);
         }
-        // /ban, /mute, etc. aliases
         else if (PUNISHMENT_TYPES.contains(commandLabel)) {
             handlePunishTab(args, completions, playerNames, commandLabel);
         }
-        // /unpunish command
         else if (commandLabel.equals(UNPUNISH_SUBCOMMAND)) {
             handleUnpunishTab(args, completions, playerNames, UNPUNISH_SUBCOMMAND);
         }
-        // /unban, /unmute, etc. aliases
         else if (UNPUNISH_ALIASES.contains(commandLabel)) {
             handleUnpunishTab(args, completions, playerNames, commandLabel);
         }
-        // /check or /c command
         else if (commandLabel.equals(CHECK_SUBCOMMAND) || commandLabel.equals(CHECK_COMMAND_ALIAS)) {
             handleCheckTab(args, completions);
         }
@@ -912,11 +900,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         String currentArg = currentArgs.get(currentArgs.size() - 1);
 
         if (commandLabel.equals("punish")) {
-            if (currentArgs.size() == 1) { // Player name
+            if (currentArgs.size() == 1) {
                 StringUtil.copyPartialMatches(currentArg, playerNames, completions);
                 return;
             }
-            if (currentArgs.size() == 2) { // Punishment type
+            if (currentArgs.size() == 2) {
                 StringUtil.copyPartialMatches(currentArg, PUNISHMENT_TYPES, completions);
                 return;
             }
@@ -958,7 +946,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             boolean ipSupported = plugin.getConfigManager().isIpPunishmentSupported(punishType);
             boolean timeSupported = punishType.equals("ban") || punishType.equals("mute") || punishType.equals("softban");
 
-            if (currentArgs.size() == 1) { // Player name
+            if (currentArgs.size() == 1) {
                 StringUtil.copyPartialMatches(currentArg, playerNames, completions);
                 return;
             }
@@ -994,7 +982,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
         }
 
-        if (currentArgs.size() >= 3) { // Changed from 4 to 3 to cover reasons earlier
+        if (currentArgs.size() >= 3) {
             if (currentArg.isEmpty()) {
                 completions.addAll(REASON_SUGGESTION);
             }
@@ -1002,13 +990,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private void handleCheckTab(String[] args, List<String> completions) {
-        if (args.length == 1) { // Argument for ID
+        if (args.length == 1) {
             if (args[0].isEmpty()) {
                 completions.addAll(ID_SUGGESTION);
             } else {
                 StringUtil.copyPartialMatches(args[0], ID_SUGGESTION, completions);
             }
-        } else if (args.length == 2) { // Argument for action
+        } else if (args.length == 2) {
             StringUtil.copyPartialMatches(args[1], CHECK_ACTIONS, completions);
         }
     }
@@ -1018,18 +1006,17 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         String currentArg = args[args.length - 1];
 
-        if (args.length == 1) { // Player name
+        if (args.length == 1) {
             StringUtil.copyPartialMatches(currentArg, playerNames, completions);
             return;
         }
 
-        // Specific logic for /unpunish (requires type)
         if (commandLabel.equals(UNPUNISH_SUBCOMMAND)) {
-            if (args.length == 2) { // Punishment type
+            if (args.length == 2) {
                 StringUtil.copyPartialMatches(currentArg, UNPUNISHMENT_TYPES, completions);
                 return;
             }
-            if (args.length == 3) { // Start of reason
+            if (args.length == 3) {
                 if (currentArg.isEmpty()) {
                     completions.addAll(REASON_SUGGESTION);
                 } else {
@@ -1037,9 +1024,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
             }
         }
-        // Specific logic for aliases (/unban, /unmute)
         else {
-            if (args.length == 2) { // Start of reason
+            if (args.length == 2) {
                 if (currentArg.isEmpty()) {
                     completions.addAll(REASON_SUGGESTION);
                 } else {

@@ -91,13 +91,14 @@ public class PunishmentListener implements Listener {
         Player player = event.getPlayer();
         if (plugin.getConfigManager().isJoinAlertEnabled()) {
             DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
+
+            // CORRECTION: Filter out "warn" type from this list to prevent duplicates.
             List<DatabaseManager.PunishmentEntry> activePunishments = dbManager
                     .getAllActivePunishments(player.getUniqueId(), player.getAddress().getAddress().getHostAddress())
                     .stream()
-                    .filter(p -> !p.getType().equalsIgnoreCase("freeze"))
+                    .filter(p -> !p.getType().equalsIgnoreCase("freeze") && !p.getType().equalsIgnoreCase("warn"))
                     .collect(Collectors.toList());
 
-            // MODIFIED: Also fetch active and paused warnings
             List<ActiveWarningEntry> activeWarnings = dbManager.getAllActiveAndPausedWarnings(player.getUniqueId());
 
             if (!activePunishments.isEmpty() || !activeWarnings.isEmpty()) {
@@ -106,7 +107,7 @@ public class PunishmentListener implements Listener {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_header")));
 
-                    // Display standard punishments
+                    // Display standard punishments (now excluding warns)
                     for (DatabaseManager.PunishmentEntry punishment : activePunishments) {
                         String timeLeft = (punishment.getEndTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) ((punishment.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
                         player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishment_entry",
@@ -115,11 +116,13 @@ public class PunishmentListener implements Listener {
                                 "{time_left}", timeLeft)));
                     }
 
-                    // MODIFIED: Display warnings
+                    // Display warnings with level and status
                     for (ActiveWarningEntry warning : activeWarnings) {
                         String timeLeft;
+                        String statusSuffix = "";
                         if (warning.isPaused()) {
-                            timeLeft = TimeUtils.formatTime((int) (warning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager()) + " &6(Paused)";
+                            timeLeft = TimeUtils.formatTime((int) (warning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
+                            statusSuffix = " &6(Paused)";
                         } else if (warning.getEndTime() == -1) {
                             timeLeft = "Permanent";
                         } else {
@@ -130,7 +133,7 @@ public class PunishmentListener implements Listener {
                                 "{id}", warning.getPunishmentId(),
                                 "{type}", "warn",
                                 "{level}", String.valueOf(warning.getWarnLevel()),
-                                "{time_left}", timeLeft)));
+                                "{time_left}", timeLeft + statusSuffix)));
                     }
 
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_footer")));
