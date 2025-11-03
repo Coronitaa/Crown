@@ -902,7 +902,7 @@ public class MenuListener implements Listener {
             } else if (punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE)) {
                 long muteDuration = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
                 long endTime = (muteDuration > 0) ? System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(muteDuration) : Long.MAX_VALUE;
-                String punishmentId = plugin.getSoftBanDatabaseManager().mutePlayer(target.getUniqueId(), endTime, reason, player.getName());
+                String punishmentId = plugin.getSoftBanDatabaseManager().mutePlayer(target.getUniqueId(), endTime, reason, player.getName(), byIp);
 
                 if (target.isOnline()) {
                     String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted",
@@ -949,7 +949,7 @@ public class MenuListener implements Listener {
         }
 
         if(useInternal) {
-            String punishmentId = plugin.getSoftBanDatabaseManager().softBanPlayer(targetUUID, endTime, reason, player.getName());
+            String punishmentId = plugin.getSoftBanDatabaseManager().softBanPlayer(targetUUID, endTime, reason, player.getName(), byIp);
             playSound(player, "punish_confirm");
             sendPunishmentConfirmation(player, target, timeInput, reason, SOFTBAN_PUNISHMENT_TYPE, punishmentId);
             executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, timeInput, reason, false);

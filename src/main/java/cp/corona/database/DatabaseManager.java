@@ -260,7 +260,7 @@ public class DatabaseManager {
         }, 0L, 6000L);
     }
 
-    public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName) {
+    public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp) {
         long currentEndTime = getSoftBanEndTime(uuid);
         long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis() || currentEndTime == Long.MAX_VALUE)
                 ? endTime
@@ -277,7 +277,7 @@ public class DatabaseManager {
             ps.setLong(2, finalEndTime);
             ps.setString(3, reason);
             ps.executeUpdate();
-            String punishmentId = logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString, plugin.getConfigManager().isPunishmentByIp("softban"));
+            String punishmentId = logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString, byIp);
 
             if (finalEndTime != Long.MAX_VALUE) {
                 scheduleExpiryNotification(uuid, finalEndTime, "softban", punishmentId);
@@ -332,7 +332,7 @@ public class DatabaseManager {
         return getPunishmentEndTime("softbans", uuid);
     }
 
-    public String mutePlayer(UUID uuid, long endTime, String reason, String punisherName) {
+    public String mutePlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp) {
         long currentEndTime = getMuteEndTime(uuid);
         long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis() || currentEndTime == Long.MAX_VALUE)
                 ? endTime
@@ -349,7 +349,7 @@ public class DatabaseManager {
                     ? plugin.getConfigManager().getMessage("placeholders.permanent_time_display")
                     : TimeUtils.formatTime((int) ((finalEndTime - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
 
-            String punishmentId = logPunishment(uuid, "mute", reason, punisherName, finalEndTime, durationString, plugin.getConfigManager().isPunishmentByIp("mute"));
+            String punishmentId = logPunishment(uuid, "mute", reason, punisherName, finalEndTime, durationString, byIp);
 
             if (finalEndTime != Long.MAX_VALUE) {
                 scheduleExpiryNotification(uuid, finalEndTime, "mute", punishmentId);

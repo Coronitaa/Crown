@@ -569,7 +569,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 long punishmentEndTimeMute = isPermanentMute ? Long.MAX_VALUE : (TimeUtils.parseTime(time, plugin.getConfigManager()) * 1000L + System.currentTimeMillis());
                 durationForLog = isPermanentMute ? permanentDisplay : time;
                 if (useInternal) {
-                    punishmentId = plugin.getSoftBanDatabaseManager().mutePlayer(target.getUniqueId(), punishmentEndTimeMute, reason, sender.getName());
+                    punishmentId = plugin.getSoftBanDatabaseManager().mutePlayer(target.getUniqueId(), punishmentEndTimeMute, reason, sender.getName(), byIp);
                     if (target.isOnline()) {
                         String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                         target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
@@ -586,7 +586,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     punishmentEndTimeSoftban += 1000L;
                 }
                 if(useInternal) {
-                    punishmentId = plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTimeSoftban, reason, sender.getName());
+                    punishmentId = plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTimeSoftban, reason, sender.getName(), byIp);
                 } else {
                     punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), punishmentEndTimeSoftban, durationForLog, byIp);
                     executePunishmentCommand(sender, commandTemplate, target, time, reason);
