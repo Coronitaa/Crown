@@ -219,6 +219,10 @@ messages:
   command_dispatch_error: '{prefix}&cThe command ''{command}'' could not be executed. Please check the console for errors.'
   command_not_found: '{prefix}&cThe command ''{command}'' was not found. Please check your configuration.'
 
+  check_info_repunish_hover: '&aClick to repunish with the same details.'
+  check_info_unpunish_hover: '&cClick to remove this punishment.'
+  support_link_hover: '&bClick to open the support link.'
+
   default_reasons:
     no_reason: "No reason specified."
     ban: "Banned by a moderator."

@@ -1074,10 +1074,19 @@ public class MenuListener implements Listener {
     private void confirmUnsoftban(Player player, PunishDetailsMenu punishDetailsMenu, String reason) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        String punishmentId = plugin.getSoftBanDatabaseManager().unSoftBanPlayer(targetUUID, player.getName(), reason);
+
+        String originalPunishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(targetUUID, "softban");
+        String finalReason = reason;
+        if (reason.equals(plugin.getConfigManager().getDefaultUnpunishmentReason(SOFTBAN_PUNISHMENT_TYPE))) {
+            finalReason = reason.replace("{player}", player.getName()) +
+                    (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
+        }
+
+        String punishmentId = plugin.getSoftBanDatabaseManager().unSoftBanPlayer(targetUUID, player.getName(), finalReason);
+
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, SOFTBAN_PUNISHMENT_TYPE, punishmentId);
-        executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, "N/A", reason, true);
+        executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, "N/A", finalReason, true);
     }
 
 

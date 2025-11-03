@@ -1,5 +1,5 @@
 // src/main/java/cp/corona/commands/MainCommand.java
-// MODIFIED: Updated 'check' command to correctly display 'Expired' status for warns.
+// MODIFIED: Correctly pass the processed 'logReason' to internal unpunish methods for mute and softban.
 package cp.corona.commands;
 
 import cp.corona.config.WarnLevel;
@@ -248,7 +248,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                             }
                         }
                     } else {
-                        // MODIFIED: Check if it was removed by the system due to expiration
                         boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
                         status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
                                 : plugin.getConfigManager().getMessage("placeholders.status_removed");
@@ -324,11 +323,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 if (sender instanceof Player) {
                     TextComponent repunishButton = new TextComponent(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.check_info_repunish_button")));
                     repunishButton.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/check " + punishmentId + " repunish"));
-                    repunishButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Click to repunish")));
+                    repunishButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.check_info_repunish_hover")))));
 
                     TextComponent unpunishButton = new TextComponent(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.check_info_unpunish_button")));
                     unpunishButton.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/check " + punishmentId + " unpunish"));
-                    unpunishButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Click to unpunish")));
+                    unpunishButton.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.check_info_unpunish_hover")))));
 
                     TextComponent separator = new TextComponent(MessageUtils.getColorMessage(" &7| "));
 
@@ -765,7 +764,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         sendConfigMessage(sender, "messages.not_muted", "{target}", target.getName());
                         return;
                     }
-                    plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName(), reason);
+                    plugin.getSoftBanDatabaseManager().unmutePlayer(target.getUniqueId(), sender.getName(), logReason);
                 } else {
                     plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);
@@ -777,7 +776,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     return;
                 }
                 if (useInternal) {
-                    plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName(), reason);
+                    plugin.getSoftBanDatabaseManager().unSoftBanPlayer(target.getUniqueId(), sender.getName(), logReason);
                 } else {
                     plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(punishmentId, sender.getName(), logReason);
                     executePunishmentCommand(sender, commandTemplate, target, "N/A", reason);

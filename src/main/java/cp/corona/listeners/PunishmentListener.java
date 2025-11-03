@@ -1,4 +1,3 @@
-// src/main/java/cp/corona/listeners/PunishmentListener.java
 package cp.corona.listeners;
 
 import cp.corona.crown.Crown;
@@ -155,7 +154,7 @@ public class PunishmentListener implements Listener {
 
                     TextComponent supportMessage = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.support_link_message", "{support_link}", plugin.getConfigManager().getSupportLink()))));
                     supportMessage.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://" + plugin.getConfigManager().getSupportLink()));
-                    supportMessage.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Click to open the support link").create()));
+                    supportMessage.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.support_link_hover"))).create()));
                     player.spigot().sendMessage(supportMessage);
 
                     String soundName = plugin.getConfigManager().getJoinAlertSound();
