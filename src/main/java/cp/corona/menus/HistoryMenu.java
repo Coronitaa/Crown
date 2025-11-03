@@ -114,9 +114,10 @@ public class HistoryMenu implements InventoryHolder {
 
             String entryTypeConfigName = entry.getType().toLowerCase() + "_history_entry";
             MenuItem historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(entryTypeConfigName);
+            MenuItem baseItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(HISTORY_ENTRY_ITEM_KEY);
 
             if (historyItemConfig == null) {
-                historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(HISTORY_ENTRY_ITEM_KEY);
+                historyItemConfig = baseItemConfig;
                 if (historyItemConfig == null) continue;
             }
 
@@ -128,14 +129,13 @@ public class HistoryMenu implements InventoryHolder {
             String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
 
             String nameTemplate = Optional.ofNullable(historyItemConfig.getName())
-                    .orElse(plugin.getConfigManager().getHistoryMenuConfig().getConfig().getString("menu.items." + HISTORY_ENTRY_ITEM_KEY + ".name", ""));
+                    .orElse(baseItemConfig != null ? baseItemConfig.getName() : "");
 
             String entryName = nameTemplate
                     .replace("{punishment_type}", entry.getType())
                     .replace("{method}", method)
                     .replace("{status}", status);
             historyEntryItem.setName(MessageUtils.getColorMessage(entryName));
-
 
             List<String> lore = new ArrayList<>();
             String originalPunishmentId = entry.getPunishmentId();
@@ -166,26 +166,43 @@ public class HistoryMenu implements InventoryHolder {
                 }
             }
 
-
             historyEntryItem.setLore(lore);
             historyEntryItem.setSlots(List.of(slot));
 
-            List<MenuItem.ClickActionData> processedActions = new ArrayList<>();
-            if (historyItemConfig.getLeftClickActions() != null) {
-                for (MenuItem.ClickActionData action : historyItemConfig.getLeftClickActions()) {
-                    String[] processedArgs = Arrays.stream(action.getActionData())
-                            .map(arg -> arg.replace("{punishment_id}", originalPunishmentId))
-                            .toArray(String[]::new);
-                    processedActions.add(new MenuItem.ClickActionData(action.getAction(), processedArgs));
-                }
+            // Fixed action handling
+            List<MenuItem.ClickActionData> leftClickActions = historyItemConfig.getLeftClickActions();
+            if ((leftClickActions == null || leftClickActions.isEmpty()) && baseItemConfig != null) {
+                leftClickActions = baseItemConfig.getLeftClickActions();
             }
-            historyEntryItem.setLeftClickActions(processedActions);
+
+            List<MenuItem.ClickActionData> rightClickActions = historyItemConfig.getRightClickActions();
+            if ((rightClickActions == null || rightClickActions.isEmpty()) && baseItemConfig != null) {
+                rightClickActions = baseItemConfig.getRightClickActions();
+            }
+
+            historyEntryItem.setLeftClickActions(processActions(leftClickActions, originalPunishmentId));
+            historyEntryItem.setRightClickActions(processActions(rightClickActions, originalPunishmentId));
 
             setItemInMenu(HISTORY_ENTRY_ITEM_KEY, historyEntryItem, target, slot);
             historyEntryItems.add(historyEntryItem);
             index++;
         }
         updatePageButtons(target);
+    }
+
+    private List<MenuItem.ClickActionData> processActions(List<MenuItem.ClickActionData> actions, String punishmentId) {
+        if (actions == null || actions.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<MenuItem.ClickActionData> processedActions = new ArrayList<>();
+        for (MenuItem.ClickActionData action : actions) {
+            String[] processedArgs = Arrays.stream(action.getActionData())
+                    .map(arg -> arg.replace("{punishment_id}", punishmentId))
+                    .toArray(String[]::new);
+            processedActions.add(new MenuItem.ClickActionData(action.getAction(), processedArgs));
+        }
+        return processedActions;
     }
 
 
