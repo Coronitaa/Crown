@@ -460,13 +460,11 @@ menu:
           name: '&ePunishment Method: &b{method}'
           slot: '13'
           lore:
-            - '&7Click to toggle between'
-            - '&bIP&7 and &bLocal&7 punishment.'
+            - '&7This punishment is always applied'
+            - '&blocally&7 and cannot be changed.'
             - ''
             - '&fAction: &bWarn'
             - '&7- Issues a warning to &b{target}&7.'
-            - '&7- Accumulating warnings may lead'
-            - '&7  to further action.'
           left_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
@@ -556,13 +554,12 @@ menu:
           name: '&ePunishment Method: &b{method}'
           slot: '13'
           lore:
-            - '&7Click to toggle between'
-            - '&bIP&7 and &bLocal&7 punishment.'
+            - '&7This punishment is always applied'
+            - '&blocally&7 and cannot be changed.'
             - ''
             - '&fAction: &bFreeze'
             - '&7- Immobilizes &b{target}&7.'
             - '&7- Staff review required.'
-            - '&7- &cDisconnecting results in a ban.'
           left_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:

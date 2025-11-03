@@ -139,10 +139,7 @@ public class MenuListener implements Listener {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        InventoryHolder holder = event.getInventory().getHolder();
-        if (event.getPlayer() instanceof Player player) {
-            // No action needed here for now
-        }
+        // No action needed here for now
     }
 
     @EventHandler
@@ -562,8 +559,13 @@ public class MenuListener implements Listener {
             case REQUEST_INPUT:
                 if (firstArg != null && firstArg.equalsIgnoreCase("reason_input")) { requestReasonInput(player, punishDetailsMenu); return true; } return false;
             case TOGGLE_PUNISH_METHOD:
-                punishDetailsMenu.togglePunishMethod();
-                punishDetailsMenu.open(player);
+                if (plugin.getConfigManager().isIpPunishmentSupported(punishDetailsMenu.getPunishmentType())) {
+                    punishDetailsMenu.togglePunishMethod();
+                    punishDetailsMenu.open(player);
+                } else {
+                    playSound(player, "punish_error");
+                    sendConfigMessage(player, "messages.punish_method_not_supported");
+                }
                 return true;
             case CONFIRM_PUNISHMENT: handleConfirmButtonClick(player, punishDetailsMenu); return true;
             case UN_SOFTBAN: if (!player.hasPermission(UNPUNISH_SOFTBAN_PERMISSION)) { sendNoPermissionMenuMessage(player, "unsoftban"); return true; } handleUnsoftbanButtonClick(player, punishDetailsMenu); return true;
@@ -1051,6 +1053,8 @@ public class MenuListener implements Listener {
         }
     }
 
+
+
     private void confirmUnsoftban(Player player, PunishDetailsMenu punishDetailsMenu, String reason) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
@@ -1385,18 +1389,21 @@ public class MenuListener implements Listener {
             long punishmentEndTime = 0L;
             String durationString = "permanent";
 
-            if (punishmentType.equalsIgnoreCase(BAN_PUNISHMENT_TYPE) || punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE)) {
+            if (punishmentType.equalsIgnoreCase(BAN_PUNISHMENT_TYPE) || punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE) || punishmentType.equalsIgnoreCase(SOFTBAN_PUNISHMENT_TYPE)) {
                 punishmentEndTime = calculateEndTime(timeValue);
                 durationString = timeValue;
                 if (punishmentEndTime == Long.MAX_VALUE) {
                     durationString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
                 }
+            } else if (punishmentType.equalsIgnoreCase(FREEZE_PUNISHMENT_TYPE)) {
+                punishmentEndTime = Long.MAX_VALUE;
             }
             punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishmentType, reason, player.getName(), punishmentEndTime, durationString, byIp);
         }
         sendPunishmentConfirmation(player, target, timeValue, reason, punishmentType, punishmentId);
         executeHookActions(player, target, punishmentType, timeValue, reason, false);
     }
+
 
     public void executeHookActions(CommandSender executor, OfflinePlayer target, String punishmentType, String time, String reason, boolean isUnpunish) {
         List<ClickActionData> actions;
