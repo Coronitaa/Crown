@@ -3,6 +3,8 @@
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
 # --- Available Actions ---
+# - PLAYER_COMMAND:<command>         (e.g., PLAYER_COMMAND:check {punishment_id})
+# - CLOSE_MENU:                      (Closes the current menu)
 # - ADJUST_PAGE:<next_page|previous_page> (Navigates between pages)
 # - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu)
 # - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2)
@@ -19,6 +21,8 @@
 # - {date}: Date and time the action occurred.
 # - {punisher}: Name of the staff member who performed the action.
 # - {duration}: Recorded duration string (e.g., "1d", "Permanent", "N/A").
+# - {punishment_id}: The unique ID of the punishment record.
+# - {method}: The method of punishment (IP/Local).
 # Summary Specific (within punishment_counts_item lore):
 # - {ban_count}, {mute_count}, {kick_count}, {softban_count}, {warn_count}, {freeze_count}
 
@@ -28,79 +32,59 @@ menu:
     # --- History Entry Definitions ---
     history_entry: # Default template for entries if no specific type matches below
       material: 'BOOK'
-      name: '&e{punishment_type} {status}'
+      name: '&e{punishment_type} &7({method}) {status}'
       lore:
         - '&7ID: &f{punishment_id}'
         - '&7Reason: &f{reason}'
         - '&7Date: &b{date}'
         - '&7By: &b{punisher}'
         - '&7Duration: &e{duration}'
+        - ''
+        - '&aClick to check details.'
+      left_click_actions:
+        - 'CLOSE_MENU'
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
+        - 'PLAYER_COMMAND:check {punishment_id}'
+      right_click_actions: # Adding for consistency
+        - 'CLOSE_MENU'
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
+        - 'PLAYER_COMMAND:check {punishment_id}'
       # slot is dynamically assigned per entry
 
     ban_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/55effce109de50f5853b0c32dcc1a28cf62a504b610e71e22f1fde6fc1a4b93d'
-      name: '&c&lBan'
+      name: '&c&lBan &7({method}) {status}'
       lore: inherit # Inherits lore from history_entry and replaces placeholders
 
     mute_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/e82b0b7c68e88800030e674522aab40396fa543072b949c0600e66c2ed352ff0'
-      name: '&e&lMute'
+      name: '&e&lMute &7({method}) {status}'
       lore: inherit
 
     freeze_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bc3d0632c03e9f8748cf94c2576e8aef785bd8da433f3d139a7b561a5a714ada'
-      name: '&5&lFreeze'
+      name: '&5&lFreeze &7({method}) {status}'
       lore: inherit
 
     softban_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/b978c31c63d7da80b9448220b8a9b896003f1b3281c341ab10194c6c4dfbe23d'
-      name: '&3&lSoftBan'
+      name: '&3&lSoftBan &7({method}) {status}'
       lore: inherit
 
     kick_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/5ae0e486db4ec49ff1b52cfeceda4c3f36fde23c835ea3ccfcaac935e49b5f10'
-      name: '&9&lKick'
+      name: '&9&lKick &7({method}) {status}'
       lore: inherit
 
     warn_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/4f09ade78eff3009cbf9ed12c0ac8f8a2073e9a95a82d8a12a42bce4773adcd7'
-      name: '&6&lWarn'
-      lore: inherit
-
-    unban_history_entry:
-      material: 'PLAYER_HEAD'
-      player_head: "http://textures.minecraft.net/texture/d9848dde8e530dc705fb677dad81492cc222bf96fd632b8514aefb80931fe0d"
-      name: '&a&lUnban'
-      lore: inherit
-
-    unmute_history_entry:
-      material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/d7df3c28ef665b5b128f4090df6e4bbca24ef444b57f215de915d88d5c42fe18'
-      name: '&a&lUnmute'
-      lore: inherit
-
-    unwarn_history_entry:
-      material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/e12eac68a481aae2c36cfbebc68cbe7b268c4cc7712764a2ed72c1bb7c74d14f'
-      name: '&a&lUnwarn'
-      lore: inherit
-
-    unsoftban_history_entry:
-      material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/899f882b4ecca4a372692a7ae1cd08bdf340700337240d00419168588d98bb75'
-      name: '&a&lUnsoftban'
-      lore: inherit
-
-    unfreeze_history_entry:
-      material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/77e3c7dd63a88c1e755e94e8db5d30728d2692412014186f4584c5320d04709e'
-      name: '&a&lUnfreeze'
+      name: '&6&lWarn &7({method}) {status}'
       lore: inherit
 
     # --- Control Items ---

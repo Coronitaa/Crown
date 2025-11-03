@@ -90,7 +90,8 @@ public class DatabaseManager {
                     "active BOOLEAN DEFAULT 1," +
                     "removed_by_name VARCHAR(255)," +
                     "removed_at DATETIME," +
-                    "removed_reason TEXT)";
+                    "removed_reason TEXT," +
+                    "by_ip BOOLEAN DEFAULT 0)";
 
             if ("sqlite".equalsIgnoreCase(dbType)) {
                 createHistoryTableSQL = "CREATE TABLE IF NOT EXISTS punishment_history (" +
@@ -106,7 +107,8 @@ public class DatabaseManager {
                         "active BOOLEAN DEFAULT 1," +
                         "removed_by_name VARCHAR(255)," +
                         "removed_at DATETIME," +
-                        "removed_reason TEXT)";
+                        "removed_reason TEXT," +
+                        "by_ip BOOLEAN DEFAULT 0)";
             }
             statement.execute(createHistoryTableSQL);
 
@@ -177,6 +179,9 @@ public class DatabaseManager {
             if (!columnExists(connection, "punishment_history", "removed_reason")) {
                 statement.execute("ALTER TABLE punishment_history ADD COLUMN removed_reason TEXT");
             }
+            if (!columnExists(connection, "punishment_history", "by_ip")) {
+                statement.execute("ALTER TABLE punishment_history ADD COLUMN by_ip BOOLEAN DEFAULT 0");
+            }
         }
     }
 
@@ -189,7 +194,7 @@ public class DatabaseManager {
 
     public List<PunishmentEntry> getAllActivePunishments(UUID playerUUID, String playerIP) {
         List<PunishmentEntry> activePunishments = new ArrayList<>();
-        String sql = "SELECT * FROM punishment_history WHERE (player_uuid = ? OR punishment_id IN (SELECT punishment_id FROM player_info WHERE ip = ?)) AND active = 1 AND (punishment_time > ? OR punishment_time = ?)";
+        String sql = "SELECT * FROM punishment_history WHERE (player_uuid = ? OR (by_ip = 1 AND punishment_id IN (SELECT punishment_id FROM player_info WHERE ip = ?))) AND active = 1 AND (punishment_time > ? OR punishment_time = ?)";
 
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
@@ -211,7 +216,8 @@ public class DatabaseManager {
                             rs.getBoolean("active"),
                             rs.getString("removed_by_name"),
                             rs.getTimestamp("removed_at"),
-                            rs.getString("removed_reason")
+                            rs.getString("removed_reason"),
+                            rs.getBoolean("by_ip")
                     ));
                 }
             }
@@ -271,7 +277,7 @@ public class DatabaseManager {
             ps.setLong(2, finalEndTime);
             ps.setString(3, reason);
             ps.executeUpdate();
-            String punishmentId = logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString);
+            String punishmentId = logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString, plugin.getConfigManager().isPunishmentByIp("softban"));
 
             if (finalEndTime != Long.MAX_VALUE) {
                 scheduleExpiryNotification(uuid, finalEndTime, "softban", punishmentId);
@@ -343,7 +349,7 @@ public class DatabaseManager {
                     ? plugin.getConfigManager().getMessage("placeholders.permanent_time_display")
                     : TimeUtils.formatTime((int) ((finalEndTime - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
 
-            String punishmentId = logPunishment(uuid, "mute", reason, punisherName, finalEndTime, durationString);
+            String punishmentId = logPunishment(uuid, "mute", reason, punisherName, finalEndTime, durationString, plugin.getConfigManager().isPunishmentByIp("mute"));
 
             if (finalEndTime != Long.MAX_VALUE) {
                 scheduleExpiryNotification(uuid, finalEndTime, "mute", punishmentId);
@@ -411,14 +417,14 @@ public class DatabaseManager {
         return 0;
     }
 
-    public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString) {
+    public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp) {
         PunishmentEntry activePunishment = getLatestActivePunishment(playerUUID, punishmentType);
         if (activePunishment != null && (activePunishment.getEndTime() > System.currentTimeMillis() || activePunishment.getEndTime() == Long.MAX_VALUE)) {
             updatePunishmentAsRemoved(activePunishment.getPunishmentId(), "System", "Superseded by new punishment.");
         }
 
         String punishmentId = generatePunishmentId();
-        String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string, active, by_ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
             ps.setString(2, playerUUID.toString());
@@ -428,6 +434,7 @@ public class DatabaseManager {
             ps.setLong(6, punishmentEndTime);
             ps.setString(7, durationString);
             ps.setBoolean(8, true);
+            ps.setBoolean(9, byIp);
             ps.executeUpdate();
 
             Player targetPlayer = Bukkit.getPlayer(playerUUID);
@@ -534,7 +541,8 @@ public class DatabaseManager {
                             rs.getBoolean("active"),
                             rs.getString("removed_by_name"),
                             rs.getTimestamp("removed_at"),
-                            rs.getString("removed_reason")
+                            rs.getString("removed_reason"),
+                            rs.getBoolean("by_ip")
                     ));
                 }
             }
@@ -562,7 +570,8 @@ public class DatabaseManager {
                             rs.getBoolean("active"),
                             rs.getString("removed_by_name"),
                             rs.getTimestamp("removed_at"),
-                            rs.getString("removed_reason")
+                            rs.getString("removed_reason"),
+                            rs.getBoolean("by_ip")
                     );
                 }
             }
@@ -665,7 +674,8 @@ public class DatabaseManager {
                             rs.getBoolean("active"),
                             rs.getString("removed_by_name"),
                             rs.getTimestamp("removed_at"),
-                            rs.getString("removed_reason")
+                            rs.getString("removed_reason"),
+                            rs.getBoolean("by_ip")
                     );
                 }
             }
@@ -714,7 +724,8 @@ public class DatabaseManager {
                             rs.getBoolean("active"),
                             rs.getString("removed_by_name"),
                             rs.getTimestamp("removed_at"),
-                            rs.getString("removed_reason")
+                            rs.getString("removed_reason"),
+                            rs.getBoolean("by_ip")
                     );
                 }
             }
@@ -864,7 +875,6 @@ public class DatabaseManager {
 
     public static class PunishmentEntry {
         private final String punishmentId;
-
         private final UUID playerUUID;
         private final String type;
         private final String reason;
@@ -873,15 +883,13 @@ public class DatabaseManager {
         private final long punishmentTime;
         private final String durationString;
         private String status;
-
         private final boolean active;
-
         private final String removedByName;
-
         private final Timestamp removedAt;
-
         private final String removedReason;
-        public PunishmentEntry(String punishmentId, UUID playerUUID, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString, boolean active, String removedByName, Timestamp removedAt, String removedReason) {
+        private final boolean byIp;
+
+        public PunishmentEntry(String punishmentId, UUID playerUUID, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString, boolean active, String removedByName, Timestamp removedAt, String removedReason, boolean byIp) {
             this.punishmentId = punishmentId;
             this.playerUUID = playerUUID;
             this.type = type;
@@ -894,42 +902,25 @@ public class DatabaseManager {
             this.removedByName = removedByName;
             this.removedAt = removedAt;
             this.removedReason = removedReason;
+            this.byIp = byIp;
         }
 
         public String getPunishmentId() { return punishmentId; }
         public String getType() { return type; }
         public String getReason() { return reason; }
         public Timestamp getTimestamp() { return timestamp; }
-
-        public UUID getPlayerUUID() {
-            return playerUUID;
-        }
-
+        public UUID getPlayerUUID() { return playerUUID; }
         public String getPunisherName() { return punisherName; }
         public long getPunishmentTime() { return punishmentTime; }
         public String getDurationString() { return durationString; }
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
-
-        public long getEndTime() {
-            return punishmentTime;
-        }
-
-        public boolean isActive() {
-            return active;
-        }
-
-        public String getRemovedByName() {
-            return removedByName;
-        }
-
-        public Timestamp getRemovedAt() {
-            return removedAt;
-        }
-
-        public String getRemovedReason() {
-            return removedReason;
-        }
+        public long getEndTime() { return punishmentTime; }
+        public boolean isActive() { return active; }
+        public String getRemovedByName() { return removedByName; }
+        public Timestamp getRemovedAt() { return removedAt; }
+        public String getRemovedReason() { return removedReason; }
+        public boolean wasByIp() { return byIp; }
     }
     public static class PlayerInfo {
         private final String punishmentId;

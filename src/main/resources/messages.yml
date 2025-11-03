@@ -143,7 +143,7 @@ messages:
   punishment_not_found: '{prefix}&cPunishment with ID ''{id}'' not found.'
   check_info_header: '&6&lPunishment Information for ID: &e{id}'
   check_info_player: '&7Player: &b{player} &7({uuid})'
-  check_info_type: '&7Type: &b{type}'
+  check_info_type: '&7Type: &b{type} &7({method})'
   check_info_status: '&7Status: {status}'
   check_info_reason: '&7Reason: &f{reason}'
   check_info_punisher: '&7Punisher: &b{punisher}'
@@ -237,6 +237,8 @@ placeholders:
   optional_not_set: '&e❌ Not set'
   not_applicable: 'N/A'
   permanent_time_display: 'Permanent'
+  by_ip: 'IP'
+  by_local: 'Local'
 
   punishment_type_names:
     ban: "Ban"

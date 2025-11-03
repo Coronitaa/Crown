@@ -170,13 +170,9 @@ public class MenuListener implements Listener {
     private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + (clickedMenuItem != null ? clickedMenuItem.getName() : "null") + ", Holder Type: " + holder.getClass().getSimpleName());
 
+        // This was the source of the bug. Dynamic items already have processed actionData.
+        // We will keep the original actionData and let specific handlers process placeholders if needed.
         String[] processedActionData = actionData;
-        if (actionData != null && actionData.length > 0) {
-            processedActionData = Arrays.stream(actionData)
-                    .filter(Objects::nonNull)
-                    .map(data -> replacePlaceholders(player, data, holder))
-                    .toArray(String[]::new);
-        }
 
         boolean handledByMenuSpecific = false;
         if (holder instanceof PunishMenu punishMenu) {
@@ -880,7 +876,7 @@ public class MenuListener implements Listener {
             if (punishmentType.equalsIgnoreCase(BAN_PUNISHMENT_TYPE)) {
                 long banDuration = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
                 Date expiration = (banDuration > 0) ? new Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(banDuration)) : null;
-                String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, punishmentType, reason, player.getName(), expiration != null ? expiration.getTime() : Long.MAX_VALUE, timeInput);
+                String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, punishmentType, reason, player.getName(), expiration != null ? expiration.getTime() : Long.MAX_VALUE, timeInput, byIp);
 
                 String targetIdentifier = target.getName();
                 Player onlineTarget = target.getPlayer();
@@ -902,7 +898,7 @@ public class MenuListener implements Listener {
                     target.getPlayer().kickPlayer(kickMessage);
                 }
 
-                executePunishmentCommandAndLog(player, "", target, detailsMenu, punishmentType, timeInput, reason, punishmentId);
+                executePunishmentCommandAndLog(player, "", target, detailsMenu, punishmentType, timeInput, reason, punishmentId, byIp);
             } else if (punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE)) {
                 long muteDuration = TimeUtils.parseTime(timeInput, plugin.getConfigManager());
                 long endTime = (muteDuration > 0) ? System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(muteDuration) : Long.MAX_VALUE;
@@ -925,7 +921,7 @@ public class MenuListener implements Listener {
                     .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                     .replace("{time}", timeInput)
                     .replace("{reason}", reason);
-            executePunishmentCommandAndLog(player, processedCommand, target, detailsMenu, punishmentType, timeInput, reason, null);
+            executePunishmentCommandAndLog(player, processedCommand, target, detailsMenu, punishmentType, timeInput, reason, null, byIp);
         }
     }
 
@@ -962,7 +958,7 @@ public class MenuListener implements Listener {
                     .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                     .replace("{time}", timeInput)
                     .replace("{reason}", reason);
-            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, SOFTBAN_PUNISHMENT_TYPE, timeInput, reason, null);
+            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, SOFTBAN_PUNISHMENT_TYPE, timeInput, reason, null, byIp);
         }
     }
 
@@ -980,10 +976,12 @@ public class MenuListener implements Listener {
             return;
         }
 
+        boolean byIp = plugin.getConfigManager().isPunishmentByIp("freeze");
+
         if(useInternal) {
             plugin.getPluginFrozenPlayers().put(targetUUID, true);
             playSound(player, "punish_confirm");
-            String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, FREEZE_PUNISHMENT_TYPE, reason, player.getName(), Long.MAX_VALUE, permanentDisplay);
+            String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, FREEZE_PUNISHMENT_TYPE, reason, player.getName(), Long.MAX_VALUE, permanentDisplay, byIp);
             sendPunishmentConfirmation(player, target, permanentDisplay, reason, FREEZE_PUNISHMENT_TYPE, punishmentId);
 
             Player onlineTarget = target.getPlayer();
@@ -996,7 +994,7 @@ public class MenuListener implements Listener {
             String processedCommand = commandTemplate
                     .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                     .replace("{reason}", reason);
-            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, FREEZE_PUNISHMENT_TYPE, "permanent", reason, null);
+            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, FREEZE_PUNISHMENT_TYPE, "permanent", reason, null, byIp);
         }
     }
 
@@ -1007,7 +1005,7 @@ public class MenuListener implements Listener {
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal("kick");
         boolean byIp = plugin.getConfigManager().isPunishmentByIp("kick");
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand("kick");
-        String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), KICK_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A");
+        String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), KICK_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A", byIp);
 
         if (useInternal) {
             if (target.isOnline()) {
@@ -1024,12 +1022,12 @@ public class MenuListener implements Listener {
                     target.getPlayer().kickPlayer(kickMessage);
                 }
             }
-            executePunishmentCommandAndLog(player, "", target, punishDetailsMenu, KICK_PUNISHMENT_TYPE, "N/A", reason, punishmentId);
+            executePunishmentCommandAndLog(player, "", target, punishDetailsMenu, KICK_PUNISHMENT_TYPE, "N/A", reason, punishmentId, byIp);
         } else {
             String processedCommand = commandTemplate
                     .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                     .replace("{reason}", reason);
-            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, KICK_PUNISHMENT_TYPE, "N/A", reason, punishmentId);
+            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, KICK_PUNISHMENT_TYPE, "N/A", reason, punishmentId, byIp);
         }
     }
 
@@ -1039,18 +1037,19 @@ public class MenuListener implements Listener {
         String reason = punishDetailsMenu.getBanReason() != null ? punishDetailsMenu.getBanReason() : "Warned by moderator";
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal("warn");
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand("warn");
-        String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), WARN_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A");
+        boolean byIp = plugin.getConfigManager().isPunishmentByIp("warn");
+        String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), WARN_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A", byIp);
 
         if (useInternal) {
             if (target.isOnline()) {
                 target.getPlayer().sendMessage(MessageUtils.getColorMessage(reason));
             }
-            executePunishmentCommandAndLog(player, "", target, punishDetailsMenu, WARN_PUNISHMENT_TYPE, "N/A", reason, punishmentId);
+            executePunishmentCommandAndLog(player, "", target, punishDetailsMenu, WARN_PUNISHMENT_TYPE, "N/A", reason, punishmentId, byIp);
         } else {
             String processedCommand = commandTemplate
                     .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                     .replace("{reason}", reason);
-            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, WARN_PUNISHMENT_TYPE, "N/A", reason, punishmentId);
+            executePunishmentCommandAndLog(player, processedCommand, target, punishDetailsMenu, WARN_PUNISHMENT_TYPE, "N/A", reason, punishmentId, byIp);
         }
     }
 
@@ -1079,7 +1078,7 @@ public class MenuListener implements Listener {
                         (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
             }
 
-            // String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unfreeze", finalReason, player.getName(), 0L, "N/A"); // REMOVED: Do not log new entry
+            // String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unfreeze", finalReason, player.getName(), 0L, "N/A", false); // REMOVED: Do not log new entry
             plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(originalPunishmentId, player.getName(), finalReason); // ADDED: Update original entry
 
             playSound(player, "punish_confirm");
@@ -1152,7 +1151,7 @@ public class MenuListener implements Listener {
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
         }
 
-        // String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unban", finalReason, player.getName(), 0L, "N/A"); // REMOVED: Do not log new entry
+        // String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unban", finalReason, player.getName(), 0L, "N/A", false); // REMOVED: Do not log new entry
         plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(originalPunishmentId, player.getName(), finalReason); // ADDED: Update original entry
 
         playSound(player, "punish_confirm");
@@ -1186,7 +1185,7 @@ public class MenuListener implements Listener {
         } else {
             String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand));
-            // punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unmute", finalReason, player.getName(), 0L, "N/A"); // REMOVED
+            // punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unmute", finalReason, player.getName(), 0L, "N/A", false); // REMOVED
             plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(originalPunishmentId, player.getName(), finalReason); // ADDED
         }
 
@@ -1215,7 +1214,7 @@ public class MenuListener implements Listener {
             finalReason = reason.replace("{player}", player.getName()) +
                     (originalPunishmentId != null ? " (ID: " + originalPunishmentId + ")" : "");
         }
-        // String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unwarn", finalReason, player.getName(), 0L, "N/A"); // REMOVED
+        // String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "unwarn", finalReason, player.getName(), 0L, "N/A", false); // REMOVED
         plugin.getSoftBanDatabaseManager().updatePunishmentAsRemoved(originalPunishmentId, player.getName(), finalReason); // ADDED
 
         if (!useInternal) {
@@ -1387,7 +1386,7 @@ public class MenuListener implements Listener {
         return executor.hasPermission(perm);
     }
 
-    private void executePunishmentCommandAndLog(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu, String punishmentType, String timeValue, String reason, String punishmentId) {
+    private void executePunishmentCommandAndLog(Player player, String command, OfflinePlayer target, PunishDetailsMenu detailsMenu, String punishmentType, String timeValue, String reason, String punishmentId, boolean byIp) {
         if (command != null && !command.isEmpty()) {
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command));
         }
@@ -1405,7 +1404,7 @@ public class MenuListener implements Listener {
                     durationString = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
                 }
             }
-            punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishmentType, reason, player.getName(), punishmentEndTime, durationString);
+            punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishmentType, reason, player.getName(), punishmentEndTime, durationString, byIp);
         }
         sendPunishmentConfirmation(player, target, timeValue, reason, punishmentType, punishmentId);
         executeHookActions(player, target, punishmentType, timeValue, reason, false);

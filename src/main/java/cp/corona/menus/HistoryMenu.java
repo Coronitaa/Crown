@@ -12,14 +12,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class HistoryMenu implements InventoryHolder {
@@ -29,7 +26,7 @@ public class HistoryMenu implements InventoryHolder {
     private final Crown plugin;
     private int page = 1;
     private final int entriesPerPage = 28;
-    private List<MenuItem> historyEntryItems = new ArrayList<>();
+    private final List<MenuItem> historyEntryItems = new ArrayList<>();
     private final Set<String> menuItemKeys = new HashSet<>();
     private List<DatabaseManager.PunishmentEntry> allHistoryEntries;
 
@@ -63,12 +60,9 @@ public class HistoryMenu implements InventoryHolder {
 
         for (DatabaseManager.PunishmentEntry entry : allHistoryEntries) {
             String type = entry.getType().toLowerCase();
-            // REMOVED: if (type.startsWith("un")) { continue; }
-            // We no longer create "un..." entries, so this is not needed.
-            // We want to show all entries, including those that are now inactive (removed).
 
             if (type.equals("kick") || type.equals("freeze")) {
-                entry.setStatus(""); // Set status to blank for kick and freeze
+                entry.setStatus("");
                 continue;
             }
             if (!entry.isActive()) {
@@ -121,12 +115,6 @@ public class HistoryMenu implements InventoryHolder {
             String entryTypeConfigName = entry.getType().toLowerCase() + "_history_entry";
             MenuItem historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(entryTypeConfigName);
 
-            // Handle "un..." types which might not have a specific entry config
-            if (historyItemConfig == null && entry.getType().startsWith("un")) {
-                entryTypeConfigName = entry.getType().substring(2).toLowerCase() + "_history_entry"; // Try "ban_history_entry" for "unban"
-                historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(entryTypeConfigName);
-            }
-
             if (historyItemConfig == null) {
                 historyItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(HISTORY_ENTRY_ITEM_KEY);
                 if (historyItemConfig == null) continue;
@@ -137,17 +125,21 @@ public class HistoryMenu implements InventoryHolder {
             historyEntryItem.setPlayerHead(historyItemConfig.getPlayerHead());
 
             String status = entry.getStatus() != null ? entry.getStatus() : "";
-            String entryName = plugin.getConfigManager().getHistoryMenuText("items." + HISTORY_ENTRY_ITEM_KEY + ".name", target)
+            String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
+
+            String nameTemplate = Optional.ofNullable(historyItemConfig.getName())
+                    .orElse(plugin.getConfigManager().getHistoryMenuConfig().getConfig().getString("menu.items." + HISTORY_ENTRY_ITEM_KEY + ".name", ""));
+
+            String entryName = nameTemplate
                     .replace("{punishment_type}", entry.getType())
+                    .replace("{method}", method)
                     .replace("{status}", status);
             historyEntryItem.setName(MessageUtils.getColorMessage(entryName));
 
-            List<String> lore = new ArrayList<>();
-            String originalPunishmentId = entry.getPunishmentId(); // Use the entry's ID directly
-            String reason = entry.getReason(); // Use the entry's reason directly
 
-            // REMOVED: Logic to parse ID from reason for "un..." types
-            // if (entry.getType().startsWith("un")) { ... }
+            List<String> lore = new ArrayList<>();
+            String originalPunishmentId = entry.getPunishmentId();
+            String reason = entry.getReason();
 
             List<String> configLore = plugin.getConfigManager().getHistoryMenuItemLore(HISTORY_ENTRY_ITEM_KEY, target);
             for (String line : configLore) {
@@ -178,6 +170,17 @@ public class HistoryMenu implements InventoryHolder {
             historyEntryItem.setLore(lore);
             historyEntryItem.setSlots(List.of(slot));
 
+            List<MenuItem.ClickActionData> processedActions = new ArrayList<>();
+            if (historyItemConfig.getLeftClickActions() != null) {
+                for (MenuItem.ClickActionData action : historyItemConfig.getLeftClickActions()) {
+                    String[] processedArgs = Arrays.stream(action.getActionData())
+                            .map(arg -> arg.replace("{punishment_id}", originalPunishmentId))
+                            .toArray(String[]::new);
+                    processedActions.add(new MenuItem.ClickActionData(action.getAction(), processedArgs));
+                }
+            }
+            historyEntryItem.setLeftClickActions(processedActions);
+
             setItemInMenu(HISTORY_ENTRY_ITEM_KEY, historyEntryItem, target, slot);
             historyEntryItems.add(historyEntryItem);
             index++;
@@ -191,7 +194,7 @@ public class HistoryMenu implements InventoryHolder {
         if (type.equals("warn") || type.equals("kick") || type.equals("freeze") ||
                 (entry.getDurationString() != null && entry.getDurationString().equalsIgnoreCase("permanent"))) {
             return plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
-        } else if (!entry.getDurationString().isEmpty()) {
+        } else if (entry.getDurationString() != null && !entry.getDurationString().isEmpty()) {
             return entry.getDurationString();
         }
         return "N/A";
