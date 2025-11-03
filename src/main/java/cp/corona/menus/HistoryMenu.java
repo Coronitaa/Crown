@@ -65,13 +65,15 @@ public class HistoryMenu implements InventoryHolder {
             String type = entry.getType().toLowerCase();
             String status;
 
+            boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
+
             if (type.equals("warn")) {
                 ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
                 if (activeWarning != null) {
                     status = activeWarning.isPaused() ? plugin.getConfigManager().getMessage("placeholders.status_paused")
                             : plugin.getConfigManager().getMessage("placeholders.status_active");
                 } else {
-                    status = entry.isActive() ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                    status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
                             : plugin.getConfigManager().getMessage("placeholders.status_removed");
                 }
             } else if (type.equals("kick")) {
@@ -82,7 +84,6 @@ public class HistoryMenu implements InventoryHolder {
                             ? plugin.getConfigManager().getMessage("placeholders.status_active")
                             : plugin.getConfigManager().getMessage("placeholders.status_expired");
                 } else {
-                    boolean isSystemExpired = "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
                     status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
                             : plugin.getConfigManager().getMessage("placeholders.status_removed");
                 }
@@ -194,6 +195,12 @@ public class HistoryMenu implements InventoryHolder {
                     } else if (activeWarning.getEndTime() != -1) {
                         timeLeft = TimeUtils.formatTime((int) ((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
                         lore.add("&7Expires in: &e" + timeLeft);
+                    }
+                } else if (!entry.isActive() && entry.getRemovedByName() != null) { // Restored logic
+                    lore.add("&cRemoved by: &e" + entry.getRemovedByName());
+                    lore.add("&cAt: &e" + dateFormat.format(entry.getRemovedAt()));
+                    if (entry.getRemovedReason() != null && !entry.getRemovedReason().isEmpty()) {
+                        lore.add("&cReason: &e" + entry.getRemovedReason());
                     }
                 }
             }

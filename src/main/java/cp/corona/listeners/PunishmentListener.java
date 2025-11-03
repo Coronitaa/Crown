@@ -26,6 +26,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -64,12 +65,8 @@ public class PunishmentListener implements Listener {
                 if (remainingMillis > 0) {
                     timeLeft = TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
                 } else {
-                    if (nameBanList.isBanned(playerName)) {
-                        nameBanList.pardon(playerName);
-                    }
-                    if (ipBanList.isBanned(playerIP)) {
-                        ipBanList.pardon(playerIP);
-                    }
+                    if (nameBanList.isBanned(playerName)) nameBanList.pardon(playerName);
+                    if (ipBanList.isBanned(playerIP)) ipBanList.pardon(playerIP);
                     return;
                 }
             }
@@ -92,32 +89,45 @@ public class PunishmentListener implements Listener {
         if (plugin.getConfigManager().isJoinAlertEnabled()) {
             DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
 
-            // CORRECTION: Filter out "warn" type from this list to prevent duplicates.
-            List<DatabaseManager.PunishmentEntry> activePunishments = dbManager
-                    .getAllActivePunishments(player.getUniqueId(), player.getAddress().getAddress().getHostAddress())
-                    .stream()
+            List<DatabaseManager.PunishmentEntry> allActivePunishments = dbManager
+                    .getAllActivePunishments(player.getUniqueId(), player.getAddress().getAddress().getHostAddress());
+
+            List<DatabaseManager.PunishmentEntry> standardPunishments = allActivePunishments.stream()
                     .filter(p -> !p.getType().equalsIgnoreCase("freeze") && !p.getType().equalsIgnoreCase("warn"))
                     .collect(Collectors.toList());
 
             List<ActiveWarningEntry> activeWarnings = dbManager.getAllActiveAndPausedWarnings(player.getUniqueId());
 
-            if (!activePunishments.isEmpty() || !activeWarnings.isEmpty()) {
+            Map<String, DatabaseManager.PunishmentEntry> punishmentDetailsMap = allActivePunishments.stream()
+                    .filter(p -> p.getType().equalsIgnoreCase("warn"))
+                    .collect(Collectors.toMap(DatabaseManager.PunishmentEntry::getPunishmentId, entry -> entry));
+
+
+            if (!standardPunishments.isEmpty() || !activeWarnings.isEmpty()) {
                 chatFrozenPlayers.add(player.getUniqueId());
 
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_header")));
 
-                    // Display standard punishments (now excluding warns)
-                    for (DatabaseManager.PunishmentEntry punishment : activePunishments) {
+                    // Display standard punishments with hover text
+                    for (DatabaseManager.PunishmentEntry punishment : standardPunishments) {
                         String timeLeft = (punishment.getEndTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) ((punishment.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
-                        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishment_entry",
+                        String visibleText = plugin.getConfigManager().getMessage("messages.active_punishment_entry",
                                 "{id}", punishment.getPunishmentId(),
                                 "{type}", punishment.getType(),
-                                "{time_left}", timeLeft)));
+                                "{time_left}", timeLeft);
+
+                        TextComponent messageComponent = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(visibleText)));
+                        String hoverText = buildHoverText(punishment);
+                        messageComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(hoverText).create()));
+                        player.spigot().sendMessage(messageComponent);
                     }
 
-                    // Display warnings with level and status
+                    // Display warnings with hover text
                     for (ActiveWarningEntry warning : activeWarnings) {
+                        DatabaseManager.PunishmentEntry details = punishmentDetailsMap.get(warning.getPunishmentId());
+                        if (details == null) continue;
+
                         String timeLeft;
                         String statusSuffix = "";
                         if (warning.isPaused()) {
@@ -129,11 +139,16 @@ public class PunishmentListener implements Listener {
                             timeLeft = TimeUtils.formatTime((int) ((warning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
                         }
 
-                        player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_warning_entry",
+                        String visibleText = plugin.getConfigManager().getMessage("messages.active_warning_entry",
                                 "{id}", warning.getPunishmentId(),
                                 "{type}", "warn",
                                 "{level}", String.valueOf(warning.getWarnLevel()),
-                                "{time_left}", timeLeft + statusSuffix)));
+                                "{time_left}", timeLeft + statusSuffix);
+
+                        TextComponent messageComponent = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(visibleText)));
+                        String hoverText = buildHoverText(details);
+                        messageComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(hoverText).create()));
+                        player.spigot().sendMessage(messageComponent);
                     }
 
                     player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_footer")));
@@ -159,6 +174,21 @@ public class PunishmentListener implements Listener {
                 }, plugin.getConfigManager().getJoinAlertDuration() * 20L);
             }
         }
+    }
+
+    private String buildHoverText(DatabaseManager.PunishmentEntry entry) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        StringBuilder hover = new StringBuilder();
+
+        hover.append("&eReason: &f").append(entry.getReason()).append("\n");
+        hover.append("&eDate: &f").append(dateFormat.format(entry.getTimestamp())).append("\n");
+
+        String method = entry.wasByIp()
+                ? plugin.getConfigManager().getMessage("placeholders.by_ip")
+                : plugin.getConfigManager().getMessage("placeholders.by_local");
+        hover.append("&eMethod: &f").append(method);
+
+        return MessageUtils.getColorMessage(hover.toString());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
