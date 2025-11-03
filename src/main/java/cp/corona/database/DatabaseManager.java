@@ -1,4 +1,5 @@
 // src/main/java/cp/corona/database/DatabaseManager.java
+// MODIFIED: Added 'custom_commands' to softbans table and logic to handle it.
 package cp.corona.database;
 
 import cp.corona.config.WarnLevel;
@@ -26,6 +27,7 @@ public class DatabaseManager {
     private final String dbUsername;
     private final String dbPassword;
     private final String dbType;
+    private static final String COMMAND_DELIMITER = ";;";
 
     public DatabaseManager(Crown plugin) {
         this.plugin = plugin;
@@ -67,7 +69,8 @@ public class DatabaseManager {
             String createSoftbansTableSQL = "CREATE TABLE IF NOT EXISTS softbans (" +
                     "uuid VARCHAR(36) PRIMARY KEY," +
                     "endTime BIGINT NOT NULL," +
-                    "reason TEXT)";
+                    "reason TEXT," +
+                    "custom_commands TEXT)"; // MODIFIED: Added column
             statement.execute(createSoftbansTableSQL);
 
             String createMutesTableSQL = "CREATE TABLE IF NOT EXISTS mutes (" +
@@ -205,6 +208,9 @@ public class DatabaseManager {
             }
             if (!columnExists(connection, "punishment_history", "by_ip")) {
                 statement.execute("ALTER TABLE punishment_history ADD COLUMN by_ip BOOLEAN DEFAULT 0");
+            }
+            if (!columnExists(connection, "softbans", "custom_commands")) {
+                statement.execute("ALTER TABLE softbans ADD COLUMN custom_commands TEXT");
             }
         }
     }
@@ -435,8 +441,6 @@ public class DatabaseManager {
         return null;
     }
 
-    // ... (El resto del archivo, que ya te proporcioné anteriormente, se mantiene igual)
-
     public List<PunishmentEntry> getAllActivePunishments(UUID playerUUID, String playerIP) {
         List<PunishmentEntry> activePunishments = new ArrayList<>();
         String sql = "SELECT * FROM punishment_history WHERE (player_uuid = ? OR (by_ip = 1 AND punishment_id IN (SELECT punishment_id FROM player_info WHERE ip = ?))) AND active = 1 AND (punishment_time > ? OR punishment_time = ?)";
@@ -503,6 +507,10 @@ public class DatabaseManager {
     }
 
     public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp) {
+        return softBanPlayer(uuid, endTime, reason, punisherName, byIp, null);
+    }
+
+    public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp, List<String> customCommands) {
         long currentEndTime = getSoftBanEndTime(uuid);
         long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis() || currentEndTime == Long.MAX_VALUE)
                 ? endTime
@@ -512,12 +520,19 @@ public class DatabaseManager {
                 ? plugin.getConfigManager().getMessage("placeholders.permanent_time_display")
                 : TimeUtils.formatTime((int)((finalEndTime - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
 
-        String sql = "mysql".equalsIgnoreCase(dbType) ? "REPLACE INTO softbans (uuid, endTime, reason) VALUES (?, ?, ?)" : "INSERT OR REPLACE INTO softbans (uuid, endTime, reason) VALUES (?, ?, ?)";
+        String sql = "mysql".equalsIgnoreCase(dbType) ?
+                "REPLACE INTO softbans (uuid, endTime, reason, custom_commands) VALUES (?, ?, ?, ?)" :
+                "INSERT OR REPLACE INTO softbans (uuid, endTime, reason, custom_commands) VALUES (?, ?, ?, ?)";
 
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, uuid.toString());
             ps.setLong(2, finalEndTime);
             ps.setString(3, reason);
+            if (customCommands != null && !customCommands.isEmpty()) {
+                ps.setString(4, String.join(COMMAND_DELIMITER, customCommands));
+            } else {
+                ps.setNull(4, Types.VARCHAR);
+            }
             ps.executeUpdate();
             String punishmentId = logPunishment(uuid, "softban", reason, punisherName, finalEndTime, durationString, byIp);
 
@@ -558,6 +573,25 @@ public class DatabaseManager {
 
     public boolean isSoftBanned(UUID uuid) {
         return getPunishmentEndTime("softbans", uuid) > System.currentTimeMillis();
+    }
+
+    public List<String> getActiveSoftbanCustomCommands(UUID uuid) {
+        String sql = "SELECT custom_commands FROM softbans WHERE uuid = ? AND endTime > ?";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, uuid.toString());
+            ps.setLong(2, System.currentTimeMillis());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String commands = rs.getString("custom_commands");
+                    if (commands != null && !commands.isEmpty()) {
+                        return Arrays.asList(commands.split(COMMAND_DELIMITER));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error getting custom softban commands!", e);
+        }
+        return null;
     }
 
     public boolean isMuted(UUID uuid) {

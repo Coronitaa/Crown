@@ -15,19 +15,14 @@ expiration-mode: 'incremental'
 # The system will apply the configuration for the total number of active warnings a player has.
 # If a player's next warning level (e.g., 4) is not defined, the actions of the highest defined level (e.g., 3) will be applied.
 levels:
-  # Level 1: First warning
   1:
-    # Duration of this warning level. Use 's', 'm', 'h', 'd', 'M', 'y'. Use -1 for permanent.
     expiration: '1m'
-    # Actions to execute when a player reaches this warning level.
     on-warn-actions:
       - 'MESSAGE_TARGET:&cYou have received your first warning for: &e{reason}'
       - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #1 by &e{player}&7. Reason: &f{reason}'
-    # Actions to execute when this warning expires or is removed.
     on-expire-actions:
       - 'MESSAGE_TARGET:&aYour first warning has expired or been removed.'
 
-  # Level 2: Second warning
   2:
     expiration: '2m'
     on-warn-actions:
@@ -38,12 +33,18 @@ levels:
       - 'CONSOLE_COMMAND:crown unpunish {target} mute Warning level 2 expired.'
       - 'MESSAGE_TARGET:&aYour second warning has expired. Your mute has been lifted.'
 
-  # Level 3: Third warning (and any subsequent warnings)
   3:
-    expiration: '90d'
+    expiration: '3m'
+    # NEW: Define specific commands to be blocked by the softban from this level.
+    softban-blocked-commands:
+      - /kit
+      - /claim
+      - /reward
+    # NEW: Use APPLY_SOFTBAN action instead of CONSOLE_COMMAND to pass context.
+    # Format: APPLY_SOFTBAN:<duration>:<reason>
     on-warn-actions:
-      - 'CONSOLE_COMMAND:crown punish {target} softban 1d Softbanned due to reaching warning level 3.'
-      - 'MESSAGE_TARGET:&cYou have received your third warning for: &e{reason}&c. You are now softbanned for 1 day.'
+      - 'APPLY_SOFTBAN:1d:Softbanned due to reaching warning level 3.'
+      - 'MESSAGE_TARGET:&cYou have received your third warning for: &e{reason}&c. You are now softbanned for 1 day with limited commands.'
       - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #3 by &e{player}&7. Softbanned for 1d.'
     on-expire-actions:
       - 'CONSOLE_COMMAND:crown unpunish {target} softban Warning level 3 expired.'

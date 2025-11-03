@@ -37,7 +37,6 @@ public class MainConfigManager {
     private boolean placeholderAPIEnabled;
     private CrownPunishmentsPlaceholders placeholders;
 
-    // New properties for warn system
     private final Map<Integer, WarnLevel> warnLevels = new HashMap<>();
     private String warnExpirationMode;
 
@@ -85,7 +84,6 @@ public class MainConfigManager {
             plugin.getLogger().log(Level.INFO, "[MainConfigManager] Configurations reloaded and debug mode is " + (isDebugEnabled() ? "enabled" : "disabled"));
         }
 
-        // Load warn configuration
         loadWarnLevels();
 
         if (placeholders != null && placeholderAPIEnabled) {
@@ -118,7 +116,8 @@ public class MainConfigManager {
                     String expiration = levelSection.getString("expiration", "-1");
                     List<String> onWarnActions = levelSection.getStringList("on-warn-actions");
                     List<String> onExpireActions = levelSection.getStringList("on-expire-actions");
-                    warnLevels.put(level, new WarnLevel(expiration, onWarnActions, onExpireActions));
+                    List<String> softbanBlockedCommands = levelSection.getStringList("softban-blocked-commands");
+                    warnLevels.put(level, new WarnLevel(expiration, onWarnActions, onExpireActions, softbanBlockedCommands));
                 }
             } catch (NumberFormatException e) {
                 plugin.getLogger().warning("[MainConfigManager] Invalid warn level key in warn.yml: " + key + ". It must be a number.");
@@ -135,7 +134,6 @@ public class MainConfigManager {
         if (warnLevels.containsKey(level)) {
             return warnLevels.get(level);
         }
-        // Fallback to the highest defined level if the requested level is not explicitly defined
         return warnLevels.keySet().stream().max(Integer::compareTo)
                 .map(warnLevels::get).orElse(null);
     }

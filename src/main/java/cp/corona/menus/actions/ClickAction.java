@@ -19,6 +19,7 @@ public enum ClickAction {
     ADJUST_TIME,
     CONFIRM_PUNISHMENT,
     TOGGLE_PUNISH_METHOD,
+    APPLY_SOFTBAN,
     UN_SOFTBAN,
     UN_FREEZE,
     UN_BAN,

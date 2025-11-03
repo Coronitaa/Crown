@@ -1560,6 +1560,51 @@ public class MenuListener implements Listener {
                 } else { logInvalidArgs(action, actionArgs, plugin); }
                 break;
 
+            case APPLY_SOFTBAN:
+                if (target == null) {
+                    logTargetMissing(action, plugin);
+                    break;
+                }
+                if (actionArgs.length < 2) {
+                    logInvalidArgs(action, actionArgs, plugin);
+                    break;
+                }
+
+                String duration = actionArgs[0];
+                String softbanReason = actionArgs[1];
+                String executorName = (executor instanceof Player) ? executor.getName() : "Console";
+
+                DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
+                int warnLevelForThisAction = dbManager.getActiveWarningCount(target.getUniqueId());
+
+                WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(warnLevelForThisAction);
+                if (levelConfig == null) {
+                    plugin.getLogger().warning("Could not apply softban from warn hook: WarnLevel config not found for level " + warnLevelForThisAction);
+                    break;
+                }
+
+                List<String> customCommands = levelConfig.getSoftbanBlockedCommands();
+
+                long endTime;
+                if ("permanent".equalsIgnoreCase(duration)) {
+                    endTime = Long.MAX_VALUE;
+                } else {
+                    int seconds = TimeUtils.parseTime(duration, plugin.getConfigManager());
+                    if (seconds > 0) {
+                        endTime = System.currentTimeMillis() + (seconds * 1000L);
+                    } else {
+                        plugin.getLogger().warning("Invalid duration '" + duration + "' for APPLY_SOFTBAN action. Softban not applied.");
+                        break;
+                    }
+                }
+
+                dbManager.softBanPlayer(target.getUniqueId(), endTime, softbanReason, executorName, false, customCommands);
+
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().info("[DEBUG] Applied softban via warn hook for " + target.getName() + " with " + (customCommands.isEmpty() ? "no" : customCommands.size()) + " custom commands.");
+                }
+                break;
+
             case PLAY_SOUND:
                 if (executor instanceof Player playerExecutor) { executePlaySoundAction(playerExecutor, actionArgs); }
                 break;

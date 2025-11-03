@@ -1,4 +1,5 @@
 // src/main/java/cp/corona/commands/MainCommand.java
+// MODIFIED: Updated 'check' command to correctly display 'Expired' status for warns.
 package cp.corona.commands;
 
 import cp.corona.config.WarnLevel;
@@ -247,7 +248,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                             }
                         }
                     } else {
-                        status = entry.isActive() ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                        // MODIFIED: Check if it was removed by the system due to expiration
+                        boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
+                        status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
                                 : plugin.getConfigManager().getMessage("placeholders.status_removed");
                     }
                 } else if (type.equals("kick")) {

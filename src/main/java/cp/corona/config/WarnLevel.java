@@ -1,4 +1,5 @@
 // src/main/java/cp/corona/config/WarnLevel.java
+// MODIFIED: Added softbanBlockedCommands field to store custom command lists.
 package cp.corona.config;
 
 import cp.corona.menus.items.MenuItem.ClickActionData;
@@ -13,11 +14,13 @@ public class WarnLevel {
     private final String expiration;
     private final List<ClickActionData> onWarnActions;
     private final List<ClickActionData> onExpireActions;
+    private final List<String> softbanBlockedCommands;
 
-    public WarnLevel(String expiration, List<String> onWarnActionStrings, List<String> onExpireActionStrings) {
+    public WarnLevel(String expiration, List<String> onWarnActionStrings, List<String> onExpireActionStrings, List<String> softbanBlockedCommands) {
         this.expiration = expiration;
         this.onWarnActions = parseActions(onWarnActionStrings);
         this.onExpireActions = parseActions(onExpireActionStrings);
+        this.softbanBlockedCommands = softbanBlockedCommands != null ? softbanBlockedCommands : Collections.emptyList();
     }
 
     private List<ClickActionData> parseActions(List<String> actionStrings) {
@@ -40,5 +43,9 @@ public class WarnLevel {
 
     public List<ClickActionData> getOnExpireActions() {
         return onExpireActions;
+    }
+
+    public List<String> getSoftbanBlockedCommands() {
+        return softbanBlockedCommands;
     }
 }
