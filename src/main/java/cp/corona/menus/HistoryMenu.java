@@ -58,7 +58,6 @@ public class HistoryMenu implements InventoryHolder {
 
     private void loadAndProcessAllHistory() {
         allHistoryEntries = plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, 1, Integer.MAX_VALUE);
-        // Pre-fetch all active/paused warnings for efficiency
         Map<String, ActiveWarningEntry> activeWarningsMap = plugin.getSoftBanDatabaseManager().getAllActiveAndPausedWarnings(targetUUID)
                 .stream().collect(Collectors.toMap(ActiveWarningEntry::getPunishmentId, w -> w));
 
@@ -76,7 +75,7 @@ public class HistoryMenu implements InventoryHolder {
                             : plugin.getConfigManager().getMessage("placeholders.status_removed");
                 }
             } else if (type.equals("kick")) {
-                status = ""; // No status for instantaneous actions
+                status = "";
             } else {
                 if (entry.isActive()) {
                     status = (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE)
@@ -121,6 +120,9 @@ public class HistoryMenu implements InventoryHolder {
         int start = (page - 1) * entriesPerPage;
         int end = Math.min(start + entriesPerPage, allHistoryEntries.size());
         List<DatabaseManager.PunishmentEntry> historyForPage = (start < allHistoryEntries.size()) ? allHistoryEntries.subList(start, end) : Collections.emptyList();
+
+        Map<String, ActiveWarningEntry> activeWarningsMap = plugin.getSoftBanDatabaseManager().getAllActiveAndPausedWarnings(targetUUID)
+                .stream().collect(Collectors.toMap(ActiveWarningEntry::getPunishmentId, w -> w));
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -168,12 +170,12 @@ public class HistoryMenu implements InventoryHolder {
                 lore.add(processedLine);
             }
 
-            if ("&a(active)".equals(status)) {
+            if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_active"))) {
                 String expiresAt = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Never" : dateFormat.format(new Date(entry.getPunishmentTime()));
                 long remainingMillis = entry.getPunishmentTime() - System.currentTimeMillis();
                 String timeLeft = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
                 lore.add("&7Expires: &b" + expiresAt + " (" + timeLeft + ")");
-            } else if ("&7(removed)".equals(status)) {
+            } else if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_removed"))) {
                 if (entry.getRemovedByName() != null && entry.getRemovedAt() != null) {
                     lore.add("&cRemoved by: &e" + entry.getRemovedByName());
                     lore.add("&cAt: &e" + dateFormat.format(entry.getRemovedAt()));
@@ -181,12 +183,25 @@ public class HistoryMenu implements InventoryHolder {
                         lore.add("&cReason: &e" + entry.getRemovedReason());
                     }
                 }
+            } else if (entry.getType().equalsIgnoreCase("warn")) {
+                ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
+                if (activeWarning != null) {
+                    lore.add("&7Level: &b" + activeWarning.getWarnLevel());
+                    String timeLeft;
+                    if (activeWarning.isPaused()) {
+                        timeLeft = TimeUtils.formatTime((int) (activeWarning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
+                        lore.add("&7Time Left: &e" + timeLeft);
+                    } else if (activeWarning.getEndTime() != -1) {
+                        timeLeft = TimeUtils.formatTime((int) ((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                        lore.add("&7Expires in: &e" + timeLeft);
+                    }
+                }
             }
+
 
             historyEntryItem.setLore(lore);
             historyEntryItem.setSlots(List.of(slot));
 
-            // Fixed action handling
             List<MenuItem.ClickActionData> leftClickActions = historyItemConfig.getLeftClickActions();
             if ((leftClickActions == null || leftClickActions.isEmpty()) && baseItemConfig != null) {
                 leftClickActions = baseItemConfig.getLeftClickActions();
@@ -225,7 +240,7 @@ public class HistoryMenu implements InventoryHolder {
 
     private String getDurationDisplay(DatabaseManager.PunishmentEntry entry) {
         String type = entry.getType().toLowerCase();
-        if (type.equals("warn") || type.equals("kick") || type.equals("freeze") ||
+        if (type.equals("kick") || type.equals("freeze") ||
                 (entry.getDurationString() != null && entry.getDurationString().equalsIgnoreCase("permanent"))) {
             return plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
         } else if (entry.getDurationString() != null && !entry.getDurationString().isEmpty()) {
