@@ -46,16 +46,22 @@ menu:
           material: 'RED_STAINED_GLASS_PANE'
           name: ' '
           slot: '30,32'
-        info:
+        toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ================== '
+          name: '&ePunishment Method: &b{method}'
           slot: '35'
           lore:
-            - '&fAction: Ban'
+            - '&7Click to toggle between'
+            - '&bIP&7 and &bLocal&7 punishment.'
+            - ''
+            - '&fAction: &bBan'
             - '&7- Prevents &b{target}'
             - '&7  from joining the server.'
-            - ' #ffffa7&m&o ================== '
+          left_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
+          right_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
         set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
@@ -97,6 +103,7 @@ menu:
             - '&7Click to confirm and'
             - '&7apply the ban to &b{target}&7.'
             - ''
+            - '&fMethod: &b{method}'
             - '&fRequires:'
             - '&7- Time: {time_status}'
             - '&7- Reason: {reason_status}'
@@ -149,16 +156,22 @@ menu:
           material: 'RED_STAINED_GLASS_PANE'
           name: ' '
           slot: '30,32'
-        info:
+        toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ==================== '
+          name: '&ePunishment Method: &b{method}'
           slot: '35'
           lore:
-            - '&fAction: Mute'
+            - '&7Click to toggle between'
+            - '&bIP&7 and &bLocal&7 punishment.'
+            - ''
+            - '&fAction: &bMute'
             - '&7- Restricts &b{target}''s'
             - '&7  ability to chat.'
-            - ' #ffffa7&m&o ==================== '
+          left_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
+          right_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
         set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
@@ -200,6 +213,7 @@ menu:
             - '&7Click to confirm and'
             - '&7apply the mute to &b{target}&7.'
             - ''
+            - '&fMethod: &b{method}'
             - '&fRequires:'
             - '&7- Time: {time_status}'
             - '&7- Reason: {reason_status}'
@@ -250,16 +264,22 @@ menu:
           material: 'RED_STAINED_GLASS_PANE'
           name: ' '
           slot: '30,32'
-        info:
+        toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ====================== '
+          name: '&ePunishment Method: &b{method}'
           slot: '35'
           lore:
-            - '&fAction: SoftBan'
+            - '&7Click to toggle between'
+            - '&bIP&7 and &bLocal&7 punishment.'
+            - ''
+            - '&fAction: &bSoftBan'
             - '&7- Restricts the use of certain'
             - '&7  commands for &b{target}&7.'
-            - ' #ffffa7&m&o ====================== '
+          left_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
+          right_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
         set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
@@ -318,6 +338,7 @@ menu:
             - '&7Click to confirm and'
             - '&7apply the softban to &b{target}&7.'
             - ''
+            - '&fMethod: &b{method}'
             - '&fRequires:'
             - '&7- Time: {time_status}'
             - '&7- Reason: {reason_status}'
@@ -352,16 +373,22 @@ menu:
           material: 'WHITE_STAINED_GLASS_PANE'
           name: ' '
           slot: '10,12,14,16'
-        info:
+        toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o =========================== '
+          name: '&ePunishment Method: &b{method}'
           slot: '13'
           lore:
-            - '&fAction: Kick'
+            - '&7Click to toggle between'
+            - '&bIP&7 and &bLocal&7 punishment.'
+            - ''
+            - '&fAction: &bKick'
             - '&7- Kicks &b{target}&7 from'
             - '&7  the server.'
-            - ' #ffffa7&m&o =========================== '
+          left_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
+          right_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
         set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
@@ -389,6 +416,7 @@ menu:
             - '&7Click to confirm and'
             - '&7kick &b{target}&7.'
             - ''
+            - '&fMethod: &b{method}'
             - '&fRequires:'
             - '&7- Reason: {reason_status}'
           left_click_actions:
@@ -426,17 +454,23 @@ menu:
           material: 'RED_STAINED_GLASS_PANE'
           name: ' '
           slot: '30,32'
-        info:
+        toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ========================= '
+          name: '&ePunishment Method: &b{method}'
           slot: '13'
           lore:
-            - '&fAction: Warn'
+            - '&7Click to toggle between'
+            - '&bIP&7 and &bLocal&7 punishment.'
+            - ''
+            - '&fAction: &bWarn'
             - '&7- Issues a warning to &b{target}&7.'
             - '&7- Accumulating warnings may lead'
             - '&7  to further action.'
-            - ' #ffffa7&m&o ========================= '
+          left_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
+          right_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
         set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
@@ -464,6 +498,7 @@ menu:
             - '&7Click to confirm and'
             - '&7apply the warning to &b{target}&7.'
             - ''
+            - '&fMethod: &b{method}'
             - '&fRequires:'
             - '&7- Reason: {reason_status}'
           left_click_actions:
@@ -474,9 +509,9 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
           slot: '31'
-          name: '&4&lRemove Last Warn' # Or adjust based on your unwarn command functionality
+          name: '&4&lRemove Last Warn'
           lore:
-            - '&7Removes the last warning' # Adjust description if needed
+            - '&7Removes the last warning'
             - '&7from &b{target}&7.'
             - ''
             - '&7Click to unwarn.'
@@ -515,17 +550,23 @@ menu:
           material: 'RED_STAINED_GLASS_PANE'
           name: ' '
           slot: '30,32'
-        info:
+        toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: ' #ffffa7&m&o ============================== '
+          name: '&ePunishment Method: &b{method}'
           slot: '13'
           lore:
-            - '&fAction: Freeze'
+            - '&7Click to toggle between'
+            - '&bIP&7 and &bLocal&7 punishment.'
+            - ''
+            - '&fAction: &bFreeze'
             - '&7- Immobilizes &b{target}&7.'
             - '&7- Staff review required.'
             - '&7- &cDisconnecting results in a ban.'
-            - ' #ffffa7&m&o ============================== '
+          left_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
+          right_click_actions:
+            - 'TOGGLE_PUNISH_METHOD'
         set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
@@ -553,6 +594,7 @@ menu:
             - '&7Click to confirm and'
             - '&7apply the freeze to &b{target}&7.'
             - ''
+            - '&fMethod: &b{method}'
             - '&fOptional:'
             - '&7- Reason: {reason_status}'
           left_click_actions:
