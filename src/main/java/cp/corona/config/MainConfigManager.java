@@ -1,4 +1,3 @@
-// src/main/java/cp/corona/config/MainConfigManager.java
 package cp.corona.config;
 
 import cp.corona.crown.Crown;
@@ -101,7 +100,7 @@ public class MainConfigManager {
             return;
         }
 
-        this.warnExpirationMode = warnConfig.getConfig().getString("expiration-mode", "independent").toLowerCase();
+        this.warnExpirationMode = warnConfig.getConfig().getString("expiration-mode", "unique").toLowerCase();
         ConfigurationSection levelsSection = warnConfig.getConfig().getConfigurationSection("levels");
         if (levelsSection == null) {
             if(isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] 'levels' section not found in warn.yml.");

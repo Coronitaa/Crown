@@ -1,4 +1,3 @@
-// src/main/java/cp/corona/listeners/MenuListener.java
 package cp.corona.listeners;
 
 import cp.corona.config.MainConfigManager;
@@ -1047,7 +1046,9 @@ public class MenuListener implements Listener {
 
         if (useInternal) {
             DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
-            int nextWarnLevel = dbManager.getActiveWarningCount(targetUUID) + 1;
+            ActiveWarningEntry latestWarning = dbManager.getLatestActiveWarning(targetUUID);
+            int nextWarnLevel = (latestWarning != null) ? latestWarning.getWarnLevel() + 1 : 1;
+
             WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(nextWarnLevel);
 
             if (levelConfig == null) {
@@ -1590,11 +1591,16 @@ public class MenuListener implements Listener {
                 String executorName = (executor instanceof Player) ? executor.getName() : "Console";
 
                 DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
-                int warnLevelForThisAction = dbManager.getActiveWarningCount(target.getUniqueId());
 
-                WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(warnLevelForThisAction);
+                ActiveWarningEntry triggeringWarning = dbManager.getLatestActiveWarning(target.getUniqueId());
+                if (triggeringWarning == null) {
+                    plugin.getLogger().warning("Could not apply softban from warn hook: No active warning found for " + target.getName());
+                    break;
+                }
+
+                WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(triggeringWarning.getWarnLevel());
                 if (levelConfig == null) {
-                    plugin.getLogger().warning("Could not apply softban from warn hook: WarnLevel config not found for level " + warnLevelForThisAction);
+                    plugin.getLogger().warning("Could not apply softban from warn hook: WarnLevel config not found for level " + triggeringWarning.getWarnLevel());
                     break;
                 }
 

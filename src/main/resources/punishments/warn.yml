@@ -1,4 +1,3 @@
-# C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\resources\punishments\warn.yml
 # Configuration for the internal warning system.
 use-internal: true
 punish-command: 'warn {target} {reason}'
@@ -7,9 +6,10 @@ default-reason: "Warned by a moderator."
 default-unpunish-reason: "Unwarned by {player}."
 
 # Expiration mode for warnings.
-# 'independent': Each warning has its own separate timer.
+# 'unique': The newest warning supersedes and expires the previous one. The chain ends when the last warning expires.
 # 'incremental': A new warning pauses the timer of the previous one. The previous timer resumes after the new one expires.
-expiration-mode: 'incremental'
+# 'independent': Each warning has its own separate timer, running concurrently.
+expiration-mode: 'unique'
 
 # Define warning levels dynamically. The key is the warning count (level).
 # The system will apply the configuration for the total number of active warnings a player has.

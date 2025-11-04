@@ -273,7 +273,17 @@ public class DatabaseManager {
     }
 
     public void addActiveWarning(UUID playerUUID, String punishmentId, int warnLevel, long endTime) {
-        if ("incremental".equals(plugin.getConfigManager().getWarnExpirationMode())) {
+        String mode = plugin.getConfigManager().getWarnExpirationMode();
+        if ("unique".equals(mode)) {
+            ActiveWarningEntry latest = getLatestActiveWarning(playerUUID);
+            if (latest != null) {
+                WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(latest.getWarnLevel());
+                if (levelConfig != null && plugin.getMenuListener() != null) {
+                    plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), Bukkit.getOfflinePlayer(playerUUID), "warn-expire", "N/A", "Superseded", true, levelConfig.getOnExpireActions());
+                }
+                removeActiveWarning(playerUUID, latest.getPunishmentId(), "System", "Superseded by new warning.");
+            }
+        } else if ("incremental".equals(mode)) {
             pauseLatestActiveWarning(playerUUID);
         }
 
