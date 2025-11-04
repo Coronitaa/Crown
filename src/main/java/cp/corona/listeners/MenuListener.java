@@ -47,6 +47,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -262,38 +264,48 @@ public class MenuListener implements Listener {
         }
     }
     private void executePlaySoundAction(Player player, String[] soundArgs) {
-        if (soundArgs == null || soundArgs.length < 1 || soundArgs[0] == null || soundArgs[0].isEmpty()) {
-            plugin.getLogger().warning("PLAY_SOUND action requires at least a non-empty sound name."); return;
+        if (soundArgs == null || soundArgs.length == 0 || soundArgs[0] == null || soundArgs[0].isEmpty()) {
+            plugin.getLogger().warning("PLAY_SOUND action requires a non-empty data string.");
+            return;
+        }
+        String[] parts = soundArgs[0].split(":");
+        if (parts.length < 1) {
+            plugin.getLogger().warning("PLAY_SOUND action requires at least a sound name.");
+            return;
         }
         try {
-            Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
-            float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f;
-            float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;
+            Sound sound = Sound.valueOf(parts[0].toUpperCase());
+            float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
+            float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
             player.playSound(player.getLocation(), sound, volume, pitch);
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND played '" + sound.name() + "' for " + player.getName());
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND: " + Arrays.toString(soundArgs));
-        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND: " + soundArgs[0]); }
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND: " + Arrays.toString(parts));
+        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND: " + parts[0]); }
     }
 
     private void executeTitleAction(Player player, String[] titleArgs) {
-        if (titleArgs == null || titleArgs.length < 3 || titleArgs[0] == null || titleArgs[1] == null || titleArgs[2] == null) {
-            plugin.getLogger().warning("TITLE action requires at least non-null title, subtitle, and time_seconds arguments."); return;
+        if (titleArgs == null || titleArgs.length == 0 || titleArgs[0] == null || titleArgs[0].isEmpty()) {
+            plugin.getLogger().warning("TITLE action requires a non-empty data string.");
+            return;
         }
-        String titleText = MessageUtils.getColorMessage(titleArgs[0]);
-        String subtitleText = MessageUtils.getColorMessage(titleArgs[1]);
+        String[] parts = titleArgs[0].split(":");
+        if (parts.length < 3) {
+            plugin.getLogger().warning("TITLE action requires at least title, subtitle, and time_seconds arguments.");
+            return;
+        }
+        String titleText = MessageUtils.getColorMessage(parts[0]);
+        String subtitleText = MessageUtils.getColorMessage(parts[1]);
         try {
-            int timeSeconds = Integer.parseInt(titleArgs[2]);
-            int fadeInTicks = titleArgs.length > 3 && titleArgs[3] != null ? Integer.parseInt(titleArgs[3]) : 10;
-            int fadeOutTicks = titleArgs.length > 4 && titleArgs[4] != null ? Integer.parseInt(titleArgs[4]) : 20;
+            int timeSeconds = Integer.parseInt(parts[2]);
+            int fadeInTicks = parts.length > 3 ? Integer.parseInt(parts[3]) : 10;
+            int fadeOutTicks = parts.length > 4 ? Integer.parseInt(parts[4]) : 20;
             player.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks);
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE sent to " + player.getName() + ": " + titleText);
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE action: " + Arrays.toString(titleArgs)); }
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE action: " + Arrays.toString(parts)); }
     }
 
     private void executeMessageAction(Player player, String[] messageArgs, InventoryHolder holder) {
-        String messageText = (messageArgs != null && messageArgs.length > 0)
-                ? String.join(":", messageArgs)
-                : null;
+        String messageText = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
         if (messageText == null) {
             plugin.getLogger().warning("MESSAGE action requires a non-null message text argument."); return;
@@ -310,9 +322,7 @@ public class MenuListener implements Listener {
     }
 
     private void executeActionbarAction(Player player, String[] messageArgs) {
-        String messageText = (messageArgs != null && messageArgs.length > 0)
-                ? String.join(":", messageArgs)
-                : null;
+        String messageText = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
         if (messageText == null) {
             plugin.getLogger().warning("ACTIONBAR action requires a non-null message text argument."); return;
@@ -327,34 +337,51 @@ public class MenuListener implements Listener {
         OfflinePlayer target = getTargetForAction(holder);
         if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET skipped: Target offline or null."); return; }
         Player targetPlayer = target.getPlayer();
-        if (soundArgs == null || soundArgs.length < 1 || soundArgs[0] == null || soundArgs[0].isEmpty()) { plugin.getLogger().warning("PLAY_SOUND_TARGET action requires at least a non-empty sound name."); return; }
+
+        if (soundArgs == null || soundArgs.length == 0 || soundArgs[0] == null || soundArgs[0].isEmpty()) {
+            plugin.getLogger().warning("PLAY_SOUND_TARGET action requires a non-empty data string.");
+            return;
+        }
+        String[] parts = soundArgs[0].split(":");
+        if (parts.length < 1) {
+            plugin.getLogger().warning("PLAY_SOUND_TARGET action requires at least a sound name.");
+            return;
+        }
         try {
-            Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
-            float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f;
-            float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;
+            Sound sound = Sound.valueOf(parts[0].toUpperCase());
+            float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
+            float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
             targetPlayer.playSound(targetPlayer.getLocation(), sound, volume, pitch);
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET played '" + sound.name() + "' for " + targetPlayer.getName());
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_TARGET: " + Arrays.toString(soundArgs));
-        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_TARGET: " + soundArgs[0]); }
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_TARGET: " + Arrays.toString(parts));
+        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_TARGET: " + parts[0]); }
     }
 
     private void executeTitleTargetAction(Player player, InventoryHolder holder, String[] titleArgs) {
         OfflinePlayer target = getTargetForAction(holder);
         if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_TARGET skipped: Target offline or null."); return; }
         Player targetPlayer = target.getPlayer();
-        if (titleArgs == null || titleArgs.length < 3 || titleArgs[0] == null || titleArgs[1] == null || titleArgs[2] == null) { plugin.getLogger().warning("TITLE_TARGET action requires at least non-null title, subtitle, and time_seconds arguments."); return; }
+        if (titleArgs == null || titleArgs.length == 0 || titleArgs[0] == null || titleArgs[0].isEmpty()) {
+            plugin.getLogger().warning("TITLE_TARGET action requires a non-empty data string.");
+            return;
+        }
+        String[] parts = titleArgs[0].split(":");
+        if (parts.length < 3) {
+            plugin.getLogger().warning("TITLE_TARGET action requires at least title, subtitle, and time_seconds arguments.");
+            return;
+        }
 
-        String titleText = plugin.getConfigManager().processPlaceholders(titleArgs[0], target);
+        String titleText = plugin.getConfigManager().processPlaceholders(parts[0], target);
         titleText = MessageUtils.getColorMessage(titleText);
-        String subtitleText = plugin.getConfigManager().processPlaceholders(titleArgs[1], target);
+        String subtitleText = plugin.getConfigManager().processPlaceholders(parts[1], target);
         subtitleText = MessageUtils.getColorMessage(subtitleText);
         try {
-            int timeSeconds = Integer.parseInt(titleArgs[2]);
-            int fadeInTicks = titleArgs.length > 3 && titleArgs[3] != null ? Integer.parseInt(titleArgs[3]) : 10;
-            int fadeOutTicks = titleArgs.length > 4 && titleArgs[4] != null ? Integer.parseInt(titleArgs[4]) : 20;
+            int timeSeconds = Integer.parseInt(parts[2]);
+            int fadeInTicks = parts.length > 3 ? Integer.parseInt(parts[3]) : 10;
+            int fadeOutTicks = parts.length > 4 ? Integer.parseInt(parts[4]) : 20;
             targetPlayer.sendTitle(titleText, subtitleText, fadeInTicks, timeSeconds * 20, fadeOutTicks);
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_TARGET sent to " + targetPlayer.getName() + ": " + titleText);
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE_TARGET action: " + Arrays.toString(titleArgs)); }
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE_TARGET action: " + Arrays.toString(parts)); }
     }
 
     private void executeMessageTargetAction(Player player, InventoryHolder holder, String[] messageArgs) {
@@ -362,9 +389,7 @@ public class MenuListener implements Listener {
         if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_TARGET skipped: Target offline or null."); return; }
         Player targetPlayer = target.getPlayer();
 
-        String messageText = (messageArgs != null && messageArgs.length > 0)
-                ? String.join(":", messageArgs)
-                : null;
+        String messageText = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
         if (messageText == null) { plugin.getLogger().warning("MESSAGE_TARGET action requires a non-null message text argument."); return; }
 
@@ -380,9 +405,7 @@ public class MenuListener implements Listener {
         if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_TARGET skipped: Target offline or null."); return; }
         Player targetPlayer = target.getPlayer();
 
-        String messageText = (messageArgs != null && messageArgs.length > 0)
-                ? String.join(":", messageArgs)
-                : null;
+        String messageText = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
         if (messageText == null) { plugin.getLogger().warning("ACTIONBAR_TARGET action requires a non-null message text argument."); return; }
 
@@ -397,59 +420,85 @@ public class MenuListener implements Listener {
         OfflinePlayer target = getTargetForAction(holder);
         if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] GIVE_EFFECT_TARGET skipped: Target offline or null."); return; }
         Player targetPlayer = target.getPlayer();
-        if (effectArgs == null || effectArgs.length < 3 || effectArgs[0] == null || effectArgs[1] == null || effectArgs[2] == null) { plugin.getLogger().warning("GIVE_EFFECT_TARGET action requires at least effect_type, duration_seconds, and amplifier arguments."); return; }
+        if (effectArgs == null || effectArgs.length == 0 || effectArgs[0] == null || effectArgs[0].isEmpty()) {
+            plugin.getLogger().warning("GIVE_EFFECT_TARGET action requires a non-empty data string.");
+            return;
+        }
+        String[] parts = effectArgs[0].split(":");
+        if (parts.length < 3) {
+            plugin.getLogger().warning("GIVE_EFFECT_TARGET action requires at least effect_type, duration_seconds, and amplifier arguments.");
+            return;
+        }
         try {
-            NamespacedKey effectKey = NamespacedKey.minecraft(effectArgs[0].toLowerCase()); PotionEffectType effectType = PotionEffectType.getByKey(effectKey);
-            if (effectType == null) effectType = PotionEffectType.getByName(effectArgs[0].toUpperCase());
-            if (effectType == null) { plugin.getLogger().warning("Invalid PotionEffectType configured: " + effectArgs[0] + " for GIVE_EFFECT_TARGET action."); return; }
-            int durationSeconds = Integer.parseInt(effectArgs[1]); int amplifier = Integer.parseInt(effectArgs[2]);
-            boolean particles = effectArgs.length <= 3 || effectArgs[3] == null || Boolean.parseBoolean(effectArgs[3]);
+            NamespacedKey effectKey = NamespacedKey.minecraft(parts[0].toLowerCase()); PotionEffectType effectType = PotionEffectType.getByKey(effectKey);
+            if (effectType == null) effectType = PotionEffectType.getByName(parts[0].toUpperCase());
+            if (effectType == null) { plugin.getLogger().warning("Invalid PotionEffectType configured: " + parts[0] + " for GIVE_EFFECT_TARGET action."); return; }
+            int durationSeconds = Integer.parseInt(parts[1]); int amplifier = Integer.parseInt(parts[2]);
+            boolean particles = parts.length <= 3 || Boolean.parseBoolean(parts[3]);
             boolean icon = particles; boolean ambient = false;
             PotionEffect effect = new PotionEffect(effectType, durationSeconds * 20, amplifier, ambient, particles, icon);
             targetPlayer.addPotionEffect(effect);
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] GIVE_EFFECT_TARGET action executed for player: " + targetPlayer.getName() + ", effect: " + effectType.getKey() + ", duration: " + durationSeconds + "s, amplifier: " + amplifier);
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid duration or amplifier format for GIVE_EFFECT_TARGET action: " + Arrays.toString(effectArgs));
-        } catch (IllegalArgumentException e) { plugin.getLogger().warning("IllegalArgumentException in GIVE_EFFECT_TARGET action: " + e.getMessage() + ", Args: " + Arrays.toString(effectArgs)); }
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid duration or amplifier format for GIVE_EFFECT_TARGET action: " + Arrays.toString(parts));
+        } catch (IllegalArgumentException e) { plugin.getLogger().warning("IllegalArgumentException in GIVE_EFFECT_TARGET action: " + e.getMessage() + ", Args: " + Arrays.toString(parts)); }
     }
 
     private void executePlaySoundModsAction(Player player, InventoryHolder holder, String[] soundArgs) {
-        if (soundArgs == null || soundArgs.length < 1 || soundArgs[0] == null || soundArgs[0].isEmpty()) { plugin.getLogger().warning("PLAY_SOUND_MODS action requires at least a non-empty sound name."); return; }
+        if (soundArgs == null || soundArgs.length == 0 || soundArgs[0] == null || soundArgs[0].isEmpty()) {
+            plugin.getLogger().warning("PLAY_SOUND_MODS action requires a non-empty data string.");
+            return;
+        }
         List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_MODS skipped: No online mods."); return; }
+        String[] parts = soundArgs[0].split(":");
+        if (parts.length < 1) {
+            plugin.getLogger().warning("PLAY_SOUND_MODS action requires at least a sound name.");
+            return;
+        }
         try {
-            Sound sound = Sound.valueOf(soundArgs[0].toUpperCase());
-            float volume = soundArgs.length > 1 ? Float.parseFloat(soundArgs[1]) : 1.0f;
-            float pitch = soundArgs.length > 2 ? Float.parseFloat(soundArgs[2]) : 1.0f;
+            Sound sound = Sound.valueOf(parts[0].toUpperCase());
+            float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
+            float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
             mods.forEach(mod -> mod.playSound(mod.getLocation(), sound, volume, pitch));
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_MODS played sound '" + sound.name() + "' for " + mods.size() + " mods.");
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_MODS: " + Arrays.toString(soundArgs));
-        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_MODS: " + soundArgs[0]); }
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_MODS: " + Arrays.toString(parts));
+        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_MODS: " + parts[0]); }
     }
 
     private void executeTitleModsAction(Player player, InventoryHolder holder, String[] titleArgs) {
-        if (titleArgs == null || titleArgs.length < 3 || titleArgs[0] == null || titleArgs[1] == null || titleArgs[2] == null) { plugin.getLogger().warning("TITLE_MODS action requires at least non-null title, subtitle, and time_seconds arguments."); return; }
+        if (titleArgs == null || titleArgs.length == 0 || titleArgs[0] == null || titleArgs[0].isEmpty()) {
+            plugin.getLogger().warning("TITLE_MODS action requires a non-empty data string.");
+            return;
+        }
         List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_MODS skipped: No online mods."); return; }
         OfflinePlayer target = getTargetForAction(holder);
-        String titleText = plugin.getConfigManager().processPlaceholders(titleArgs[0], target); titleText = replacePlaceholders(player, titleText, holder); titleText = MessageUtils.getColorMessage(titleText);
-        String subtitleText = plugin.getConfigManager().processPlaceholders(titleArgs[1], target); subtitleText = replacePlaceholders(player, subtitleText, holder); subtitleText = MessageUtils.getColorMessage(subtitleText);
+        String[] parts = titleArgs[0].split(":");
+        if (parts.length < 3) {
+            plugin.getLogger().warning("TITLE_MODS action requires at least title, subtitle, and time_seconds arguments.");
+            return;
+        }
+
+        String titleText = plugin.getConfigManager().processPlaceholders(parts[0], target); titleText = replacePlaceholders(player, titleText, holder); titleText = MessageUtils.getColorMessage(titleText);
+        String subtitleText = plugin.getConfigManager().processPlaceholders(parts[1], target); subtitleText = replacePlaceholders(player, subtitleText, holder); subtitleText = MessageUtils.getColorMessage(subtitleText);
         try {
-            int timeSeconds = Integer.parseInt(titleArgs[2]);
-            int fadeInTicks = titleArgs.length > 3 && titleArgs[3] != null ? Integer.parseInt(titleArgs[3]) : 10;
-            int fadeOutTicks = titleArgs.length > 4 && titleArgs[4] != null ? Integer.parseInt(titleArgs[4]) : 20;
+            int timeSeconds = Integer.parseInt(parts[2]);
+            int fadeInTicks = parts.length > 3 ? Integer.parseInt(parts[3]) : 10;
+            int fadeOutTicks = parts.length > 4 ? Integer.parseInt(parts[4]) : 20;
             final String finalTitle = titleText; final String finalSubtitle = subtitleText;
             mods.forEach(mod -> mod.sendTitle(finalTitle, finalSubtitle, fadeInTicks, timeSeconds * 20, fadeOutTicks));
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_MODS sent to " + mods.size() + " mods. Title: " + finalTitle);
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE_MODS action: " + Arrays.toString(titleArgs)); }
+        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid number format for time/fade values in TITLE_MODS action: " + Arrays.toString(parts)); }
     }
 
     private void executeMessageModsAction(Player player, InventoryHolder holder, String[] messageArgs) {
-        List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_MODS skipped: No online mods."); return; }
+        List<Player> mods = getMods();
         OfflinePlayer target = getTargetForAction(holder);
 
-        String baseMessage = (messageArgs != null && messageArgs.length > 0)
-                ? String.join(":", messageArgs)
-                : null;
+        String baseMessage = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
-        if (baseMessage == null) { plugin.getLogger().warning("MESSAGE_MODS action requires a non-null message text argument."); return; }
+        if (baseMessage == null) {
+            plugin.getLogger().warning("MESSAGE_MODS action requires a non-null message text argument.");
+            return;
+        }
 
         String initiatorName = (player != null) ? player.getName() : "System";
         baseMessage = plugin.getConfigManager().processPlaceholders(baseMessage, target);
@@ -458,16 +507,18 @@ public class MenuListener implements Listener {
 
         final String finalMessage = baseMessage;
         mods.forEach(mod -> mod.sendMessage(finalMessage));
-        if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_MODS sent to " + mods.size() + " mods: " + finalMessage);
+        Bukkit.getConsoleSender().sendMessage(finalMessage); // Also send to console
+
+        if (plugin.getConfigManager().isDebugEnabled()) {
+            plugin.getLogger().info("[DEBUG] MESSAGE_MODS sent to " + mods.size() + " mods and console: " + finalMessage);
+        }
     }
 
     private void executeActionbarModsAction(Player player, InventoryHolder holder, String[] messageArgs) {
         List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_MODS skipped: No online mods."); return; }
         OfflinePlayer target = getTargetForAction(holder);
 
-        String baseMessage = (messageArgs != null && messageArgs.length > 0)
-                ? String.join(":", messageArgs)
-                : null;
+        String baseMessage = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
         if (baseMessage == null) { plugin.getLogger().warning("ACTIONBAR_MODS action requires a non-null message text argument."); return; }
 
@@ -914,7 +965,7 @@ public class MenuListener implements Listener {
                 }
                 playSound(player, "punish_confirm");
                 sendPunishmentConfirmation(player, target, timeInput, reason, punishmentType, punishmentId);
-                executeHookActions(player, target, punishmentType, timeInput, reason, false);
+                executeHookActions(player, target, punishmentType, timeInput, reason, false, Collections.emptyList());
                 player.closeInventory();
             }
         } else {
@@ -953,7 +1004,7 @@ public class MenuListener implements Listener {
             String punishmentId = plugin.getSoftBanDatabaseManager().softBanPlayer(targetUUID, endTime, reason, player.getName(), byIp);
             playSound(player, "punish_confirm");
             sendPunishmentConfirmation(player, target, timeInput, reason, SOFTBAN_PUNISHMENT_TYPE, punishmentId);
-            executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, timeInput, reason, false);
+            executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, timeInput, reason, false, Collections.emptyList());
         } else {
             String processedCommand = commandTemplate
                     .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
@@ -990,7 +1041,7 @@ public class MenuListener implements Listener {
                 sendFreezeReceivedMessage(onlineTarget);
                 plugin.getFreezeListener().startFreezeActionsTask(onlineTarget);
             }
-            executeHookActions(player, target, FREEZE_PUNISHMENT_TYPE, permanentDisplay, reason, false);
+            executeHookActions(player, target, FREEZE_PUNISHMENT_TYPE, permanentDisplay, reason, false, Collections.emptyList());
         } else {
             String processedCommand = commandTemplate
                     .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
@@ -1064,7 +1115,8 @@ public class MenuListener implements Listener {
             String punishmentId = dbManager.logPunishment(targetUUID, "warn", reason, player.getName(), endTime, durationString, false);
             dbManager.addActiveWarning(targetUUID, punishmentId, nextWarnLevel, endTime);
 
-            executeHookActions(player, target, "warn", durationString, reason, false, levelConfig.getOnWarnActions());
+            ActiveWarningEntry newWarning = dbManager.getActiveWarningByPunishmentId(punishmentId);
+            executeHookActions(player, target, "warn", durationString, reason, false, levelConfig.getOnWarnActions(), newWarning);
         } else {
             String commandTemplate = plugin.getConfigManager().getPunishmentCommand("warn");
             String punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(targetUUID, "warn", reason, player.getName(), 0L, "N/A", false);
@@ -1093,7 +1145,7 @@ public class MenuListener implements Listener {
 
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, SOFTBAN_PUNISHMENT_TYPE, punishmentId);
-        executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, "N/A", finalReason, true);
+        executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, "N/A", finalReason, true, Collections.emptyList());
     }
 
 
@@ -1119,7 +1171,7 @@ public class MenuListener implements Listener {
                 plugin.getFreezeListener().stopFreezeActionsTask(targetUUID);
                 sendUnfreezeMessage(onlineTarget);
             }
-            executeHookActions(player, target, FREEZE_PUNISHMENT_TYPE, "N/A", finalReason, true);
+            executeHookActions(player, target, FREEZE_PUNISHMENT_TYPE, "N/A", finalReason, true, Collections.emptyList());
         } else {
             sendConfigMessage(player, "messages.no_active_freeze", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
             playSound(player, "punish_error");
@@ -1183,7 +1235,7 @@ public class MenuListener implements Listener {
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, BAN_PUNISHMENT_TYPE, originalPunishmentId);
 
-        executeHookActions(player, target, BAN_PUNISHMENT_TYPE, "N/A", finalReason, true);
+        executeHookActions(player, target, BAN_PUNISHMENT_TYPE, "N/A", finalReason, true, Collections.emptyList());
     }
 
 
@@ -1217,7 +1269,7 @@ public class MenuListener implements Listener {
         playSound(player, "punish_confirm");
         sendUnpunishConfirmation(player, target, MUTE_PUNISHMENT_TYPE, punishmentId);
 
-        executeHookActions(player, target, MUTE_PUNISHMENT_TYPE, "N/A", finalReason, true);
+        executeHookActions(player, target, MUTE_PUNISHMENT_TYPE, "N/A", finalReason, true, Collections.emptyList());
     }
 
 
@@ -1245,7 +1297,7 @@ public class MenuListener implements Listener {
 
             WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(activeWarning.getWarnLevel());
             if (levelConfig != null) {
-                executeHookActions(player, target, "unwarn", "N/A", finalReason, true, levelConfig.getOnExpireActions());
+                executeHookActions(player, target, "unwarn", "N/A", finalReason, true, levelConfig.getOnExpireActions(), activeWarning);
             }
 
             dbManager.removeActiveWarning(targetUUID, punishmentId, player.getName(), finalReason);
@@ -1274,7 +1326,7 @@ public class MenuListener implements Listener {
 
             playSound(player, "punish_confirm");
             sendUnpunishConfirmation(player, target, WARN_PUNISHMENT_TYPE, originalPunishmentId);
-            executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", finalReason, true);
+            executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", finalReason, true, Collections.emptyList());
         }
         player.closeInventory();
     }
@@ -1459,21 +1511,15 @@ public class MenuListener implements Listener {
             punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishmentType, reason, player.getName(), punishmentEndTime, durationString, byIp);
         }
         sendPunishmentConfirmation(player, target, timeValue, reason, punishmentType, punishmentId);
-        executeHookActions(player, target, punishmentType, timeValue, reason, false);
+        executeHookActions(player, target, punishmentType, timeValue, reason, false, Collections.emptyList());
     }
 
-
-    public void executeHookActions(CommandSender executor, OfflinePlayer target, String punishmentType, String time, String reason, boolean isUnpunish) {
-        List<ClickActionData> actions;
-        if (isUnpunish) {
-            actions = plugin.getConfigManager().getOnUnpunishActions(punishmentType);
-        } else {
-            actions = plugin.getConfigManager().getOnPunishActions(punishmentType);
-        }
-        executeHookActions(executor, target, punishmentType, time, reason, isUnpunish, actions);
-    }
 
     public void executeHookActions(CommandSender executor, OfflinePlayer target, String punishmentType, String time, String reason, boolean isUnpunish, List<ClickActionData> actions) {
+        executeHookActions(executor, target, punishmentType, time, reason, isUnpunish, actions, null);
+    }
+
+    public void executeHookActions(CommandSender executor, OfflinePlayer target, String punishmentType, String time, String reason, boolean isUnpunish, List<ClickActionData> actions, ActiveWarningEntry warningContext) {
         if (actions == null || actions.isEmpty()) {
             return;
         }
@@ -1489,6 +1535,7 @@ public class MenuListener implements Listener {
         final String finalReason = (reason != null) ? reason : "N/A";
         final String finalPunishmentTypePlaceholder = punishmentType;
 
+        final Pattern placeholderPattern = Pattern.compile("\\{associated_punishment_id:([a-zA-Z]+)\\}");
 
         for (ClickActionData actionData : actions) {
             String[] originalArgs = actionData.getActionData();
@@ -1497,6 +1544,23 @@ public class MenuListener implements Listener {
             for (int i = 0; i < originalArgs.length; i++) {
                 if (originalArgs[i] != null) {
                     String currentArg = originalArgs[i];
+                    Matcher matcher = placeholderPattern.matcher(currentArg);
+                    if (warningContext != null && matcher.find()) {
+                        String type = matcher.group(1);
+                        String associatedIds = warningContext.getAssociatedPunishmentIds();
+                        String replacementId = "NOT_FOUND";
+                        if (associatedIds != null && !associatedIds.isEmpty()) {
+                            for (String pair : associatedIds.split(";")) {
+                                String[] parts = pair.split(":");
+                                if (parts.length == 2 && parts[0].equalsIgnoreCase(type)) {
+                                    replacementId = parts[1];
+                                    break;
+                                }
+                            }
+                        }
+                        currentArg = matcher.replaceAll(replacementId);
+                    }
+
                     currentArg = currentArg.replace("{player}", executorName);
                     currentArg = currentArg.replace("{target}", targetName);
                     currentArg = currentArg.replace("{reason}", finalReason);
@@ -1513,7 +1577,7 @@ public class MenuListener implements Listener {
                 plugin.getLogger().info("[DEBUG] -> Executing Hook Action: " + actionData.getAction() + " with Processed Args: " + Arrays.toString(processedHookArgs));
             }
 
-            executeSpecificHookAction(executor, target, actionData.getAction(), processedHookArgs, plugin);
+            executeSpecificHookAction(executor, target, actionData.getAction(), processedHookArgs, plugin, warningContext);
         }
     }
 
@@ -1532,7 +1596,7 @@ public class MenuListener implements Listener {
                 .map(line -> line.replace("{support_link}", plugin.getConfigManager().getSupportLink()))
                 .collect(Collectors.joining("\n"));
     }
-    private void executeSpecificHookAction(CommandSender executor, OfflinePlayer target, ClickAction action, String[] actionArgs, Crown plugin) {
+    private void executeSpecificHookAction(CommandSender executor, OfflinePlayer target, ClickAction action, String[] actionArgs, Crown plugin, ActiveWarningEntry warningContext) {
         if (action == ClickAction.NO_ACTION) return;
 
         if (plugin.getConfigManager().isDebugEnabled()) {
@@ -1577,53 +1641,67 @@ public class MenuListener implements Listener {
                 break;
 
             case APPLY_SOFTBAN:
-                if (target == null) {
-                    logTargetMissing(action, plugin);
-                    break;
-                }
-                if (actionArgs.length < 2) {
-                    logInvalidArgs(action, actionArgs, plugin);
-                    break;
-                }
-
-                String duration = actionArgs[0];
-                String softbanReason = actionArgs[1];
-                String executorName = (executor instanceof Player) ? executor.getName() : "Console";
-
-                DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
-
-                ActiveWarningEntry triggeringWarning = dbManager.getLatestActiveWarning(target.getUniqueId());
-                if (triggeringWarning == null) {
-                    plugin.getLogger().warning("Could not apply softban from warn hook: No active warning found for " + target.getName());
-                    break;
-                }
-
-                WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(triggeringWarning.getWarnLevel());
-                if (levelConfig == null) {
-                    plugin.getLogger().warning("Could not apply softban from warn hook: WarnLevel config not found for level " + triggeringWarning.getWarnLevel());
-                    break;
-                }
-
-                List<String> customCommands = levelConfig.getSoftbanBlockedCommands();
-
-                long endTime;
-                if ("permanent".equalsIgnoreCase(duration)) {
-                    endTime = Long.MAX_VALUE;
-                } else {
-                    int seconds = TimeUtils.parseTime(duration, plugin.getConfigManager());
-                    if (seconds > 0) {
-                        endTime = System.currentTimeMillis() + (seconds * 1000L);
-                    } else {
-                        plugin.getLogger().warning("Invalid duration '" + duration + "' for APPLY_SOFTBAN action. Softban not applied.");
-                        break;
+            case APPLY_MUTE:
+            case APPLY_BAN:
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (target == null) {
+                        logTargetMissing(action, plugin);
+                        return;
                     }
-                }
+                    if (actionArgs.length == 0 || actionArgs[0] == null) {
+                        logInvalidArgs(action, actionArgs, plugin);
+                        return;
+                    }
 
-                dbManager.softBanPlayer(target.getUniqueId(), endTime, softbanReason, executorName, false, customCommands);
+                    String[] parts = actionArgs[0].split(":", 2);
+                    if (parts.length < 2) {
+                        logInvalidArgs(action, actionArgs, plugin);
+                        return;
+                    }
 
-                if (plugin.getConfigManager().isDebugEnabled()) {
-                    plugin.getLogger().info("[DEBUG] Applied softban via warn hook for " + target.getName() + " with " + (customCommands.isEmpty() ? "no" : customCommands.size()) + " custom commands.");
-                }
+                    String duration = parts[0];
+                    String punishmentReason = parts[1];
+                    String executorName = (executor instanceof Player) ? executor.getName() : "Console";
+                    DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
+
+                    long endTime;
+                    if ("permanent".equalsIgnoreCase(duration)) {
+                        endTime = Long.MAX_VALUE;
+                    } else {
+                        int seconds = TimeUtils.parseTime(duration, plugin.getConfigManager());
+                        if (seconds > 0) {
+                            endTime = System.currentTimeMillis() + (seconds * 1000L);
+                        } else {
+                            plugin.getLogger().warning("Invalid duration '" + duration + "' for " + action + " action. Punishment not applied.");
+                            return;
+                        }
+                    }
+
+                    String punishmentId = null;
+                    String type = "";
+                    if (action == ClickAction.APPLY_SOFTBAN) {
+                        type = "softban";
+                        WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(warningContext.getWarnLevel());
+                        List<String> customCommands = (levelConfig != null) ? levelConfig.getSoftbanBlockedCommands() : Collections.emptyList();
+                        punishmentId = dbManager.softBanPlayer(target.getUniqueId(), endTime, punishmentReason, executorName, false, customCommands);
+                    } else if (action == ClickAction.APPLY_MUTE) {
+                        type = "mute";
+                        punishmentId = dbManager.mutePlayer(target.getUniqueId(), endTime, punishmentReason, executorName, false);
+                    } else if (action == ClickAction.APPLY_BAN) {
+                        type = "ban";
+                        punishmentId = dbManager.logPunishment(target.getUniqueId(), "ban", punishmentReason, executorName, endTime, duration, false);
+                        if (punishmentId != null) {
+                            Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), punishmentReason, endTime == Long.MAX_VALUE ? null : new Date(endTime), executorName);
+                            if (target.isOnline()) {
+                                target.getPlayer().kickPlayer(getKickMessage(plugin.getConfigManager().getBanScreen(), punishmentReason, duration, punishmentId, endTime == Long.MAX_VALUE ? null : new Date(endTime)));
+                            }
+                        }
+                    }
+
+                    if (punishmentId != null && warningContext != null) {
+                        dbManager.addAssociatedPunishmentId(warningContext.getPunishmentId(), type, punishmentId);
+                    }
+                });
                 break;
 
             case PLAY_SOUND:

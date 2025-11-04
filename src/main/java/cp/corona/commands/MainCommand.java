@@ -1,3 +1,5 @@
+// src/main/java/cp/corona/commands/MainCommand.java
+// MODIFIED: Correctly pass the processed 'logReason' to internal unpunish methods for mute and softban.
 package cp.corona.commands;
 
 import cp.corona.config.WarnLevel;
@@ -170,16 +172,25 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         String[] newArgs;
 
         if (args.length == 0) {
-            // Show usage if no player specified
             return handleUnpunishCommand(sender, new String[0]);
         }
 
+        // Handle unpunish by ID for aliases
+        if (args[0].startsWith("#")) {
+            newArgs = new String[args.length];
+            newArgs[0] = args[0]; // The ID
+            if (args.length > 1) {
+                System.arraycopy(args, 1, newArgs, 1, args.length - 1); // The reason
+            }
+            return handleUnpunishCommand(sender, newArgs);
+        }
+
+        // Handle unpunish by player name for aliases
         newArgs = new String[args.length + 1];
         newArgs[0] = args[0]; // player name
         newArgs[1] = punishmentType;
 
         if (args.length > 1) {
-            // Copy reason args
             System.arraycopy(args, 1, newArgs, 2, args.length - 1);
         }
 
@@ -236,17 +247,18 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         sendConfigMessage(sender, "messages.check_info_warn_level", "{level}", String.valueOf(activeWarning.getWarnLevel()));
                         if (activeWarning.isPaused()) {
                             status = plugin.getConfigManager().getMessage("placeholders.status_paused");
-                            timeLeft = TimeUtils.formatTime((int) (activeWarning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
+                            timeLeft = TimeUtils.formatTime((int)(activeWarning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
                         } else {
                             status = plugin.getConfigManager().getMessage("placeholders.status_active");
                             if (activeWarning.getEndTime() != -1) {
-                                timeLeft = TimeUtils.formatTime((int) ((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                                timeLeft = TimeUtils.formatTime((int)((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
                             } else {
                                 timeLeft = "Permanent";
                             }
                         }
                     } else {
-                        boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
+                        boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
+                                && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
                         status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
                                 : plugin.getConfigManager().getMessage("placeholders.status_removed");
                     }
@@ -349,7 +361,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
             case "unpunish":
-                confirmDirectUnpunish(sender, target, entry.getType(), plugin.getConfigManager().getDefaultUnpunishmentReason(entry.getType()));
+                confirmDirectUnpunish(sender, target, entry.getType(), plugin.getConfigManager().getDefaultUnpunishmentReason(entry.getType()), entry.getPunishmentId());
                 break;
             default:
                 sendConfigMessage(sender, "messages.check_usage");
@@ -431,47 +443,80 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             reason = !argsList.isEmpty() ? String.join(" ", argsList) : plugin.getConfigManager().getDefaultPunishmentReason(punishType);
 
 
-            if (plugin.getConfigManager().isDebugEnabled())
-                plugin.getLogger().info("[MainCommand] Direct punishment confirmed for " + target.getName() + ", type: " + punishType);
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[MainCommand] Direct punishment confirmed for " + target.getName() + ", type: " + punishType);
             confirmDirectPunishment(sender, target, punishType, timeForPunishment, reason, byIpOverride);
         }
         return true;
     }
 
     private boolean handleUnpunishCommand(CommandSender sender, String[] args) {
-        if (args.length < 2) {
+        if (args.length == 0) {
             String commandLabel = (sender instanceof Player) ? "unpunish" : "crown unpunish";
-            sendConfigMessage(sender, "messages.unpunish_usage", "{usage}", "/" + commandLabel + " <player> <type> [reason]");
+            sendConfigMessage(sender, "messages.unpunish_usage", "{usage}", "/" + commandLabel + " <player|#id> <type|reason> [reason]");
             return true;
         }
 
-        String targetName = args[0];
-        if (targetName.length() < 3 || targetName.length() > 16) {
-            sendConfigMessage(sender, "messages.invalid_player_name", "{input}", targetName);
+        String firstArg = args[0];
+        if (firstArg.startsWith("#")) {
+            // Unpunish by ID
+            String punishmentId = firstArg.substring(1);
+            DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getPunishmentById(punishmentId);
+
+            if (entry == null) {
+                sendConfigMessage(sender, "messages.punishment_not_found", "{id}", punishmentId);
+                return true;
+            }
+
+            if (!entry.isActive()) {
+                sendConfigMessage(sender, "messages.punishment_not_active", "{id}", punishmentId);
+                return true;
+            }
+
+            OfflinePlayer target = Bukkit.getOfflinePlayer(entry.getPlayerUUID());
+            String reason = (args.length > 1) ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : plugin.getConfigManager().getDefaultUnpunishmentReason(entry.getType());
+
+            if (!checkUnpunishPermission(sender, entry.getType())) {
+                sendNoPermissionUnpunishMessage(sender, entry.getType());
+                return true;
+            }
+
+            confirmDirectUnpunish(sender, target, entry.getType(), reason, entry.getPunishmentId());
+            return true;
+        } else {
+            // Unpunish by player name
+            if (args.length < 2) {
+                String commandLabel = (sender instanceof Player) ? "unpunish" : "crown unpunish";
+                sendConfigMessage(sender, "messages.unpunish_usage", "{usage}", "/" + commandLabel + " <player> <type> [reason]");
+                return true;
+            }
+
+            String targetName = args[0];
+            if (targetName.length() < 3 || targetName.length() > 16) {
+                sendConfigMessage(sender, "messages.invalid_player_name", "{input}", targetName);
+                return true;
+            }
+
+            OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                sendConfigMessage(sender, "messages.never_played", "{input}", targetName);
+                return true;
+            }
+
+            String punishType = args[1].toLowerCase();
+            if (!UNPUNISHMENT_TYPES.contains(punishType)) {
+                sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
+                return true;
+            }
+
+            if (!checkUnpunishPermission(sender, punishType)) {
+                sendNoPermissionUnpunishMessage(sender, punishType);
+                return true;
+            }
+
+            String reason = (args.length > 2) ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : plugin.getConfigManager().getDefaultUnpunishmentReason(punishType);
+            confirmDirectUnpunish(sender, target, punishType, reason, null);
             return true;
         }
-
-        String punishType = args[1].toLowerCase();
-
-        if (!UNPUNISHMENT_TYPES.contains(punishType)) {
-            sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
-            return true;
-        }
-
-        if (!checkUnpunishPermission(sender, punishType)) {
-            sendNoPermissionUnpunishMessage(sender, punishType);
-            return true;
-        }
-
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-        if (!target.hasPlayedBefore() && !target.isOnline()) {
-            sendConfigMessage(sender, "messages.never_played", "{input}", targetName);
-            return true;
-        }
-
-        String reason = (args.length > 2) ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : plugin.getConfigManager().getDefaultUnpunishmentReason(punishType);
-        confirmDirectUnpunish(sender, target, punishType, reason);
-        return true;
     }
 
 
@@ -503,28 +548,22 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private void confirmDirectPunishment(final CommandSender sender, final OfflinePlayer target, final String punishType, final String time, final String reason, final Boolean byIpOverride) {
         if (target instanceof Player playerTarget) {
             if (punishType.equalsIgnoreCase("softban") && playerTarget.hasPermission("crown.bypass.softban")) {
-                sendConfigMessage(sender, "messages.bypass_error_softban", "{target}", target.getName());
-                return;
+                sendConfigMessage(sender, "messages.bypass_error_softban", "{target}", target.getName()); return;
             }
             if (punishType.equalsIgnoreCase("freeze") && playerTarget.hasPermission("crown.bypass.freeze")) {
-                sendConfigMessage(sender, "messages.bypass_error_freeze", "{target}", target.getName());
-                return;
+                sendConfigMessage(sender, "messages.bypass_error_freeze", "{target}", target.getName()); return;
             }
             if (punishType.equalsIgnoreCase("ban") && playerTarget.hasPermission("crown.bypass.ban")) {
-                sendConfigMessage(sender, "messages.bypass_error_ban", "{target}", target.getName());
-                return;
+                sendConfigMessage(sender, "messages.bypass_error_ban", "{target}", target.getName()); return;
             }
             if (punishType.equalsIgnoreCase("mute") && playerTarget.hasPermission("crown.bypass.mute")) {
-                sendConfigMessage(sender, "messages.bypass_error_mute", "{target}", target.getName());
-                return;
+                sendConfigMessage(sender, "messages.bypass_error_mute", "{target}", target.getName()); return;
             }
             if (punishType.equalsIgnoreCase("kick") && playerTarget.hasPermission("crown.bypass.kick")) {
-                sendConfigMessage(sender, "messages.bypass_error_kick", "{target}", target.getName());
-                return;
+                sendConfigMessage(sender, "messages.bypass_error_kick", "{target}", target.getName()); return;
             }
             if (punishType.equalsIgnoreCase("warn") && playerTarget.hasPermission("crown.bypass.warn")) {
-                sendConfigMessage(sender, "messages.bypass_error_warn", "{target}", target.getName());
-                return;
+                sendConfigMessage(sender, "messages.bypass_error_warn", "{target}", target.getName()); return;
             }
         }
 
@@ -607,7 +646,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 if (!isPermanentSoftban && punishmentEndTimeSoftban > 0) {
                     punishmentEndTimeSoftban += 1000L;
                 }
-                if (useInternal) {
+                if(useInternal) {
                     punishmentId = plugin.getSoftBanDatabaseManager().softBanPlayer(target.getUniqueId(), punishmentEndTimeSoftban, reason, sender.getName(), byIp);
                 } else {
                     punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), punishmentEndTimeSoftban, durationForLog, byIp);
@@ -660,8 +699,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     punishmentId = dbManager.logPunishment(target.getUniqueId(), "warn", reason, sender.getName(), endTime, durationForLog, false);
                     dbManager.addActiveWarning(target.getUniqueId(), punishmentId, nextWarnLevel, endTime);
 
+                    ActiveWarningEntry newWarning = dbManager.getActiveWarningByPunishmentId(punishmentId);
                     if (plugin.getMenuListener() != null) {
-                        plugin.getMenuListener().executeHookActions(sender, target, "warn", durationForLog, reason, false, levelConfig.getOnWarnActions());
+                        plugin.getMenuListener().executeHookActions(sender, target, "warn", durationForLog, reason, false, levelConfig.getOnWarnActions(), newWarning);
                     }
                 } else {
                     durationForLog = "N/A";
@@ -672,7 +712,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "freeze":
                 durationForLog = permanentDisplay;
                 punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishType, reason, sender.getName(), Long.MAX_VALUE, durationForLog, byIp);
-                if (useInternal) {
+                if(useInternal) {
                     plugin.getPluginFrozenPlayers().put(target.getUniqueId(), true);
                     Player onlineTarget = target.getPlayer();
                     if (onlineTarget != null && !onlineTarget.hasPermission("crown.bypass.freeze")) {
@@ -696,17 +736,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
             MenuListener menuListener = plugin.getMenuListener();
             if (menuListener != null) {
-                menuListener.executeHookActions(sender, target, punishType, durationForLog, reason, false);
+                menuListener.executeHookActions(sender, target, punishType, durationForLog, reason, false, Collections.emptyList());
             } else {
                 plugin.getLogger().warning("MenuListener instance is null, cannot execute punishment hooks.");
             }
         }
     }
 
-    private void confirmDirectUnpunish(final CommandSender sender, final OfflinePlayer target, final String punishType, final String reason) {
+    private void confirmDirectUnpunish(final CommandSender sender, final OfflinePlayer target, final String punishType, final String reason, String punishmentId) {
         String commandTemplate = plugin.getConfigManager().getUnpunishCommand(punishType);
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishType);
-        String punishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(target.getUniqueId(), punishType);
+
+        if (punishmentId == null) {
+            punishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(target.getUniqueId(), punishType);
+        }
 
         if (!UNPUNISHMENT_TYPES.contains(punishType)) {
             sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", UNPUNISHMENT_TYPES));
@@ -730,6 +773,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (reason.equals(plugin.getConfigManager().getDefaultUnpunishmentReason(punishType))) {
             logReason = reason.replace("{player}", sender.getName()) + " (ID: " + punishmentId + ")";
         }
+
 
 
         switch (punishType.toLowerCase()) {
@@ -804,7 +848,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     punishmentId = activeWarning.getPunishmentId();
                     WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(activeWarning.getWarnLevel());
                     if (levelConfig != null && plugin.getMenuListener() != null) {
-                        plugin.getMenuListener().executeHookActions(sender, target, "unwarn", "N/A", logReason, true, levelConfig.getOnExpireActions());
+                        plugin.getMenuListener().executeHookActions(sender, target, "unwarn", "N/A", logReason, true, levelConfig.getOnExpireActions(), activeWarning);
                     }
 
                     dbManager.removeActiveWarning(target.getUniqueId(), activeWarning.getPunishmentId(), sender.getName(), logReason);
@@ -844,7 +888,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (!punishType.equalsIgnoreCase("warn") || !useInternal) {
             MenuListener menuListener = plugin.getMenuListener();
             if (menuListener != null) {
-                menuListener.executeHookActions(sender, target, punishType, "N/A", logReason, true);
+                menuListener.executeHookActions(sender, target, punishType, "N/A", logReason, true, Collections.emptyList());
             } else {
                 plugin.getLogger().warning("MenuListener instance is null, cannot execute unpunishment hooks.");
             }
@@ -883,15 +927,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     handleCheckTab(subArgs, completions);
                 }
             }
-        } else if (commandLabel.equals(PUNISH_SUBCOMMAND)) {
+        }
+        else if (commandLabel.equals(PUNISH_SUBCOMMAND)) {
             handlePunishTab(args, completions, playerNames, PUNISH_SUBCOMMAND);
-        } else if (PUNISHMENT_TYPES.contains(commandLabel)) {
+        }
+        else if (PUNISHMENT_TYPES.contains(commandLabel)) {
             handlePunishTab(args, completions, playerNames, commandLabel);
-        } else if (commandLabel.equals(UNPUNISH_SUBCOMMAND)) {
+        }
+        else if (commandLabel.equals(UNPUNISH_SUBCOMMAND)) {
             handleUnpunishTab(args, completions, playerNames, UNPUNISH_SUBCOMMAND);
-        } else if (UNPUNISH_ALIASES.contains(commandLabel)) {
+        }
+        else if (UNPUNISH_ALIASES.contains(commandLabel)) {
             handleUnpunishTab(args, completions, playerNames, commandLabel);
-        } else if (commandLabel.equals(CHECK_SUBCOMMAND) || commandLabel.equals(CHECK_COMMAND_ALIAS)) {
+        }
+        else if (commandLabel.equals(CHECK_SUBCOMMAND) || commandLabel.equals(CHECK_COMMAND_ALIAS)) {
             handleCheckTab(args, completions);
         }
 
@@ -984,7 +1033,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         completions.addAll(REASON_SUGGESTION);
                     }
                 }
-                return;
             }
         }
 
@@ -1013,28 +1061,41 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         String currentArg = args[args.length - 1];
 
         if (args.length == 1) {
-            StringUtil.copyPartialMatches(currentArg, playerNames, completions);
+            if (currentArg.startsWith("#")) {
+                List<String> activePunishmentIds = plugin.getSoftBanDatabaseManager().getAllActivePunishmentIds();
+                StringUtil.copyPartialMatches(currentArg, activePunishmentIds, completions);
+            } else {
+                StringUtil.copyPartialMatches(currentArg, playerNames, completions);
+                if ("#".startsWith(currentArg.toLowerCase())) {
+                    completions.add("#");
+                }
+            }
             return;
         }
 
-        if (commandLabel.equals(UNPUNISH_SUBCOMMAND)) {
+        boolean isById = args[0].startsWith("#");
+
+        if (isById) {
             if (args.length == 2) {
-                StringUtil.copyPartialMatches(currentArg, UNPUNISHMENT_TYPES, completions);
-                return;
-            }
-            if (args.length == 3) {
                 if (currentArg.isEmpty()) {
                     completions.addAll(REASON_SUGGESTION);
-                } else {
-                    StringUtil.copyPartialMatches(currentArg, REASON_SUGGESTION, completions);
                 }
             }
         } else {
-            if (args.length == 2) {
-                if (currentArg.isEmpty()) {
-                    completions.addAll(REASON_SUGGESTION);
-                } else {
-                    StringUtil.copyPartialMatches(currentArg, REASON_SUGGESTION, completions);
+            // By player name
+            if (commandLabel.equals(UNPUNISH_SUBCOMMAND)) {
+                if (args.length == 2) {
+                    StringUtil.copyPartialMatches(currentArg, UNPUNISHMENT_TYPES, completions);
+                } else if (args.length == 3) {
+                    if (currentArg.isEmpty()) {
+                        completions.addAll(REASON_SUGGESTION);
+                    }
+                }
+            } else { // Alias like /unban
+                if (args.length == 2) {
+                    if (currentArg.isEmpty()) {
+                        completions.addAll(REASON_SUGGESTION);
+                    }
                 }
             }
         }
@@ -1056,23 +1117,15 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 .map(line -> line.replace("{support_link}", plugin.getConfigManager().getSupportLink()))
                 .collect(Collectors.joining("\n"));
     }
-
     private boolean checkPunishDetailsPermission(CommandSender sender, String punishType) {
         switch (punishType.toLowerCase()) {
-            case "ban":
-                return sender.hasPermission(PUNISH_BAN_PERMISSION);
-            case "mute":
-                return sender.hasPermission(PUNISH_MUTE_PERMISSION);
-            case "softban":
-                return sender.hasPermission(PUNISH_SOFTBAN_PERMISSION);
-            case "kick":
-                return sender.hasPermission(PUNISH_KICK_PERMISSION);
-            case "warn":
-                return sender.hasPermission(PUNISH_WARN_PERMISSION);
-            case "freeze":
-                return sender.hasPermission(PUNISH_FREEZE_PERMISSION);
-            default:
-                return false;
+            case "ban": return sender.hasPermission(PUNISH_BAN_PERMISSION);
+            case "mute": return sender.hasPermission(PUNISH_MUTE_PERMISSION);
+            case "softban": return sender.hasPermission(PUNISH_SOFTBAN_PERMISSION);
+            case "kick": return sender.hasPermission(PUNISH_KICK_PERMISSION);
+            case "warn": return sender.hasPermission(PUNISH_WARN_PERMISSION);
+            case "freeze": return sender.hasPermission(PUNISH_FREEZE_PERMISSION);
+            default: return false;
         }
     }
 
@@ -1086,18 +1139,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     private boolean checkUnpunishPermission(CommandSender sender, String punishType) {
         switch (punishType.toLowerCase()) {
-            case "ban":
-                return sender.hasPermission(UNPUNISH_BAN_PERMISSION);
-            case "mute":
-                return sender.hasPermission(UNPUNISH_MUTE_PERMISSION);
-            case "softban":
-                return sender.hasPermission(UNPUNISH_SOFTBAN_PERMISSION);
-            case "warn":
-                return sender.hasPermission(UNPUNISH_WARN_PERMISSION);
-            case "freeze":
-                return sender.hasPermission(UNPUNISH_FREEZE_PERMISSION);
-            default:
-                return false;
+            case "ban": return sender.hasPermission(UNPUNISH_BAN_PERMISSION);
+            case "mute": return sender.hasPermission(UNPUNISH_MUTE_PERMISSION);
+            case "softban": return sender.hasPermission(UNPUNISH_SOFTBAN_PERMISSION);
+            case "warn": return sender.hasPermission(UNPUNISH_WARN_PERMISSION);
+            case "freeze": return sender.hasPermission(UNPUNISH_FREEZE_PERMISSION);
+            default: return false;
         }
     }
 
@@ -1107,20 +1154,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     private boolean checkPunishCommandPermission(CommandSender sender, String punishType) {
         switch (punishType.toLowerCase()) {
-            case "ban":
-                return sender.hasPermission(PUNISH_BAN_PERMISSION);
-            case "mute":
-                return sender.hasPermission(PUNISH_MUTE_PERMISSION);
-            case "softban":
-                return sender.hasPermission(PUNISH_SOFTBAN_PERMISSION);
-            case "kick":
-                return sender.hasPermission(PUNISH_KICK_PERMISSION);
-            case "warn":
-                return sender.hasPermission(PUNISH_WARN_PERMISSION);
-            case "freeze":
-                return sender.hasPermission(PUNISH_FREEZE_PERMISSION);
-            default:
-                return false;
+            case "ban": return sender.hasPermission(PUNISH_BAN_PERMISSION);
+            case "mute": return sender.hasPermission(PUNISH_MUTE_PERMISSION);
+            case "softban": return sender.hasPermission(PUNISH_SOFTBAN_PERMISSION);
+            case "kick": return sender.hasPermission(PUNISH_KICK_PERMISSION);
+            case "warn": return sender.hasPermission(PUNISH_WARN_PERMISSION);
+            case "freeze": return sender.hasPermission(PUNISH_FREEZE_PERMISSION);
+            default: return false;
         }
     }
 

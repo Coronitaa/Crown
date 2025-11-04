@@ -369,9 +369,9 @@ public class MenuItem {
          * @return ClickActionData object.
          */
         public static ClickActionData fromConfigString(String configString) {
-            String[] parts = configString.split(":", -1); // Split by ":" and include trailing empty strings - MODIFIED
+            String[] parts = configString.split(":", 2);
             ClickAction action = ClickAction.safeValueOf(parts[0]);
-            String[] actionArgs = parts.length > 1 ? Arrays.copyOfRange(parts, 1, parts.length) : new String[0]; // Extract arguments - MODIFIED
+            String[] actionArgs = parts.length > 1 ? new String[]{parts[1]} : new String[0];
             return new ClickActionData(action, actionArgs);
         }
     }

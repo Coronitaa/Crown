@@ -65,7 +65,9 @@ public class HistoryMenu implements InventoryHolder {
             String type = entry.getType().toLowerCase();
             String status;
 
-            boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
+            boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
+                    && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
+
 
             if (type.equals("warn")) {
                 ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());

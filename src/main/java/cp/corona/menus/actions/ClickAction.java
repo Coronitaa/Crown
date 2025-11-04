@@ -20,6 +20,8 @@ public enum ClickAction {
     CONFIRM_PUNISHMENT,
     TOGGLE_PUNISH_METHOD,
     APPLY_SOFTBAN,
+    APPLY_MUTE,
+    APPLY_BAN,
     UN_SOFTBAN,
     UN_FREEZE,
     UN_BAN,

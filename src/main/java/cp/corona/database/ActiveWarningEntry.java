@@ -11,8 +11,10 @@ public class ActiveWarningEntry {
     private final long endTime;
     private final boolean isPaused;
     private final long remainingTimeOnPause;
+    private final String associatedPunishmentIds;
 
-    public ActiveWarningEntry(int id, UUID playerUUID, String punishmentId, int warnLevel, long endTime, boolean isPaused, long remainingTimeOnPause) {
+
+    public ActiveWarningEntry(int id, UUID playerUUID, String punishmentId, int warnLevel, long endTime, boolean isPaused, long remainingTimeOnPause, String associatedPunishmentIds) {
         this.id = id;
         this.playerUUID = playerUUID;
         this.punishmentId = punishmentId;
@@ -20,6 +22,7 @@ public class ActiveWarningEntry {
         this.endTime = endTime;
         this.isPaused = isPaused;
         this.remainingTimeOnPause = remainingTimeOnPause;
+        this.associatedPunishmentIds = associatedPunishmentIds;
     }
 
     public int getId() { return id; }
@@ -29,4 +32,6 @@ public class ActiveWarningEntry {
     public long getEndTime() { return endTime; }
     public boolean isPaused() { return isPaused; }
     public long getRemainingTimeOnPause() { return remainingTimeOnPause; }
+    public String getAssociatedPunishmentIds() { return associatedPunishmentIds; }
+
 }

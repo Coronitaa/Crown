@@ -168,6 +168,7 @@ public class DatabaseManager {
                     "end_time BIGINT NOT NULL," +
                     "is_paused BOOLEAN DEFAULT 0," +
                     "remaining_time_on_pause BIGINT DEFAULT 0," +
+                    "associated_punishment_ids TEXT," +
                     "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
 
             if ("sqlite".equalsIgnoreCase(dbType)) {
@@ -180,6 +181,7 @@ public class DatabaseManager {
                         "end_time BIGINT NOT NULL," +
                         "is_paused BOOLEAN DEFAULT 0," +
                         "remaining_time_on_pause BIGINT DEFAULT 0," +
+                        "associated_punishment_ids TEXT," +
                         "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
             }
             statement.execute(createActiveWarningsTableSQL);
@@ -212,6 +214,9 @@ public class DatabaseManager {
             if (!columnExists(connection, "softbans", "custom_commands")) {
                 statement.execute("ALTER TABLE softbans ADD COLUMN custom_commands TEXT");
             }
+            if (!columnExists(connection, "active_warnings", "associated_punishment_ids")) {
+                statement.execute("ALTER TABLE active_warnings ADD COLUMN associated_punishment_ids TEXT");
+            }
         }
     }
 
@@ -239,7 +244,8 @@ public class DatabaseManager {
                                 rs.getInt("warn_level"),
                                 rs.getLong("end_time"),
                                 rs.getBoolean("is_paused"),
-                                rs.getLong("remaining_time_on_pause")
+                                rs.getLong("remaining_time_on_pause"),
+                                rs.getString("associated_punishment_ids")
                         ));
                     }
                 } catch (SQLException e) {
@@ -266,7 +272,7 @@ public class DatabaseManager {
         if (levelConfig != null) {
             List<MenuItem.ClickActionData> actions = levelConfig.getOnExpireActions();
             if (plugin.getMenuListener() != null) {
-                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-expire", "N/A", "Expired", true, actions);
+                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-expire", "N/A", "Expired", true, actions, warning);
             }
         }
         removeActiveWarning(warning.getPlayerUUID(), warning.getPunishmentId(), "System", "Expired");
@@ -279,7 +285,7 @@ public class DatabaseManager {
             if (latest != null) {
                 WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(latest.getWarnLevel());
                 if (levelConfig != null && plugin.getMenuListener() != null) {
-                    plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), Bukkit.getOfflinePlayer(playerUUID), "warn-expire", "N/A", "Superseded", true, levelConfig.getOnExpireActions());
+                    plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), Bukkit.getOfflinePlayer(playerUUID), "warn-expire", "N/A", "Superseded", true, levelConfig.getOnExpireActions(), latest);
                 }
                 removeActiveWarning(playerUUID, latest.getPunishmentId(), "System", "Superseded by new warning.");
             }
@@ -341,7 +347,8 @@ public class DatabaseManager {
                         rs.getString("punishment_id"),
                         rs.getInt("warn_level"),
                         rs.getLong("end_time"),
-                        false, 0
+                        false, 0,
+                        rs.getString("associated_punishment_ids")
                 );
             }
         } catch (SQLException e) {
@@ -357,7 +364,7 @@ public class DatabaseManager {
         WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(latest.getWarnLevel());
         if (levelConfig != null && plugin.getMenuListener() != null) {
             OfflinePlayer target = Bukkit.getOfflinePlayer(playerUUID);
-            plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-pause", "N/A", "Warning Paused", true, levelConfig.getOnExpireActions());
+            plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-pause", "N/A", "Warning Paused", true, levelConfig.getOnExpireActions(), latest);
         }
 
         long remainingTime = latest.getEndTime() == -1 ? -1 : latest.getEndTime() - System.currentTimeMillis();
@@ -383,7 +390,8 @@ public class DatabaseManager {
                 ActiveWarningEntry warningToResume = new ActiveWarningEntry(
                         rs.getInt("id"), playerUUID, rs.getString("punishment_id"),
                         rs.getInt("warn_level"), rs.getLong("end_time"), true,
-                        rs.getLong("remaining_time_on_pause")
+                        rs.getLong("remaining_time_on_pause"),
+                        rs.getString("associated_punishment_ids")
                 );
 
                 long newEndTime = (warningToResume.getRemainingTimeOnPause() == -1) ? -1 : System.currentTimeMillis() + warningToResume.getRemainingTimeOnPause();
@@ -398,7 +406,7 @@ public class DatabaseManager {
                 WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(warningToResume.getWarnLevel());
                 if (levelConfig != null && plugin.getMenuListener() != null) {
                     OfflinePlayer target = Bukkit.getOfflinePlayer(playerUUID);
-                    plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-resume", "N/A", "Warning Resumed", false, levelConfig.getOnWarnActions());
+                    plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-resume", "N/A", "Warning Resumed", false, levelConfig.getOnWarnActions(), warningToResume);
                 }
             }
         } catch (SQLException e) {
@@ -420,7 +428,8 @@ public class DatabaseManager {
                         rs.getInt("warn_level"),
                         rs.getLong("end_time"),
                         rs.getBoolean("is_paused"),
-                        rs.getLong("remaining_time_on_pause")
+                        rs.getLong("remaining_time_on_pause"),
+                        rs.getString("associated_punishment_ids")
                 ));
             }
         } catch (SQLException e) {
@@ -442,13 +451,40 @@ public class DatabaseManager {
                         rs.getInt("warn_level"),
                         rs.getLong("end_time"),
                         rs.getBoolean("is_paused"),
-                        rs.getLong("remaining_time_on_pause")
+                        rs.getLong("remaining_time_on_pause"),
+                        rs.getString("associated_punishment_ids")
                 );
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not get active warning by punishment ID: " + punishmentId, e);
         }
         return null;
+    }
+
+    public void addAssociatedPunishmentId(String warningPunishmentId, String associatedPunishmentType, String associatedPunishmentId) {
+        String sqlGet = "SELECT associated_punishment_ids FROM active_warnings WHERE punishment_id = ?";
+        String sqlUpdate = "UPDATE active_warnings SET associated_punishment_ids = ? WHERE punishment_id = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement psGet = connection.prepareStatement(sqlGet)) {
+            psGet.setString(1, warningPunishmentId);
+            ResultSet rs = psGet.executeQuery();
+            String currentIds = "";
+            if (rs.next()) {
+                currentIds = rs.getString("associated_punishment_ids");
+            }
+
+            String newEntry = associatedPunishmentType + ":" + associatedPunishmentId;
+            String updatedIds = (currentIds == null || currentIds.isEmpty()) ? newEntry : currentIds + ";" + newEntry;
+
+            try (PreparedStatement psUpdate = connection.prepareStatement(sqlUpdate)) {
+                psUpdate.setString(1, updatedIds);
+                psUpdate.setString(2, warningPunishmentId);
+                psUpdate.executeUpdate();
+            }
+
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not add associated punishment ID for warning " + warningPunishmentId, e);
+        }
     }
 
     public List<PunishmentEntry> getAllActivePunishments(UUID playerUUID, String playerIP) {
@@ -1151,6 +1187,21 @@ public class DatabaseManager {
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving players by IP!", e);
         }
         return players;
+    }
+
+    public List<String> getAllActivePunishmentIds() {
+        List<String> ids = new ArrayList<>();
+        String sql = "SELECT punishment_id FROM punishment_history WHERE active = 1";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                ids.add("#" + rs.getString("punishment_id"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving all active punishment IDs!", e);
+        }
+        return ids;
     }
 
 
