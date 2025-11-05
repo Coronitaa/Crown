@@ -6,7 +6,7 @@ api-version: '1.18'
 commands:
   crown:
     description: Main command for Crown.
-    usage: /<command> [punish|reload|help|unpunish]
+    usage: /<command> [punish|reload|help|unpunish|history]
 
   punish: # Alias command for direct /punish usage - ALIAS OF /CROWN PUNISH
     description: Alias for /crown punish command.
@@ -20,6 +20,10 @@ commands:
     description: Command to check a punishment by ID.
     usage: /<command> <id> [info|repunish|unpunish]
     aliases: [c]
+
+  history:
+    description: Command to view a player's punishment history.
+    usage: /<command> <player>
 
   softban: # Top level command for softbanning players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /CROWN PUNISH SOFTBAN
     description: Command to directly softban players.
@@ -64,6 +68,9 @@ permissions:
     default: op
   crown.check:
     description: Allows player to check punishments by ID
+    default: op
+  crown.history:
+    description: Allows player to view punishment history
     default: op
   crown.mod:
     description: Allows player to receive frozen player messages

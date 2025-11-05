@@ -76,6 +76,7 @@ messages:
   help_unwarn_command: '&b/unwarn <player> [reason] &7- Quick unwarn.'
   help_unsoftban_command: '&b/unsoftban <player> [reason] &7- Quick unsoftban.'
   help_unfreeze_command: '&b/unfreeze <player> [reason] &7- Quick unfreeze.'
+  help_history_command: '&b/history <player> &7- View punishment history.'
   help_reload: '&b/crown reload &7- Reload configuration.'
 
   active_punishments_header: '&c&lYou have active punishments:'
@@ -142,6 +143,7 @@ messages:
   check_usage: '{prefix}&cUsage: /check <id> [info|repunish|unpunish]'
   punishment_not_found: '{prefix}&cPunishment with ID ''{id}'' not found.'
   punishment_not_active: '{prefix}&cThe punishment with ID ''{id}'' is already inactive.'
+  history_usage: '{prefix}&cUsage: /history <player>'
   check_info_header: '&6&lPunishment Information for ID: &e{id}'
   check_info_player: '&7Player: &b{player} &7({uuid})'
   check_info_type: '&7Type: &b{type} &7({method})'

@@ -1,5 +1,3 @@
-// src/main/java/cp/corona/database/DatabaseManager.java
-// MODIFIED: Added 'custom_commands' to softbans table and logic to handle it.
 package cp.corona.database;
 
 import cp.corona.config.WarnLevel;
@@ -934,6 +932,27 @@ public class DatabaseManager {
         }
         return counts;
     }
+
+    public HashMap<String, Integer> getActivePunishmentCounts(UUID playerUUID) {
+        HashMap<String, Integer> counts = new HashMap<>();
+        // Get counts for non-warn punishments from punishment_history
+        String historySql = "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? AND active = 1 AND punishment_type != 'warn' GROUP BY punishment_type";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(historySql)) {
+            ps.setString(1, playerUUID.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    counts.put(rs.getString("punishment_type"), rs.getInt("count"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving active punishment counts for UUID: " + playerUUID, e);
+        }
+
+        // Get count for warns from active_warnings (includes paused as active)
+        counts.put("warn", getActiveWarningCount(playerUUID));
+        return counts;
+    }
+
 
     private String generatePunishmentId() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

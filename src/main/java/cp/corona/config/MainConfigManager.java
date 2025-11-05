@@ -103,7 +103,8 @@ public class MainConfigManager {
         this.warnExpirationMode = warnConfig.getConfig().getString("expiration-mode", "unique").toLowerCase();
         ConfigurationSection levelsSection = warnConfig.getConfig().getConfigurationSection("levels");
         if (levelsSection == null) {
-            if(isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] 'levels' section not found in warn.yml.");
+            if (isDebugEnabled())
+                plugin.getLogger().warning("[MainConfigManager] 'levels' section not found in warn.yml.");
             return;
         }
 
@@ -122,7 +123,8 @@ public class MainConfigManager {
                 plugin.getLogger().warning("[MainConfigManager] Invalid warn level key in warn.yml: " + key + ". It must be a number.");
             }
         }
-        if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] Loaded " + warnLevels.size() + " warning levels. Mode: " + this.warnExpirationMode);
+        if (isDebugEnabled())
+            plugin.getLogger().info("[MainConfigManager] Loaded " + warnLevels.size() + " warning levels. Mode: " + this.warnExpirationMode);
     }
 
     public String getWarnExpirationMode() {
@@ -176,6 +178,7 @@ public class MainConfigManager {
         if (config == null) return Collections.emptyList();
         return config.getConfig().getStringList("kick-screen");
     }
+
     public boolean isPunishmentInternal(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
         if (config == null) return false;
@@ -387,7 +390,7 @@ public class MainConfigManager {
         List<String> configLore = historyMenuConfig.getConfig().getStringList(lorePath);
 
         if (configLore == null || configLore.isEmpty()) {
-            if (isDebugEnabled()){
+            if (isDebugEnabled()) {
                 plugin.getLogger().warning("[MainConfigManager] Lore config list is null or empty for path: " + lorePath);
             }
             return lore;
@@ -402,7 +405,8 @@ public class MainConfigManager {
                 String replacementValue = replacements[i + 1];
                 if (replacementValue == null) {
                     replacementValue = "N/A";
-                    if (isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + placeholder + " in history menu lore. Using 'N/A'.");
+                    if (isDebugEnabled())
+                        plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + placeholder + " in history menu lore. Using 'N/A'.");
                 }
                 processedLine = processedLine.replace(placeholder, replacementValue);
             }
@@ -425,7 +429,7 @@ public class MainConfigManager {
         List<String> configLore = punishMenuConfig.getConfig().getStringList(lorePath);
 
         if (configLore == null || configLore.isEmpty()) {
-            if (isDebugEnabled()){
+            if (isDebugEnabled()) {
                 plugin.getLogger().warning("[MainConfigManager] Lore config list is null or empty for path: " + lorePath);
             }
             return lore;
@@ -440,7 +444,8 @@ public class MainConfigManager {
                 String replacementValue = replacements[i + 1];
                 if (replacementValue == null) {
                     replacementValue = "N/A";
-                    if (isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + placeholder + " in punish menu lore. Using 'N/A'.");
+                    if (isDebugEnabled())
+                        plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + placeholder + " in punish menu lore. Using 'N/A'.");
                 }
                 processedLine = processedLine.replace(placeholder, replacementValue);
             }
@@ -474,7 +479,8 @@ public class MainConfigManager {
                     plugin.getLogger().log(Level.WARNING, "[MainConfigManager] PlaceholderAPI placeholders failed to register. Check for errors or conflicts.");
                 }
             } else {
-                if (isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[MainConfigManager] PlaceholderAPI placeholders already registered.");
+                if (isDebugEnabled())
+                    plugin.getLogger().log(Level.INFO, "[MainConfigManager] PlaceholderAPI placeholders already registered.");
             }
         } else {
             plugin.getLogger().log(Level.INFO, "[MainConfigManager] PlaceholderAPI not found, placeholders will not be registered.");
@@ -538,6 +544,15 @@ public class MainConfigManager {
         int totalPunishments = counts.values().stream().mapToInt(Integer::intValue).sum();
         text = text.replace("{punish_count}", String.valueOf(totalPunishments));
 
+        // Active punishment counts
+        HashMap<String, Integer> activeCounts = plugin.getSoftBanDatabaseManager().getActivePunishmentCounts(target.getUniqueId());
+        text = text.replace("{active_ban_count}", String.valueOf(activeCounts.getOrDefault("ban", 0)));
+        text = text.replace("{active_mute_count}", String.valueOf(activeCounts.getOrDefault("mute", 0)));
+        text = text.replace("{active_kick_count}", String.valueOf(activeCounts.getOrDefault("kick", 0)));
+        text = text.replace("{active_softban_count}", String.valueOf(activeCounts.getOrDefault("softban", 0)));
+        text = text.replace("{active_warn_count}", String.valueOf(activeCounts.getOrDefault("warn", 0)));
+        text = text.replace("{active_freeze_count}", String.valueOf(activeCounts.getOrDefault("freeze", 0)));
+
         if (plugin.isPlaceholderAPIEnabled() && target.isOnline()) {
             text = PlaceholderAPI.setPlaceholders(target.getPlayer(), text);
         }
@@ -557,13 +572,26 @@ public class MainConfigManager {
             path = "placeholders.punishment_action_verbs." + typeKey;
             // Simple fallback for verbs
             switch (typeKey) {
-                case "ban": fallback = "banned"; break;
-                case "mute": fallback = "muted"; break;
-                case "kick": fallback = "kicked"; break;
-                case "warn": fallback = "warned"; break;
-                case "softban": fallback = "softbanned"; break;
-                case "freeze": fallback = "frozen"; break;
-                default: fallback = typeKey + "ed"; // Generic fallback
+                case "ban":
+                    fallback = "banned";
+                    break;
+                case "mute":
+                    fallback = "muted";
+                    break;
+                case "kick":
+                    fallback = "kicked";
+                    break;
+                case "warn":
+                    fallback = "warned";
+                    break;
+                case "softban":
+                    fallback = "softbanned";
+                    break;
+                case "freeze":
+                    fallback = "frozen";
+                    break;
+                default:
+                    fallback = typeKey + "ed"; // Generic fallback
             }
         } else { // Noun form
             path = "placeholders.punishment_type_names." + typeKey;
@@ -596,7 +624,8 @@ public class MainConfigManager {
 
     private MenuItem loadMenuItemFromConfig(FileConfiguration config, String configPath) {
         if (config == null || configPath == null) {
-            if (isDebugEnabled()) plugin.getLogger().warning("[MainConfigManager] loadMenuItemFromConfig - Cannot load item: Null config or configPath provided.");
+            if (isDebugEnabled())
+                plugin.getLogger().warning("[MainConfigManager] loadMenuItemFromConfig - Cannot load item: Null config or configPath provided.");
             return null;
         }
 
@@ -608,41 +637,49 @@ public class MainConfigManager {
         }
 
         MenuItem menuItem = new MenuItem();
-        if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Loading item from path: " + configPath);
+        if (isDebugEnabled())
+            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Loading item from path: " + configPath);
 
         String materialStr = config.getString(configPath + ".material", "STONE");
         menuItem.setMaterial(materialStr);
-        if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Material set to: " + materialStr);
+        if (isDebugEnabled())
+            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Material set to: " + materialStr);
 
         String name = config.getString(configPath + ".name");
         menuItem.setName(name);
-        if (isDebugEnabled() && name != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Name set to: " + name);
+        if (isDebugEnabled() && name != null)
+            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Name set to: " + name);
 
         List<String> lore = config.getStringList(configPath + ".lore");
         menuItem.setLore(lore);
-        if (isDebugEnabled() && lore != null && !lore.isEmpty()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Lore lines loaded: " + lore.size());
+        if (isDebugEnabled() && lore != null && !lore.isEmpty())
+            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Lore lines loaded: " + lore.size());
 
         String playerHeadConfig = config.getString(configPath + ".player_head");
         menuItem.setPlayerHead(playerHeadConfig);
-        if (isDebugEnabled() && playerHeadConfig != null) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - PlayerHead set to: " + playerHeadConfig);
+        if (isDebugEnabled() && playerHeadConfig != null)
+            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - PlayerHead set to: " + playerHeadConfig);
 
         if (config.contains(configPath + ".custom_model_data") && config.isInt(configPath + ".custom_model_data")) {
             int cmd = config.getInt(configPath + ".custom_model_data");
             menuItem.setCustomModelData(cmd);
-            if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - CustomModelData set to: " + cmd);
+            if (isDebugEnabled())
+                plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - CustomModelData set to: " + cmd);
         }
 
         if (config.contains(configPath + ".quantity") && config.isInt(configPath + ".quantity")) {
             int qty = config.getInt(configPath + ".quantity", 1);
             menuItem.setQuantity(Math.max(1, qty));
-            if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Quantity set to: " + menuItem.getQuantity());
+            if (isDebugEnabled())
+                plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Quantity set to: " + menuItem.getQuantity());
         } else {
             menuItem.setQuantity(1);
         }
 
         List<Integer> slots = parseSlots(config.getString(configPath + ".slot"));
         menuItem.setSlots(slots);
-        if (isDebugEnabled() && slots != null && !slots.isEmpty()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Slots parsed and set: " + slots);
+        if (isDebugEnabled() && slots != null && !slots.isEmpty())
+            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Slots parsed and set: " + slots);
 
         List<String> leftClickActionConfigs = config.getStringList(configPath + ".left_click_actions");
         if (!leftClickActionConfigs.isEmpty()) {
@@ -651,7 +688,8 @@ public class MainConfigManager {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             menuItem.setLeftClickActions(leftClickActions);
-            if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Left-click actions loaded: " + leftClickActions.size());
+            if (isDebugEnabled())
+                plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Left-click actions loaded: " + leftClickActions.size());
         } else {
             menuItem.setLeftClickActions(Collections.emptyList());
         }
@@ -663,12 +701,14 @@ public class MainConfigManager {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             menuItem.setRightClickActions(rightClickActions);
-            if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Right-click actions loaded: " + rightClickActions.size());
+            if (isDebugEnabled())
+                plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Right-click actions loaded: " + rightClickActions.size());
         } else {
             menuItem.setRightClickActions(Collections.emptyList());
         }
 
-        if (isDebugEnabled()) plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - MenuItem loaded successfully from path: " + configPath);
+        if (isDebugEnabled())
+            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - MenuItem loaded successfully from path: " + configPath);
         return menuItem;
     }
 
@@ -702,7 +742,8 @@ public class MainConfigManager {
                         int start = Integer.parseInt(range[0].trim());
                         int end = Integer.parseInt(range[1].trim());
                         if (start > end) {
-                            if (isDebugEnabled()) plugin.getLogger().warning("Invalid slot range (start > end): '" + part + "' in '" + slotConfig + "'. Skipping range.");
+                            if (isDebugEnabled())
+                                plugin.getLogger().warning("Invalid slot range (start > end): '" + part + "' in '" + slotConfig + "'. Skipping range.");
                             continue;
                         }
                         for (int i = start; i <= end; i++) {
@@ -751,7 +792,9 @@ public class MainConfigManager {
         return pluginConfig.getConfig().getString("time_units.day", "d");
     }
 
-    public String getMonthsTimeUnit() { return pluginConfig.getConfig().getString("time_units.months", "M"); }
+    public String getMonthsTimeUnit() {
+        return pluginConfig.getConfig().getString("time_units.months", "M");
+    }
 
     public String getYearsTimeUnit() {
         return pluginConfig.getConfig().getString("time_units.years", "y");

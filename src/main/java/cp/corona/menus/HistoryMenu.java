@@ -1,4 +1,6 @@
 // src/main/java/cp/corona/menus/HistoryMenu.java
+// MODIFIED: No code changes were necessary here. The generic item loading mechanism correctly
+// processes the new active punishment count placeholders from history_menu.yml via MainConfigManager.
 package cp.corona.menus;
 
 import cp.corona.crown.Crown;

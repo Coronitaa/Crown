@@ -127,14 +127,14 @@ menu:
       slot: '49' # Bottom center slot
       name: "&bPunishment Summary"
       lore:
-        - "&7Total Punishments for &b{target}&7:"
+        - "&7Total and Active Punishments for &b{target}&7:"
         - ""
-        - "&cBans: &e{ban_count}"
-        - "&eMutes: &e{mute_count}"
-        - "&9Kicks: &e{kick_count}"
-        - "&3Softbans: &e{softban_count}"
-        - "&6Warns: &e{warn_count}"
-        - "&5Freezes: &e{freeze_count}"
+        - "&cBans: &e{ban_count} &a({active_ban_count})"
+        - "&eMutes: &e{mute_count} &a({active_mute_count})"
+        - "&9Kicks: &e{kick_count} &a({active_kick_count})"
+        - "&3Softbans: &e{softban_count} &a({active_softban_count})"
+        - "&6Warns: &e{warn_count} &a({active_warn_count})"
+        - "&5Freezes: &e{freeze_count} &a({active_freeze_count})"
         - ""
 
     background_fill:
