@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -27,9 +28,9 @@ public class HistoryMenu implements InventoryHolder {
     private final Crown plugin;
     private int page = 1;
     private final int entriesPerPage = 28;
-    private final List<MenuItem> historyEntryItems = new ArrayList<>();
     private final Set<String> menuItemKeys = new HashSet<>();
     private List<DatabaseManager.PunishmentEntry> allHistoryEntries;
+    private boolean isLoadingPage = false;
 
     private static final String LOADING_ITEM_KEY = "loading_item";
     private static final String BACK_BUTTON_KEY = "back_button";
@@ -53,31 +54,19 @@ public class HistoryMenu implements InventoryHolder {
         inventory = Bukkit.createInventory(this, 54, title);
 
         loadMenuItems();
-
-        // Show a loading screen first
         initializeLoadingState(target);
 
-        // Load and process history asynchronously
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             loadAndProcessAllHistory();
-
-            // Once data is loaded, populate the inventory on the main thread
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                // Ensure the player is still viewing this inventory before updating
-                Player viewer = (Player) inventory.getViewers().stream().findFirst().orElse(null);
-                if (viewer != null && viewer.getOpenInventory().getTopInventory().getHolder() == this) {
-                    inventory.clear(); // Clear loading items
-                    initializeItems(target);
-                }
-            });
+            loadPageAsync(1, (Player) inventory.getViewers().stream().findFirst().orElse(null));
         });
     }
 
     private void initializeLoadingState(OfflinePlayer target) {
+        inventory.clear();
         setItemInMenu(LOADING_ITEM_KEY, plugin.getConfigManager().getHistoryMenuItemConfig(LOADING_ITEM_KEY), target, 22);
         fillEmptySlotsWithBackground(target);
     }
-
 
     private void loadAndProcessAllHistory() {
         allHistoryEntries = plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, 1, Integer.MAX_VALUE);
@@ -90,7 +79,6 @@ public class HistoryMenu implements InventoryHolder {
 
             boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
                     && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
-
 
             if (type.equals("warn")) {
                 ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
@@ -120,37 +108,45 @@ public class HistoryMenu implements InventoryHolder {
         }
     }
 
-    private void initializeItems(OfflinePlayer target) {
-        // Place static items like back button and info panels
-        for (String itemKey : menuItemKeys) {
-            // Exclude items that are dynamically placed or handled elsewhere
-            if (!itemKey.startsWith(HISTORY_ENTRY_ITEM_KEY.substring(0, 4)) && // a simple startsWith to catch all history_entry types
-                    !itemKey.equals(NEXT_PAGE_BUTTON_KEY) &&
-                    !itemKey.equals(PREVIOUS_PAGE_BUTTON_KEY) &&
-                    !itemKey.equals(LOADING_ITEM_KEY) &&
-                    !itemKey.equals(BACKGROUND_FILL_KEY))
-            {
-                setItemInMenu(itemKey, plugin.getConfigManager().getHistoryMenuItemConfig(itemKey), target);
-            }
-        }
+    private void loadPageAsync(int newPage, Player viewer) {
+        if (isLoadingPage) return;
+        isLoadingPage = true;
+        this.page = newPage;
 
-        // Load the dynamic history entries for the current page
-        loadHistoryPage(target, page);
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
 
-        // Fill remaining empty slots
-        fillEmptySlotsWithBackground(target);
+        // Give immediate feedback that the page is changing
+        Bukkit.getScheduler().runTask(plugin, () -> initializeLoadingState(target));
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            final Map<Integer, ItemStack> pageItems = preparePageItems(target, newPage);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (viewer == null || !viewer.isOnline() || viewer.getOpenInventory().getTopInventory().getHolder() != this) {
+                    isLoadingPage = false;
+                    return; // Player closed the menu, abort update
+                }
+
+                inventory.clear();
+
+                // Place static items
+                placeStaticItems(target);
+
+                // Place the asynchronously prepared items
+                pageItems.forEach(inventory::setItem);
+
+                updatePageButtons(target);
+                fillEmptySlotsWithBackground(target);
+                isLoadingPage = false;
+            });
+        });
     }
 
-    private void loadHistoryPage(OfflinePlayer target, int page) {
-        clearHistoryEntries();
-        historyEntryItems.clear();
-
-        int start = (page - 1) * entriesPerPage;
+    private Map<Integer, ItemStack> preparePageItems(OfflinePlayer target, int pageToLoad) {
+        Map<Integer, ItemStack> items = new ConcurrentHashMap<>();
+        int start = (pageToLoad - 1) * entriesPerPage;
         int end = Math.min(start + entriesPerPage, allHistoryEntries.size());
         List<DatabaseManager.PunishmentEntry> historyForPage = (start < allHistoryEntries.size()) ? allHistoryEntries.subList(start, end) : Collections.emptyList();
-
-        Map<String, ActiveWarningEntry> activeWarningsMap = plugin.getSoftBanDatabaseManager().getAllActiveAndPausedWarnings(targetUUID)
-                .stream().collect(Collectors.toMap(ActiveWarningEntry::getPunishmentId, w -> w));
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -189,75 +185,58 @@ public class HistoryMenu implements InventoryHolder {
             historyEntryItem.setName(MessageUtils.getColorMessage(entryName));
 
             List<String> lore = new ArrayList<>();
-            String originalPunishmentId = entry.getPunishmentId();
-            String reason = entry.getReason();
-
             List<String> configLore = plugin.getConfigManager().getHistoryMenuItemLore(HISTORY_ENTRY_ITEM_KEY, target);
             for (String line : configLore) {
-                String processedLine = line.replace("{punishment_id}", originalPunishmentId)
-                        .replace("{reason}", reason)
+                String processedLine = line.replace("{punishment_id}", entry.getPunishmentId())
+                        .replace("{reason}", entry.getReason())
                         .replace("{date}", dateFormat.format(entry.getTimestamp()))
                         .replace("{punisher}", entry.getPunisherName())
                         .replace("{duration}", getDurationDisplay(entry));
                 lore.add(processedLine);
             }
 
+            // Append dynamic status lore
             if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_active"))) {
                 String expiresAt = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Never" : dateFormat.format(new Date(entry.getPunishmentTime()));
                 long remainingMillis = entry.getPunishmentTime() - System.currentTimeMillis();
                 String timeLeft = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
                 lore.add("&7Expires: &b" + expiresAt + " (" + timeLeft + ")");
-            } else if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_removed"))) {
+            } else if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_removed")) || status.equals(plugin.getConfigManager().getMessage("placeholders.status_paused"))) {
                 if (entry.getRemovedByName() != null && entry.getRemovedAt() != null) {
-                    lore.add("&cRemoved by: &e" + entry.getRemovedByName());
-                    lore.add("&cAt: &e" + dateFormat.format(entry.getRemovedAt()));
-                    if (entry.getRemovedReason() != null && !entry.getRemovedReason().isEmpty()) {
-                        lore.add("&cReason: &e" + entry.getRemovedReason());
-                    }
-                }
-            } else if (entry.getType().equalsIgnoreCase("warn")) {
-                ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
-                if (activeWarning != null) {
-                    lore.add("&7Level: &b" + activeWarning.getWarnLevel());
-                    String timeLeft;
-                    if (activeWarning.isPaused()) {
-                        timeLeft = TimeUtils.formatTime((int) (activeWarning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
-                        lore.add("&7Time Left: &e" + timeLeft);
-                    } else if (activeWarning.getEndTime() != -1) {
-                        timeLeft = TimeUtils.formatTime((int) ((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
-                        lore.add("&7Expires in: &e" + timeLeft);
-                    }
-                } else if (!entry.isActive() && entry.getRemovedByName() != null) { // Restored logic
-                    lore.add("&cRemoved by: &e" + entry.getRemovedByName());
+                    lore.add("&c" + (status.contains("Paused") ? "Paused" : "Removed") + " by: &e" + entry.getRemovedByName());
                     lore.add("&cAt: &e" + dateFormat.format(entry.getRemovedAt()));
                     if (entry.getRemovedReason() != null && !entry.getRemovedReason().isEmpty()) {
                         lore.add("&cReason: &e" + entry.getRemovedReason());
                     }
                 }
             }
-
 
             historyEntryItem.setLore(lore);
             historyEntryItem.setSlots(List.of(slot));
 
-            List<MenuItem.ClickActionData> leftClickActions = historyItemConfig.getLeftClickActions();
-            if ((leftClickActions == null || leftClickActions.isEmpty()) && baseItemConfig != null) {
-                leftClickActions = baseItemConfig.getLeftClickActions();
-            }
+            // Set actions
+            List<MenuItem.ClickActionData> leftClickActions = Optional.ofNullable(historyItemConfig.getLeftClickActions()).filter(list -> !list.isEmpty()).orElse(baseItemConfig != null ? baseItemConfig.getLeftClickActions() : Collections.emptyList());
+            List<MenuItem.ClickActionData> rightClickActions = Optional.ofNullable(historyItemConfig.getRightClickActions()).filter(list -> !list.isEmpty()).orElse(baseItemConfig != null ? baseItemConfig.getRightClickActions() : Collections.emptyList());
 
-            List<MenuItem.ClickActionData> rightClickActions = historyItemConfig.getRightClickActions();
-            if ((rightClickActions == null || rightClickActions.isEmpty()) && baseItemConfig != null) {
-                rightClickActions = baseItemConfig.getRightClickActions();
-            }
+            historyEntryItem.setLeftClickActions(processActions(leftClickActions, entry.getPunishmentId()));
+            historyEntryItem.setRightClickActions(processActions(rightClickActions, entry.getPunishmentId()));
 
-            historyEntryItem.setLeftClickActions(processActions(leftClickActions, originalPunishmentId));
-            historyEntryItem.setRightClickActions(processActions(rightClickActions, originalPunishmentId));
-
-            setItemInMenu(HISTORY_ENTRY_ITEM_KEY, historyEntryItem, target, slot);
-            historyEntryItems.add(historyEntryItem);
+            items.put(slot, historyEntryItem.toItemStack(target, plugin.getConfigManager()));
             index++;
         }
-        updatePageButtons(target);
+        return items;
+    }
+
+    private void placeStaticItems(OfflinePlayer target) {
+        for (String itemKey : menuItemKeys) {
+            if (!itemKey.startsWith(HISTORY_ENTRY_ITEM_KEY.substring(0, 4)) &&
+                    !itemKey.equals(NEXT_PAGE_BUTTON_KEY) &&
+                    !itemKey.equals(PREVIOUS_PAGE_BUTTON_KEY) &&
+                    !itemKey.equals(LOADING_ITEM_KEY) &&
+                    !itemKey.equals(BACKGROUND_FILL_KEY)) {
+                setItemInMenu(itemKey, plugin.getConfigManager().getHistoryMenuItemConfig(itemKey), target);
+            }
+        }
     }
 
     private List<MenuItem.ClickActionData> processActions(List<MenuItem.ClickActionData> actions, String punishmentId) {
@@ -338,21 +317,6 @@ public class HistoryMenu implements InventoryHolder {
         return staticSlots.contains(slot);
     }
 
-    private ItemStack getItemStack(String itemKey, OfflinePlayer target) {
-        if (plugin.getConfigManager().isDebugEnabled()) {
-            plugin.getLogger().log(Level.INFO, "[HistoryMenu] getItemStack called for itemKey: " + itemKey);
-        }
-        MenuItem menuItemConfig = plugin.getConfigManager().getHistoryMenuItemConfig(itemKey);
-        if (menuItemConfig != null) {
-            return menuItemConfig.toItemStack(target, plugin.getConfigManager());
-        } else {
-            if (plugin.getConfigManager().isDebugEnabled()) {
-                plugin.getLogger().log(Level.WARNING, "[HistoryMenu] getItemStack - No MenuItem config found for itemKey: " + itemKey);
-            }
-            return null;
-        }
-    }
-
     private void clearHistoryEntries() {
         for (int slot : validSlots) {
             inventory.clear(slot);
@@ -394,31 +358,34 @@ public class HistoryMenu implements InventoryHolder {
 
     public void nextPage(Player player) {
         int totalCount = allHistoryEntries.size();
-        if (totalCount <= (page * entriesPerPage)) {
-            return;
+        if (totalCount > (page * entriesPerPage)) {
+            loadPageAsync(page + 1, player);
         }
-        page++;
-        // OPTIMIZATION: Only redraw dynamic parts of the menu
-        loadHistoryPage(Bukkit.getOfflinePlayer(targetUUID), page);
-        fillEmptySlotsWithBackground(Bukkit.getOfflinePlayer(targetUUID));
     }
 
     public void previousPage(Player player) {
         if (page > 1) {
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - previousPage() called. Current page: " + page);
-            page--;
-            // OPTIMIZATION: Only redraw dynamic parts of the menu
-            loadHistoryPage(Bukkit.getOfflinePlayer(targetUUID), page);
-            fillEmptySlotsWithBackground(Bukkit.getOfflinePlayer(targetUUID));
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - Navigated to previous page. New page: " + page);
-        } else {
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - previousPage() called, but already on first page.");
-            player.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.history_menu_first_page")));
+            loadPageAsync(page - 1, player);
         }
     }
 
     public List<MenuItem> getHistoryEntryItems() {
-        return historyEntryItems;
+        List<MenuItem> items = new ArrayList<>();
+        for (int slot : validSlots) {
+            ItemStack itemStack = inventory.getItem(slot);
+            if (itemStack != null) {
+                // This is a simplified conversion; real implementation might need more data from NBT
+                MenuItem menuItem = new MenuItem();
+                menuItem.setMaterial(itemStack.getType().toString());
+                if (itemStack.hasItemMeta()) {
+                    menuItem.setName(itemStack.getItemMeta().getDisplayName());
+                    menuItem.setLore(itemStack.getItemMeta().getLore());
+                }
+                menuItem.setSlots(List.of(slot));
+                items.add(menuItem);
+            }
+        }
+        return items;
     }
 
     public Set<String> getMenuItemKeys() {
