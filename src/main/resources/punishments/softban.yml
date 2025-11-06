@@ -4,7 +4,7 @@ punish-by-ip: true # If true, the internal softban will be by IP address instead
 punish-command: 'softban {target} {time} {reason}'
 unpunish-command: 'unsoftban {target}'
 default-reason: "Softbanned by a moderator."
-default-unpunish-reason: "Un-softbanned by {player}."
+default-unpunish-reason: "Un-softbanned by a moderator."
 
 blocked_commands:
   - examplecommand

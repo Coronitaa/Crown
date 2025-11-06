@@ -154,7 +154,11 @@ public class PunishmentListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        UUID playerUUID = event.getPlayer().getUniqueId();
+        Player player = event.getPlayer();
+        UUID playerUUID = player.getUniqueId();
+
+        plugin.getSoftBanDatabaseManager().updatePlayerLastState(player);
+
         // Clean up caches on player quit to prevent memory leaks
         plugin.getMutedPlayersCache().remove(playerUUID);
         plugin.getSoftBannedPlayersCache().remove(playerUUID);

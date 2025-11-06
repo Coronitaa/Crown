@@ -15,6 +15,7 @@ import cp.corona.menus.items.MenuItem.ClickActionData;
 import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -164,40 +165,67 @@ public class MenuListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> handlePlayerInput(player, message));
     }
 
+    /**
+     * Centralized placeholder processing for all menu actions.
+     * Replaces placeholders for both the executor (player) and the target.
+     *
+     * @param text The string to process.
+     * @param executor The player performing the action.
+     * @param holder The menu holder to get the target context.
+     * @return The fully processed string with all placeholders replaced.
+     */
+    private String processAllPlaceholders(String text, Player executor, InventoryHolder holder) {
+        if (text == null) return null;
+
+        OfflinePlayer target = getTargetForAction(holder);
+
+        // First, process target-related placeholders using the existing robust method from MainConfigManager.
+        String processedText = plugin.getConfigManager().processPlaceholders(text, target);
+
+        // Second, process executor-specific placeholders.
+        if (executor != null) {
+            processedText = processedText.replace("{player}", executor.getName());
+            // Apply PlaceholderAPI for the executor as well.
+            if (plugin.isPlaceholderAPIEnabled()) {
+                processedText = PlaceholderAPI.setPlaceholders(executor, processedText);
+            }
+        }
+
+        return processedText;
+    }
+
     private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + (clickedMenuItem != null ? clickedMenuItem.getName() : "null") + ", Holder Type: " + holder.getClass().getSimpleName());
 
-        String[] processedActionData = actionData;
-
         boolean handledByMenuSpecific = false;
         if (holder instanceof PunishMenu punishMenu) {
-            handledByMenuSpecific = handlePunishMenuActions(player, punishMenu, action, processedActionData, clickedMenuItem);
+            handledByMenuSpecific = handlePunishMenuActions(player, punishMenu, action, actionData, clickedMenuItem);
         } else if (holder instanceof PunishDetailsMenu punishDetailsMenu) {
-            handledByMenuSpecific = handlePunishDetailsMenuActions(player, punishDetailsMenu, action, processedActionData, clickedMenuItem);
+            handledByMenuSpecific = handlePunishDetailsMenuActions(player, punishDetailsMenu, action, actionData, clickedMenuItem);
         } else if (holder instanceof TimeSelectorMenu timeSelectorMenu) {
-            handledByMenuSpecific = handleTimeSelectorMenuActions(player, timeSelectorMenu, action, processedActionData, clickedMenuItem);
+            handledByMenuSpecific = handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData, clickedMenuItem);
         } else if (holder instanceof HistoryMenu historyMenu) {
-            handledByMenuSpecific = handleHistoryMenuActions(player, historyMenu, action, processedActionData, clickedMenuItem);
+            handledByMenuSpecific = handleHistoryMenuActions(player, historyMenu, action, actionData, clickedMenuItem);
         }
 
         if (!handledByMenuSpecific) {
             switch (action) {
-                case CONSOLE_COMMAND: executeConsoleCommand(player, processedActionData, holder); break;
+                case CONSOLE_COMMAND: executeConsoleCommand(player, actionData, holder); break;
                 case PLAYER_COMMAND:
-                case PLAYER_COMMAND_OP: executeCommandAction(player, action, processedActionData, holder); break;
+                case PLAYER_COMMAND_OP: executeCommandAction(player, action, actionData, holder); break;
                 case CLOSE_MENU: player.closeInventory(); break;
-                case PLAY_SOUND: executePlaySoundAction(player, processedActionData); break;
-                case TITLE: executeTitleAction(player, processedActionData); break;
-                case MESSAGE: executeMessageAction(player, processedActionData, holder); break;
-                case ACTIONBAR: executeActionbarAction(player, processedActionData); break;
-                case PLAY_SOUND_TARGET: executePlaySoundTargetAction(player, holder, processedActionData); break;
-                case TITLE_TARGET: executeTitleTargetAction(player, holder, processedActionData); break;
-                case MESSAGE_TARGET: executeMessageTargetAction(player, holder, processedActionData); break;
-                case ACTIONBAR_TARGET: executeActionbarTargetAction(player, holder, processedActionData); break;
+                case PLAY_SOUND: executePlaySoundAction(player, actionData); break;
+                case TITLE: executeTitleAction(player, actionData, holder); break;
+                case MESSAGE: executeMessageAction(player, actionData, holder); break;
+                case ACTIONBAR: executeActionbarAction(player, actionData, holder); break;
+                case PLAY_SOUND_TARGET: executePlaySoundTargetAction(player, holder, actionData); break;
+                case TITLE_TARGET: executeTitleTargetAction(player, holder, actionData); break;
+                case MESSAGE_TARGET: executeMessageTargetAction(player, holder, actionData); break;
+                case ACTIONBAR_TARGET: executeActionbarTargetAction(player, holder, actionData); break;
                 case GIVE_EFFECT_TARGET: executeGiveEffectTargetAction(player, holder, actionData); break;
-                case PLAY_SOUND_MODS: executePlaySoundModsAction(player, holder, processedActionData); break;
-                case TITLE_MODS: executeTitleModsAction(player, holder, processedActionData); break;
-                case MESSAGE_MODS: executeMessageModsAction(player, holder, processedActionData); break;
+                case PLAY_SOUND_MODS: executePlaySoundModsAction(player, holder, actionData); break;
+                case TITLE_MODS: executeTitleModsAction(player, holder, actionData); break;
+                case MESSAGE_MODS: executeMessageModsAction(player, holder, actionData); break;
                 default:
                     if (plugin.getConfigManager().isDebugEnabled() && action != ClickAction.NO_ACTION) {
                         plugin.getLogger().info("[DEBUG] Action " + action + " was not handled by common handlers (expected if menu-specific).");
@@ -212,12 +240,9 @@ public class MenuListener implements Listener {
     public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) {
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] executeMenuItemAction - START - Player: " + player.getName() + ", Action: " + action + ", ActionData: " + Arrays.toString(actionData));
 
-        String[] processedActionData = actionData;
-        if (actionData != null && actionData.length > 0) {
-            processedActionData = Arrays.stream(actionData)
-                    .filter(Objects::nonNull)
-                    .map(data -> replacePlaceholders(player, data, null))
-                    .toArray(String[]::new);
+        String[] processedActionData = new String[actionData.length];
+        for (int i = 0; i < actionData.length; i++) {
+            processedActionData[i] = processAllPlaceholders(actionData[i], player, null);
         }
 
         switch (action) {
@@ -225,9 +250,9 @@ public class MenuListener implements Listener {
             case PLAYER_COMMAND:
             case PLAYER_COMMAND_OP: executeCommandAction(player, action, processedActionData, null); break;
             case PLAY_SOUND: executePlaySoundAction(player, processedActionData); break;
-            case TITLE: executeTitleAction(player, processedActionData); break;
+            case TITLE: executeTitleAction(player, processedActionData, null); break;
             case MESSAGE: executeMessageAction(player, processedActionData, null); break;
-            case ACTIONBAR: executeActionbarAction(player, processedActionData); break;
+            case ACTIONBAR: executeActionbarAction(player, processedActionData, null); break;
             default:
                 plugin.getLogger().warning("[WARNING] executeMenuItemAction called with context-dependent action ("+action+") without inventory context. Action skipped for player " + player.getName() + ".");
                 break;
@@ -283,7 +308,7 @@ public class MenuListener implements Listener {
         } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND: " + parts[0]); }
     }
 
-    private void executeTitleAction(Player player, String[] titleArgs) {
+    private void executeTitleAction(Player player, String[] titleArgs, InventoryHolder holder) {
         if (titleArgs == null || titleArgs.length == 0 || titleArgs[0] == null || titleArgs[0].isEmpty()) {
             plugin.getLogger().warning("TITLE action requires a non-empty data string.");
             return;
@@ -293,8 +318,8 @@ public class MenuListener implements Listener {
             plugin.getLogger().warning("TITLE action requires at least title, subtitle, and time_seconds arguments.");
             return;
         }
-        String titleText = MessageUtils.getColorMessage(parts[0]);
-        String subtitleText = MessageUtils.getColorMessage(parts[1]);
+        String titleText = MessageUtils.getColorMessage(processAllPlaceholders(parts[0], player, holder));
+        String subtitleText = MessageUtils.getColorMessage(processAllPlaceholders(parts[1], player, holder));
         try {
             int timeSeconds = Integer.parseInt(parts[2]);
             int fadeInTicks = parts.length > 3 ? Integer.parseInt(parts[3]) : 10;
@@ -311,23 +336,19 @@ public class MenuListener implements Listener {
             plugin.getLogger().warning("MESSAGE action requires a non-null message text argument."); return;
         }
 
-        OfflinePlayer target = getTargetForAction(holder);
-        if (target != null) {
-            messageText = plugin.getConfigManager().processPlaceholders(messageText, target);
-        }
-        messageText = MessageUtils.getColorMessage(messageText);
+        messageText = MessageUtils.getColorMessage(processAllPlaceholders(messageText, player, holder));
 
         player.sendMessage(messageText);
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE sent to " + player.getName() + ": " + messageText);
     }
 
-    private void executeActionbarAction(Player player, String[] messageArgs) {
+    private void executeActionbarAction(Player player, String[] messageArgs, InventoryHolder holder) {
         String messageText = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
         if (messageText == null) {
             plugin.getLogger().warning("ACTIONBAR action requires a non-null message text argument."); return;
         }
-        messageText = MessageUtils.getColorMessage(messageText);
+        messageText = MessageUtils.getColorMessage(processAllPlaceholders(messageText, player, holder));
 
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(messageText));
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR sent to " + player.getName() + ": " + messageText);
@@ -371,10 +392,8 @@ public class MenuListener implements Listener {
             return;
         }
 
-        String titleText = plugin.getConfigManager().processPlaceholders(parts[0], target);
-        titleText = MessageUtils.getColorMessage(titleText);
-        String subtitleText = plugin.getConfigManager().processPlaceholders(parts[1], target);
-        subtitleText = MessageUtils.getColorMessage(subtitleText);
+        String titleText = MessageUtils.getColorMessage(processAllPlaceholders(parts[0], player, holder));
+        String subtitleText = MessageUtils.getColorMessage(processAllPlaceholders(parts[1], player, holder));
         try {
             int timeSeconds = Integer.parseInt(parts[2]);
             int fadeInTicks = parts.length > 3 ? Integer.parseInt(parts[3]) : 10;
@@ -393,8 +412,7 @@ public class MenuListener implements Listener {
 
         if (messageText == null) { plugin.getLogger().warning("MESSAGE_TARGET action requires a non-null message text argument."); return; }
 
-        messageText = plugin.getConfigManager().processPlaceholders(messageText, target);
-        messageText = MessageUtils.getColorMessage(messageText);
+        messageText = MessageUtils.getColorMessage(processAllPlaceholders(messageText, player, holder));
 
         targetPlayer.sendMessage(messageText);
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] MESSAGE_TARGET sent to " + targetPlayer.getName() + ": " + messageText);
@@ -409,8 +427,7 @@ public class MenuListener implements Listener {
 
         if (messageText == null) { plugin.getLogger().warning("ACTIONBAR_TARGET action requires a non-null message text argument."); return; }
 
-        messageText = plugin.getConfigManager().processPlaceholders(messageText, target);
-        messageText = MessageUtils.getColorMessage(messageText);
+        messageText = MessageUtils.getColorMessage(processAllPlaceholders(messageText, player, holder));
 
         targetPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(messageText));
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_TARGET sent to " + targetPlayer.getName() + ": " + messageText);
@@ -470,15 +487,14 @@ public class MenuListener implements Listener {
             return;
         }
         List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] TITLE_MODS skipped: No online mods."); return; }
-        OfflinePlayer target = getTargetForAction(holder);
         String[] parts = titleArgs[0].split(":");
         if (parts.length < 3) {
             plugin.getLogger().warning("TITLE_MODS action requires at least title, subtitle, and time_seconds arguments.");
             return;
         }
 
-        String titleText = plugin.getConfigManager().processPlaceholders(parts[0], target); titleText = replacePlaceholders(player, titleText, holder); titleText = MessageUtils.getColorMessage(titleText);
-        String subtitleText = plugin.getConfigManager().processPlaceholders(parts[1], target); subtitleText = replacePlaceholders(player, subtitleText, holder); subtitleText = MessageUtils.getColorMessage(subtitleText);
+        String titleText = MessageUtils.getColorMessage(processAllPlaceholders(parts[0], player, holder));
+        String subtitleText = MessageUtils.getColorMessage(processAllPlaceholders(parts[1], player, holder));
         try {
             int timeSeconds = Integer.parseInt(parts[2]);
             int fadeInTicks = parts.length > 3 ? Integer.parseInt(parts[3]) : 10;
@@ -491,7 +507,6 @@ public class MenuListener implements Listener {
 
     private void executeMessageModsAction(Player player, InventoryHolder holder, String[] messageArgs) {
         List<Player> mods = getMods();
-        OfflinePlayer target = getTargetForAction(holder);
 
         String baseMessage = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
@@ -500,12 +515,7 @@ public class MenuListener implements Listener {
             return;
         }
 
-        String initiatorName = (player != null) ? player.getName() : "System";
-        baseMessage = plugin.getConfigManager().processPlaceholders(baseMessage, target);
-        baseMessage = baseMessage.replace("{player}", initiatorName);
-        baseMessage = MessageUtils.getColorMessage(baseMessage);
-
-        final String finalMessage = baseMessage;
+        final String finalMessage = MessageUtils.getColorMessage(processAllPlaceholders(baseMessage, player, holder));
         mods.forEach(mod -> mod.sendMessage(finalMessage));
         Bukkit.getConsoleSender().sendMessage(finalMessage); // Also send to console
 
@@ -516,32 +526,27 @@ public class MenuListener implements Listener {
 
     private void executeActionbarModsAction(Player player, InventoryHolder holder, String[] messageArgs) {
         List<Player> mods = getMods(); if (mods.isEmpty()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_MODS skipped: No online mods."); return; }
-        OfflinePlayer target = getTargetForAction(holder);
 
         String baseMessage = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
         if (baseMessage == null) { plugin.getLogger().warning("ACTIONBAR_MODS action requires a non-null message text argument."); return; }
 
-        String initiatorName = (player != null) ? player.getName() : "System";
-        baseMessage = plugin.getConfigManager().processPlaceholders(baseMessage, target);
-        baseMessage = baseMessage.replace("{player}", initiatorName);
-        baseMessage = MessageUtils.getColorMessage(baseMessage);
-
-        final String finalMessage = baseMessage;
+        final String finalMessage = MessageUtils.getColorMessage(processAllPlaceholders(baseMessage, player, holder));
         mods.forEach(mod -> mod.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(finalMessage)));
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR_MODS sent to " + mods.size() + " mods: " + finalMessage);
     }
 
     private void executeCommandAction(Player player, ClickAction action, String[] commandData, InventoryHolder holder) {
         if (commandData == null || commandData.length < 1 || commandData[0] == null || commandData[0].isEmpty()) { plugin.getLogger().warning("Invalid COMMAND action data: Command string is missing or empty."); return; }
-        OfflinePlayer target = getTargetForAction(holder);
-        String commandToExecute = plugin.getConfigManager().processPlaceholders(commandData[0], target);
+
+        String commandToExecute = processAllPlaceholders(commandData[0], player, holder);
         commandToExecute = ColorUtils.translateRGBColors(commandToExecute);
+
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing COMMAND: " + action + " Command: " + commandToExecute);
         final String finalCommand = commandToExecute;
+
         Bukkit.getScheduler().runTask(plugin, () -> {
             switch (action) {
-                case CONSOLE_COMMAND: Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand); break;
                 case PLAYER_COMMAND: player.performCommand(finalCommand); break;
                 case PLAYER_COMMAND_OP:
                     boolean wasOp = player.isOp();
@@ -556,13 +561,17 @@ public class MenuListener implements Listener {
 
     private void executeConsoleCommand(Player player, String[] commandData, InventoryHolder holder) {
         if (commandData == null || commandData.length < 1 || commandData[0] == null || commandData[0].isEmpty()) { plugin.getLogger().warning("Invalid CONSOLE_COMMAND action data: Command string is missing or empty."); return; }
-        OfflinePlayer target = getTargetForAction(holder);
-        String commandToExecute = plugin.getConfigManager().processPlaceholders(commandData[0], target);
+
+        String commandToExecute = processAllPlaceholders(commandData[0], player, holder);
         commandToExecute = ColorUtils.translateRGBColors(commandToExecute);
+
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing CONSOLE_COMMAND: " + commandToExecute);
         final String finalCommand = commandToExecute;
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
     }
+
+    // The rest of the methods remain unchanged, as they handle menu logic, not placeholder processing for actions.
+    // ... (All other methods from the original file from handlePunishMenuActions downwards)
 
     private boolean handlePunishMenuActions(Player player, PunishMenu punishMenu, ClickAction action, String[] actionData, MenuItem clickedMenuItem) {
         UUID targetUUID = punishMenu.getTargetUUID();
@@ -1406,12 +1415,6 @@ public class MenuListener implements Listener {
         return null;
     }
 
-    private String replacePlaceholders(Player player, String text, InventoryHolder holder) {
-        if (text == null) return null;
-        String playerName = (player != null) ? player.getName() : "Unknown";
-        return text.replace("{player}", playerName);
-    }
-
     private List<Player> getMods() {
         return Bukkit.getOnlinePlayers().stream().filter(p -> p.hasPermission(MOD_PERMISSION)).collect(Collectors.toList());
     }
@@ -1535,6 +1538,7 @@ public class MenuListener implements Listener {
             plugin.getLogger().info("[DEBUG] Preparing to execute " + actions.size() + " hook actions for " + hookType + "." + punishmentType);
         }
 
+        Player playerExecutor = (executor instanceof Player) ? (Player) executor : null;
         final String executorName = (executor instanceof Player) ? executor.getName() : "Console";
         String targetName = (target != null && target.getName() != null) ? target.getName() : (target != null ? target.getUniqueId().toString() : "Unknown");
         final String finalTime = (time != null) ? time : "N/A";
@@ -1567,12 +1571,12 @@ public class MenuListener implements Listener {
                         currentArg = matcher.replaceAll(replacementId);
                     }
 
-                    currentArg = currentArg.replace("{player}", executorName);
-                    currentArg = currentArg.replace("{target}", targetName);
+                    // Use the centralized placeholder method
+                    currentArg = processAllPlaceholders(currentArg, playerExecutor, new TempHolder(target.getUniqueId()));
+
                     currentArg = currentArg.replace("{reason}", finalReason);
                     currentArg = currentArg.replace("{time}", finalTime);
                     currentArg = currentArg.replace("{punishment_type}", finalPunishmentTypePlaceholder);
-                    currentArg = plugin.getConfigManager().processPlaceholders(currentArg, null);
                     processedHookArgs[i] = MessageUtils.getColorMessage(currentArg);
                 } else {
                     processedHookArgs[i] = null;
@@ -1702,7 +1706,7 @@ public class MenuListener implements Listener {
                 else { logTargetMissing(action, plugin); } break;
 
             case TITLE:
-                if (executor instanceof Player playerExecutor) { executeTitleAction(playerExecutor, actionArgs); }
+                if (executor instanceof Player playerExecutor) { executeTitleAction(playerExecutor, actionArgs, null); }
                 break;
             case TITLE_TARGET:
                 if (target != null) { executeTitleTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
@@ -1723,7 +1727,7 @@ public class MenuListener implements Listener {
                 else { logTargetMissing(action, plugin); } break;
 
             case ACTIONBAR:
-                if (executor instanceof Player playerExecutor) { executeActionbarAction(playerExecutor, actionArgs); }
+                if (executor instanceof Player playerExecutor) { executeActionbarAction(playerExecutor, actionArgs, null); }
                 break;
             case ACTIONBAR_TARGET:
                 if (target != null) { executeActionbarTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }

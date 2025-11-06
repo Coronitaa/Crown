@@ -31,6 +31,7 @@ public class HistoryMenu implements InventoryHolder {
     private final Set<String> menuItemKeys = new HashSet<>();
     private List<DatabaseManager.PunishmentEntry> allHistoryEntries;
     private boolean isLoadingPage = false;
+    private final List<MenuItem> historyEntryItemsCache = Collections.synchronizedList(new ArrayList<>()); // MODIFIED: Added cache
 
     private static final String LOADING_ITEM_KEY = "loading_item";
     private static final String BACK_BUTTON_KEY = "back_button";
@@ -38,7 +39,6 @@ public class HistoryMenu implements InventoryHolder {
     private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
     private static final String HISTORY_ENTRY_ITEM_KEY = "history_entry";
     private static final String BACKGROUND_FILL_KEY = "background_fill";
-
     private static final List<Integer> validSlots = List.of(
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -55,7 +55,6 @@ public class HistoryMenu implements InventoryHolder {
 
         loadMenuItems();
         initializeLoadingState(target);
-
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             loadAndProcessAllHistory();
             loadPageAsync(1, (Player) inventory.getViewers().stream().findFirst().orElse(null));
@@ -83,10 +82,12 @@ public class HistoryMenu implements InventoryHolder {
             if (type.equals("warn")) {
                 ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
                 if (activeWarning != null) {
-                    status = activeWarning.isPaused() ? plugin.getConfigManager().getMessage("placeholders.status_paused")
+                    status = activeWarning.isPaused() ?
+                            plugin.getConfigManager().getMessage("placeholders.status_paused")
                             : plugin.getConfigManager().getMessage("placeholders.status_active");
                 } else {
-                    status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                    status = isSystemExpired ?
+                            plugin.getConfigManager().getMessage("placeholders.status_expired")
                             : plugin.getConfigManager().getMessage("placeholders.status_removed");
                 }
             } else if (type.equals("kick")) {
@@ -97,10 +98,12 @@ public class HistoryMenu implements InventoryHolder {
                     status = plugin.getConfigManager().getMessage("placeholders.status_paused");
                 } else if (entry.isActive()) {
                     status = (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE)
-                            ? plugin.getConfigManager().getMessage("placeholders.status_active")
+                            ?
+                            plugin.getConfigManager().getMessage("placeholders.status_active")
                             : plugin.getConfigManager().getMessage("placeholders.status_expired");
                 } else {
-                    status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                    status = isSystemExpired ?
+                            plugin.getConfigManager().getMessage("placeholders.status_expired")
                             : plugin.getConfigManager().getMessage("placeholders.status_removed");
                 }
             }
@@ -114,7 +117,6 @@ public class HistoryMenu implements InventoryHolder {
         this.page = newPage;
 
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-
         // Give immediate feedback that the page is changing
         Bukkit.getScheduler().runTask(plugin, () -> initializeLoadingState(target));
 
@@ -143,13 +145,13 @@ public class HistoryMenu implements InventoryHolder {
     }
 
     private Map<Integer, ItemStack> preparePageItems(OfflinePlayer target, int pageToLoad) {
+        historyEntryItemsCache.clear(); // MODIFIED: Clear cache before populating
         Map<Integer, ItemStack> items = new ConcurrentHashMap<>();
         int start = (pageToLoad - 1) * entriesPerPage;
         int end = Math.min(start + entriesPerPage, allHistoryEntries.size());
         List<DatabaseManager.PunishmentEntry> historyForPage = (start < allHistoryEntries.size()) ? allHistoryEntries.subList(start, end) : Collections.emptyList();
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
         int index = 0;
         for (DatabaseManager.PunishmentEntry entry : historyForPage) {
             if (index >= validSlots.size()) break;
@@ -170,7 +172,6 @@ public class HistoryMenu implements InventoryHolder {
 
             String status = entry.getStatus() != null ? entry.getStatus() : "";
             String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
-
             String nameTemplate = Optional.ofNullable(historyItemConfig.getName())
                     .orElse(baseItemConfig != null ? baseItemConfig.getName() : "");
 
@@ -197,9 +198,11 @@ public class HistoryMenu implements InventoryHolder {
 
             // Append dynamic status lore
             if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_active"))) {
-                String expiresAt = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Never" : dateFormat.format(new Date(entry.getPunishmentTime()));
+                String expiresAt = (entry.getPunishmentTime() == Long.MAX_VALUE) ?
+                        "Never" : dateFormat.format(new Date(entry.getPunishmentTime()));
                 long remainingMillis = entry.getPunishmentTime() - System.currentTimeMillis();
-                String timeLeft = (entry.getPunishmentTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
+                String timeLeft = (entry.getPunishmentTime() == Long.MAX_VALUE) ?
+                        "Permanent" : TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
                 lore.add("&7Expires: &b" + expiresAt + " (" + timeLeft + ")");
             } else if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_removed")) || status.equals(plugin.getConfigManager().getMessage("placeholders.status_paused"))) {
                 if (entry.getRemovedByName() != null && entry.getRemovedAt() != null) {
@@ -222,6 +225,7 @@ public class HistoryMenu implements InventoryHolder {
             historyEntryItem.setRightClickActions(processActions(rightClickActions, entry.getPunishmentId()));
 
             items.put(slot, historyEntryItem.toItemStack(target, plugin.getConfigManager()));
+            historyEntryItemsCache.add(historyEntryItem); // MODIFIED: Add the full MenuItem to cache
             index++;
         }
         return items;
@@ -369,23 +373,12 @@ public class HistoryMenu implements InventoryHolder {
         }
     }
 
+    /**
+     * MODIFIED: Returns the cached list of MenuItems for the current page.
+     * This avoids rebuilding from ItemStacks and preserves click actions.
+     */
     public List<MenuItem> getHistoryEntryItems() {
-        List<MenuItem> items = new ArrayList<>();
-        for (int slot : validSlots) {
-            ItemStack itemStack = inventory.getItem(slot);
-            if (itemStack != null) {
-                // This is a simplified conversion; real implementation might need more data from NBT
-                MenuItem menuItem = new MenuItem();
-                menuItem.setMaterial(itemStack.getType().toString());
-                if (itemStack.hasItemMeta()) {
-                    menuItem.setName(itemStack.getItemMeta().getDisplayName());
-                    menuItem.setLore(itemStack.getItemMeta().getLore());
-                }
-                menuItem.setSlots(List.of(slot));
-                items.add(menuItem);
-            }
-        }
-        return items;
+        return historyEntryItemsCache;
     }
 
     public Set<String> getMenuItemKeys() {

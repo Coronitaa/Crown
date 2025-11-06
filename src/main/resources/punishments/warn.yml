@@ -4,7 +4,7 @@ use-internal: true
 punish-command: 'warn {target} {reason}'
 unpunish-command: 'unwarn {target}'
 default-reason: "Warned by a moderator."
-default-unpunish-reason: "Unwarned by {player}."
+default-unpunish-reason: "Unwarned by a moderator."
 
 # Expiration mode for warnings.
 # 'unique': The newest warning supersedes and expires the previous one. The chain ends when the last warning expires.

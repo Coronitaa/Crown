@@ -4,7 +4,7 @@ punish-by-ip: true # If true, the internal mute will be by IP address instead of
 punish-command: 'tempmute {target} {time} {reason}'
 unpunish-command: 'unmute {target}'
 default-reason: "Muted by a moderator."
-default-unpunish-reason: "Unmuted by {player}."
+default-unpunish-reason: "Unmuted by a moderator."
 
 # Commands that will be blocked when a player is muted.
 blocked_commands:

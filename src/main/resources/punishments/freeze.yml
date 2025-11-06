@@ -3,7 +3,7 @@ use-internal: true # If true, the plugin will handle the freeze internally. If f
 punish-command: 'freeze {target} {reason}'
 unpunish-command: 'unfreeze {target}'
 default-reason: "Frozen by a moderator."
-default-unpunish-reason: "Unfrozen by {player}."
+default-unpunish-reason: "Unfrozen by a moderator."
 
 disconnect_commands:
   - 'crown punish {target} ban 365d &cDisconnected while frozen!'

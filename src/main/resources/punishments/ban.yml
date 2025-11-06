@@ -4,7 +4,7 @@ punish-by-ip: true # If true, the internal ban will be by IP address instead of 
 punish-command: 'tempban {target} {time} {reason}'
 unpunish-command: 'unban {target}'
 default-reason: "Banned by a moderator."
-default-unpunish-reason: "Unbanned by {player}."
+default-unpunish-reason: "Unbanned by a moderator."
 
 ban-screen:
   - '&c&lYou have been banned from the server.'

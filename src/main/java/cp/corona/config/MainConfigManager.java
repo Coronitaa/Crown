@@ -1,6 +1,7 @@
 package cp.corona.config;
 
 import cp.corona.crown.Crown;
+import cp.corona.database.DatabaseManager;
 import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.menus.items.MenuItem.ClickActionData;
@@ -505,16 +506,31 @@ public class MainConfigManager {
         text = text
                 .replace("{target}", targetName)
                 .replace("{target_online}", target.isOnline() ? displayYes : displayNo)
-                .replace("{target_ip}", onlineTarget != null && onlineTarget.getAddress() != null ?
-                        onlineTarget.getAddress().getHostString() : "-")
-                .replace("{target_coords}", onlineTarget != null ?
-                        String.format("%d, %d, %d",
-                                onlineTarget.getLocation().getBlockX(),
-                                onlineTarget.getLocation().getBlockY(),
-                                onlineTarget.getLocation().getBlockZ()) : "-")
-                .replace("{target_world}", onlineTarget != null ?
-                        onlineTarget.getWorld().getName() : "-")
                 .replace("{support_link}", getSupportLink());
+
+        if (onlineTarget != null) {
+            text = text
+                    .replace("{target_ip}", onlineTarget.getAddress() != null ? onlineTarget.getAddress().getHostString() : "-")
+                    .replace("{target_coords}", String.format("%d %d %d", // MODIFIED: Changed format to space-separated
+                            onlineTarget.getLocation().getBlockX(),
+                            onlineTarget.getLocation().getBlockY(),
+                            onlineTarget.getLocation().getBlockZ()))
+                    .replace("{target_world}", onlineTarget.getWorld().getName());
+        } else {
+            DatabaseManager.PlayerLastState lastState = plugin.getSoftBanDatabaseManager().getPlayerLastState(target.getUniqueId());
+            if (lastState != null) {
+                text = text
+                        .replace("{target_ip}", lastState.getIp() != null ? lastState.getIp() : "-")
+                        .replace("{target_coords}", lastState.getLocation() != null ? lastState.getLocation().replace(", ", " ") : "-") // MODIFIED: Replaced commas with spaces
+                        .replace("{target_world}", lastState.getWorld() != null ? lastState.getWorld() : "-");
+            } else {
+                text = text
+                        .replace("{target_ip}", "-")
+                        .replace("{target_coords}", "-")
+                        .replace("{target_world}", "-");
+            }
+        }
+
 
         boolean isSoftBanned = plugin.getSoftBanDatabaseManager().isSoftBanned(target.getUniqueId());
         String softbanStatus = isSoftBanned ? displayYes : displayNo;

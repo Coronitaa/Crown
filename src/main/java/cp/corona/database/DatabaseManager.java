@@ -208,6 +208,14 @@ public class DatabaseManager {
             }
             statement.execute(createActiveWarningsTableSQL);
 
+            String createPlayerLastStateTableSQL = "CREATE TABLE IF NOT EXISTS player_last_state (" +
+                    "uuid VARCHAR(36) PRIMARY KEY," +
+                    "last_seen BIGINT NOT NULL," +
+                    "ip VARCHAR(45)," +
+                    "location VARCHAR(255)," +
+                    "world VARCHAR(255))";
+            statement.execute(createPlayerLastStateTableSQL);
+
 
             updateTableStructure(connection);
 
@@ -300,6 +308,12 @@ public class DatabaseManager {
                 String punishmentId = punishmentIdToUpdate;
                 if (punishmentId == null) {
                     punishmentId = getLatestActivePunishmentId(connection, targetUUID, punishmentType);
+                } else {
+                    // Failsafe check: if an ID is provided, verify it's active before proceeding.
+                    PunishmentEntry entry = getPunishmentById(punishmentId);
+                    if (entry == null || !entry.isActive()) {
+                        return null; // The provided punishment ID is not active.
+                    }
                 }
 
                 if (punishmentId == null) {
@@ -1144,7 +1158,7 @@ public class DatabaseManager {
 
     public HashMap<String, Integer> getPunishmentCounts(UUID playerUUID) {
         HashMap<String, Integer> counts = new HashMap<>();
-        String sql = "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? GROUP BY punishment_type";
+        String sql = "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? AND (active = 1 OR (removed_by_name = 'System' AND removed_reason = 'Expired')) GROUP BY punishment_type";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             try (ResultSet rs = ps.executeQuery()) {
@@ -1455,6 +1469,45 @@ public class DatabaseManager {
         return ids;
     }
 
+    public void updatePlayerLastState(Player player) {
+        CompletableFuture.runAsync(() -> {
+            String sql = "mysql".equalsIgnoreCase(dbType) ?
+                    "INSERT INTO player_last_state (uuid, last_seen, ip, location, world) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE last_seen = VALUES(last_seen), ip = VALUES(ip), location = VALUES(location), world = VALUES(world)" :
+                    "INSERT OR REPLACE INTO player_last_state (uuid, last_seen, ip, location, world) VALUES (?, ?, ?, ?, ?)";
+
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, player.getUniqueId().toString());
+                ps.setLong(2, System.currentTimeMillis());
+                ps.setString(3, player.getAddress().getAddress().getHostAddress());
+                ps.setString(4, String.format("%d, %d, %d", player.getLocation().getBlockX(), player.getLocation().getBlockY(), player.getLocation().getBlockZ()));
+                ps.setString(5, player.getLocation().getWorld().getName());
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not update player last state for " + player.getName(), e);
+            }
+        });
+    }
+
+    public PlayerLastState getPlayerLastState(UUID uuid) {
+        String sql = "SELECT * FROM player_last_state WHERE uuid = ?";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, uuid.toString());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new PlayerLastState(
+                        uuid,
+                        rs.getLong("last_seen"),
+                        rs.getString("ip"),
+                        rs.getString("location"),
+                        rs.getString("world")
+                );
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not retrieve player last state for " + uuid.toString(), e);
+        }
+        return null;
+    }
+
 
     public static class PunishmentEntry {
         private final String punishmentId;
@@ -1579,5 +1632,26 @@ public class DatabaseManager {
         public long getLastJoined() {
             return lastJoined;
         }
+    }
+    public static class PlayerLastState {
+        private final UUID uuid;
+        private final long lastSeen;
+        private final String ip;
+        private final String location;
+        private final String world;
+
+        public PlayerLastState(UUID uuid, long lastSeen, String ip, String location, String world) {
+            this.uuid = uuid;
+            this.lastSeen = lastSeen;
+            this.ip = ip;
+            this.location = location;
+            this.world = world;
+        }
+
+        public UUID getUuid() { return uuid; }
+        public long getLastSeen() { return lastSeen; }
+        public String getIp() { return ip; }
+        public String getLocation() { return location; }
+        public String getWorld() { return world; }
     }
 }
