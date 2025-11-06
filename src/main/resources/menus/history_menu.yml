@@ -1,3 +1,4 @@
+# PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\resources\menus\history_menu.yml
 # Configuration file for the punishment history menu.
 # Displays a player's past punishments with pagination.
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
@@ -29,6 +30,14 @@
 menu:
   title: '&8&lHistory: &b{target}'
   items:
+    loading_item:
+      material: 'CLOCK'
+      slot: '22'
+      name: '&e&lLoading History...'
+      lore:
+        - '&7Please wait while we fetch the'
+        - '&7punishment history for &b{target}&7.'
+
     # --- History Entry Definitions ---
     history_entry: # Default template for entries if no specific type matches below
       material: 'BOOK'

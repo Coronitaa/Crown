@@ -1,6 +1,4 @@
-// src/main/java/cp/corona/menus/HistoryMenu.java
-// MODIFIED: No code changes were necessary here. The generic item loading mechanism correctly
-// processes the new active punishment count placeholders from history_menu.yml via MainConfigManager.
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\HistoryMenu.java
 package cp.corona.menus;
 
 import cp.corona.crown.Crown;
@@ -33,7 +31,7 @@ public class HistoryMenu implements InventoryHolder {
     private final Set<String> menuItemKeys = new HashSet<>();
     private List<DatabaseManager.PunishmentEntry> allHistoryEntries;
 
-
+    private static final String LOADING_ITEM_KEY = "loading_item";
     private static final String BACK_BUTTON_KEY = "back_button";
     private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
     private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
@@ -41,10 +39,10 @@ public class HistoryMenu implements InventoryHolder {
     private static final String BACKGROUND_FILL_KEY = "background_fill";
 
     private static final List<Integer> validSlots = List.of(
-            10, 11, 12, 13, 14, 15, 16,   // Row 1
-            19, 20, 21, 22, 23, 24, 25,   // Row 2
-            28, 29, 30, 31, 32, 33, 34,   // Row 3
-            37, 38, 39, 40, 41, 42, 43    // Row 4
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34,
+            37, 38, 39, 40, 41, 42, 43
     );
 
     public HistoryMenu(UUID targetUUID, Crown plugin) {
@@ -53,10 +51,33 @@ public class HistoryMenu implements InventoryHolder {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String title = plugin.getConfigManager().getHistoryMenuTitle(target);
         inventory = Bukkit.createInventory(this, 54, title);
+
         loadMenuItems();
-        loadAndProcessAllHistory();
-        initializeItems(target);
+
+        // Show a loading screen first
+        initializeLoadingState(target);
+
+        // Load and process history asynchronously
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            loadAndProcessAllHistory();
+
+            // Once data is loaded, populate the inventory on the main thread
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                // Ensure the player is still viewing this inventory before updating
+                Player viewer = (Player) inventory.getViewers().stream().findFirst().orElse(null);
+                if (viewer != null && viewer.getOpenInventory().getTopInventory().getHolder() == this) {
+                    inventory.clear(); // Clear loading items
+                    initializeItems(target);
+                }
+            });
+        });
     }
+
+    private void initializeLoadingState(OfflinePlayer target) {
+        setItemInMenu(LOADING_ITEM_KEY, plugin.getConfigManager().getHistoryMenuItemConfig(LOADING_ITEM_KEY), target, 22);
+        fillEmptySlotsWithBackground(target);
+    }
+
 
     private void loadAndProcessAllHistory() {
         allHistoryEntries = plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, 1, Integer.MAX_VALUE);
@@ -83,7 +104,10 @@ public class HistoryMenu implements InventoryHolder {
             } else if (type.equals("kick")) {
                 status = "";
             } else {
-                if (entry.isActive()) {
+                boolean isPaused = !entry.isActive() && "Paused by new warning".equalsIgnoreCase(entry.getRemovedReason());
+                if (isPaused) {
+                    status = plugin.getConfigManager().getMessage("placeholders.status_paused");
+                } else if (entry.isActive()) {
                     status = (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE)
                             ? plugin.getConfigManager().getMessage("placeholders.status_active")
                             : plugin.getConfigManager().getMessage("placeholders.status_expired");
@@ -96,26 +120,25 @@ public class HistoryMenu implements InventoryHolder {
         }
     }
 
-
     private void initializeItems(OfflinePlayer target) {
-        setItemInMenu(BACK_BUTTON_KEY,
-                plugin.getConfigManager().getHistoryMenuItemConfig(BACK_BUTTON_KEY),
-                target, 53);
-
-        loadHistoryPage(target, page);
-
-        updatePageButtons(target);
-
-        fillEmptySlotsWithBackground(target);
-
+        // Place static items like back button and info panels
         for (String itemKey : menuItemKeys) {
-            if (!itemKey.equals(BACK_BUTTON_KEY) && !itemKey.equals(NEXT_PAGE_BUTTON_KEY) && !itemKey.equals(PREVIOUS_PAGE_BUTTON_KEY) && !itemKey.equals(BACKGROUND_FILL_KEY)) {
-                ItemStack itemStack = getItemStack(itemKey, target);
-                if (itemStack != null) {
-                    setItemInMenu(itemKey, plugin.getConfigManager().getHistoryMenuItemConfig(itemKey), target);
-                }
+            // Exclude items that are dynamically placed or handled elsewhere
+            if (!itemKey.startsWith(HISTORY_ENTRY_ITEM_KEY.substring(0, 4)) && // a simple startsWith to catch all history_entry types
+                    !itemKey.equals(NEXT_PAGE_BUTTON_KEY) &&
+                    !itemKey.equals(PREVIOUS_PAGE_BUTTON_KEY) &&
+                    !itemKey.equals(LOADING_ITEM_KEY) &&
+                    !itemKey.equals(BACKGROUND_FILL_KEY))
+            {
+                setItemInMenu(itemKey, plugin.getConfigManager().getHistoryMenuItemConfig(itemKey), target);
             }
         }
+
+        // Load the dynamic history entries for the current page
+        loadHistoryPage(target, page);
+
+        // Fill remaining empty slots
+        fillEmptySlotsWithBackground(target);
     }
 
     private void loadHistoryPage(OfflinePlayer target, int page) {
@@ -159,6 +182,10 @@ public class HistoryMenu implements InventoryHolder {
                     .replace("{punishment_type}", entry.getType())
                     .replace("{method}", method)
                     .replace("{status}", status);
+
+            if (entry.getType().equalsIgnoreCase("warn") && entry.getWarnLevel() > 0) {
+                entryName = entryName.replace("Warn", "Warn (Lvl " + entry.getWarnLevel() + ")");
+            }
             historyEntryItem.setName(MessageUtils.getColorMessage(entryName));
 
             List<String> lore = new ArrayList<>();
@@ -292,6 +319,7 @@ public class HistoryMenu implements InventoryHolder {
             ItemStack backgroundItemStack = backgroundItemConfig.toItemStack(target, plugin.getConfigManager());
             if (backgroundItemStack != null) {
                 for (int slot = 0; slot < inventory.getSize(); slot++) {
+                    // FIX: Only fill if the slot is empty AND not a designated entry/button slot
                     if (inventory.getItem(slot) == null && !validSlots.contains(slot) && !isButtonSlot(slot)) {
                         inventory.setItem(slot, backgroundItemStack.clone());
                     }
@@ -301,7 +329,13 @@ public class HistoryMenu implements InventoryHolder {
     }
 
     private boolean isButtonSlot(int slot) {
-        return slot == 51 || slot == 52 || slot == 53;
+        // Includes the static items like punishment_counts_item
+        MenuItem countsItem = plugin.getConfigManager().getHistoryMenuItemConfig("punishment_counts_item");
+        List<Integer> staticSlots = new ArrayList<>(Arrays.asList(51, 52, 53));
+        if(countsItem != null && countsItem.getSlots() != null){
+            staticSlots.addAll(countsItem.getSlots());
+        }
+        return staticSlots.contains(slot);
     }
 
     private ItemStack getItemStack(String itemKey, OfflinePlayer target) {
@@ -364,18 +398,18 @@ public class HistoryMenu implements InventoryHolder {
             return;
         }
         page++;
+        // OPTIMIZATION: Only redraw dynamic parts of the menu
         loadHistoryPage(Bukkit.getOfflinePlayer(targetUUID), page);
         fillEmptySlotsWithBackground(Bukkit.getOfflinePlayer(targetUUID));
-        player.updateInventory();
     }
 
     public void previousPage(Player player) {
         if (page > 1) {
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - previousPage() called. Current page: " + page);
             page--;
+            // OPTIMIZATION: Only redraw dynamic parts of the menu
             loadHistoryPage(Bukkit.getOfflinePlayer(targetUUID), page);
             fillEmptySlotsWithBackground(Bukkit.getOfflinePlayer(targetUUID));
-            player.updateInventory();
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - Navigated to previous page. New page: " + page);
         } else {
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HistoryMenu - previousPage() called, but already on first page.");

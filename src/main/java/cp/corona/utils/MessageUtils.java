@@ -1,9 +1,14 @@
-// utils/MessageUtils.java
 package cp.corona.utils;
 
+import cp.corona.config.MainConfigManager;
 import cp.corona.crown.Crown;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for handling messages and color formatting.
@@ -46,5 +51,31 @@ public class MessageUtils {
     public static void sendConfigMessage(Crown plugin, CommandSender sender, String path, String... replacements) {
         String message = plugin.getConfigManager().getMessage(path, replacements);
         sender.sendMessage(MessageUtils.getColorMessage(message));
+    }
+
+    /**
+     * Generates a formatted kick/ban message from a list of strings.
+     * @param lines The list of lines from the configuration.
+     * @param reason The reason for the punishment.
+     * @param timeLeft The formatted time remaining.
+     * @param punishmentId The ID of the punishment.
+     * @param expiration The expiration date, or null if permanent.
+     * @param configManager The configuration manager to get the support link.
+     * @return A single formatted string ready to be used as a kick message.
+     */
+    public static String getKickMessage(List<String> lines, String reason, String timeLeft, String punishmentId, Date expiration, MainConfigManager configManager) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String date = dateFormat.format(new Date());
+        String dateUntil = expiration != null ? dateFormat.format(expiration) : "Never";
+
+        return lines.stream()
+                .map(MessageUtils::getColorMessage)
+                .map(line -> line.replace("{reason}", reason))
+                .map(line -> line.replace("{time_left}", timeLeft))
+                .map(line -> line.replace("{punishment_id}", punishmentId))
+                .map(line -> line.replace("{date}", date))
+                .map(line -> line.replace("{date_until}", dateUntil))
+                .map(line -> line.replace("{support_link}", configManager.getSupportLink()))
+                .collect(Collectors.joining("\n"));
     }
 }

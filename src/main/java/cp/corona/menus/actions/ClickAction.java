@@ -1,4 +1,3 @@
-// src/main/java/cp/corona/menus/actions/ClickAction.java
 package cp.corona.menus.actions;
 
 /**

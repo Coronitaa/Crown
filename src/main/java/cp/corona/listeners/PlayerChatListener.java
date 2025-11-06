@@ -1,6 +1,8 @@
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\listeners\PlayerChatListener.java
 package cp.corona.listeners;
 
 import cp.corona.crown.Crown;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,21 +24,23 @@ public class PlayerChatListener implements Listener {
 
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
-        Player player = event.getPlayer();
-        UUID playerUUID = player.getUniqueId();
-        String message = event.getMessage();
+        final Player player = event.getPlayer();
+        final UUID playerUUID = player.getUniqueId();
+        final String message = event.getMessage();
 
-        String sql = "INSERT INTO player_chat_history (player_uuid, message) VALUES (?, ?)";
+        // Run the database insertion asynchronously to prevent blocking the main thread.
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            String sql = "INSERT INTO player_chat_history (player_uuid, message) VALUES (?, ?)";
+            try (Connection connection = plugin.getSoftBanDatabaseManager().getConnection();
+                 PreparedStatement ps = connection.prepareStatement(sql)) {
 
-        try (Connection connection = plugin.getSoftBanDatabaseManager().getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, playerUUID.toString());
+                ps.setString(2, message);
+                ps.executeUpdate();
 
-            ps.setString(1, playerUUID.toString());
-            ps.setString(2, message);
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Could not log chat message for player " + player.getName(), e);
-        }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not log chat message for player " + player.getName(), e);
+            }
+        });
     }
 }

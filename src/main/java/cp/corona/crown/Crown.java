@@ -1,4 +1,4 @@
-// src/main/java/cp/corona/crown/Crown.java
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\crown\Crown.java
 package cp.corona.crown;
 
 import cp.corona.Metrics;
@@ -13,8 +13,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 public final class Crown extends JavaPlugin {
@@ -22,7 +24,10 @@ public final class Crown extends JavaPlugin {
     private MainConfigManager configManager;
     private DatabaseManager databaseManager;
     private boolean placeholderAPIEnabled;
-    private final HashMap<UUID, Boolean> pluginFrozenPlayers = new HashMap<>();
+    private final Map<UUID, Boolean> pluginFrozenPlayers = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> mutedPlayersCache = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> softBannedPlayersCache = new ConcurrentHashMap<>();
+
 
     private MenuListener menuListener;
     private FreezeListener freezeListener;
@@ -130,8 +135,16 @@ public final class Crown extends JavaPlugin {
         return placeholderAPIEnabled;
     }
 
-    public HashMap<UUID, Boolean> getPluginFrozenPlayers() {
+    public Map<UUID, Boolean> getPluginFrozenPlayers() {
         return pluginFrozenPlayers;
+    }
+
+    public Map<UUID, Long> getMutedPlayersCache() {
+        return mutedPlayersCache;
+    }
+
+    public Map<UUID, Long> getSoftBannedPlayersCache() {
+        return softBannedPlayersCache;
     }
 
     public Set<String> getRegisteredCommands() {

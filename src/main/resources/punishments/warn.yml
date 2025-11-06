@@ -9,7 +9,7 @@ default-unpunish-reason: "Unwarned by {player}."
 # Expiration mode for warnings.
 # 'unique': The newest warning supersedes and expires the previous one. The chain ends when the last warning expires.
 # 'incremental': A new warning pauses the timer of the previous one. The previous timer resumes after the new one expires.
-expiration-mode: 'unique'
+expiration-mode: 'incremental'
 
 # Define warning levels dynamically. The key is the warning count (level).
 # The system will apply the configuration for the total number of active warnings a player has.
