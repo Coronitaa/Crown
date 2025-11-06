@@ -26,6 +26,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -654,7 +655,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         String ipAddress = null;
         if (byIp) {
             if (target.isOnline()) {
-                ipAddress = target.getPlayer().getAddress().getAddress().getHostAddress();
+                InetSocketAddress address = target.getPlayer().getAddress();
+                if (address != null && address.getAddress() != null) {
+                    ipAddress = address.getAddress().getHostAddress();
+                }
             } else {
                 ipAddress = plugin.getSoftBanDatabaseManager().getLastKnownIp(target.getUniqueId());
             }
@@ -729,12 +733,19 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return;
             }
 
+            // Log player info immediately after getting the punishment ID
+            plugin.getSoftBanDatabaseManager().logPlayerInfoAsync(punishmentId, target, finalIpAddress);
+
             // All Bukkit API calls must be in a sync task
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (useInternal) {
                     handleInternalPunishmentPostAction(sender, target, punishType, reason, finalIpAddress, time, punishmentId, finalPunishmentEndTime);
                 } else {
                     executePunishmentCommand(sender, commandTemplate, target, time, reason);
+                }
+
+                if (byIp && finalIpAddress != null) {
+                    applyIpPunishmentToOnlinePlayers(punishType, finalIpAddress, finalPunishmentEndTime, reason, finalDurationForLog, punishmentId, target.getUniqueId());
                 }
 
                 String messageKey = byIp ? "messages.direct_punishment_confirmed_ip" : "messages.direct_punishment_confirmed";
@@ -748,6 +759,42 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
             });
         });
+    }
+
+    private void applyIpPunishmentToOnlinePlayers(String punishmentType, String ipAddress, long endTime, String reason, String durationForLog, String punishmentId, UUID originalTargetUUID) {
+        String lowerCasePunishType = punishmentType.toLowerCase();
+
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            if (onlinePlayer.getUniqueId().equals(originalTargetUUID)) {
+                continue; // Skip the original target, they are already handled
+            }
+
+            InetSocketAddress playerAddress = onlinePlayer.getAddress();
+            if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
+
+                switch(lowerCasePunishType) {
+                    case "ban":
+                    case "kick":
+                        Date expiration = (endTime == Long.MAX_VALUE || lowerCasePunishType.equals("kick")) ? null : new Date(endTime);
+                        List<String> screenLines = lowerCasePunishType.equals("ban") ? plugin.getConfigManager().getBanScreen() : plugin.getConfigManager().getKickScreen();
+                        String kickMessage = MessageUtils.getKickMessage(screenLines, reason, durationForLog, punishmentId, expiration, plugin.getConfigManager());
+                        onlinePlayer.kickPlayer(kickMessage);
+                        break;
+
+                    case "mute":
+                        plugin.getMutedPlayersCache().put(onlinePlayer.getUniqueId(), endTime);
+                        String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
+                        onlinePlayer.sendMessage(MessageUtils.getColorMessage(muteMessage));
+                        break;
+
+                    case "softban":
+                        plugin.getSoftBannedPlayersCache().put(onlinePlayer.getUniqueId(), endTime);
+                        String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
+                        onlinePlayer.sendMessage(MessageUtils.getColorMessage(softbanMessage));
+                        break;
+                }
+            }
+        }
     }
 
     private void handleInternalPunishmentPostAction(CommandSender sender, OfflinePlayer target, String punishType, String reason, String ipAddress, String timeInput, String punishmentId, long punishmentEndTime) {
@@ -768,24 +815,21 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 break;
             case "mute":
                 if (target.isOnline()) {
+                    plugin.getMutedPlayersCache().put(target.getUniqueId(), punishmentEndTime);
                     String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", timeInput, "{reason}", reason, "{punishment_id}", punishmentId);
                     target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
+                }
+                break;
+            case "softban":
+                if (target.isOnline()) {
+                    plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), punishmentEndTime);
+                    // Optionally send a message
                 }
                 break;
             case "kick":
                 if (target.isOnline()) {
                     String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null, plugin.getConfigManager());
-                    if (ipAddress != null) {
-                        InetAddress targetAddress = target.getPlayer().getAddress().getAddress();
-                        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                            InetAddress onlinePlayerAddress = onlinePlayer.getAddress().getAddress();
-                            if (onlinePlayerAddress.equals(targetAddress) || (onlinePlayerAddress.isLoopbackAddress() && targetAddress.isLoopbackAddress())) {
-                                onlinePlayer.kickPlayer(kickMessage);
-                            }
-                        }
-                    } else {
-                        target.getPlayer().kickPlayer(kickMessage);
-                    }
+                    target.getPlayer().kickPlayer(kickMessage);
                 }
                 break;
             case "freeze":
@@ -819,6 +863,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             String durationForLog = (endTime == -1) ? "Permanent" : TimeUtils.formatTime(durationSeconds, plugin.getConfigManager());
 
             String punishmentId = dbManager.logPunishment(target.getUniqueId(), "warn", reason, sender.getName(), endTime, durationForLog, false, nextWarnLevel);
+
+            if (punishmentId != null) {
+                dbManager.logPlayerInfoAsync(punishmentId, target, null);
+            }
 
             dbManager.addActiveWarning(target.getUniqueId(), punishmentId, nextWarnLevel, endTime).thenRun(() -> {
                 ActiveWarningEntry newWarning = dbManager.getActiveWarningByPunishmentId(punishmentId);
@@ -897,25 +945,35 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private void handleInternalUnpunishmentPostAction(CommandSender sender, OfflinePlayer target, String punishType, String punishmentId) {
-        if ("ban".equalsIgnoreCase(punishType)) {
-            DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
-            boolean banByIp = plugin.getConfigManager().isPunishmentByIp("ban");
-            boolean pardoned = false;
+        String lowerCasePunishType = punishType.toLowerCase();
 
-            if (banByIp && playerInfo != null && playerInfo.getIp() != null) {
-                String ip = playerInfo.getIp();
-                if (Bukkit.getBanList(BanList.Type.IP).isBanned(ip)) {
-                    Bukkit.getBanList(BanList.Type.IP).pardon(ip);
+        switch(lowerCasePunishType) {
+            case "ban":
+                DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                boolean wasByIp = playerInfo != null && playerInfo.getIp() != null && plugin.getSoftBanDatabaseManager().getPunishmentById(punishmentId).wasByIp();
+
+                boolean pardoned = false;
+                if (wasByIp) {
+                    String ip = playerInfo.getIp();
+                    if (Bukkit.getBanList(BanList.Type.IP).isBanned(ip)) {
+                        Bukkit.getBanList(BanList.Type.IP).pardon(ip);
+                        pardoned = true;
+                    }
+                }
+                if (!pardoned && target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
+                    Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
                     pardoned = true;
                 }
-            }
-            if (!pardoned && target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
-                Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
-                pardoned = true;
-            }
-            if (!pardoned) {
-                sendConfigMessage(sender, "messages.not_banned", "{target}", target.getName());
-            }
+                if (!pardoned) {
+                    sendConfigMessage(sender, "messages.not_banned", "{target}", target.getName());
+                }
+                break;
+            case "mute":
+                plugin.getMutedPlayersCache().remove(target.getUniqueId());
+                break;
+            case "softban":
+                plugin.getSoftBannedPlayersCache().remove(target.getUniqueId());
+                break;
         }
     }
 

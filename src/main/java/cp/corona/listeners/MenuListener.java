@@ -44,6 +44,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -928,10 +929,19 @@ public class MenuListener implements Listener {
         String timeInput = detailsMenu.getBanTime() != null ? detailsMenu.getBanTime() : "permanent";
         String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified";
 
-        if (byIp && !target.isOnline()) {
-            sendConfigMessage(player, "messages.player_not_online_for_ip_punishment", "{target}", target.getName());
-            return;
+        String ipAddress = null;
+        if (byIp) {
+            if (target.isOnline()) {
+                ipAddress = target.getPlayer().getAddress().getAddress().getHostAddress();
+            } else {
+                ipAddress = plugin.getSoftBanDatabaseManager().getLastKnownIp(targetUUID);
+            }
+            if (ipAddress == null) {
+                sendConfigMessage(player, "messages.player_ip_not_found", "{target}", target.getName());
+                return;
+            }
         }
+        final String finalIpAddress = ipAddress;
 
         long endTime = calculateEndTime(timeInput);
         String durationForLog = timeInput;
@@ -944,13 +954,15 @@ public class MenuListener implements Listener {
                 .executePunishmentAsync(targetUUID, punishmentType, reason, player.getName(), endTime, durationForLog, byIp, null);
 
         future.thenAccept(punishmentId -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if(punishmentId == null) return;
+            if (punishmentId == null) return;
 
+            plugin.getSoftBanDatabaseManager().logPlayerInfoAsync(punishmentId, target, finalIpAddress);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
                 if(useInternal) {
                     if (punishmentType.equalsIgnoreCase(BAN_PUNISHMENT_TYPE)) {
                         Date expiration = (endTime == Long.MAX_VALUE) ? null : new Date(endTime);
-                        String targetIdentifier = byIp ? target.getPlayer().getAddress().getAddress().getHostAddress() : target.getName();
+                        String targetIdentifier = byIp ? finalIpAddress : target.getName();
                         BanList.Type banType = byIp ? BanList.Type.IP : BanList.Type.NAME;
                         Bukkit.getBanList(banType).addBan(targetIdentifier, reason, expiration, player.getName());
 
@@ -960,6 +972,7 @@ public class MenuListener implements Listener {
                         }
                     } else if (punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE)) {
                         if (target.isOnline()) {
+                            plugin.getMutedPlayersCache().put(targetUUID, endTime);
                             String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", finalDurationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                             target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
                         }
@@ -970,6 +983,10 @@ public class MenuListener implements Listener {
                             .replace("{time}", timeInput)
                             .replace("{reason}", reason);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+                }
+
+                if (byIp && finalIpAddress != null) {
+                    applyIpPunishmentToOnlinePlayers(punishmentType, finalIpAddress, endTime, reason, finalDurationForLog, punishmentId);
                 }
 
                 playSound(player, "punish_confirm");
@@ -990,10 +1007,19 @@ public class MenuListener implements Listener {
         boolean byIp = punishDetailsMenu.isByIp();
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(SOFTBAN_PUNISHMENT_TYPE);
 
-        if (byIp && !target.isOnline()) {
-            sendConfigMessage(player, "messages.player_not_online_for_ip_punishment", "{target}", target.getName());
-            return;
+        String ipAddress = null;
+        if (byIp) {
+            if (target.isOnline()) {
+                ipAddress = target.getPlayer().getAddress().getAddress().getHostAddress();
+            } else {
+                ipAddress = plugin.getSoftBanDatabaseManager().getLastKnownIp(targetUUID);
+            }
+            if (ipAddress == null) {
+                sendConfigMessage(player, "messages.player_ip_not_found", "{target}", target.getName());
+                return;
+            }
         }
+        final String finalIpAddress = ipAddress;
 
         long endTime = calculateEndTime(timeInput);
         String durationString = (endTime == Long.MAX_VALUE) ? plugin.getConfigManager().getMessage("placeholders.permanent_time_display") : timeInput;
@@ -1002,15 +1028,23 @@ public class MenuListener implements Listener {
                 .executePunishmentAsync(targetUUID, SOFTBAN_PUNISHMENT_TYPE, reason, player.getName(), endTime, durationString, byIp, null);
 
         future.thenAccept(punishmentId -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (punishmentId == null) return;
+            if (punishmentId == null) return;
 
-                if (!useInternal) {
+            plugin.getSoftBanDatabaseManager().logPlayerInfoAsync(punishmentId, target, finalIpAddress);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (useInternal && target.isOnline()) {
+                    plugin.getSoftBannedPlayersCache().put(targetUUID, endTime);
+                } else if (!useInternal) {
                     String processedCommand = commandTemplate
                             .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                             .replace("{time}", timeInput)
                             .replace("{reason}", reason);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+                }
+
+                if (byIp && finalIpAddress != null) {
+                    applyIpPunishmentToOnlinePlayers(SOFTBAN_PUNISHMENT_TYPE, finalIpAddress, endTime, reason, durationString, punishmentId);
                 }
 
                 playSound(player, "punish_confirm");
@@ -1030,6 +1064,20 @@ public class MenuListener implements Listener {
         String permanentDisplay = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
         boolean byIp = punishDetailsMenu.isByIp();
 
+        String ipAddress = null;
+        if (byIp) {
+            if (target.isOnline()) {
+                ipAddress = target.getPlayer().getAddress().getAddress().getHostAddress();
+            } else {
+                ipAddress = plugin.getSoftBanDatabaseManager().getLastKnownIp(targetUUID);
+            }
+            if (ipAddress == null) {
+                sendConfigMessage(player, "messages.player_ip_not_found", "{target}", target.getName());
+                return;
+            }
+        }
+        final String finalIpAddress = ipAddress;
+
         if (plugin.getPluginFrozenPlayers().containsKey(targetUUID)) {
             sendConfigMessage(player, "messages.already_frozen", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
             playSound(player, "punish_error");
@@ -1040,8 +1088,11 @@ public class MenuListener implements Listener {
                 .executePunishmentAsync(targetUUID, FREEZE_PUNISHMENT_TYPE, reason, player.getName(), Long.MAX_VALUE, permanentDisplay, byIp, null);
 
         future.thenAccept(punishmentId -> {
+            if (punishmentId == null) return;
+
+            plugin.getSoftBanDatabaseManager().logPlayerInfoAsync(punishmentId, target, finalIpAddress);
+
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (punishmentId == null) return;
 
                 if (useInternal) {
                     plugin.getPluginFrozenPlayers().put(targetUUID, true);
@@ -1055,6 +1106,10 @@ public class MenuListener implements Listener {
                             .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                             .replace("{reason}", reason);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+                }
+
+                if (byIp && finalIpAddress != null) {
+                    applyIpPunishmentToOnlinePlayers(FREEZE_PUNISHMENT_TYPE, finalIpAddress, Long.MAX_VALUE, reason, permanentDisplay, punishmentId);
                 }
 
                 playSound(player, "punish_confirm");
@@ -1081,23 +1136,21 @@ public class MenuListener implements Listener {
         boolean byIp = punishDetailsMenu.isByIp();
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(KICK_PUNISHMENT_TYPE);
 
+        final String finalIpAddress = byIp ? target.getPlayer().getAddress().getAddress().getHostAddress() : null;
+
         CompletableFuture<String> future = plugin.getSoftBanDatabaseManager()
                 .executePunishmentAsync(targetUUID, KICK_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A", byIp, null);
 
         future.thenAccept(punishmentId -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (punishmentId == null) return;
+            if (punishmentId == null) return;
 
+            plugin.getSoftBanDatabaseManager().logPlayerInfoAsync(punishmentId, target, finalIpAddress);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
                 if (useInternal) {
                     String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null, plugin.getConfigManager());
                     if (byIp) {
-                        InetAddress targetAddress = target.getPlayer().getAddress().getAddress();
-                        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                            InetAddress onlinePlayerAddress = onlinePlayer.getAddress().getAddress();
-                            if (onlinePlayerAddress.equals(targetAddress) || (onlinePlayerAddress.isLoopbackAddress() && targetAddress.isLoopbackAddress())) {
-                                onlinePlayer.kickPlayer(kickMessage);
-                            }
-                        }
+                        applyIpPunishmentToOnlinePlayers(KICK_PUNISHMENT_TYPE, finalIpAddress, 0, reason, "N/A", punishmentId);
                     } else {
                         target.getPlayer().kickPlayer(kickMessage);
                     }
@@ -1145,6 +1198,10 @@ public class MenuListener implements Listener {
 
                 String punishmentId = dbManager.logPunishment(targetUUID, "warn", reason, player.getName(), endTime, durationString, false, nextWarnLevel);
 
+                if (punishmentId != null) {
+                    dbManager.logPlayerInfoAsync(punishmentId, target, null); // Warns are not by IP
+                }
+
                 dbManager.addActiveWarning(targetUUID, punishmentId, nextWarnLevel, endTime).thenRun(() -> {
                     ActiveWarningEntry newWarning = dbManager.getActiveWarningByPunishmentId(punishmentId);
                     Bukkit.getScheduler().runTask(plugin, () -> {
@@ -1158,8 +1215,11 @@ public class MenuListener implements Listener {
                 plugin.getSoftBanDatabaseManager()
                         .executePunishmentAsync(targetUUID, "warn", reason, player.getName(), 0L, "N/A", false, null)
                         .thenAccept(punishmentId -> {
+                            if (punishmentId == null) return;
+
+                            plugin.getSoftBanDatabaseManager().logPlayerInfoAsync(punishmentId, target, null);
+
                             Bukkit.getScheduler().runTask(plugin, () -> {
-                                if(punishmentId == null) return;
                                 String processedCommand = commandTemplate
                                         .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                                         .replace("{reason}", reason);
@@ -1184,6 +1244,7 @@ public class MenuListener implements Listener {
                 .thenAccept(punishmentId -> {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         if(punishmentId == null) return;
+                        plugin.getSoftBannedPlayersCache().remove(targetUUID);
                         playSound(player, "punish_confirm");
                         sendUnpunishConfirmation(player, target, SOFTBAN_PUNISHMENT_TYPE, punishmentId);
                         executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, "N/A", reason, true, Collections.emptyList());
@@ -1276,6 +1337,8 @@ public class MenuListener implements Listener {
                             sendConfigMessage(player, "messages.not_muted");
                             return;
                         }
+
+                        plugin.getMutedPlayersCache().remove(targetUUID);
 
                         if (!useInternal) {
                             String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
@@ -1752,6 +1815,44 @@ public class MenuListener implements Listener {
 
     private void logInvalidArgs(ClickAction action, String[] args, Crown plugin) {
         plugin.getLogger().warning("Invalid arguments for hook action " + action + ": " + Arrays.toString(args));
+    }
+
+    private void applyIpPunishmentToOnlinePlayers(String punishmentType, String ipAddress, long endTime, String reason, String durationForLog, String punishmentId) {
+        String lowerCasePunishType = punishmentType.toLowerCase();
+
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            InetSocketAddress playerAddress = onlinePlayer.getAddress();
+            if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
+
+                switch(lowerCasePunishType) {
+                    case "ban":
+                    case "kick":
+                        Date expiration = (endTime == Long.MAX_VALUE || lowerCasePunishType.equals("kick")) ? null : new Date(endTime);
+                        List<String> screenLines = lowerCasePunishType.equals("ban") ? plugin.getConfigManager().getBanScreen() : plugin.getConfigManager().getKickScreen();
+                        String kickMessage = MessageUtils.getKickMessage(screenLines, reason, durationForLog, punishmentId, expiration, plugin.getConfigManager());
+                        onlinePlayer.kickPlayer(kickMessage);
+                        break;
+
+                    case "mute":
+                        plugin.getMutedPlayersCache().put(onlinePlayer.getUniqueId(), endTime);
+                        String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
+                        onlinePlayer.sendMessage(MessageUtils.getColorMessage(muteMessage));
+                        break;
+
+                    case "softban":
+                        plugin.getSoftBannedPlayersCache().put(onlinePlayer.getUniqueId(), endTime);
+                        String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
+                        onlinePlayer.sendMessage(MessageUtils.getColorMessage(softbanMessage));
+                        break;
+
+                    case "freeze":
+                        plugin.getPluginFrozenPlayers().put(onlinePlayer.getUniqueId(), true);
+                        plugin.getFreezeListener().startFreezeActionsTask(onlinePlayer);
+                        onlinePlayer.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_frozen")));
+                        break;
+                }
+            }
+        }
     }
 
     private static class TempHolder implements InventoryHolder {

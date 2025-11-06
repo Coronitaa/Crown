@@ -1,3 +1,4 @@
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\database\DatabaseManager.java
 package cp.corona.database;
 
 import cp.corona.config.WarnLevel;
@@ -1011,44 +1012,46 @@ public class DatabaseManager {
 
 
     public void logPlayerInfo(String punishmentId, Player player) {
-        CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection()) {
-                logPlayerInfo(connection, punishmentId, player.getUniqueId(), player.getAddress().getAddress().getHostAddress(), player);
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Database error logging player info!", e);
-            }
-        });
+        String ipAddress = (player != null && player.getAddress() != null) ? player.getAddress().getAddress().getHostAddress() : null;
+        logPlayerInfoAsync(punishmentId, player, ipAddress);
     }
 
-    public void logPlayerInfo(Connection connection, String punishmentId, UUID playerUUID, String ipAddress, Player player) throws SQLException {
-        String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level, playtime, ping, first_joined, last_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, punishmentId);
-            ps.setString(2, ipAddress);
-            if (player != null && player.isOnline()) {
-                ps.setString(3, player.getWorld().getName() + "," + player.getLocation().getX() + "," + player.getLocation().getY() + "," + player.getLocation().getZ());
-                ps.setString(4, player.getGameMode().toString());
-                ps.setDouble(5, player.getHealth());
-                ps.setInt(6, player.getFoodLevel());
-                ps.setInt(7, player.getLevel());
-                ps.setLong(8, player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE));
-                ps.setInt(9, player.getPing());
-                ps.setLong(10, player.getFirstPlayed());
-                ps.setLong(11, player.getLastPlayed());
-            } else {
-                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUUID);
-                ps.setNull(3, Types.VARCHAR);
-                ps.setNull(4, Types.VARCHAR);
-                ps.setNull(5, Types.DOUBLE);
-                ps.setNull(6, Types.INTEGER);
-                ps.setNull(7, Types.INTEGER);
-                ps.setNull(8, Types.BIGINT);
-                ps.setNull(9, Types.INTEGER);
-                ps.setLong(10, offlinePlayer.getFirstPlayed());
-                ps.setLong(11, offlinePlayer.getLastPlayed());
+    public void logPlayerInfoAsync(String punishmentId, OfflinePlayer target, String ipAddress) {
+        CompletableFuture.runAsync(() -> {
+            String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level, playtime, ping, first_joined, last_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+
+                Player onlineTarget = target.isOnline() ? target.getPlayer() : null;
+
+                ps.setString(1, punishmentId);
+                ps.setString(2, ipAddress);
+
+                if (onlineTarget != null) {
+                    ps.setString(3, onlineTarget.getWorld().getName() + "," + onlineTarget.getLocation().getX() + "," + onlineTarget.getLocation().getY() + "," + onlineTarget.getLocation().getZ());
+                    ps.setString(4, onlineTarget.getGameMode().toString());
+                    ps.setDouble(5, onlineTarget.getHealth());
+                    ps.setInt(6, onlineTarget.getFoodLevel());
+                    ps.setInt(7, onlineTarget.getLevel());
+                    ps.setLong(8, onlineTarget.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE));
+                    ps.setInt(9, onlineTarget.getPing());
+                } else {
+                    ps.setNull(3, Types.VARCHAR);
+                    ps.setNull(4, Types.VARCHAR);
+                    ps.setNull(5, Types.DOUBLE);
+                    ps.setNull(6, Types.INTEGER);
+                    ps.setNull(7, Types.INTEGER);
+                    ps.setNull(8, Types.BIGINT);
+                    ps.setNull(9, Types.INTEGER);
+                }
+
+                ps.setLong(10, target.getFirstPlayed());
+                ps.setLong(11, target.getLastPlayed());
+
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Database error logging player info for punishment ID: " + punishmentId, e);
             }
-            ps.executeUpdate();
-        }
+        });
     }
 
 
@@ -1443,14 +1446,16 @@ public class DatabaseManager {
 
     public List<String> getPlayersByIp(String ip) {
         List<String> players = new ArrayList<>();
-        String sql = "SELECT DISTINCT player_uuid FROM punishment_history WHERE punishment_id IN (SELECT punishment_id FROM player_info WHERE ip = ?)";
-        try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+        String sql = "SELECT DISTINCT ph.player_uuid FROM punishment_history ph JOIN player_info pi ON ph.punishment_id = pi.punishment_id WHERE pi.ip = ?";
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, ip);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     UUID playerUUID = UUID.fromString(rs.getString("player_uuid"));
-                    players.add(Bukkit.getOfflinePlayer(playerUUID).getName());
+                    String name = Bukkit.getOfflinePlayer(playerUUID).getName();
+                    if (name != null && !players.contains(name)) {
+                        players.add(name);
+                    }
                 }
             }
         } catch (SQLException e) {
