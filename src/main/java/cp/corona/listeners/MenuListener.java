@@ -986,7 +986,7 @@ public class MenuListener implements Listener {
                 }
 
                 if (byIp && finalIpAddress != null) {
-                    applyIpPunishmentToOnlinePlayers(punishmentType, finalIpAddress, endTime, reason, finalDurationForLog, punishmentId);
+                    applyIpPunishmentToOnlinePlayers(punishmentType, finalIpAddress, endTime, reason, finalDurationForLog, punishmentId, targetUUID);
                 }
 
                 playSound(player, "punish_confirm");
@@ -1044,7 +1044,7 @@ public class MenuListener implements Listener {
                 }
 
                 if (byIp && finalIpAddress != null) {
-                    applyIpPunishmentToOnlinePlayers(SOFTBAN_PUNISHMENT_TYPE, finalIpAddress, endTime, reason, durationString, punishmentId);
+                    applyIpPunishmentToOnlinePlayers(SOFTBAN_PUNISHMENT_TYPE, finalIpAddress, endTime, reason, durationString, punishmentId, targetUUID);
                 }
 
                 playSound(player, "punish_confirm");
@@ -1109,7 +1109,7 @@ public class MenuListener implements Listener {
                 }
 
                 if (byIp && finalIpAddress != null) {
-                    applyIpPunishmentToOnlinePlayers(FREEZE_PUNISHMENT_TYPE, finalIpAddress, Long.MAX_VALUE, reason, permanentDisplay, punishmentId);
+                    applyIpPunishmentToOnlinePlayers(FREEZE_PUNISHMENT_TYPE, finalIpAddress, Long.MAX_VALUE, reason, permanentDisplay, punishmentId, targetUUID);
                 }
 
                 playSound(player, "punish_confirm");
@@ -1150,7 +1150,7 @@ public class MenuListener implements Listener {
                 if (useInternal) {
                     String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null, plugin.getConfigManager());
                     if (byIp) {
-                        applyIpPunishmentToOnlinePlayers(KICK_PUNISHMENT_TYPE, finalIpAddress, 0, reason, "N/A", punishmentId);
+                        applyIpPunishmentToOnlinePlayers(KICK_PUNISHMENT_TYPE, finalIpAddress, 0, reason, "N/A", punishmentId, targetUUID);
                     } else {
                         target.getPlayer().kickPlayer(kickMessage);
                     }
@@ -1244,6 +1244,15 @@ public class MenuListener implements Listener {
                 .thenAccept(punishmentId -> {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         if(punishmentId == null) return;
+
+                        DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getPunishmentById(punishmentId);
+                        if (entry != null && entry.wasByIp()) {
+                            DatabaseManager.PlayerInfo pInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                            if (pInfo != null && pInfo.getIp() != null) {
+                                applyIpUnpunishmentToOnlinePlayers(SOFTBAN_PUNISHMENT_TYPE, pInfo.getIp());
+                            }
+                        }
+
                         plugin.getSoftBannedPlayersCache().remove(targetUUID);
                         playSound(player, "punish_confirm");
                         sendUnpunishConfirmation(player, target, SOFTBAN_PUNISHMENT_TYPE, punishmentId);
@@ -1257,7 +1266,7 @@ public class MenuListener implements Listener {
     private void confirmUnfreeze(Player player, PunishDetailsMenu punishDetailsMenu, String reason) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-        boolean removed = plugin.getPluginFrozenPlayers().remove(targetUUID) != null;
+        boolean removed = plugin.getPluginFrozenPlayers().containsKey(targetUUID);
 
         if (removed) {
             String originalPunishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(targetUUID, FREEZE_PUNISHMENT_TYPE);
@@ -1267,6 +1276,15 @@ public class MenuListener implements Listener {
                         Bukkit.getScheduler().runTask(plugin, () -> {
                             if(punishmentId == null) return;
 
+                            DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getPunishmentById(punishmentId);
+                            if (entry != null && entry.wasByIp()) {
+                                DatabaseManager.PlayerInfo pInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                                if (pInfo != null && pInfo.getIp() != null) {
+                                    applyIpUnpunishmentToOnlinePlayers(FREEZE_PUNISHMENT_TYPE, pInfo.getIp());
+                                }
+                            }
+
+                            plugin.getPluginFrozenPlayers().remove(targetUUID);
                             playSound(player, "punish_confirm");
                             sendUnpunishConfirmation(player, target, FREEZE_PUNISHMENT_TYPE, punishmentId);
                             Player onlineTarget = target.getPlayer();
@@ -1302,11 +1320,21 @@ public class MenuListener implements Listener {
                         }
 
                         if(useInternal) {
-                            DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
-                            boolean banByIp = plugin.getConfigManager().isPunishmentByIp("ban");
-                            if (banByIp && playerInfo != null && playerInfo.getIp() != null) {
-                                Bukkit.getBanList(BanList.Type.IP).pardon(playerInfo.getIp());
-                            } else {
+                            DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getPunishmentById(punishmentId);
+                            boolean wasByIp = entry != null && entry.wasByIp();
+                            boolean pardoned = false;
+
+                            if (wasByIp) {
+                                DatabaseManager.PlayerInfo pInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                                if (pInfo != null && pInfo.getIp() != null) {
+                                    String ip = pInfo.getIp();
+                                    if (Bukkit.getBanList(BanList.Type.IP).isBanned(ip)) {
+                                        Bukkit.getBanList(BanList.Type.IP).pardon(ip);
+                                        pardoned = true;
+                                    }
+                                }
+                            }
+                            if (!pardoned && target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
                                 Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
                             }
                         } else {
@@ -1336,6 +1364,14 @@ public class MenuListener implements Listener {
                         if(punishmentId == null) {
                             sendConfigMessage(player, "messages.not_muted");
                             return;
+                        }
+
+                        DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getPunishmentById(punishmentId);
+                        if (entry != null && entry.wasByIp()) {
+                            DatabaseManager.PlayerInfo pInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                            if (pInfo != null && pInfo.getIp() != null) {
+                                applyIpUnpunishmentToOnlinePlayers(MUTE_PUNISHMENT_TYPE, pInfo.getIp());
+                            }
                         }
 
                         plugin.getMutedPlayersCache().remove(targetUUID);
@@ -1657,6 +1693,8 @@ public class MenuListener implements Listener {
     private void executeSpecificHookAction(CommandSender executor, OfflinePlayer target, ClickAction action, String[] actionArgs, Crown plugin, ActiveWarningEntry warningContext) {
         if (action == ClickAction.NO_ACTION) return;
 
+        Player playerExecutor = (executor instanceof Player) ? (Player) executor : null;
+
         if (plugin.getConfigManager().isDebugEnabled()) {
             String executorName = (executor instanceof Player) ? executor.getName() : "Console";
             String targetName = (target != null && target.getName() != null) ? target.getName() : "Unknown";
@@ -1673,7 +1711,7 @@ public class MenuListener implements Listener {
 
             case PLAYER_COMMAND:
             case PLAYER_COMMAND_OP:
-                if (!(executor instanceof Player playerExecutor)) {
+                if (playerExecutor == null) {
                     plugin.getLogger().warning("Skipping PLAYER_COMMAND/PLAYER_COMMAND_OP hook action: Executor is not a player."); return;
                 }
                 if (actionArgs.length >= 1 && actionArgs[0] != null) {
@@ -1759,48 +1797,43 @@ public class MenuListener implements Listener {
 
 
             case PLAY_SOUND:
-                if (executor instanceof Player playerExecutor) { executePlaySoundAction(playerExecutor, actionArgs); }
+                if (playerExecutor != null) { executePlaySoundAction(playerExecutor, actionArgs); }
                 break;
             case PLAY_SOUND_TARGET:
-                if (target != null) { executePlaySoundTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                if (target != null) { executePlaySoundTargetAction(playerExecutor, new TempHolder(target.getUniqueId()), actionArgs); }
                 else { logTargetMissing(action, plugin); } break;
             case PLAY_SOUND_MODS:
-                if (target != null) { executePlaySoundModsAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
-                else { logTargetMissing(action, plugin); } break;
-
+                executePlaySoundModsAction(playerExecutor, new TempHolder(target != null ? target.getUniqueId() : null), actionArgs);
+                break;
             case TITLE:
-                if (executor instanceof Player playerExecutor) { executeTitleAction(playerExecutor, actionArgs, null); }
+                if (playerExecutor != null) { executeTitleAction(playerExecutor, actionArgs, new TempHolder(target != null ? target.getUniqueId() : null)); }
                 break;
             case TITLE_TARGET:
-                if (target != null) { executeTitleTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                if (target != null) { executeTitleTargetAction(playerExecutor, new TempHolder(target.getUniqueId()), actionArgs); }
                 else { logTargetMissing(action, plugin); } break;
             case TITLE_MODS:
-                if (target != null) { executeTitleModsAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
-                else { logTargetMissing(action, plugin); } break;
-
+                executeTitleModsAction(playerExecutor, new TempHolder(target != null ? target.getUniqueId() : null), actionArgs);
+                break;
             case MESSAGE:
-                if (executor instanceof Player playerExecutor) { executeMessageAction(playerExecutor, actionArgs, null); }
-                else { executor.sendMessage(actionArgs.length > 0 ? actionArgs[0] : ""); }
+                executor.sendMessage(actionArgs.length > 0 ? actionArgs[0] : "");
                 break;
             case MESSAGE_TARGET:
-                if (target != null) { executeMessageTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                if (target != null) { executeMessageTargetAction(playerExecutor, new TempHolder(target.getUniqueId()), actionArgs); }
                 else { logTargetMissing(action, plugin); } break;
             case MESSAGE_MODS:
-                if (target != null) { executeMessageModsAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
-                else { logTargetMissing(action, plugin); } break;
-
+                executeMessageModsAction(playerExecutor, new TempHolder(target != null ? target.getUniqueId() : null), actionArgs);
+                break;
             case ACTIONBAR:
-                if (executor instanceof Player playerExecutor) { executeActionbarAction(playerExecutor, actionArgs, null); }
+                if (playerExecutor != null) { executeActionbarAction(playerExecutor, actionArgs, null); }
                 break;
             case ACTIONBAR_TARGET:
-                if (target != null) { executeActionbarTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                if (target != null) { executeActionbarTargetAction(playerExecutor, new TempHolder(target.getUniqueId()), actionArgs); }
                 else { logTargetMissing(action, plugin); } break;
             case ACTIONBAR_MODS:
-                if (target != null) { executeActionbarModsAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
-                else { logTargetMissing(action, plugin); } break;
-
+                executeActionbarModsAction(playerExecutor, new TempHolder(target != null ? target.getUniqueId() : null), actionArgs);
+                break;
             case GIVE_EFFECT_TARGET:
-                if (target != null) { executeGiveEffectTargetAction(null, new TempHolder(target.getUniqueId()), actionArgs); }
+                if (target != null) { executeGiveEffectTargetAction(playerExecutor, new TempHolder(target.getUniqueId()), actionArgs); }
                 else { logTargetMissing(action, plugin); } break;
 
             default:
@@ -1817,10 +1850,14 @@ public class MenuListener implements Listener {
         plugin.getLogger().warning("Invalid arguments for hook action " + action + ": " + Arrays.toString(args));
     }
 
-    private void applyIpPunishmentToOnlinePlayers(String punishmentType, String ipAddress, long endTime, String reason, String durationForLog, String punishmentId) {
+    private void applyIpPunishmentToOnlinePlayers(String punishmentType, String ipAddress, long endTime, String reason, String durationForLog, String punishmentId, UUID originalTargetUUID) {
         String lowerCasePunishType = punishmentType.toLowerCase();
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            if (onlinePlayer.getUniqueId().equals(originalTargetUUID)) {
+                continue; // Skip the original target, they are already handled
+            }
+
             InetSocketAddress playerAddress = onlinePlayer.getAddress();
             if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
 
@@ -1850,6 +1887,27 @@ public class MenuListener implements Listener {
                         plugin.getFreezeListener().startFreezeActionsTask(onlinePlayer);
                         onlinePlayer.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_frozen")));
                         break;
+                }
+            }
+        }
+    }
+
+    private void applyIpUnpunishmentToOnlinePlayers(String punishmentType, String ipAddress) {
+        String lowerCaseType = punishmentType.toLowerCase();
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            InetSocketAddress playerAddress = onlinePlayer.getAddress();
+            if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
+                if (lowerCaseType.equals("mute")) {
+                    plugin.getMutedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    sendConfigMessage(onlinePlayer, "messages.unmute_notification");
+                } else if (lowerCaseType.equals("softban")) {
+                    plugin.getSoftBannedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    sendConfigMessage(onlinePlayer, "messages.unsoftban_notification");
+                } else if (lowerCaseType.equals("freeze")) {
+                    if (plugin.getPluginFrozenPlayers().remove(onlinePlayer.getUniqueId()) != null) {
+                        plugin.getFreezeListener().stopFreezeActionsTask(onlinePlayer.getUniqueId());
+                        sendConfigMessage(onlinePlayer, "messages.you_are_unfrozen");
+                    }
                 }
             }
         }

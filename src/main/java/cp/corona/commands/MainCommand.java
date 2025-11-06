@@ -792,6 +792,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                         onlinePlayer.sendMessage(MessageUtils.getColorMessage(softbanMessage));
                         break;
+
+                    case "freeze":
+                        plugin.getPluginFrozenPlayers().put(onlinePlayer.getUniqueId(), true);
+                        plugin.getFreezeListener().startFreezeActionsTask(onlinePlayer);
+                        onlinePlayer.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_frozen")));
+                        break;
                 }
             }
         }
@@ -926,6 +932,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                             return;
                         }
 
+                        DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getPunishmentById(unpunishedId);
+                        if (entry != null && entry.wasByIp()) {
+                            DatabaseManager.PlayerInfo pInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(unpunishedId);
+                            if (pInfo != null && pInfo.getIp() != null) {
+                                applyIpUnpunishmentToOnlinePlayers(punishType, pInfo.getIp());
+                            }
+                        }
+
                         if (useInternal) {
                             handleInternalUnpunishmentPostAction(sender, target, punishType, unpunishedId);
                         } else {
@@ -944,26 +958,52 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 });
     }
 
+    private void applyIpUnpunishmentToOnlinePlayers(String punishmentType, String ipAddress) {
+        String lowerCaseType = punishmentType.toLowerCase();
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            InetSocketAddress playerAddress = onlinePlayer.getAddress();
+            if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
+                if (lowerCaseType.equals("mute")) {
+                    plugin.getMutedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    sendConfigMessage(onlinePlayer, "messages.unmute_notification");
+                } else if (lowerCaseType.equals("softban")) {
+                    plugin.getSoftBannedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    sendConfigMessage(onlinePlayer, "messages.unsoftban_notification");
+                } else if (lowerCaseType.equals("freeze")) {
+                    if (plugin.getPluginFrozenPlayers().remove(onlinePlayer.getUniqueId()) != null) {
+                        plugin.getFreezeListener().stopFreezeActionsTask(onlinePlayer.getUniqueId());
+                        sendConfigMessage(onlinePlayer, "messages.you_are_unfrozen");
+                    }
+                }
+            }
+        }
+    }
+
     private void handleInternalUnpunishmentPostAction(CommandSender sender, OfflinePlayer target, String punishType, String punishmentId) {
         String lowerCasePunishType = punishType.toLowerCase();
 
         switch(lowerCasePunishType) {
             case "ban":
-                DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
-                boolean wasByIp = playerInfo != null && playerInfo.getIp() != null && plugin.getSoftBanDatabaseManager().getPunishmentById(punishmentId).wasByIp();
-
+                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getPunishmentById(punishmentId);
+                boolean wasByIp = entry != null && entry.wasByIp();
                 boolean pardoned = false;
+
                 if (wasByIp) {
-                    String ip = playerInfo.getIp();
-                    if (Bukkit.getBanList(BanList.Type.IP).isBanned(ip)) {
-                        Bukkit.getBanList(BanList.Type.IP).pardon(ip);
-                        pardoned = true;
+                    DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                    if (playerInfo != null && playerInfo.getIp() != null) {
+                        String ip = playerInfo.getIp();
+                        if (Bukkit.getBanList(BanList.Type.IP).isBanned(ip)) {
+                            Bukkit.getBanList(BanList.Type.IP).pardon(ip);
+                            pardoned = true;
+                        }
                     }
                 }
+
                 if (!pardoned && target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
                     Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
                     pardoned = true;
                 }
+
                 if (!pardoned) {
                     sendConfigMessage(sender, "messages.not_banned", "{target}", target.getName());
                 }
@@ -988,6 +1028,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 .thenAccept(unpunishedId -> {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         if (unpunishedId == null) return; // Should not happen if removed was true
+
+                        DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getPunishmentById(unpunishedId);
+                        if (entry != null && entry.wasByIp()) {
+                            DatabaseManager.PlayerInfo pInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(unpunishedId);
+                            if (pInfo != null && pInfo.getIp() != null) {
+                                applyIpUnpunishmentToOnlinePlayers("freeze", pInfo.getIp());
+                            }
+                        }
 
                         Player onlineTargetUnfreeze = target.getPlayer();
                         if (onlineTargetUnfreeze != null) {
