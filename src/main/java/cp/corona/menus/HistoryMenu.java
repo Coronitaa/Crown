@@ -1,4 +1,3 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\HistoryMenu.java
 package cp.corona.menus;
 
 import cp.corona.crown.Crown;
@@ -76,12 +75,10 @@ public class HistoryMenu implements InventoryHolder {
             String type = entry.getType().toLowerCase();
             String status;
             boolean isInternal = plugin.getConfigManager().isPunishmentInternal(type);
+            boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
+                    && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
 
             if (isInternal) {
-                // --- INTERNAL PUNISHMENT STATUS LOGIC ---
-                boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
-                        && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
-
                 if (type.equals("warn")) {
                     ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
                     if (activeWarning != null) {
@@ -99,6 +96,8 @@ public class HistoryMenu implements InventoryHolder {
                     boolean isPaused = !entry.isActive() && "Paused by new warning".equalsIgnoreCase(entry.getRemovedReason());
                     if (isPaused) {
                         status = plugin.getConfigManager().getMessage("placeholders.status_paused");
+                    } else if (entry.isActive() && entry.getEndTime() < System.currentTimeMillis() && entry.getEndTime() != Long.MAX_VALUE) {
+                        status = plugin.getConfigManager().getMessage("placeholders.status_expired");
                     } else if (entry.isActive()) {
                         status = plugin.getConfigManager().getMessage("placeholders.status_active");
                     } else {
@@ -116,7 +115,8 @@ public class HistoryMenu implements InventoryHolder {
                             : plugin.getConfigManager().getMessage("placeholders.status_removed");
                 } else { // For ban, mute, softban, freeze
                     if (!entry.isActive()) {
-                        status = plugin.getConfigManager().getMessage("placeholders.status_removed");
+                        status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                                : plugin.getConfigManager().getMessage("placeholders.status_removed");
                     } else if (entry.getEndTime() < System.currentTimeMillis() && entry.getEndTime() != Long.MAX_VALUE) {
                         status = plugin.getConfigManager().getMessage("placeholders.status_expired");
                     } else {
@@ -127,6 +127,7 @@ public class HistoryMenu implements InventoryHolder {
             entry.setStatus(status);
         }
     }
+
 
     private void loadPageAsync(int newPage, Player viewer) {
         if (isLoadingPage) return;
