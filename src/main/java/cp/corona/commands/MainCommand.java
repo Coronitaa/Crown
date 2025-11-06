@@ -1,4 +1,3 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\commands\MainCommand.java
 package cp.corona.commands;
 
 import cp.corona.config.WarnLevel;
@@ -627,6 +626,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
 
     private void confirmDirectPunishment(final CommandSender sender, final OfflinePlayer target, final String punishType, final String time, final String reason, final Boolean byIpOverride) {
+        boolean byIp = byIpOverride != null ? byIpOverride : plugin.getConfigManager().isPunishmentByIp(punishType);
+
+        // Pre-emptive check for local kicks on offline players
+        if (punishType.equalsIgnoreCase("kick") && !byIp && !target.isOnline()) {
+            sendConfigMessage(sender, "messages.player_not_online", "{input}", target.getName());
+            return;
+        }
+
         if (target instanceof Player playerTarget) {
             if (punishType.equalsIgnoreCase("softban") && playerTarget.hasPermission("crown.bypass.softban")) {
                 sendConfigMessage(sender, "messages.bypass_error_softban", "{target}", target.getName()); return;
@@ -650,7 +657,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(punishType);
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(punishType);
-        boolean byIp = byIpOverride != null ? byIpOverride : plugin.getConfigManager().isPunishmentByIp(punishType);
 
         String ipAddress = null;
         if (byIp) {

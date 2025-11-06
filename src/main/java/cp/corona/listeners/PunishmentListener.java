@@ -13,6 +13,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -207,10 +208,21 @@ public class PunishmentListener implements Listener {
 
     private String buildHoverText(DatabaseManager.PunishmentEntry entry) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String methodText;
+
+        if (entry.wasByIp()) {
+            OfflinePlayer originalTarget = Bukkit.getOfflinePlayer(entry.getPlayerUUID());
+            String originalTargetName = originalTarget.getName() != null ? originalTarget.getName() : "Unknown";
+            String ipPlaceholder = plugin.getConfigManager().getMessage("placeholders.by_ip");
+            methodText = String.format("%s &7(on %s)", ipPlaceholder, originalTargetName);
+        } else {
+            methodText = plugin.getConfigManager().getMessage("placeholders.by_local");
+        }
+
         String hover = String.format("&eReason: &f%s\n&eDate: &f%s\n&eMethod: &f%s",
                 entry.getReason(),
                 dateFormat.format(entry.getTimestamp()),
-                entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local")
+                methodText
         );
         return MessageUtils.getColorMessage(hover);
     }

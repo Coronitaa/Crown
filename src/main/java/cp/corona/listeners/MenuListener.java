@@ -1123,8 +1123,10 @@ public class MenuListener implements Listener {
     private void confirmKick(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        boolean byIp = punishDetailsMenu.isByIp();
 
-        if (!target.isOnline()) {
+        // MODIFIED: Added !byIp to ensure this check only applies to local kicks.
+        if (!byIp && !target.isOnline()) {
             sendConfigMessage(player, "messages.player_not_online", "{input}", target.getName());
             playSound(player, "punish_error");
             player.closeInventory();
@@ -1133,10 +1135,9 @@ public class MenuListener implements Listener {
 
         String reason = punishDetailsMenu.getBanReason();
         boolean useInternal = plugin.getConfigManager().isPunishmentInternal(KICK_PUNISHMENT_TYPE);
-        boolean byIp = punishDetailsMenu.isByIp();
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(KICK_PUNISHMENT_TYPE);
 
-        final String finalIpAddress = byIp ? target.getPlayer().getAddress().getAddress().getHostAddress() : null;
+        final String finalIpAddress = (byIp && target.isOnline()) ? target.getPlayer().getAddress().getAddress().getHostAddress() : null;
 
         CompletableFuture<String> future = plugin.getSoftBanDatabaseManager()
                 .executePunishmentAsync(targetUUID, KICK_PUNISHMENT_TYPE, reason, player.getName(), 0L, "N/A", byIp, null);
@@ -1149,9 +1150,9 @@ public class MenuListener implements Listener {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (useInternal) {
                     String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null, plugin.getConfigManager());
-                    if (byIp) {
+                    if (byIp && target.isOnline()) {
                         applyIpPunishmentToOnlinePlayers(KICK_PUNISHMENT_TYPE, finalIpAddress, 0, reason, "N/A", punishmentId, targetUUID);
-                    } else {
+                    } else if (target.isOnline()) {
                         target.getPlayer().kickPlayer(kickMessage);
                     }
                 } else {

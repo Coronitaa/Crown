@@ -1,4 +1,3 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\database\DatabaseManager.java
 package cp.corona.database;
 
 import cp.corona.config.WarnLevel;
@@ -66,6 +65,7 @@ public class DatabaseManager {
                     startExpiryCheckTask();
                     startMuteExpiryCheckTask();
                     startWarningExpiryCheckTask();
+                    startBanExpiryCheckTask(); // ADDED
                 }).exceptionally(ex -> {
                     plugin.getLogger().log(Level.SEVERE, "Failed to initialize database!", ex);
                     return null;
@@ -809,6 +809,29 @@ public class DatabaseManager {
                 plugin.getLogger().log(Level.WARNING, "Error checking for expired mutes.", e);
             }
         }, 0L, 6000L);
+    }
+
+    // New task to check for expired internal bans and update their status in punishment_history
+    private void startBanExpiryCheckTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                String sql = "UPDATE punishment_history SET active = 0, removed_by_name = 'System', removed_reason = 'Expired', removed_at = ? WHERE active = 1 AND punishment_type = 'ban' AND punishment_time <= ? AND punishment_time != ?";
+                try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                    long currentTime = System.currentTimeMillis();
+                    ps.setTimestamp(1, new Timestamp(currentTime));
+                    ps.setLong(2, currentTime);
+                    ps.setLong(3, Long.MAX_VALUE); // Do not expire permanent bans
+
+                    int updatedRows = ps.executeUpdate();
+                    if (updatedRows > 0 && plugin.getConfigManager().isDebugEnabled()) {
+                        plugin.getLogger().info("[DatabaseManager] Marked " + updatedRows + " expired ban(s) as inactive.");
+                    }
+                } catch (SQLException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Error checking for expired internal bans", e);
+                }
+            }
+        }.runTaskTimerAsynchronously(plugin, 20L * 60 * 5, 20L * 60 * 5); // Check every 5 minutes
     }
 
 
