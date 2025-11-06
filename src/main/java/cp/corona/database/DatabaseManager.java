@@ -1,3 +1,4 @@
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\database\DatabaseManager.java
 package cp.corona.database;
 
 import cp.corona.config.WarnLevel;
@@ -448,7 +449,8 @@ public class DatabaseManager {
     }
 
     private void removeActiveWarning(Connection connection, UUID playerUUID, String punishmentId, String removerName, String reason) throws SQLException {
-        ActiveWarningEntry warningToRemove = getActiveWarningByPunishmentId(punishmentId);
+        ActiveWarningEntry warningToRemove = getActiveWarningByPunishmentId(connection, punishmentId);
+
         if (warningToRemove != null && warningToRemove.getAssociatedPunishmentIds() != null) {
             for (String pair : warningToRemove.getAssociatedPunishmentIds().split(";")) {
                 if (pair.contains(":")) {
@@ -464,7 +466,9 @@ public class DatabaseManager {
             if (ps.executeUpdate() > 0) {
                 updatePunishmentAsRemoved(connection, punishmentId, removerName, reason);
                 if ("incremental".equals(plugin.getConfigManager().getWarnExpirationMode())) {
-                    resumeLatestPausedWarning(connection, playerUUID);
+                    if (warningToRemove != null && !warningToRemove.isPaused()) {
+                        resumeLatestPausedWarning(connection, playerUUID);
+                    }
                 }
             }
         }
@@ -695,8 +699,17 @@ public class DatabaseManager {
     }
 
     public ActiveWarningEntry getActiveWarningByPunishmentId(String punishmentId) {
+        try (Connection connection = getConnection()) {
+            return getActiveWarningByPunishmentId(connection, punishmentId);
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not get active warning by punishment ID: " + punishmentId, e);
+        }
+        return null;
+    }
+
+    private ActiveWarningEntry getActiveWarningByPunishmentId(Connection connection, String punishmentId) throws SQLException {
         String sql = "SELECT * FROM active_warnings WHERE punishment_id = ?";
-        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
@@ -711,8 +724,6 @@ public class DatabaseManager {
                         rs.getString("associated_punishment_ids")
                 );
             }
-        } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Could not get active warning by punishment ID: " + punishmentId, e);
         }
         return null;
     }
