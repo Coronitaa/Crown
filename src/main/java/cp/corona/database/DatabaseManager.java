@@ -1,4 +1,3 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\database\DatabaseManager.java
 package cp.corona.database;
 
 import cp.corona.config.WarnLevel;
@@ -272,8 +271,9 @@ public class DatabaseManager {
     public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, List<String> customCommands, int warnLevel) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection()) {
-                // Deactivate previous similar punishment if necessary
-                if (!"warn".equalsIgnoreCase(punishmentType)) {
+                // Deactivate previous similar punishment if necessary, only for internal punishments
+                boolean isInternal = plugin.getConfigManager().isPunishmentInternal(punishmentType);
+                if (isInternal && !"warn".equalsIgnoreCase(punishmentType)) {
                     PunishmentEntry activePunishment = getLatestActivePunishment(connection, targetUUID, punishmentType);
                     if (activePunishment != null && (activePunishment.getEndTime() > System.currentTimeMillis() || activePunishment.getEndTime() == Long.MAX_VALUE)) {
                         updatePunishmentAsRemoved(connection, activePunishment.getPunishmentId(), "System", "Superseded by new punishment.");
@@ -282,16 +282,18 @@ public class DatabaseManager {
 
                 String punishmentId = logPunishment(connection, targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel);
 
-                // Handle specific punishment table updates
-                switch (punishmentType.toLowerCase()) {
-                    case "softban":
-                        softBanPlayer(connection, targetUUID, punishmentEndTime, reason, customCommands);
-                        scheduleExpiryNotification(targetUUID, punishmentEndTime, "softban", punishmentId);
-                        break;
-                    case "mute":
-                        mutePlayer(connection, targetUUID, punishmentEndTime, reason);
-                        scheduleExpiryNotification(targetUUID, punishmentEndTime, "mute", punishmentId);
-                        break;
+                // Handle specific punishment table updates for internal punishments
+                if (isInternal) {
+                    switch (punishmentType.toLowerCase()) {
+                        case "softban":
+                            softBanPlayer(connection, targetUUID, punishmentEndTime, reason, customCommands);
+                            scheduleExpiryNotification(targetUUID, punishmentEndTime, "softban", punishmentId);
+                            break;
+                        case "mute":
+                            mutePlayer(connection, targetUUID, punishmentEndTime, reason);
+                            scheduleExpiryNotification(targetUUID, punishmentEndTime, "mute", punishmentId);
+                            break;
+                    }
                 }
                 return punishmentId;
             } catch (SQLException e) {
@@ -323,16 +325,19 @@ public class DatabaseManager {
                 updatePunishmentAsRemoved(connection, punishmentId, punisherName, reason);
 
                 // Handle specific table cleanups
-                switch (punishmentType.toLowerCase()) {
-                    case "softban":
-                        unSoftBanPlayer(connection, targetUUID);
-                        break;
-                    case "mute":
-                        unmutePlayer(connection, targetUUID);
-                        break;
-                    case "warn":
-                        // Warn removal logic is more complex and handled separately
-                        break;
+                boolean isInternal = plugin.getConfigManager().isPunishmentInternal(punishmentType);
+                if (isInternal) {
+                    switch (punishmentType.toLowerCase()) {
+                        case "softban":
+                            unSoftBanPlayer(connection, targetUUID);
+                            break;
+                        case "mute":
+                            unmutePlayer(connection, targetUUID);
+                            break;
+                        case "warn":
+                            // Warn removal logic is more complex and handled separately
+                            break;
+                    }
                 }
                 return punishmentId;
             } catch (SQLException e) {

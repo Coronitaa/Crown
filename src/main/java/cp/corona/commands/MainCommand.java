@@ -270,55 +270,77 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         switch (action) {
             case "info":
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
                 String type = entry.getType().toLowerCase();
-                String status = "N/A";
+                String status;
                 String timeLeft = "N/A";
+                boolean isInternal = plugin.getConfigManager().isPunishmentInternal(type);
 
-                if (type.equals("warn")) {
-                    ActiveWarningEntry activeWarning = plugin.getSoftBanDatabaseManager().getActiveWarningByPunishmentId(punishmentId);
-                    if (activeWarning != null) {
-                        sendConfigMessage(sender, "messages.check_info_warn_level", "{level}", String.valueOf(activeWarning.getWarnLevel()));
-                        if (activeWarning.isPaused()) {
+                if (isInternal) {
+                    // --- INTERNAL PUNISHMENT STATUS LOGIC ---
+                    if (type.equals("warn")) {
+                        ActiveWarningEntry activeWarning = plugin.getSoftBanDatabaseManager().getActiveWarningByPunishmentId(punishmentId);
+                        if (activeWarning != null) {
+                            sendConfigMessage(sender, "messages.check_info_warn_level", "{level}", String.valueOf(activeWarning.getWarnLevel()));
+                            if (activeWarning.isPaused()) {
+                                status = plugin.getConfigManager().getMessage("placeholders.status_paused");
+                                timeLeft = TimeUtils.formatTime((int)(activeWarning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
+                            } else {
+                                status = plugin.getConfigManager().getMessage("placeholders.status_active");
+                                if (activeWarning.getEndTime() != -1) {
+                                    timeLeft = TimeUtils.formatTime((int)((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                                } else {
+                                    timeLeft = "Permanent";
+                                }
+                            }
+                        } else {
+                            boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
+                                    && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
+                            status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                                    : plugin.getConfigManager().getMessage("placeholders.status_removed");
+                        }
+                    } else if (type.equals("kick")) {
+                        status = "N/A";
+                    } else {
+                        boolean isPaused = !entry.isActive() && "Paused by new warning".equalsIgnoreCase(entry.getRemovedReason());
+                        boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
+
+                        if (isPaused) {
                             status = plugin.getConfigManager().getMessage("placeholders.status_paused");
-                            timeLeft = TimeUtils.formatTime((int)(activeWarning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
+                        } else if (entry.isActive()) {
+                            status = plugin.getConfigManager().getMessage("placeholders.status_active");
+                        } else {
+                            status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
+                                    : plugin.getConfigManager().getMessage("placeholders.status_removed");
+                        }
+                        if (!type.equals("freeze") && entry.isActive() && entry.getEndTime() != Long.MAX_VALUE) {
+                            timeLeft = TimeUtils.formatTime((int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                        }
+                    }
+                } else {
+                    // --- EXTERNAL (NON-INTERNAL) PUNISHMENT STATUS LOGIC ---
+                    if (type.equals("kick")) {
+                        status = "N/A";
+                        timeLeft = "N/A";
+                    } else if (type.equals("warn")) {
+                        status = !entry.isActive() ? plugin.getConfigManager().getMessage("placeholders.status_removed")
+                                : plugin.getConfigManager().getMessage("placeholders.status_active");
+                        timeLeft = "N/A";
+                    } else { // For ban, mute, softban, freeze
+                        if (!entry.isActive()) {
+                            status = plugin.getConfigManager().getMessage("placeholders.status_removed");
+                        } else if (entry.getEndTime() < System.currentTimeMillis() && entry.getEndTime() != Long.MAX_VALUE) {
+                            status = plugin.getConfigManager().getMessage("placeholders.status_expired");
                         } else {
                             status = plugin.getConfigManager().getMessage("placeholders.status_active");
-                            if (activeWarning.getEndTime() != -1) {
-                                timeLeft = TimeUtils.formatTime((int)((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                            if (entry.getEndTime() != Long.MAX_VALUE) {
+                                timeLeft = TimeUtils.formatTime((int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
                             } else {
                                 timeLeft = "Permanent";
                             }
                         }
-                    } else {
-                        boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
-                                && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
-                        status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
-                                : plugin.getConfigManager().getMessage("placeholders.status_removed");
-                    }
-                } else if (type.equals("kick")) {
-                    status = "N/A";
-                } else {
-                    boolean isPaused = !entry.isActive() && "Paused by new warning".equalsIgnoreCase(entry.getRemovedReason());
-                    boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName()) && "Expired".equalsIgnoreCase(entry.getRemovedReason());
-
-                    if (isPaused) {
-                        status = plugin.getConfigManager().getMessage("placeholders.status_paused");
-                    } else if (entry.isActive()) {
-                        if (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE) {
-                            status = plugin.getConfigManager().getMessage("placeholders.status_active");
-                        } else {
-                            status = plugin.getConfigManager().getMessage("placeholders.status_expired");
-                        }
-                    } else {
-                        status = isSystemExpired ? plugin.getConfigManager().getMessage("placeholders.status_expired")
-                                : plugin.getConfigManager().getMessage("placeholders.status_removed");
-                    }
-
-                    if (!type.equals("freeze")) {
-                        timeLeft = entry.isActive() && entry.getEndTime() != Long.MAX_VALUE ? TimeUtils.formatTime((int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager()) : "N/A";
                     }
                 }
+
 
                 String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
 
@@ -403,9 +425,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     sendConfigMessage(sender, "messages.punishment_not_active", "{id}", entry.getPunishmentId());
                     return true;
                 }
-                // If it's a warn, unpunish by player to remove the latest one. Otherwise, by ID.
+
                 if (entry.getType().equalsIgnoreCase("warn")) {
-                    confirmDirectUnpunish(sender, target, "warn", plugin.getConfigManager().getDefaultUnpunishmentReason("warn"), null);
+                    boolean isInternalWarn = plugin.getConfigManager().isPunishmentInternal("warn");
+                    String reason = plugin.getConfigManager().getDefaultUnpunishmentReason("warn");
+                    // If internal, pass the specific ID. If external, pass null to remove the latest one.
+                    confirmDirectUnpunish(sender, target, "warn", reason, isInternalWarn ? entry.getPunishmentId() : null);
                 } else {
                     confirmDirectUnpunish(sender, target, entry.getType(), plugin.getConfigManager().getDefaultUnpunishmentReason(entry.getType()), entry.getPunishmentId());
                 }
@@ -514,7 +539,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
 
-            if (!entry.isActive()) {
+            // Note: For internal warns, we might want to remove a specific one even if not "active".
+            // The logic in handleInternalUnwarn will check the active_warnings table.
+            if (!entry.isActive() && !plugin.getConfigManager().isPunishmentInternal(entry.getType())) {
                 sendConfigMessage(sender, "messages.punishment_not_active", "{id}", punishmentId);
                 return true;
             }
@@ -528,7 +555,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
 
             if (entry.getType().equalsIgnoreCase("warn")) {
-                confirmDirectUnpunish(sender, target, "warn", reason, null);
+                boolean isInternal = plugin.getConfigManager().isPunishmentInternal("warn");
+                // If internal, pass the specific ID. If external, pass null to remove the latest one.
+                confirmDirectUnpunish(sender, target, "warn", reason, isInternal ? entry.getPunishmentId() : null);
             } else {
                 confirmDirectUnpunish(sender, target, entry.getType(), reason, entry.getPunishmentId());
             }
@@ -671,7 +700,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 break;
             case "kick":
             case "warn":
-                // No end time for these
+                if (!useInternal) {
+                    punishmentEndTime = Long.MAX_VALUE;
+                    durationForLog = permanentDisplay;
+                }
+                // For internal warns, duration is handled by level config.
+                // For kicks, there is no end time.
                 break;
             default:
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
@@ -825,7 +859,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         // Handle warn unpunishment separately due to its complexity
         if (useInternal && punishType.equalsIgnoreCase("warn")) {
-            handleInternalUnwarn(sender, target, reason);
+            handleInternalUnwarn(sender, target, reason, punishmentId); // MODIFIED: Pass punishmentId
             return;
         }
 
@@ -913,26 +947,32 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 });
     }
 
-    private void handleInternalUnwarn(CommandSender sender, OfflinePlayer target, String reason) {
+    private void handleInternalUnwarn(CommandSender sender, OfflinePlayer target, String reason, String punishmentId) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
-            ActiveWarningEntry activeWarning = dbManager.getLatestActiveWarning(target.getUniqueId());
+            ActiveWarningEntry warningToRemove;
 
-            if (activeWarning == null) {
+            if (punishmentId != null) {
+                warningToRemove = dbManager.getActiveWarningByPunishmentId(punishmentId);
+            } else {
+                warningToRemove = dbManager.getLatestActiveWarning(target.getUniqueId());
+            }
+
+            if (warningToRemove == null) {
                 Bukkit.getScheduler().runTask(plugin, () -> sendConfigMessage(sender, "messages.no_active_warn", "{target}", target.getName()));
                 return;
             }
 
-            String punishmentId = activeWarning.getPunishmentId();
+            final String finalPunishmentId = warningToRemove.getPunishmentId();
             String finalReason = reason;
             if (reason.equals(plugin.getConfigManager().getDefaultUnpunishmentReason("warn"))) {
-                finalReason = reason.replace("{player}", sender.getName()) + " (ID: " + punishmentId + ")";
+                finalReason = reason.replace("{player}", sender.getName()) + " (ID: " + finalPunishmentId + ")";
             }
 
-            dbManager.removeActiveWarning(target.getUniqueId(), punishmentId, sender.getName(), finalReason);
+            dbManager.removeActiveWarning(target.getUniqueId(), finalPunishmentId, sender.getName(), finalReason);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
-                sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", "warn", "{punishment_id}", punishmentId);
+                sendConfigMessage(sender, "messages.direct_unpunishment_confirmed", "{target}", target.getName(), "{punishment_type}", "warn", "{punishment_id}", finalPunishmentId);
             });
         });
     }

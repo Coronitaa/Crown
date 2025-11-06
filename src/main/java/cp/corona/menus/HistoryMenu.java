@@ -75,36 +75,53 @@ public class HistoryMenu implements InventoryHolder {
         for (DatabaseManager.PunishmentEntry entry : allHistoryEntries) {
             String type = entry.getType().toLowerCase();
             String status;
+            boolean isInternal = plugin.getConfigManager().isPunishmentInternal(type);
 
-            boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
-                    && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
+            if (isInternal) {
+                // --- INTERNAL PUNISHMENT STATUS LOGIC ---
+                boolean isSystemExpired = !entry.isActive() && "System".equals(entry.getRemovedByName())
+                        && ("Expired".equalsIgnoreCase(entry.getRemovedReason()) || "Superseded by new warning.".equalsIgnoreCase(entry.getRemovedReason()));
 
-            if (type.equals("warn")) {
-                ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
-                if (activeWarning != null) {
-                    status = activeWarning.isPaused() ?
-                            plugin.getConfigManager().getMessage("placeholders.status_paused")
-                            : plugin.getConfigManager().getMessage("placeholders.status_active");
+                if (type.equals("warn")) {
+                    ActiveWarningEntry activeWarning = activeWarningsMap.get(entry.getPunishmentId());
+                    if (activeWarning != null) {
+                        status = activeWarning.isPaused() ?
+                                plugin.getConfigManager().getMessage("placeholders.status_paused")
+                                : plugin.getConfigManager().getMessage("placeholders.status_active");
+                    } else {
+                        status = isSystemExpired ?
+                                plugin.getConfigManager().getMessage("placeholders.status_expired")
+                                : plugin.getConfigManager().getMessage("placeholders.status_removed");
+                    }
+                } else if (type.equals("kick")) {
+                    status = "N/A";
                 } else {
-                    status = isSystemExpired ?
-                            plugin.getConfigManager().getMessage("placeholders.status_expired")
-                            : plugin.getConfigManager().getMessage("placeholders.status_removed");
+                    boolean isPaused = !entry.isActive() && "Paused by new warning".equalsIgnoreCase(entry.getRemovedReason());
+                    if (isPaused) {
+                        status = plugin.getConfigManager().getMessage("placeholders.status_paused");
+                    } else if (entry.isActive()) {
+                        status = plugin.getConfigManager().getMessage("placeholders.status_active");
+                    } else {
+                        status = isSystemExpired ?
+                                plugin.getConfigManager().getMessage("placeholders.status_expired")
+                                : plugin.getConfigManager().getMessage("placeholders.status_removed");
+                    }
                 }
-            } else if (type.equals("kick")) {
-                status = "";
             } else {
-                boolean isPaused = !entry.isActive() && "Paused by new warning".equalsIgnoreCase(entry.getRemovedReason());
-                if (isPaused) {
-                    status = plugin.getConfigManager().getMessage("placeholders.status_paused");
-                } else if (entry.isActive()) {
-                    status = (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE)
-                            ?
-                            plugin.getConfigManager().getMessage("placeholders.status_active")
-                            : plugin.getConfigManager().getMessage("placeholders.status_expired");
-                } else {
-                    status = isSystemExpired ?
-                            plugin.getConfigManager().getMessage("placeholders.status_expired")
+                // --- EXTERNAL (NON-INTERNAL) PUNISHMENT STATUS LOGIC ---
+                if (type.equals("kick")) {
+                    status = "N/A";
+                } else if (type.equals("warn")) {
+                    status = entry.isActive() ? plugin.getConfigManager().getMessage("placeholders.status_active")
                             : plugin.getConfigManager().getMessage("placeholders.status_removed");
+                } else { // For ban, mute, softban, freeze
+                    if (!entry.isActive()) {
+                        status = plugin.getConfigManager().getMessage("placeholders.status_removed");
+                    } else if (entry.getEndTime() < System.currentTimeMillis() && entry.getEndTime() != Long.MAX_VALUE) {
+                        status = plugin.getConfigManager().getMessage("placeholders.status_expired");
+                    } else {
+                        status = plugin.getConfigManager().getMessage("placeholders.status_active");
+                    }
                 }
             }
             entry.setStatus(status);
