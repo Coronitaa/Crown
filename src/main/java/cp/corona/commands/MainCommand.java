@@ -1,3 +1,4 @@
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\commands\MainCommand.java
 package cp.corona.commands;
 
 import cp.corona.config.WarnLevel;
@@ -796,6 +797,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
                     case "softban":
                         plugin.getSoftBannedPlayersCache().put(onlinePlayer.getUniqueId(), endTime);
+                        plugin.getSoftbannedCommandsCache().put(onlinePlayer.getUniqueId(), plugin.getConfigManager().getBlockedCommands());
                         String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                         onlinePlayer.sendMessage(MessageUtils.getColorMessage(softbanMessage));
                         break;
@@ -827,15 +829,16 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
             case "mute":
+                plugin.getMutedPlayersCache().put(target.getUniqueId(), punishmentEndTime);
                 if (target.isOnline()) {
-                    plugin.getMutedPlayersCache().put(target.getUniqueId(), punishmentEndTime);
                     String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", timeInput, "{reason}", reason, "{punishment_id}", punishmentId);
                     target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
                 }
                 break;
             case "softban":
+                plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), punishmentEndTime);
+                plugin.getSoftbannedCommandsCache().put(target.getUniqueId(), plugin.getConfigManager().getBlockedCommands());
                 if (target.isOnline()) {
-                    plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), punishmentEndTime);
                     String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", timeInput, "{reason}", reason, "{punishment_id}", punishmentId);
                     target.getPlayer().sendMessage(MessageUtils.getColorMessage(softbanMessage));
                 }
@@ -976,6 +979,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     sendConfigMessage(onlinePlayer, "messages.unmute_notification");
                 } else if (lowerCaseType.equals("softban")) {
                     plugin.getSoftBannedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    plugin.getSoftbannedCommandsCache().remove(onlinePlayer.getUniqueId());
                     sendConfigMessage(onlinePlayer, "messages.unsoftban_notification");
                 } else if (lowerCaseType.equals("freeze")) {
                     if (plugin.getPluginFrozenPlayers().remove(onlinePlayer.getUniqueId()) != null) {
@@ -1021,6 +1025,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 break;
             case "softban":
                 plugin.getSoftBannedPlayersCache().remove(target.getUniqueId());
+                plugin.getSoftbannedCommandsCache().remove(target.getUniqueId());
                 break;
         }
     }

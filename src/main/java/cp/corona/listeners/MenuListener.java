@@ -971,8 +971,8 @@ public class MenuListener implements Listener {
                             target.getPlayer().kickPlayer(kickMessage);
                         }
                     } else if (punishmentType.equalsIgnoreCase(MUTE_PUNISHMENT_TYPE)) {
+                        plugin.getMutedPlayersCache().put(targetUUID, endTime);
                         if (target.isOnline()) {
-                            plugin.getMutedPlayersCache().put(targetUUID, endTime);
                             String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", finalDurationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                             target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
                         }
@@ -1033,11 +1033,14 @@ public class MenuListener implements Listener {
             plugin.getSoftBanDatabaseManager().logPlayerInfoAsync(punishmentId, target, finalIpAddress);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (useInternal && target.isOnline()) {
+                if (useInternal) {
                     plugin.getSoftBannedPlayersCache().put(targetUUID, endTime);
-                    String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationString, "{reason}", reason, "{punishment_id}", punishmentId);
-                    target.getPlayer().sendMessage(MessageUtils.getColorMessage(softbanMessage));
-                } else if (!useInternal) {
+                    plugin.getSoftbannedCommandsCache().put(targetUUID, plugin.getConfigManager().getBlockedCommands());
+                    if (target.isOnline()) {
+                        String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationString, "{reason}", reason, "{punishment_id}", punishmentId);
+                        target.getPlayer().sendMessage(MessageUtils.getColorMessage(softbanMessage));
+                    }
+                } else {
                     String processedCommand = commandTemplate
                             .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                             .replace("{time}", timeInput)
@@ -1257,6 +1260,7 @@ public class MenuListener implements Listener {
                         }
 
                         plugin.getSoftBannedPlayersCache().remove(targetUUID);
+                        plugin.getSoftbannedCommandsCache().remove(targetUUID);
                         playSound(player, "punish_confirm");
                         sendUnpunishConfirmation(player, target, SOFTBAN_PUNISHMENT_TYPE, punishmentId);
                         executeHookActions(player, target, SOFTBAN_PUNISHMENT_TYPE, "N/A", reason, true, Collections.emptyList());
@@ -1782,18 +1786,25 @@ public class MenuListener implements Listener {
                 }
 
                 final String finalType = type;
-                dbManager.executePunishmentAsync(target.getUniqueId(), finalType, punishmentReason, executorName, endTime, duration, false, customCommands, warningContext.getWarnLevel())
+                final List<String> finalCustomCommands = customCommands;
+                dbManager.executePunishmentAsync(target.getUniqueId(), finalType, punishmentReason, executorName, endTime, duration, false, finalCustomCommands, warningContext.getWarnLevel())
                         .thenAccept(punishmentId -> {
                             if (punishmentId != null) {
                                 dbManager.addAssociatedPunishmentId(warningContext.getPunishmentId(), finalType, punishmentId);
-                                if("ban".equals(finalType)){
-                                    Bukkit.getScheduler().runTask(plugin, () -> {
+
+                                Bukkit.getScheduler().runTask(plugin, () -> {
+                                    if ("softban".equals(finalType)) {
+                                        plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), endTime);
+                                        plugin.getSoftbannedCommandsCache().put(target.getUniqueId(), finalCustomCommands.isEmpty() ? plugin.getConfigManager().getBlockedCommands() : finalCustomCommands);
+                                    } else if ("mute".equals(finalType)) {
+                                        plugin.getMutedPlayersCache().put(target.getUniqueId(), endTime);
+                                    } else if ("ban".equals(finalType)) {
                                         Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), punishmentReason, endTime == Long.MAX_VALUE ? null : new Date(endTime), executorName);
                                         if (target.isOnline()) {
                                             target.getPlayer().kickPlayer(MessageUtils.getKickMessage(plugin.getConfigManager().getBanScreen(), punishmentReason, duration, punishmentId, endTime == Long.MAX_VALUE ? null : new Date(endTime), plugin.getConfigManager()));
                                         }
-                                    });
-                                }
+                                    }
+                                });
                             }
                         });
                 break;
@@ -1881,6 +1892,7 @@ public class MenuListener implements Listener {
 
                     case "softban":
                         plugin.getSoftBannedPlayersCache().put(onlinePlayer.getUniqueId(), endTime);
+                        plugin.getSoftbannedCommandsCache().put(onlinePlayer.getUniqueId(), plugin.getConfigManager().getBlockedCommands());
                         String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                         onlinePlayer.sendMessage(MessageUtils.getColorMessage(softbanMessage));
                         break;
@@ -1905,6 +1917,7 @@ public class MenuListener implements Listener {
                     sendConfigMessage(onlinePlayer, "messages.unmute_notification");
                 } else if (lowerCaseType.equals("softban")) {
                     plugin.getSoftBannedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    plugin.getSoftbannedCommandsCache().remove(onlinePlayer.getUniqueId());
                     sendConfigMessage(onlinePlayer, "messages.unsoftban_notification");
                 } else if (lowerCaseType.equals("freeze")) {
                     if (plugin.getPluginFrozenPlayers().remove(onlinePlayer.getUniqueId()) != null) {

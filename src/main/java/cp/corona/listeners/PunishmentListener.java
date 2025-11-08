@@ -103,12 +103,21 @@ public class PunishmentListener implements Listener {
                     hasMute = true;
                 } else if (punishment.getType().equalsIgnoreCase("softban")) {
                     plugin.getSoftBannedPlayersCache().put(playerUUID, punishment.getEndTime());
+                    List<String> commands = dbManager.getActiveSoftbanCustomCommands(playerUUID);
+                    if (commands != null && !commands.isEmpty()) {
+                        plugin.getSoftbannedCommandsCache().put(playerUUID, commands);
+                    } else {
+                        plugin.getSoftbannedCommandsCache().put(playerUUID, plugin.getConfigManager().getBlockedCommands());
+                    }
                     hasSoftban = true;
                 }
             }
             // If no active punishments of these types were found, ensure they are not in the cache
             if(!hasMute) plugin.getMutedPlayersCache().remove(playerUUID);
-            if(!hasSoftban) plugin.getSoftBannedPlayersCache().remove(playerUUID);
+            if(!hasSoftban) {
+                plugin.getSoftBannedPlayersCache().remove(playerUUID);
+                plugin.getSoftbannedCommandsCache().remove(playerUUID);
+            }
 
 
             // The rest of the logic is for the join alert
@@ -163,6 +172,7 @@ public class PunishmentListener implements Listener {
         // Clean up caches on player quit to prevent memory leaks
         plugin.getMutedPlayersCache().remove(playerUUID);
         plugin.getSoftBannedPlayersCache().remove(playerUUID);
+        plugin.getSoftbannedCommandsCache().remove(playerUUID);
         plugin.getPluginFrozenPlayers().remove(playerUUID);
         chatFrozenPlayers.remove(playerUUID);
     }
@@ -177,6 +187,7 @@ public class PunishmentListener implements Listener {
                     MessageUtils.sendConfigMessage(plugin, onlinePlayer, "messages.mute_expired");
                 } else if (lowerCaseType.equals("softban")) {
                     plugin.getSoftBannedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    plugin.getSoftbannedCommandsCache().remove(onlinePlayer.getUniqueId());
                     MessageUtils.sendConfigMessage(plugin, onlinePlayer, "messages.softban_expired");
                 }
             }

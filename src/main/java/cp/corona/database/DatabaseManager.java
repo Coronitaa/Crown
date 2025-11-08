@@ -791,35 +791,57 @@ public class DatabaseManager {
         return activePunishments;
     }
 
-    private void startExpiryCheckTask() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement ps = connection.prepareStatement(
-                         "DELETE FROM softbans WHERE endTime <= ? AND endTime != ?")) {
-                long currentTime = System.currentTimeMillis();
-                ps.setLong(1, currentTime);
-                ps.setLong(2, Long.MAX_VALUE);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.WARNING, "Error checking for expired soft bans.", e);
+    private void runExpiryTask(String tableName, String cacheName) {
+        List<UUID> expiredUuids = new ArrayList<>();
+        String selectSql = "SELECT uuid FROM " + tableName + " WHERE endTime <= ? AND endTime != ?";
+
+        try (Connection connection = getConnection(); PreparedStatement psSelect = connection.prepareStatement(selectSql)) {
+            long currentTime = System.currentTimeMillis();
+            psSelect.setLong(1, currentTime);
+            psSelect.setLong(2, Long.MAX_VALUE);
+            ResultSet rs = psSelect.executeQuery();
+            while (rs.next()) {
+                expiredUuids.add(UUID.fromString(rs.getString("uuid")));
             }
-        }, 0L, 6000L);
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.WARNING, "Error selecting expired entries from " + tableName, e);
+            return;
+        }
+
+        if (!expiredUuids.isEmpty()) {
+            String deleteSql = "DELETE FROM " + tableName + " WHERE uuid = ?";
+            try (Connection connection = getConnection(); PreparedStatement psDelete = connection.prepareStatement(deleteSql)) {
+                for (UUID uuid : expiredUuids) {
+                    psDelete.setString(1, uuid.toString());
+                    psDelete.addBatch();
+                }
+                psDelete.executeBatch();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "Error deleting expired entries from " + tableName, e);
+                return;
+            }
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                for (UUID uuid : expiredUuids) {
+                    if ("softbans".equals(tableName)) {
+                        plugin.getSoftBannedPlayersCache().remove(uuid);
+                        plugin.getSoftbannedCommandsCache().remove(uuid);
+                    } else if ("mutes".equals(tableName)) {
+                        plugin.getMutedPlayersCache().remove(uuid);
+                    }
+                }
+            });
+        }
+    }
+
+    private void startExpiryCheckTask() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> runExpiryTask("softbans", "softban"), 0L, 6000L);
     }
 
     private void startMuteExpiryCheckTask() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement ps = connection.prepareStatement(
-                         "DELETE FROM mutes WHERE endTime <= ? AND endTime != ?")) {
-                long currentTime = System.currentTimeMillis();
-                ps.setLong(1, currentTime);
-                ps.setLong(2, Long.MAX_VALUE);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.WARNING, "Error checking for expired mutes.", e);
-            }
-        }, 0L, 6000L);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> runExpiryTask("mutes", "mute"), 0L, 6000L);
     }
+
 
     // New task to check for expired internal bans and update their status in punishment_history
     private void startBanExpiryCheckTask() {
@@ -1430,6 +1452,14 @@ public class DatabaseManager {
 
     private void sendRemovalNotification(UUID uuid, String punishmentType, boolean isExpiry) {
         Bukkit.getScheduler().runTask(plugin, () -> {
+            // Clear caches regardless of online status
+            if ("mute".equalsIgnoreCase(punishmentType)) {
+                plugin.getMutedPlayersCache().remove(uuid);
+            } else if ("softban".equalsIgnoreCase(punishmentType)) {
+                plugin.getSoftBannedPlayersCache().remove(uuid);
+                plugin.getSoftbannedCommandsCache().remove(uuid);
+            }
+
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
             if (offlinePlayer.isOnline()) {
                 Player player = offlinePlayer.getPlayer();
@@ -1440,15 +1470,7 @@ public class DatabaseManager {
                     player.sendMessage(MessageUtils.getColorMessage(message));
 
                     String soundKey = isExpiry ? "punishment_expired" : "punishment_removed";
-                    String soundName = plugin.getConfigManager().getSoundName(soundKey);
-                    if (soundName != null && !soundName.isEmpty()) {
-                        try {
-                            Sound sound = Sound.valueOf(soundName.toUpperCase());
-                            player.playSound(player.getLocation(), sound, 1.0f, isExpiry ? 1.0f : 1.2f);
-                        } catch (IllegalArgumentException e) {
-                            plugin.getLogger().warning("Invalid sound name configured for " + soundKey + ": " + soundName);
-                        }
-                    }
+                    plugin.playSound(player, soundKey);
                 }
             }
         });

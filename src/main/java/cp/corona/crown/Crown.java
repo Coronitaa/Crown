@@ -8,11 +8,14 @@ import cp.corona.database.DatabaseManager;
 import cp.corona.listeners.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Sound;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +30,7 @@ public final class Crown extends JavaPlugin {
     private final Map<UUID, Boolean> pluginFrozenPlayers = new ConcurrentHashMap<>();
     private final Map<UUID, Long> mutedPlayersCache = new ConcurrentHashMap<>();
     private final Map<UUID, Long> softBannedPlayersCache = new ConcurrentHashMap<>();
+    private final Map<UUID, List<String>> softbannedCommandsCache = new ConcurrentHashMap<>();
 
 
     private MenuListener menuListener;
@@ -118,6 +122,18 @@ public final class Crown extends JavaPlugin {
         getServer().getPluginManager().registerEvents(this.punishmentListener, this);
     }
 
+    public void playSound(Player player, String soundKey) {
+        String soundName = configManager.getSoundName(soundKey);
+        if (soundName != null && !soundName.isEmpty()) {
+            try {
+                Sound sound = Sound.valueOf(soundName.toUpperCase());
+                player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+            } catch (IllegalArgumentException e) {
+                getLogger().warning("Invalid sound configured for key '" + soundKey + "': " + soundName);
+            }
+        }
+    }
+
     public MenuListener getMenuListener() {
         return menuListener;
     }
@@ -152,6 +168,10 @@ public final class Crown extends JavaPlugin {
 
     public Map<UUID, Long> getSoftBannedPlayersCache() {
         return softBannedPlayersCache;
+    }
+
+    public Map<UUID, List<String>> getSoftbannedCommandsCache() {
+        return softbannedCommandsCache;
     }
 
     public Set<String> getRegisteredCommands() {
