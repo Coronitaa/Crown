@@ -1,3 +1,4 @@
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\database\DatabaseManager.java
 package cp.corona.database;
 
 import cp.corona.config.WarnLevel;
@@ -524,7 +525,6 @@ public class DatabaseManager {
 
         long remainingTime = latest.getEndTime() == -1 ? -1 : latest.getEndTime() - System.currentTimeMillis();
         if (remainingTime <= 0 && latest.getEndTime() != -1) {
-            // If already expired, just handle expiration
             Bukkit.getScheduler().runTask(plugin, () -> handleWarningExpiration(latest));
             return;
         }
@@ -535,6 +535,9 @@ public class DatabaseManager {
             ps.setInt(2, latest.getId());
             ps.executeUpdate();
         }
+
+        // Add synchronization with punishment_history
+        updatePunishmentAsRemoved(connection, latest.getPunishmentId(), "System", "Paused by new warning");
     }
 
     private void resumeLatestPausedWarning(Connection connection, UUID playerUUID) throws SQLException {
@@ -551,7 +554,8 @@ public class DatabaseManager {
                         rs.getString("associated_punishment_ids")
                 );
 
-                long newEndTime = (warningToResume.getRemainingTimeOnPause() == -1) ? -1 : System.currentTimeMillis() + warningToResume.getRemainingTimeOnPause();
+                long remainingMillis = warningToResume.getRemainingTimeOnPause();
+                long newEndTime = (remainingMillis == -1) ? -1 : System.currentTimeMillis() + remainingMillis;
 
                 String sqlUpdate = "UPDATE active_warnings SET is_paused = 0, end_time = ?, remaining_time_on_pause = 0 WHERE id = ?";
                 try (PreparedStatement psUpdate = connection.prepareStatement(sqlUpdate)) {
@@ -560,6 +564,8 @@ public class DatabaseManager {
                     psUpdate.executeUpdate();
                 }
 
+                // Add synchronization with punishment_history
+                reactivatePunishment(connection, warningToResume.getPunishmentId(), newEndTime, remainingMillis);
                 resumeAssociatedPunishments(connection, warningToResume);
             }
         }
