@@ -1305,7 +1305,7 @@ public class DatabaseManager {
     }
 
     public String getLastKnownIp(UUID playerUUID) {
-        String sql = "SELECT ip FROM player_info pi JOIN punishment_history ph ON pi.punishment_id = ph.punishment_id WHERE ph.player_uuid = ? ORDER BY ph.timestamp DESC LIMIT 1";
+        String sql = "SELECT ip FROM player_last_state WHERE uuid = ?";
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
@@ -1315,7 +1315,7 @@ public class DatabaseManager {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Database error retrieving last known IP!", e);
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving last known IP from player_last_state!", e);
         }
         return null;
     }
