@@ -40,9 +40,9 @@ levels:
   3:
     expiration: '3m'
     softban-blocked-commands:
-      - /kit
-      - /claim
-      - /reward
+      - kit
+      - claim
+      - reward
     # Use APPLY_SOFTBAN to handle softban creation and ID tracking.
     # Format: APPLY_SOFTBAN:<duration>:<reason>
     on-warn-actions:
