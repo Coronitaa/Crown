@@ -1,4 +1,3 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\listeners\PunishmentListener.java
 package cp.corona.listeners;
 
 import cp.corona.crown.Crown;
@@ -24,6 +23,7 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -165,6 +165,22 @@ public class PunishmentListener implements Listener {
         plugin.getSoftBannedPlayersCache().remove(playerUUID);
         plugin.getPluginFrozenPlayers().remove(playerUUID);
         chatFrozenPlayers.remove(playerUUID);
+    }
+
+    public void applyIpExpiryToOnlinePlayers(String punishmentType, String ipAddress) {
+        String lowerCaseType = punishmentType.toLowerCase();
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            InetSocketAddress playerAddress = onlinePlayer.getAddress();
+            if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
+                if (lowerCaseType.equals("mute")) {
+                    plugin.getMutedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    MessageUtils.sendConfigMessage(plugin, onlinePlayer, "messages.mute_expired");
+                } else if (lowerCaseType.equals("softban")) {
+                    plugin.getSoftBannedPlayersCache().remove(onlinePlayer.getUniqueId());
+                    MessageUtils.sendConfigMessage(plugin, onlinePlayer, "messages.softban_expired");
+                }
+            }
+        }
     }
 
     private List<TextComponent> buildJoinAlertMessages(List<DatabaseManager.PunishmentEntry> standardPunishments, List<ActiveWarningEntry> activeWarnings, Map<String, DatabaseManager.PunishmentEntry> detailsMap) {

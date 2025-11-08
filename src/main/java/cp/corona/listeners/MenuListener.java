@@ -1035,6 +1035,8 @@ public class MenuListener implements Listener {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (useInternal && target.isOnline()) {
                     plugin.getSoftBannedPlayersCache().put(targetUUID, endTime);
+                    String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationString, "{reason}", reason, "{punishment_id}", punishmentId);
+                    target.getPlayer().sendMessage(MessageUtils.getColorMessage(softbanMessage));
                 } else if (!useInternal) {
                     String processedCommand = commandTemplate
                             .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
@@ -1125,7 +1127,6 @@ public class MenuListener implements Listener {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         boolean byIp = punishDetailsMenu.isByIp();
 
-        // MODIFIED: Added !byIp to ensure this check only applies to local kicks.
         if (!byIp && !target.isOnline()) {
             sendConfigMessage(player, "messages.player_not_online", "{input}", target.getName());
             playSound(player, "punish_error");
@@ -1150,10 +1151,11 @@ public class MenuListener implements Listener {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (useInternal) {
                     String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getKickScreen(), reason, "N/A", punishmentId, null, plugin.getConfigManager());
-                    if (byIp && target.isOnline()) {
-                        applyIpPunishmentToOnlinePlayers(KICK_PUNISHMENT_TYPE, finalIpAddress, 0, reason, "N/A", punishmentId, targetUUID);
-                    } else if (target.isOnline()) {
+                    if (target.isOnline()) {
                         target.getPlayer().kickPlayer(kickMessage);
+                    }
+                    if (byIp && finalIpAddress != null) {
+                        applyIpPunishmentToOnlinePlayers(KICK_PUNISHMENT_TYPE, finalIpAddress, 0, reason, "N/A", punishmentId, targetUUID);
                     }
                 } else {
                     String processedCommand = commandTemplate

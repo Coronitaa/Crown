@@ -836,7 +836,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "softban":
                 if (target.isOnline()) {
                     plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), punishmentEndTime);
-                    // Optionally send a message
+                    String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", timeInput, "{reason}", reason, "{punishment_id}", punishmentId);
+                    target.getPlayer().sendMessage(MessageUtils.getColorMessage(softbanMessage));
                 }
                 break;
             case "kick":

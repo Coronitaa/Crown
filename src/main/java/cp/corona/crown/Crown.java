@@ -31,6 +31,7 @@ public final class Crown extends JavaPlugin {
 
     private MenuListener menuListener;
     private FreezeListener freezeListener;
+    private PunishmentListener punishmentListener;
     private final Set<String> registeredCommands = new HashSet<>();
 
     @Override
@@ -44,6 +45,9 @@ public final class Crown extends JavaPlugin {
         }
 
         this.menuListener = new MenuListener(this);
+        this.freezeListener = new FreezeListener(this);
+        this.punishmentListener = new PunishmentListener(this);
+
 
         registerCommands();
         registerEvents();
@@ -106,13 +110,12 @@ public final class Crown extends JavaPlugin {
 
 
     public void registerEvents() {
-        getServer().getPluginManager().registerEvents(new MenuListener(this), this);
+        getServer().getPluginManager().registerEvents(this.menuListener, this);
         getServer().getPluginManager().registerEvents(new CommandBlockerListener(this), this);
-        getServer().getPluginManager().registerEvents(new FreezeListener(this), this);
+        getServer().getPluginManager().registerEvents(this.freezeListener, this);
         getServer().getPluginManager().registerEvents(new MuteListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerChatListener(this), this);
-        getServer().getPluginManager().registerEvents(new PunishmentListener(this), this);
-        freezeListener = new FreezeListener(this);
+        getServer().getPluginManager().registerEvents(this.punishmentListener, this);
     }
 
     public MenuListener getMenuListener() {
@@ -121,6 +124,10 @@ public final class Crown extends JavaPlugin {
 
     public FreezeListener getFreezeListener() {
         return freezeListener;
+    }
+
+    public PunishmentListener getPunishmentListener() {
+        return punishmentListener;
     }
 
     public MainConfigManager getConfigManager() {
