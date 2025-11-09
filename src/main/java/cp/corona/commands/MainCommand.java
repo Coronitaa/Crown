@@ -1,4 +1,3 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\commands\MainCommand.java
 package cp.corona.commands;
 
 import cp.corona.config.WarnLevel;
@@ -416,7 +415,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
             case "unpunish":
-                if (!entry.isActive()) {
+                boolean isPaused = "Paused by new warning".equalsIgnoreCase(entry.getRemovedReason());
+                if (!entry.isActive() && !isPaused) {
                     sendConfigMessage(sender, "messages.punishment_not_active", "{id}", entry.getPunishmentId());
                     return true;
                 }
@@ -535,9 +535,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
 
-            // Note: For internal warns, we might want to remove a specific one even if not "active".
-            // The logic in handleInternalUnwarn will check the active_warnings table.
-            if (!entry.isActive() && !plugin.getConfigManager().isPunishmentInternal(entry.getType())) {
+            boolean isPaused = "Paused by new warning".equalsIgnoreCase(entry.getRemovedReason());
+            boolean isInternal = plugin.getConfigManager().isPunishmentInternal(entry.getType());
+
+            if (!entry.isActive() && !(isInternal && isPaused)) {
                 sendConfigMessage(sender, "messages.punishment_not_active", "{id}", punishmentId);
                 return true;
             }
@@ -551,7 +552,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
 
             if (entry.getType().equalsIgnoreCase("warn")) {
-                boolean isInternal = plugin.getConfigManager().isPunishmentInternal("warn");
                 // If internal, pass the specific ID. If external, pass null to remove the latest one.
                 confirmDirectUnpunish(sender, target, "warn", reason, isInternal ? entry.getPunishmentId() : null);
             } else {
