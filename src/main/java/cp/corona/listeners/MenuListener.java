@@ -166,29 +166,17 @@ public class MenuListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> handlePlayerInput(player, message));
     }
 
-    /**
-     * Centralized placeholder processing for all menu actions.
-     * Replaces placeholders for both the executor (player) and the target.
-     *
-     * @param text The string to process.
-     * @param executor The player performing the action.
-     * @param holder The menu holder to get the target context.
-     * @return The fully processed string with all placeholders replaced.
-     */
-    private String processAllPlaceholders(String text, Player executor, InventoryHolder holder) {
+    private String processAllPlaceholders(String text, CommandSender executor, InventoryHolder holder) {
         if (text == null) return null;
 
         OfflinePlayer target = getTargetForAction(holder);
-
-        // First, process target-related placeholders using the existing robust method from MainConfigManager.
         String processedText = plugin.getConfigManager().processPlaceholders(text, target);
 
-        // Second, process executor-specific placeholders.
         if (executor != null) {
             processedText = processedText.replace("{player}", executor.getName());
-            // Apply PlaceholderAPI for the executor as well.
-            if (plugin.isPlaceholderAPIEnabled()) {
-                processedText = PlaceholderAPI.setPlaceholders(executor, processedText);
+
+            if (executor instanceof Player && plugin.isPlaceholderAPIEnabled()) {
+                processedText = PlaceholderAPI.setPlaceholders((Player) executor, processedText);
             }
         }
 
@@ -1645,7 +1633,6 @@ public class MenuListener implements Listener {
         }
 
         Player playerExecutor = (executor instanceof Player) ? (Player) executor : null;
-        final String executorName = (executor instanceof Player) ? executor.getName() : "Console";
         String targetName = (target != null && target.getName() != null) ? target.getName() : (target != null ? target.getUniqueId().toString() : "Unknown");
         final String finalTime = (time != null) ? time : "N/A";
         final String finalReason = (reason != null) ? reason : "N/A";
@@ -1677,8 +1664,7 @@ public class MenuListener implements Listener {
                         currentArg = matcher.replaceAll(replacementId);
                     }
 
-                    // Use the centralized placeholder method
-                    currentArg = processAllPlaceholders(currentArg, playerExecutor, new TempHolder(target.getUniqueId()));
+                    currentArg = processAllPlaceholders(currentArg, executor, new TempHolder(target.getUniqueId()));
 
                     currentArg = currentArg.replace("{reason}", finalReason);
                     currentArg = currentArg.replace("{time}", finalTime);
