@@ -1,3 +1,4 @@
+// MainCommand.java
 package cp.corona.commands;
 
 import cp.corona.config.WarnLevel;
@@ -947,7 +948,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         if (entry != null && entry.wasByIp()) {
                             DatabaseManager.PlayerInfo pInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(unpunishedId);
                             if (pInfo != null && pInfo.getIp() != null) {
-                                applyIpUnpunishmentToOnlinePlayers(punishType, pInfo.getIp());
+                                applyIpUnpunishmentToOnlinePlayers(punishType, pInfo.getIp(), target.getUniqueId()); // MODIFIED
                             }
                         }
 
@@ -969,9 +970,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 });
     }
 
-    private void applyIpUnpunishmentToOnlinePlayers(String punishmentType, String ipAddress) {
+    private void applyIpUnpunishmentToOnlinePlayers(String punishmentType, String ipAddress, UUID originalTargetUUID) { // MODIFIED
         String lowerCaseType = punishmentType.toLowerCase();
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            if (onlinePlayer.getUniqueId().equals(originalTargetUUID)) { // MODIFIED
+                continue; // MODIFIED
+            }
             InetSocketAddress playerAddress = onlinePlayer.getAddress();
             if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
                 if (lowerCaseType.equals("mute")) {
@@ -1046,7 +1050,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         if (entry != null && entry.wasByIp()) {
                             DatabaseManager.PlayerInfo pInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(unpunishedId);
                             if (pInfo != null && pInfo.getIp() != null) {
-                                applyIpUnpunishmentToOnlinePlayers("freeze", pInfo.getIp());
+                                applyIpUnpunishmentToOnlinePlayers("freeze", pInfo.getIp(), target.getUniqueId()); // MODIFIED
                             }
                         }
 
