@@ -133,49 +133,43 @@ public class MenuListener implements Listener {
             return;
         }
 
-        event.setCancelled(true);
-
         int clickedSlot = event.getRawSlot();
         boolean isTopInventory = event.getClickedInventory() == event.getView().getTopInventory();
-        boolean isEditableSlot = false;
 
-        if (holder instanceof ProfileMenu) {
-            isEditableSlot = PROFILE_ARMOR_SLOTS.contains(clickedSlot) || PROFILE_HAND_SLOTS.contains(clickedSlot);
-        } else if (holder instanceof FullInventoryMenu) {
-            isEditableSlot = isTopInventory && clickedSlot >= 0 && clickedSlot < 36;
-        } else if (holder instanceof EnderChestMenu) {
-            isEditableSlot = isTopInventory && clickedSlot >= 0 && clickedSlot < 27;
-        }
-
-        if (isEditableSlot) {
-            ClickType click = event.getClick();
-            ItemStack cursorItem = event.getCursor();
-            ItemStack currentItem = event.getCurrentItem();
-
-            if (click.isLeftClick() || click.isRightClick()) {
-                event.getView().setCursor(currentItem);
-                event.getClickedInventory().setItem(clickedSlot, cursorItem);
-
-                // Log action
-                logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), cursorItem, currentItem, holder);
-            } else if (click.isShiftClick()) {
-                handleShiftClick(player.getInventory(), event.getView().getTopInventory(), currentItem, isTopInventory);
-                event.getClickedInventory().setItem(clickedSlot, null);
-
-                // Log remove action from shift-click
-                if (currentItem != null && currentItem.getType() != Material.AIR) {
-                    plugin.getSoftBanDatabaseManager().logOperatorAction(
-                            getTargetForAction(holder).getUniqueId(),
-                            player.getUniqueId(),
-                            "ITEM_REMOVE",
-                            currentItem.getAmount() + ":" + AuditLogBook.serialize(currentItem)
-                    );
-                }
+        if (isTopInventory) {
+            boolean isEditableSlot = false;
+            if (holder instanceof ProfileMenu) {
+                isEditableSlot = PROFILE_ARMOR_SLOTS.contains(clickedSlot) || PROFILE_HAND_SLOTS.contains(clickedSlot);
+            } else if (holder instanceof FullInventoryMenu) {
+                isEditableSlot = clickedSlot >= 0 && clickedSlot < 36;
+            } else if (holder instanceof EnderChestMenu) {
+                isEditableSlot = clickedSlot >= 0 && clickedSlot < 27;
             }
-            Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getView().getTopInventory()));
-        } else if (event.getClickedInventory() == player.getInventory()) {
-            event.setCancelled(false);
+
+            if (isEditableSlot) {
+                event.setCancelled(true);
+
+                ClickType click = event.getClick();
+                ItemStack cursorItem = event.getCursor();
+                ItemStack currentItem = event.getCurrentItem();
+
+                if (click.isLeftClick() || click.isRightClick()) {
+                    event.getView().setCursor(currentItem);
+                    event.getClickedInventory().setItem(clickedSlot, cursorItem);
+                    logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), cursorItem, currentItem, holder);
+                } else if (click.isShiftClick() && currentItem != null && currentItem.getType() != Material.AIR) {
+                    handleShiftClick(player.getInventory(), event.getView().getTopInventory(), currentItem, true);
+                    event.getClickedInventory().setItem(clickedSlot, null);
+                    logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), null, currentItem, holder);
+                }
+
+                Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getView().getTopInventory()));
+            } else {
+                // Clicked on a non-editable slot in the top inventory (e.g., background pane)
+                event.setCancelled(true);
+            }
         }
+        // If the click is in the bottom inventory, we do not cancel the event, allowing default behavior.
     }
 
     private void logItemAction(UUID executorUUID, UUID targetUUID, ItemStack cursorItem, ItemStack currentItem, InventoryHolder holder) {
@@ -214,7 +208,76 @@ public class MenuListener implements Listener {
         }
     }
 
+    private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
+        Map<UUID, UUID> confirmationMap = type.equals("full") ? pendingFullInvClear : pendingEnderChestClear;
+        UUID moderatorId = moderator.getUniqueId();
+        UUID targetId = target.getUniqueId();
 
+        if (confirmationMap.containsKey(moderatorId) && confirmationMap.get(moderatorId).equals(targetId)) {
+            Player targetPlayer = Bukkit.getPlayer(targetId);
+            if (targetPlayer == null || !targetPlayer.isOnline()) {
+                sendConfigMessage(moderator, "messages.player_not_online", "{input}", target.getName());
+                return;
+            }
+
+            int clearedCount = 0;
+            String actionType = "";
+
+            if (type.equals("full")) {
+                PlayerInventory inv = targetPlayer.getInventory();
+                clearedCount = (int) Arrays.stream(inv.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
+                inv.clear();
+                inv.setArmorContents(new ItemStack[4]);
+                inv.setItemInOffHand(null);
+                actionType = "CLEAR_INVENTORY";
+            } else { // ender
+                Inventory enderChest = targetPlayer.getEnderChest();
+                clearedCount = (int) Arrays.stream(enderChest.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
+                enderChest.clear();
+                actionType = "CLEAR_ENDER_CHEST";
+            }
+
+            plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, actionType, String.valueOf(clearedCount));
+
+            confirmationMap.remove(moderatorId);
+            BukkitTask task = pendingClearTasks.remove(moderatorId);
+            if (task != null) task.cancel();
+
+            sendConfigMessage(moderator, "messages.clear_inventory_success", "{target}", target.getName(), "{inventory_type}", type.equals("full") ? "inventory" : "ender chest");
+            playSound(moderator, "punish_confirm");
+
+            bypassCloseSync.add(moderatorId);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if(type.equals("full")) {
+                    new FullInventoryMenu(targetId, plugin).open(moderator);
+                } else {
+                    new EnderChestMenu(targetId, plugin).open(moderator);
+                }
+            });
+
+        } else {
+            confirmationMap.put(moderatorId, targetId);
+            MenuItem confirmState = clickedItem.getConfirmState();
+            if (confirmState != null) {
+                event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(target, plugin.getConfigManager()));
+                playSound(moderator, "punish_error");
+            }
+
+            BukkitTask task = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (confirmationMap.remove(moderatorId) != null) {
+                        if (moderator.getOpenInventory().getTopInventory().getHolder() == event.getInventory().getHolder()) {
+                            event.getInventory().setItem(event.getSlot(), clickedItem.toItemStack(target, plugin.getConfigManager()));
+                        }
+                        pendingClearTasks.remove(moderatorId);
+                    }
+                }
+            }.runTaskLater(plugin, 100L);
+            pendingClearTasks.put(moderatorId, task);
+        }
+    }
 
     private void handleShiftClick(PlayerInventory playerInv, Inventory guiInv, ItemStack itemToMove, boolean fromTop) {
         if (itemToMove == null || itemToMove.getType() == Material.AIR) return;
@@ -490,77 +553,6 @@ public class MenuListener implements Listener {
         }
 
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData));
-    }
-
-    private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
-        Map<UUID, UUID> confirmationMap = type.equals("full") ? pendingFullInvClear : pendingEnderChestClear;
-        UUID moderatorId = moderator.getUniqueId();
-        UUID targetId = target.getUniqueId();
-
-        if (confirmationMap.containsKey(moderatorId) && confirmationMap.get(moderatorId).equals(targetId)) {
-            Player targetPlayer = Bukkit.getPlayer(targetId);
-            if (targetPlayer == null || !targetPlayer.isOnline()) {
-                sendConfigMessage(moderator, "messages.player_not_online", "{input}", target.getName());
-                return;
-            }
-
-            int clearedCount = 0;
-            String actionType = "";
-
-            if (type.equals("full")) {
-                PlayerInventory inv = targetPlayer.getInventory();
-                clearedCount = (int) Arrays.stream(inv.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
-                inv.clear();
-                inv.setArmorContents(new ItemStack[4]);
-                inv.setItemInOffHand(null);
-                actionType = "CLEAR_INVENTORY";
-            } else { // ender
-                Inventory enderChest = targetPlayer.getEnderChest();
-                clearedCount = (int) Arrays.stream(enderChest.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
-                enderChest.clear();
-                actionType = "CLEAR_ENDER_CHEST";
-            }
-
-            plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, actionType, String.valueOf(clearedCount));
-
-            confirmationMap.remove(moderatorId);
-            BukkitTask task = pendingClearTasks.remove(moderatorId);
-            if (task != null) task.cancel();
-
-            sendConfigMessage(moderator, "messages.clear_inventory_success", "{target}", target.getName(), "{inventory_type}", type.equals("full") ? "inventory" : "ender chest");
-            playSound(moderator, "punish_confirm");
-
-            bypassCloseSync.add(moderatorId);
-
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if(type.equals("full")) {
-                    new FullInventoryMenu(targetId, plugin).open(moderator);
-                } else {
-                    new EnderChestMenu(targetId, plugin).open(moderator);
-                }
-            });
-
-        } else {
-            confirmationMap.put(moderatorId, targetId);
-            MenuItem confirmState = clickedItem.getConfirmState();
-            if (confirmState != null) {
-                event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(target, plugin.getConfigManager()));
-                playSound(moderator, "punish_error");
-            }
-
-            BukkitTask task = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (confirmationMap.remove(moderatorId) != null) {
-                        if (moderator.getOpenInventory().getTopInventory().getHolder() == event.getInventory().getHolder()) {
-                            event.getInventory().setItem(event.getSlot(), clickedItem.toItemStack(target, plugin.getConfigManager()));
-                        }
-                        pendingClearTasks.remove(moderatorId);
-                    }
-                }
-            }.runTaskLater(plugin, 100L);
-            pendingClearTasks.put(moderatorId, task);
-        }
     }
 
     public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) {
@@ -1058,13 +1050,8 @@ public class MenuListener implements Listener {
         }
     }
 
-    // ... (rest of the file, including all the action handlers, punishment confirmation logic, etc., remains unchanged)
-    // The following is a placeholder for the rest of the file's content which is extensive
-    // but does not require further changes for this task.
-    // ...
-    // ...
-    // ... (all other methods from the original MenuListener file go here)
-    // ...
+    // ... Y el resto del archivo, que no necesita cambios.
+    // ... (El código restante es idéntico al de la versión anterior)
 
     private void requestNewTargetName(Player player, String originMenu) {
         sendConfigMessage(player, "messages.prompt_new_target");

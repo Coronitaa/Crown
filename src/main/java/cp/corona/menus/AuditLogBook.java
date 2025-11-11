@@ -84,28 +84,23 @@ public class AuditLogBook {
 
     private List<BaseComponent[]> buildPages(List<DatabaseManager.AuditLogEntry> logEntries) {
         List<BaseComponent[]> pages = new ArrayList<>();
-        ComponentBuilder currentPageBuilder = new ComponentBuilder();
-        int linesOnPage = 0;
-        final int MAX_LINES_PER_PAGE = 6; // Increased slightly as we saved space
+        // Removed page count logic to fulfill the new requirement
+        final int MAX_LINES_PER_PAGE = 7; // We can fit more lines now
 
-        for (DatabaseManager.AuditLogEntry entry : logEntries) {
-            if (linesOnPage >= MAX_LINES_PER_PAGE) {
-                pages.add(currentPageBuilder.create());
-                currentPageBuilder = new ComponentBuilder();
-                linesOnPage = 0;
+        for (int i = 0; i < logEntries.size(); i += MAX_LINES_PER_PAGE) {
+            ComponentBuilder currentPageBuilder = new ComponentBuilder();
+            List<DatabaseManager.AuditLogEntry> pageEntries = logEntries.subList(i, Math.min(i + MAX_LINES_PER_PAGE, logEntries.size()));
+
+            for(DatabaseManager.AuditLogEntry entry : pageEntries) {
+                BaseComponent[] line = formatLogEntry(entry);
+                if (line != null) {
+                    currentPageBuilder.append(line);
+                    currentPageBuilder.append("\n\n");
+                }
             }
-
-            BaseComponent[] line = formatLogEntry(entry);
-            if (line != null) {
-                currentPageBuilder.append(line);
-                currentPageBuilder.append("\n\n");
-                linesOnPage++;
-            }
-        }
-
-        if (linesOnPage > 0) {
             pages.add(currentPageBuilder.create());
         }
+
         return pages;
     }
 
@@ -117,39 +112,39 @@ public class AuditLogBook {
 
         OfflinePlayer executor = Bukkit.getOfflinePlayer(entry.getExecutorUUID());
         OfflinePlayer target = Bukkit.getOfflinePlayer(entry.getTargetUUID());
-
-        // Prepare hover text
         HoverEvent actionHoverEvent = createActionHoverEvent(entry, executor, target);
 
-        // Prepare visible text
         format = format.replace("{executor}", executor.getName() != null ? executor.getName() : "Unknown");
 
         ComponentBuilder builder = new ComponentBuilder();
-        String[] parts = format.split("(\\{item_name\\})");
 
-        // Part before item
-        TextComponent preText = new TextComponent(MessageUtils.getColorMessage(parts[0]));
-        preText.setHoverEvent(actionHoverEvent);
-        builder.append(preText);
+        if (actionTypeKey.startsWith("item_")) {
+            String[] parts = format.split("(\\{item_name\\})");
+            // Part before item
+            TextComponent preText = new TextComponent(MessageUtils.getColorMessage(parts[0]));
+            preText.setHoverEvent(actionHoverEvent);
+            builder.append(preText);
 
-        // Item part (if exists)
-        if (entry.getActionType().startsWith("ITEM_")) {
+            // Item part
             String[] details = entry.getDetails().split(":", 2);
             int amount = Integer.parseInt(details[0]);
             ItemStack item = deserialize(details[1]);
-
             if (item != null) {
                 builder.append(createHoverableItemComponent(item));
             }
+
+            // Part after item
             if (parts.length > 1) {
                 TextComponent postText = new TextComponent(MessageUtils.getColorMessage(parts[1].replace("{item_count}", String.valueOf(amount))));
                 postText.setHoverEvent(actionHoverEvent);
                 builder.append(postText);
             }
-        } else if (entry.getActionType().contains("CLEAR")) {
-            if (parts.length > 1) {
-                builder.append(MessageUtils.getColorMessage(parts[1].replace("{cleared_count}", entry.getDetails())));
-            }
+        } else if (actionTypeKey.contains("clear")) {
+            // For clear actions, the entire line is hoverable
+            String lineText = format.replace("{cleared_count}", entry.getDetails());
+            TextComponent lineComponent = new TextComponent(MessageUtils.getColorMessage(lineText));
+            lineComponent.setHoverEvent(actionHoverEvent);
+            builder.append(lineComponent);
         }
 
         return builder.create();
@@ -159,7 +154,6 @@ public class AuditLogBook {
         Timestamp ts = entry.getTimestamp();
         String date = new SimpleDateFormat("yyyy-MM-dd").format(ts);
         String time = new SimpleDateFormat("HH:mm:ss z").format(ts);
-
         String inventoryType = getInventoryType(entry.getActionType());
 
         List<String> hoverLines = plugin.getConfigManager().getAuditLogConfig().getConfig().getStringList("book.hover-format");
@@ -176,9 +170,10 @@ public class AuditLogBook {
     }
 
     private String getInventoryType(String actionType) {
-        if (actionType.contains("INVENTORY")) return "Player Inventory";
-        if (actionType.contains("ENDERCHEST")) return "Ender Chest";
-        if (actionType.contains("PROFILE")) return "Player Equipment";
+        actionType = actionType.toLowerCase();
+        if (actionType.contains("inventory")) return "Player Inventory";
+        if (actionType.contains("enderchest")) return "Ender Chest";
+        if (actionType.contains("profile")) return "Player Equipment";
         return "Unknown";
     }
 
@@ -201,6 +196,7 @@ public class AuditLogBook {
                 }
             }
             if (meta.hasLore()) {
+                hoverBuilder.append("\n"); // Add a space before lore
                 for (String loreLine : meta.getLore()) {
                     hoverBuilder.append("\n").reset().append(new TextComponent(MessageUtils.getColorMessage(loreLine)));
                 }
