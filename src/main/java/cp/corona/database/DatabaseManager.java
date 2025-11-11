@@ -217,6 +217,25 @@ public class DatabaseManager {
                     "world VARCHAR(255))";
             statement.execute(createPlayerLastStateTableSQL);
 
+            // NEW: Operator Audit Log Table
+            String createAuditLogTableSQL = "CREATE TABLE IF NOT EXISTS operator_audit_log (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "target_uuid VARCHAR(36) NOT NULL," +
+                    "executor_uuid VARCHAR(36) NOT NULL," +
+                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                    "action_type VARCHAR(255) NOT NULL," +
+                    "details TEXT)";
+            if ("sqlite".equalsIgnoreCase(dbType)) {
+                createAuditLogTableSQL = "CREATE TABLE IF NOT EXISTS operator_audit_log (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "target_uuid VARCHAR(36) NOT NULL," +
+                        "executor_uuid VARCHAR(36) NOT NULL," +
+                        "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                        "action_type VARCHAR(255) NOT NULL," +
+                        "details TEXT)";
+            }
+            statement.execute(createAuditLogTableSQL);
+
 
             updateTableStructure(connection);
 
@@ -262,6 +281,47 @@ public class DatabaseManager {
         try (ResultSet rs = md.getColumns(null, null, tableName, columnName)) {
             return rs.next();
         }
+    }
+
+    // NEW: Methods for Operator Audit Log
+    public void logOperatorAction(UUID targetUUID, UUID executorUUID, String actionType, String details) {
+        CompletableFuture.runAsync(() -> {
+            String sql = "INSERT INTO operator_audit_log (target_uuid, executor_uuid, action_type, details) VALUES (?, ?, ?, ?)";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, targetUUID.toString());
+                ps.setString(2, executorUUID.toString());
+                ps.setString(3, actionType);
+                ps.setString(4, details);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not log operator action for target " + targetUUID, e);
+            }
+        });
+    }
+
+    public CompletableFuture<List<AuditLogEntry>> getOperatorActions(UUID targetUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<AuditLogEntry> logEntries = new ArrayList<>();
+            String sql = "SELECT * FROM operator_audit_log WHERE target_uuid = ? ORDER BY timestamp DESC";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, targetUUID.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        logEntries.add(new AuditLogEntry(
+                                rs.getInt("id"),
+                                UUID.fromString(rs.getString("target_uuid")),
+                                UUID.fromString(rs.getString("executor_uuid")),
+                                rs.getTimestamp("timestamp"),
+                                rs.getString("action_type"),
+                                rs.getString("details")
+                        ));
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not retrieve operator actions for target " + targetUUID, e);
+            }
+            return logEntries;
+        });
     }
 
     // ASYNC EXECUTION METHODS START HERE
@@ -1719,5 +1779,31 @@ public class DatabaseManager {
         public String getIp() { return ip; }
         public String getLocation() { return location; }
         public String getWorld() { return world; }
+    }
+
+    // NEW: Inner class for Audit Log entries
+    public static class AuditLogEntry {
+        private final int id;
+        private final UUID targetUUID;
+        private final UUID executorUUID;
+        private final Timestamp timestamp;
+        private final String actionType;
+        private final String details;
+
+        public AuditLogEntry(int id, UUID targetUUID, UUID executorUUID, Timestamp timestamp, String actionType, String details) {
+            this.id = id;
+            this.targetUUID = targetUUID;
+            this.executorUUID = executorUUID;
+            this.timestamp = timestamp;
+            this.actionType = actionType;
+            this.details = details;
+        }
+
+        public int getId() { return id; }
+        public UUID getTargetUUID() { return targetUUID; }
+        public UUID getExecutorUUID() { return executorUUID; }
+        public Timestamp getTimestamp() { return timestamp; }
+        public String getActionType() { return actionType; }
+        public String getDetails() { return details; }
     }
 }

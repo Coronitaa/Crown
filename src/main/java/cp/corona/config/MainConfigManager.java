@@ -34,7 +34,8 @@ public class MainConfigManager {
     private final CustomConfig historyMenuConfig;
     private final CustomConfig profileMenuConfig;
     private final CustomConfig fullInventoryMenuConfig;
-    private final CustomConfig enderChestMenuConfig; // ADDED
+    private final CustomConfig enderChestMenuConfig;
+    private final CustomConfig auditLogConfig; // ADDED
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
 
     private final Crown plugin;
@@ -59,7 +60,8 @@ public class MainConfigManager {
         historyMenuConfig = new CustomConfig("history_menu.yml", "menus", plugin, false);
         profileMenuConfig = new CustomConfig("profile_menu.yml", "menus", plugin, false);
         fullInventoryMenuConfig = new CustomConfig("full_inventory_menu.yml", "menus", plugin, false);
-        enderChestMenuConfig = new CustomConfig("enderchest_menu.yml", "menus", plugin, false); // ADDED
+        enderChestMenuConfig = new CustomConfig("enderchest_menu.yml", "menus", plugin, false);
+        auditLogConfig = new CustomConfig("audit_log.yml", "menus", plugin, false); // ADDED
 
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
@@ -74,7 +76,8 @@ public class MainConfigManager {
         historyMenuConfig.registerConfig();
         profileMenuConfig.registerConfig();
         fullInventoryMenuConfig.registerConfig();
-        enderChestMenuConfig.registerConfig(); // ADDED
+        enderChestMenuConfig.registerConfig();
+        auditLogConfig.registerConfig(); // ADDED
         punishmentConfigs.values().forEach(CustomConfig::registerConfig);
 
         loadConfig();
@@ -93,7 +96,8 @@ public class MainConfigManager {
         historyMenuConfig.reloadConfig();
         profileMenuConfig.reloadConfig();
         fullInventoryMenuConfig.reloadConfig();
-        enderChestMenuConfig.reloadConfig(); // ADDED
+        enderChestMenuConfig.reloadConfig();
+        auditLogConfig.reloadConfig(); // ADDED
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
@@ -945,6 +949,26 @@ public class MainConfigManager {
 
     public CustomConfig getPluginConfig() {
         return pluginConfig;
+    }
+
+    // ADDED: Getter and helper for audit log config
+    public CustomConfig getAuditLogConfig() {
+        return auditLogConfig;
+    }
+
+    public String getAuditLogText(String path, String... replacements) {
+        String message = auditLogConfig.getConfig().getString(path, "");
+        if (message == null || message.isEmpty()) return "";
+
+        message = processPlaceholders(message, null);
+
+        for (int i = 0; i < replacements.length; i += 2) {
+            if (i + 1 >= replacements.length) break;
+            String placeholderKey = replacements[i];
+            String replacementValue = replacements[i + 1] != null ? replacements[i + 1] : "";
+            message = message.replace(placeholderKey, replacementValue);
+        }
+        return MessageUtils.getColorMessage(message);
     }
 
     private class CrownPunishmentsPlaceholders extends PlaceholderExpansion {

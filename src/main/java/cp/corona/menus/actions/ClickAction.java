@@ -1,3 +1,4 @@
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\actions\ClickAction.java
 package cp.corona.menus.actions;
 
 public enum ClickAction {
@@ -35,6 +36,7 @@ public enum ClickAction {
     PLAY_SOUND_MODS,
     REQUEST_CLEAR_FULL_INVENTORY,
     REQUEST_CLEAR_ENDER_CHEST,
+    OPEN_AUDIT_LOG, // ADDED
     NO_ACTION;
 
     public static ClickAction safeValueOf(String name) {

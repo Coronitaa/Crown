@@ -4,6 +4,7 @@
 
 # --- Available Actions ---
 # - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu, OPEN_MENU:full_inventory_menu)
+# - OPEN_AUDIT_LOG:                  (Opens the new operator log book)
 # - CONSOLE_COMMAND:<command>
 # - PLAYER_COMMAND:<command>
 # - PLAYER_COMMAND_OP:<command>
@@ -79,8 +80,20 @@ menu:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_MENU:full_inventory_menu'
 
+    audit_log_button:
+      material: 'WRITABLE_BOOK'
+      slot: 51
+      name: '&6&lOperator Log'
+      lore:
+        - '&7Shows a log of actions'
+        - '&7performed on this player'
+        - '&7by operators.'
+      left_click_actions:
+        - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.0'
+        - 'OPEN_AUDIT_LOG'
+
     background_fill:
       material: 'BLACK_STAINED_GLASS_PANE'
       name: ' '
       # Fills the remaining slots
-      slot: '0-3,5-9,11-18,20-22,25-27,29-36,38-47,51-53'
+      slot: '0-3,5-9,11-18,20-22,25-27,29-36,38-47,52-53'

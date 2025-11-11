@@ -66,7 +66,6 @@ public class MenuListener implements Listener {
     private final Map<UUID, UUID> pendingEnderChestClear = new HashMap<>();
     private final Map<UUID, BukkitTask> pendingClearTasks = new HashMap<>();
 
-    // AÑADIDO: Flag para evitar la sincronización al cerrar después de una acción destructiva
     private final Set<UUID> bypassCloseSync = new HashSet<>();
 
     private static final Set<Integer> PROFILE_ARMOR_SLOTS = Set.of(10, 19, 28, 37);
@@ -156,15 +155,52 @@ public class MenuListener implements Listener {
             if (click.isLeftClick() || click.isRightClick()) {
                 event.getView().setCursor(currentItem);
                 event.getClickedInventory().setItem(clickedSlot, cursorItem);
+
+                // Log action
+                logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), cursorItem, currentItem);
             } else if (click.isShiftClick()) {
                 handleShiftClick(player.getInventory(), event.getView().getTopInventory(), currentItem, isTopInventory);
                 event.getClickedInventory().setItem(clickedSlot, null);
+
+                // Log remove action from shift-click
+                if (currentItem != null && currentItem.getType() != Material.AIR) {
+                    plugin.getSoftBanDatabaseManager().logOperatorAction(
+                            getTargetForAction(holder).getUniqueId(),
+                            player.getUniqueId(),
+                            "ITEM_REMOVE",
+                            currentItem.getAmount() + ":" + AuditLogBook.serialize(currentItem)
+                    );
+                }
             }
             Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getView().getTopInventory()));
         } else if (event.getClickedInventory() == player.getInventory()) {
             event.setCancelled(false);
         }
     }
+
+    private void logItemAction(UUID executorUUID, UUID targetUUID, ItemStack cursorItem, ItemStack currentItem) {
+        boolean cursorEmpty = (cursorItem == null || cursorItem.getType() == Material.AIR);
+        boolean currentEmpty = (currentItem == null || currentItem.getType() == Material.AIR);
+        String actionType = null;
+        String details = null;
+
+        if (!cursorEmpty && currentEmpty) {
+            actionType = "ITEM_ADD";
+            details = cursorItem.getAmount() + ":" + AuditLogBook.serialize(cursorItem);
+        } else if (cursorEmpty && !currentEmpty) {
+            actionType = "ITEM_REMOVE";
+            details = currentItem.getAmount() + ":" + AuditLogBook.serialize(currentItem);
+        } else if (!cursorEmpty && !currentEmpty) {
+            actionType = "ITEM_MOVE"; // Represents a swap, logging the item placed
+            details = cursorItem.getAmount() + ":" + AuditLogBook.serialize(cursorItem);
+        }
+
+        if (actionType != null) {
+            plugin.getSoftBanDatabaseManager().logOperatorAction(targetUUID, executorUUID, actionType, details);
+        }
+    }
+
+
 
     private void handleShiftClick(PlayerInventory playerInv, Inventory guiInv, ItemStack itemToMove, boolean fromTop) {
         if (itemToMove == null || itemToMove.getType() == Material.AIR) return;
@@ -244,7 +280,6 @@ public class MenuListener implements Listener {
         if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
             stopInventorySyncTask(player);
 
-            // MODIFICADO: Añadido chequeo del flag
             if (bypassCloseSync.remove(player.getUniqueId())) {
                 return;
             }
@@ -443,7 +478,6 @@ public class MenuListener implements Listener {
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData));
     }
 
-    // MODIFICADO: Lógica de borrado y refresco
     private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
         Map<UUID, UUID> confirmationMap = type.equals("full") ? pendingFullInvClear : pendingEnderChestClear;
         UUID moderatorId = moderator.getUniqueId();
@@ -456,13 +490,19 @@ public class MenuListener implements Listener {
                 return;
             }
 
+            int clearedCount = 0;
             if (type.equals("full")) {
                 PlayerInventory inv = targetPlayer.getInventory();
+                clearedCount = (int) Arrays.stream(inv.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
                 inv.clear();
                 inv.setArmorContents(new ItemStack[4]);
                 inv.setItemInOffHand(null);
+                plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, "CLEAR_INVENTORY", String.valueOf(clearedCount));
             } else {
-                targetPlayer.getEnderChest().clear();
+                Inventory enderChest = targetPlayer.getEnderChest();
+                clearedCount = (int) Arrays.stream(enderChest.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
+                enderChest.clear();
+                plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, "CLEAR_ENDER_CHEST", String.valueOf(clearedCount));
             }
 
             confirmationMap.remove(moderatorId);
@@ -866,6 +906,9 @@ public class MenuListener implements Listener {
                 requestNewTargetName(player, "profile_menu");
                 return true;
             }
+        } else if (action == ClickAction.OPEN_AUDIT_LOG) {
+            new AuditLogBook(plugin, targetUUID, player).openBook();
+            return true;
         }
         return false;
     }
@@ -996,6 +1039,14 @@ public class MenuListener implements Listener {
             default: return false;
         }
     }
+
+    // ... (rest of the file, including all the action handlers, punishment confirmation logic, etc., remains unchanged)
+    // The following is a placeholder for the rest of the file's content which is extensive
+    // but does not require further changes for this task.
+    // ...
+    // ...
+    // ... (all other methods from the original MenuListener file go here)
+    // ...
 
     private void requestNewTargetName(Player player, String originMenu) {
         sendConfigMessage(player, "messages.prompt_new_target");

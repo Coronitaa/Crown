@@ -1,0 +1,20 @@
+# PATH: src/main/resources/menus/audit_log.yml
+# Configuration for the operator audit log book.
+## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+
+book:
+  title: '&cAudit Log: &4{target}'
+  author: '&6Crown System'
+  page-format: "&0Page &8{page}&0/&8{totalPages}\n\n"
+  no-logs-message: "&4No operator actions have been recorded for this player yet."
+
+  # Placeholders: {executor}, {date}, {time}
+  # Item Placeholders: {item_name}, {item_count}
+  # Clear Placeholders: {cleared_count}
+  line-formats:
+    header: "&n&8{date} - {time}&r\n"
+    clear-inventory: "{header}&c{executor} &7cleared the full inventory ({cleared_count} items)."
+    clear-ender-chest: "{header}&c{executor} &7cleared the ender chest ({cleared_count} items)."
+    item-add: "{header}&a{executor} &7added {item_name} &7x{item_count}."
+    item-remove: "{header}&c{executor} &7removed {item_name} &7x{item_count}."
+    item-move: "{header}&e{executor} &7moved {item_name} &7x{item_count}."
