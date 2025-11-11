@@ -9,6 +9,7 @@ import cp.corona.menus.*;
 import cp.corona.menus.actions.ClickAction;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.menus.items.MenuItem.ClickActionData;
+import cp.corona.report.ReportStatus;
 import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
@@ -37,13 +38,14 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -65,6 +67,12 @@ public class MenuListener implements Listener {
     private final Map<UUID, UUID> pendingFullInvClear = new HashMap<>();
     private final Map<UUID, UUID> pendingEnderChestClear = new HashMap<>();
     private final Map<UUID, BukkitTask> pendingClearTasks = new HashMap<>();
+
+    // ADDED START: Fields for report input handling
+    private enum ReportInputType { FILTER_TARGET_NAME, FILTER_REQUESTER_NAME, ASSIGN_MODERATOR }
+    private record ReportInputContext(InventoryHolder menu, ReportInputType type, String reportId) {}
+    private final Map<UUID, ReportInputContext> pendingReportInputs = new HashMap<>();
+    // ADDED END
 
     private final Set<UUID> bypassCloseSync = new HashSet<>();
 
@@ -104,45 +112,36 @@ public class MenuListener implements Listener {
             return;
         }
 
-        // Determine the context by checking the top inventory's holder.
         InventoryHolder topHolder = event.getView().getTopInventory().getHolder();
 
         boolean isPluginMenu = topHolder instanceof PunishMenu || topHolder instanceof PunishDetailsMenu ||
                 topHolder instanceof TimeSelectorMenu || topHolder instanceof HistoryMenu ||
                 topHolder instanceof ProfileMenu || topHolder instanceof FullInventoryMenu ||
-                topHolder instanceof EnderChestMenu;
+                topHolder instanceof EnderChestMenu || topHolder instanceof ReportsMenu || topHolder instanceof ReportDetailsMenu;
 
-        // If the open inventory is not from our plugin, ignore the event completely.
         if (!isPluginMenu) {
             return;
         }
 
         Inventory clickedInventory = event.getClickedInventory();
         if (clickedInventory == null) {
-            return; // Clicked outside of any inventory window.
+            return;
         }
 
-        // Check if the click was in the top inventory (our GUI) or the bottom (player's inventory).
         boolean isTopInventoryClick = clickedInventory.equals(event.getView().getTopInventory());
 
         if (isTopInventoryClick) {
-            // The click is inside our GUI.
             if (topHolder instanceof ProfileMenu || topHolder instanceof FullInventoryMenu || topHolder instanceof EnderChestMenu) {
                 handleInteractiveMenuClick(event, player, topHolder);
             } else {
                 handleStaticMenuClick(event, player, topHolder);
             }
         } else {
-            // The click is in the player's own inventory while our GUI is open.
             if (topHolder instanceof ProfileMenu || topHolder instanceof FullInventoryMenu || topHolder instanceof EnderChestMenu) {
-                // For interactive menus, allow most clicks in the player's own inventory.
-                // However, we must cancel shift-clicks to prevent items from moving into our protected GUI slots.
                 if (player.hasPermission(EDIT_INVENTORY_PERMISSION) && event.getClick().isShiftClick()) {
                     event.setCancelled(true);
                 }
-                // Normal clicks, drags, etc., are not cancelled, allowing self-inventory management.
             } else {
-                // For all other (static) plugin menus, we prevent any interaction with the player's inventory.
                 event.setCancelled(true);
             }
         }
@@ -194,11 +193,9 @@ public class MenuListener implements Listener {
 
                 Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getView().getTopInventory()));
             } else {
-                // Clicked on a non-editable slot in the top inventory (e.g., background pane)
                 event.setCancelled(true);
             }
         }
-        // If the click is in the bottom inventory, we do not cancel the event, allowing default behavior.
     }
 
     private void logItemAction(UUID executorUUID, UUID targetUUID, ItemStack cursorItem, ItemStack currentItem, InventoryHolder holder) {
@@ -215,7 +212,7 @@ public class MenuListener implements Listener {
             action = "ITEM_REMOVE";
             involvedItem = currentItem;
         } else if (!cursorEmpty && !currentEmpty) {
-            action = "ITEM_MOVE"; // Represents a swap, logging the item placed
+            action = "ITEM_MOVE";
             involvedItem = cursorItem;
         }
 
@@ -228,7 +225,7 @@ public class MenuListener implements Listener {
             } else if (holder instanceof ProfileMenu) {
                 inventoryType = "_PROFILE";
             } else {
-                inventoryType = ""; // Fallback
+                inventoryType = "";
             }
 
             String actionType = action + inventoryType;
@@ -259,7 +256,7 @@ public class MenuListener implements Listener {
                 inv.setArmorContents(new ItemStack[4]);
                 inv.setItemInOffHand(null);
                 actionType = "CLEAR_INVENTORY";
-            } else { // ender
+            } else {
                 Inventory enderChest = targetPlayer.getEnderChest();
                 clearedCount = (int) Arrays.stream(enderChest.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
                 enderChest.clear();
@@ -319,7 +316,6 @@ public class MenuListener implements Listener {
     private void handleStaticMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
         event.setCancelled(true);
 
-        // This check was redundant because of the new logic in onInventoryClick, but it's kept as a safeguard.
         if (event.getClickedInventory() != null && event.getClickedInventory().getType() == InventoryType.PLAYER) {
             return;
         }
@@ -371,7 +367,7 @@ public class MenuListener implements Listener {
         InventoryHolder holder = event.getInventory().getHolder();
         if (!(event.getPlayer() instanceof Player player)) return;
 
-        if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
+        if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu || holder instanceof ReportsMenu || holder instanceof ReportDetailsMenu) {
             executeMenuOpenActions(player, holder);
         } else if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
             executeMenuOpenActions(player, holder);
@@ -405,6 +401,11 @@ public class MenuListener implements Listener {
             if (player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
                 synchronizeInventory(holder, event.getInventory());
             }
+        }
+
+        // Clear any pending chat inputs for this player when they close a menu
+        if (pendingReportInputs.containsKey(player.getUniqueId()) || inputTimeouts.containsKey(player.getUniqueId())) {
+            clearPlayerInputData(player);
         }
     }
 
@@ -505,18 +506,33 @@ public class MenuListener implements Listener {
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        if (!inputTimeouts.containsKey(player.getUniqueId())) {
+        UUID playerUUID = player.getUniqueId();
+
+        if (plugin.getReportBookManager().isAwaitingInput(player)) {
+            event.setCancelled(true);
+            String message = event.getMessage();
+            Bukkit.getScheduler().runTask(plugin, () -> plugin.getReportBookManager().handleChatInput(player, message));
             return;
         }
 
-        if (plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId()) && !player.hasPermission(MOD_PERMISSION)) {
+        if (pendingReportInputs.containsKey(playerUUID)) {
+            event.setCancelled(true);
+            String message = event.getMessage();
+            Bukkit.getScheduler().runTask(plugin, () -> handleReportChatInput(player, message));
+            return;
+        }
+
+        if (!inputTimeouts.containsKey(playerUUID)) {
+            return;
+        }
+
+        if (plugin.getPluginFrozenPlayers().containsKey(playerUUID) && !player.hasPermission(MOD_PERMISSION)) {
             event.setCancelled(true);
             sendConfigMessage(player, "messages.freeze_command_blocked");
             return;
         }
 
         event.setCancelled(true);
-
         String message = event.getMessage();
         Bukkit.getScheduler().runTask(plugin, () -> handlePlayerInput(player, message));
     }
@@ -565,6 +581,10 @@ public class MenuListener implements Listener {
             handledByMenuSpecific = handleFullInventoryMenuActions(player, fullInventoryMenu, action, actionData);
         } else if (holder instanceof EnderChestMenu enderChestMenu) {
             handledByMenuSpecific = handleEnderChestMenuActions(player, enderChestMenu, action, actionData);
+        } else if (holder instanceof ReportsMenu reportsMenu) {
+            handledByMenuSpecific = handleReportsMenuActions(player, reportsMenu, action, actionData, event);
+        } else if (holder instanceof ReportDetailsMenu reportDetailsMenu) {
+            handledByMenuSpecific = handleReportDetailsMenuActions(player, reportDetailsMenu, action, actionData, event);
         }
 
         if (!handledByMenuSpecific) {
@@ -639,6 +659,10 @@ public class MenuListener implements Listener {
             config = plugin.getConfigManager().getFullInventoryMenuConfig().getConfig(); path = "menu";
         } else if (holder instanceof EnderChestMenu) {
             config = plugin.getConfigManager().getEnderChestMenuConfig().getConfig(); path = "menu";
+        } else if (holder instanceof ReportsMenu) {
+            config = plugin.getConfigManager().getReportsMenuConfig().getConfig(); path = "menu";
+        } else if (holder instanceof ReportDetailsMenu) {
+            config = plugin.getConfigManager().getReportDetailsMenuConfig().getConfig(); path = "menu";
         }
 
         if (config != null && path != null) {
@@ -653,6 +677,7 @@ public class MenuListener implements Listener {
             plugin.getLogger().info("[DEBUG] No valid config/path found for open actions for " + holder.getClass().getSimpleName());
         }
     }
+
     private void executePlaySoundAction(Player player, String[] soundArgs) {
         if (soundArgs == null || soundArgs.length == 0 || soundArgs[0] == null || soundArgs[0].isEmpty()) {
             plugin.getLogger().warning("PLAY_SOUND action requires a non-empty data string.");
@@ -710,9 +735,7 @@ public class MenuListener implements Listener {
     private void executeActionbarAction(Player player, String[] messageArgs, InventoryHolder holder) {
         String messageText = (messageArgs != null && messageArgs.length > 0) ? messageArgs[0] : null;
 
-        if (messageText == null) {
-            plugin.getLogger().warning("ACTIONBAR action requires a non-null message text argument."); return;
-        }
+        if (messageText == null) { plugin.getLogger().warning("ACTIONBAR action requires a non-null message text argument."); return; }
         messageText = MessageUtils.getColorMessage(processAllPlaceholders(messageText, player, holder));
 
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(messageText));
@@ -935,6 +958,7 @@ public class MenuListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
     }
 
+    // ... (All original private handle...MenuActions methods remain here without change)
     private boolean handleProfileMenuActions(Player player, ProfileMenu profileMenu, ClickAction action, String[] actionData) {
         UUID targetUUID = profileMenu.getTargetUUID();
         String firstArg = (actionData != null && actionData.length > 0) ? actionData[0] : null;
@@ -1091,8 +1115,153 @@ public class MenuListener implements Listener {
         }
     }
 
-    // ... Y el resto del archivo, que no necesita cambios.
-    // ... (El código restante es idéntico al de la versión anterior)
+    private boolean handleReportsMenuActions(Player player, ReportsMenu menu, ClickAction action, String[] actionData, InventoryClickEvent event) {
+        switch (action) {
+            case ADJUST_PAGE:
+                if (actionData != null && actionData.length > 0) {
+                    if ("next_page".equalsIgnoreCase(actionData[0])) {
+                        menu.nextPage();
+                    } else if ("previous_page".equalsIgnoreCase(actionData[0])) {
+                        menu.previousPage();
+                    }
+                }
+                return true;
+            case FILTER_REPORTS_STATUS:
+                menu.cycleFilterStatus();
+                return true;
+            case FILTER_REPORTS_NAME:
+                boolean byRequester = event.getClick().isRightClick();
+                requestReportFilterInput(player, menu, byRequester);
+                return true;
+            case FILTER_MY_REPORTS:
+                menu.toggleMyReportsFilter();
+                return true;
+            case OPEN_REPORT_DETAILS:
+                ItemStack clickedItem = event.getCurrentItem();
+                if (clickedItem != null && clickedItem.hasItemMeta()) {
+                    ItemMeta meta = clickedItem.getItemMeta();
+                    String reportId = meta.getPersistentDataContainer().get(new NamespacedKey(plugin, "report_id"), PersistentDataType.STRING);
+                    if (reportId != null) {
+                        new ReportDetailsMenu(plugin, player, reportId).open(player);
+                    }
+                }
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean handleReportDetailsMenuActions(Player player, ReportDetailsMenu menu, ClickAction action, String[] actionData, InventoryClickEvent event) {
+        DatabaseManager.ReportEntry report = menu.getReportEntry();
+        if (report == null) return true;
+
+        switch (action) {
+            case CHANGE_REPORT_STATUS:
+                menu.cycleStatus();
+                return true;
+            case ASSIGN_MODERATOR:
+                requestModeratorAssignmentInput(player, menu);
+                return true;
+            case OPEN_REPORTS_MENU:
+                new ReportsMenu(plugin, player).open(player);
+                return true;
+            case OPEN_MENU:
+                if (actionData != null && actionData.length > 0) {
+                    if ("punish_menu_target".equalsIgnoreCase(actionData[0]) && report.getTargetUUID() != null) {
+                        new PunishMenu(report.getTargetUUID(), plugin).open(player);
+                    } else if ("punish_menu_requester".equalsIgnoreCase(actionData[0])) {
+                        new PunishMenu(report.getRequesterUUID(), plugin).open(player);
+                    }
+                }
+                return true;
+            case OPEN_PROFILE_TARGET:
+                if (report.getTargetUUID() != null) {
+                    new ProfileMenu(report.getTargetUUID(), plugin).open(player);
+                }
+                return true;
+            case OPEN_PROFILE_REQUESTER:
+                new ProfileMenu(report.getRequesterUUID(), plugin).open(player);
+                return true;
+            case OPEN_PROFILE_MODERATOR:
+                if (report.getModeratorUUID() != null) {
+                    new ProfileMenu(report.getModeratorUUID(), plugin).open(player);
+                }
+                return true;
+            // ADDED START: Handle record item clicks
+            case REPORTS_FILTER_TARGET:
+                if (report.getTargetUUID() != null) {
+                    new ReportsMenu(plugin, player, 1, null, Bukkit.getOfflinePlayer(report.getTargetUUID()).getName(), false, false).open(player);
+                }
+                return true;
+            case REPORTS_FILTER_REQUESTER:
+                new ReportsMenu(plugin, player, 1, null, Bukkit.getOfflinePlayer(report.getRequesterUUID()).getName(), true, false).open(player);
+                return true;
+            case HISTORY_TARGET:
+                if (report.getTargetUUID() != null) {
+                    new HistoryMenu(report.getTargetUUID(), plugin).open(player);
+                }
+                return true;
+            case HISTORY_REQUESTER:
+                new HistoryMenu(report.getRequesterUUID(), plugin).open(player);
+                return true;
+            // ADDED END
+            default:
+                return false;
+        }
+    }
+
+    private void requestReportFilterInput(Player player, ReportsMenu menu, boolean byRequester) {
+        player.closeInventory();
+        String prompt = byRequester ? "messages.report_prompt_filter_requester" : "messages.report_prompt_filter_target";
+        ReportInputType type = byRequester ? ReportInputType.FILTER_REQUESTER_NAME : ReportInputType.FILTER_TARGET_NAME;
+        sendConfigMessage(player, prompt);
+        pendingReportInputs.put(player.getUniqueId(), new ReportInputContext(menu, type, null));
+        setupChatInputTimeout(player, null, "report_filter");
+    }
+
+    private void requestModeratorAssignmentInput(Player player, ReportDetailsMenu menu) {
+        player.closeInventory();
+        sendConfigMessage(player, "messages.report_prompt_assign_moderator");
+        pendingReportInputs.put(player.getUniqueId(), new ReportInputContext(menu, ReportInputType.ASSIGN_MODERATOR, menu.getReportId()));
+        setupChatInputTimeout(player, null, "report_assign");
+    }
+
+
+    private void handleReportChatInput(Player player, String input) {
+        ReportInputContext context = pendingReportInputs.remove(player.getUniqueId());
+        cancelExistingTimeout(player);
+        if (context == null) return;
+
+        if ("cancel".equalsIgnoreCase(input)) {
+            sendConfigMessage(player, "messages.input_cancelled");
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if(context.menu() instanceof ReportsMenu rm) rm.open(player);
+                if(context.menu() instanceof ReportDetailsMenu rdm) rdm.open(player);
+            });
+            return;
+        }
+
+        switch (context.type()) {
+            case FILTER_TARGET_NAME:
+            case FILTER_REQUESTER_NAME:
+                if (context.menu() instanceof ReportsMenu reportsMenu) {
+                    reportsMenu.setFilterName(input, context.type() == ReportInputType.FILTER_REQUESTER_NAME);
+                }
+                break;
+            case ASSIGN_MODERATOR:
+                if (context.menu() instanceof ReportDetailsMenu detailsMenu) {
+                    OfflinePlayer moderator = Bukkit.getOfflinePlayer(input);
+                    if (!moderator.hasPlayedBefore() && !moderator.isOnline()) {
+                        sendConfigMessage(player, "messages.never_played", "{input}", input);
+                        Bukkit.getScheduler().runTask(plugin, () -> detailsMenu.open(player));
+                        return;
+                    }
+                    detailsMenu.assignTo(moderator.getUniqueId());
+                    sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
+                }
+                break;
+        }
+    }
 
     private void requestNewTargetName(Player player, String originMenu) {
         sendConfigMessage(player, "messages.prompt_new_target");
@@ -1121,7 +1290,7 @@ public class MenuListener implements Listener {
         BukkitTask timeoutTask = new BukkitRunnable() {
             @Override
             public void run() {
-                if (inputTypes.getOrDefault(player.getUniqueId(), "").equals(inputType)) {
+                if (inputTypes.getOrDefault(player.getUniqueId(), "").equals(inputType) || pendingReportInputs.containsKey(player.getUniqueId())) {
                     handleInputTimeout(player);
                 }
             }
@@ -1161,7 +1330,7 @@ public class MenuListener implements Listener {
 
     private void handleInputTimeout(Player player) {
         if (player != null && player.isOnline()) {
-            if (inputTypes.containsKey(player.getUniqueId())) {
+            if (inputTypes.containsKey(player.getUniqueId()) || pendingReportInputs.containsKey(player.getUniqueId())) {
                 sendConfigMessage(player, "messages.input_timeout");
                 if (plugin.getConfigManager().isDebugEnabled()) {
                     plugin.getLogger().info("[DEBUG] Input timed out for " + player.getName() + ". Type was: " + inputTypes.get(player.getUniqueId()));
@@ -1270,6 +1439,7 @@ public class MenuListener implements Listener {
         pendingDetailsMenus.remove(player.getUniqueId());
         inputTypes.remove(player.getUniqueId());
         inputOrigin.remove(player.getUniqueId());
+        pendingReportInputs.remove(player.getUniqueId()); // Also clear report inputs
     }
 
     private void handleConfirmButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -1904,6 +2074,8 @@ public class MenuListener implements Listener {
         if (holder instanceof ProfileMenu) return getProfileMenuItem(slot);
         if (holder instanceof FullInventoryMenu) return getFullInventoryMenuItem(slot);
         if (holder instanceof EnderChestMenu) return getEnderChestMenuItem(slot);
+        if (holder instanceof ReportsMenu) return getReportsMenuItem(slot); // ADDED
+        if (holder instanceof ReportDetailsMenu) return getReportDetailsMenuItem(slot); // ADDED
         return null;
     }
 
@@ -1973,6 +2145,32 @@ public class MenuListener implements Listener {
         return null;
     }
 
+    // ADDED START
+    private MenuItem getReportsMenuItem(int slot) {
+        for (String key : plugin.getConfigManager().getReportsMenuItemKeys()) {
+            MenuItem item = plugin.getConfigManager().getReportsMenuItemConfig(key);
+            if (item != null && item.getSlots() != null && item.getSlots().contains(slot)) {
+                return item;
+            }
+        }
+        // Also check for dynamically placed report entries
+        if (slot >= 10 && slot <= 43) { // Assuming these are the slots for entries
+            return plugin.getConfigManager().getReportsMenuItemConfig("report_entry");
+        }
+        return null;
+    }
+
+    private MenuItem getReportDetailsMenuItem(int slot) {
+        for (String key : plugin.getConfigManager().getReportDetailsMenuItemKeys()) {
+            MenuItem item = plugin.getConfigManager().getReportDetailsMenuItemConfig(key);
+            if (item != null && item.getSlots() != null && item.getSlots().contains(slot)) {
+                return item;
+            }
+        }
+        return null;
+    }
+    // ADDED END
+
     private OfflinePlayer getTargetForAction(InventoryHolder holder) {
         if (holder instanceof PunishMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof PunishDetailsMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
@@ -1981,6 +2179,7 @@ public class MenuListener implements Listener {
         if (holder instanceof ProfileMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof FullInventoryMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof EnderChestMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
+        if (holder instanceof ReportDetailsMenu menu) return menu.getReportEntry() != null && menu.getReportEntry().getTargetUUID() != null ? Bukkit.getOfflinePlayer(menu.getReportEntry().getTargetUUID()) : null;
         if (holder instanceof TempHolder temp) return Bukkit.getOfflinePlayer(temp.getTargetUUID());
         return null;
     }

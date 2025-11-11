@@ -1,9 +1,9 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\database\DatabaseManager.java
 package cp.corona.database;
 
 import cp.corona.config.WarnLevel;
 import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;
+import cp.corona.report.ReportStatus;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
 import org.bukkit.BanList;
@@ -235,6 +235,38 @@ public class DatabaseManager {
                         "details TEXT)";
             }
             statement.execute(createAuditLogTableSQL);
+
+            // ADDED START: Reports Table
+            String createReportsTableSQL = "CREATE TABLE IF NOT EXISTS reports (" +
+                    "report_id VARCHAR(12) PRIMARY KEY," +
+                    "requester_uuid VARCHAR(36) NOT NULL," +
+                    "target_uuid VARCHAR(36)," +
+                    "target_name VARCHAR(255) NOT NULL," +
+                    "report_type VARCHAR(50) NOT NULL," +
+                    "category VARCHAR(255) NOT NULL," +
+                    "reason VARCHAR(255) NOT NULL," +
+                    "details TEXT," +
+                    "status VARCHAR(50) NOT NULL," +
+                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                    "moderator_uuid VARCHAR(36)," +
+                    "collected_data TEXT)";
+            if ("sqlite".equalsIgnoreCase(dbType)) {
+                createReportsTableSQL = "CREATE TABLE IF NOT EXISTS reports (" +
+                        "report_id VARCHAR(12) PRIMARY KEY," +
+                        "requester_uuid VARCHAR(36) NOT NULL," +
+                        "target_uuid VARCHAR(36)," +
+                        "target_name VARCHAR(255) NOT NULL," +
+                        "report_type VARCHAR(50) NOT NULL," +
+                        "category VARCHAR(255) NOT NULL," +
+                        "reason VARCHAR(255) NOT NULL," +
+                        "details TEXT," +
+                        "status VARCHAR(50) NOT NULL," +
+                        "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                        "moderator_uuid VARCHAR(36)," +
+                        "collected_data TEXT)";
+            }
+            statement.execute(createReportsTableSQL);
+            // ADDED END
 
 
             updateTableStructure(connection);
@@ -500,9 +532,9 @@ public class DatabaseManager {
 
     public void removeActiveWarning(UUID playerUUID, String punishmentId, String removerName, String reason) {
         CompletableFuture.runAsync(() -> {
-            try(Connection connection = getConnection()){
+            try (Connection connection = getConnection()) {
                 removeActiveWarning(connection, playerUUID, punishmentId, removerName, reason);
-            } catch(SQLException e){
+            } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not remove active warning for punishmentId: " + punishmentId, e);
             }
         });
@@ -1237,6 +1269,7 @@ public class DatabaseManager {
         }
         return history;
     }
+
     public PunishmentEntry getPunishmentById(String punishmentId) {
         String sql = "SELECT * FROM punishment_history WHERE punishment_id = ?";
         try (Connection connection = getConnection();
@@ -1332,13 +1365,14 @@ public class DatabaseManager {
     }
 
     public String getLatestActivePunishmentId(UUID playerUUID, String punishmentType) {
-        try(Connection connection = getConnection()) {
+        try (Connection connection = getConnection()) {
             return getLatestActivePunishmentId(connection, playerUUID, punishmentType);
-        } catch(SQLException e){
+        } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment ID!", e);
         }
         return null;
     }
+
     private String getLatestActivePunishmentId(Connection connection, UUID playerUUID, String punishmentType) throws SQLException {
         String sql = "SELECT punishment_id FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 ORDER BY timestamp DESC LIMIT 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -1354,9 +1388,9 @@ public class DatabaseManager {
     }
 
     public PunishmentEntry getLatestActivePunishment(UUID playerUUID, String punishmentType) {
-        try(Connection connection = getConnection()){
+        try (Connection connection = getConnection()) {
             return getLatestActivePunishment(connection, playerUUID, punishmentType);
-        } catch(SQLException e){
+        } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment!", e);
         }
         return null;
@@ -1443,13 +1477,14 @@ public class DatabaseManager {
     }
 
     public boolean updatePunishmentAsRemoved(String punishmentId, String removedByName, String removedReason) {
-        try(Connection connection = getConnection()){
+        try (Connection connection = getConnection()) {
             return updatePunishmentAsRemoved(connection, punishmentId, removedByName, removedReason);
-        } catch (SQLException e){
+        } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to update punishment status", e);
             return false;
         }
     }
+
     private boolean updatePunishmentAsRemoved(Connection connection, String punishmentId, String removedByName, String removedReason) throws SQLException {
         String sql = "UPDATE punishment_history SET active = 0, removed_by_name = ?, removed_reason = ?, removed_at = ? WHERE punishment_id = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -1634,6 +1669,235 @@ public class DatabaseManager {
         return null;
     }
 
+    // ADDED START: All new methods for the report system
+
+    private String generateReportId() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder idBuilder;
+        do {
+            idBuilder = new StringBuilder();
+            for (int i = 0; i < 10; i++) {
+                idBuilder.append(chars.charAt(ThreadLocalRandom.current().nextInt(chars.length())));
+            }
+        } while (reportIdExists(idBuilder.toString()));
+        return idBuilder.toString();
+    }
+
+    private boolean reportIdExists(String reportId) {
+        String sql = "SELECT 1 FROM reports WHERE report_id = ?";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, reportId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not check for report ID existence.", e);
+            return true; // Assume it exists to prevent collision on error
+        }
+    }
+
+    public CompletableFuture<String> createReport(UUID requesterUUID, UUID targetUUID, String targetName, String reportType, String category, String reason, String details, String collectedData) {
+        return CompletableFuture.supplyAsync(() -> {
+            String reportId = generateReportId();
+            String sql = "INSERT INTO reports (report_id, requester_uuid, target_uuid, target_name, report_type, category, reason, details, status, collected_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try (Connection connection = getConnection();
+                 PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, reportId);
+                ps.setString(2, requesterUUID.toString());
+                ps.setString(3, targetUUID != null ? targetUUID.toString() : null);
+                ps.setString(4, targetName);
+                ps.setString(5, reportType);
+                ps.setString(6, category);
+                ps.setString(7, reason);
+                ps.setString(8, details);
+                ps.setString(9, ReportStatus.PENDING.name());
+                ps.setString(10, collectedData);
+                ps.executeUpdate();
+                return reportId;
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not create report.", e);
+                return null;
+            }
+        });
+    }
+
+    public CompletableFuture<ReportEntry> getReportById(String reportId) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT * FROM reports WHERE report_id = ?";
+            try (Connection connection = getConnection();
+                 PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, reportId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        try {
+                            return new ReportEntry(rs);
+                        } catch (SQLException e) {
+                            plugin.getLogger().log(Level.SEVERE, "Error constructing ReportEntry from ResultSet.", e);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not retrieve report by ID: " + reportId, e);
+            }
+            return null;
+        });
+    }
+
+
+    public CompletableFuture<List<ReportEntry>> getReports(int page, int entriesPerPage, ReportStatus filterStatus, String filterName, boolean filterAsRequester, UUID assignedTo) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<ReportEntry> reports = new ArrayList<>();
+            int offset = (page - 1) * entriesPerPage;
+
+            StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM reports ");
+            List<Object> params = new ArrayList<>();
+
+            boolean whereAdded = false;
+            if (assignedTo != null) {
+                sqlBuilder.append("WHERE moderator_uuid = ? ");
+                params.add(assignedTo.toString());
+                whereAdded = true;
+            }
+
+            if (filterStatus != null) {
+                sqlBuilder.append(whereAdded ? "AND " : "WHERE ");
+                sqlBuilder.append("status = ? ");
+                params.add(filterStatus.name());
+                whereAdded = true;
+            }
+            if (filterName != null && !filterName.isEmpty()) {
+                sqlBuilder.append(whereAdded ? "AND " : "WHERE ");
+                String nameToFilter = filterName;
+                if (filterAsRequester) {
+                    sqlBuilder.append("requester_uuid = ? ");
+                    OfflinePlayer p = Bukkit.getOfflinePlayer(nameToFilter);
+                    params.add(p.getUniqueId().toString());
+                } else {
+                    sqlBuilder.append("target_name LIKE ? ");
+                    params.add("%" + nameToFilter + "%");
+                }
+            }
+
+            sqlBuilder.append("ORDER BY timestamp DESC LIMIT ? OFFSET ?");
+            params.add(entriesPerPage);
+            params.add(offset);
+
+            try (Connection connection = getConnection();
+                 PreparedStatement ps = connection.prepareStatement(sqlBuilder.toString())) {
+                for (int i = 0; i < params.size(); i++) {
+                    ps.setObject(i + 1, params.get(i));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        reports.add(new ReportEntry(rs));
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not retrieve reports.", e);
+            }
+            return reports;
+        });
+    }
+
+    public CompletableFuture<Integer> countReports(ReportStatus filterStatus, String filterName, boolean filterAsRequester, UUID assignedTo) {
+        return CompletableFuture.supplyAsync(() -> {
+            StringBuilder sqlBuilder = new StringBuilder("SELECT COUNT(*) FROM reports ");
+            List<Object> params = new ArrayList<>();
+            boolean whereAdded = false;
+
+            if (assignedTo != null) {
+                sqlBuilder.append("WHERE moderator_uuid = ? ");
+                params.add(assignedTo.toString());
+                whereAdded = true;
+            }
+
+            if (filterStatus != null) {
+                sqlBuilder.append(whereAdded ? "AND " : "WHERE ");
+                sqlBuilder.append("status = ? ");
+                params.add(filterStatus.name());
+                whereAdded = true;
+            }
+            if (filterName != null && !filterName.isEmpty()) {
+                sqlBuilder.append(whereAdded ? "AND " : "WHERE ");
+                String nameToFilter = filterName;
+                if (filterAsRequester) {
+                    sqlBuilder.append("requester_uuid = ? ");
+                    OfflinePlayer p = Bukkit.getOfflinePlayer(nameToFilter);
+                    params.add(p.getUniqueId().toString());
+                } else {
+                    sqlBuilder.append("target_name LIKE ? ");
+                    params.add("%" + nameToFilter + "%");
+                }
+            }
+
+            try (Connection connection = getConnection();
+                 PreparedStatement ps = connection.prepareStatement(sqlBuilder.toString())) {
+                for (int i = 0; i < params.size(); i++) {
+                    ps.setObject(i + 1, params.get(i));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not count reports.", e);
+            }
+            return 0;
+        });
+    }
+
+    // ADDED START
+    public CompletableFuture<Integer> countReportsAsTarget(UUID targetUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT COUNT(*) FROM reports WHERE target_uuid = ?";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, targetUUID.toString());
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not count reports as target for " + targetUUID, e);
+            }
+            return 0;
+        });
+    }
+
+    public CompletableFuture<Integer> countReportsAsRequester(UUID requesterUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT COUNT(*) FROM reports WHERE requester_uuid = ?";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, requesterUUID.toString());
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not count reports as requester for " + requesterUUID, e);
+            }
+            return 0;
+        });
+    }
+
+    public CompletableFuture<Boolean> updateReportStatus(String reportId, ReportStatus status, UUID moderatorUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "UPDATE reports SET status = ?, moderator_uuid = ? WHERE report_id = ?";
+            try (Connection connection = getConnection();
+                 PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, status.name());
+                ps.setString(2, moderatorUUID != null ? moderatorUUID.toString() : null);
+                ps.setString(3, reportId);
+                return ps.executeUpdate() > 0;
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not update report status for ID: " + reportId, e);
+                return false;
+            }
+        });
+    }
+    // ADDED END
+
 
     public static class PunishmentEntry {
         private final String punishmentId;
@@ -1669,24 +1933,75 @@ public class DatabaseManager {
             this.warnLevel = warnLevel;
         }
 
-        public String getPunishmentId() { return punishmentId; }
-        public String getType() { return type; }
-        public String getReason() { return reason; }
-        public Timestamp getTimestamp() { return timestamp; }
-        public UUID getPlayerUUID() { return playerUUID; }
-        public String getPunisherName() { return punisherName; }
-        public long getPunishmentTime() { return punishmentTime; }
-        public String getDurationString() { return durationString; }
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-        public long getEndTime() { return punishmentTime; }
-        public boolean isActive() { return active; }
-        public String getRemovedByName() { return removedByName; }
-        public Timestamp getRemovedAt() { return removedAt; }
-        public String getRemovedReason() { return removedReason; }
-        public boolean wasByIp() { return byIp; }
-        public int getWarnLevel() { return warnLevel; }
+        public String getPunishmentId() {
+            return punishmentId;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public Timestamp getTimestamp() {
+            return timestamp;
+        }
+
+        public UUID getPlayerUUID() {
+            return playerUUID;
+        }
+
+        public String getPunisherName() {
+            return punisherName;
+        }
+
+        public long getPunishmentTime() {
+            return punishmentTime;
+        }
+
+        public String getDurationString() {
+            return durationString;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public long getEndTime() {
+            return punishmentTime;
+        }
+
+        public boolean isActive() {
+            return active;
+        }
+
+        public String getRemovedByName() {
+            return removedByName;
+        }
+
+        public Timestamp getRemovedAt() {
+            return removedAt;
+        }
+
+        public String getRemovedReason() {
+            return removedReason;
+        }
+
+        public boolean wasByIp() {
+            return byIp;
+        }
+
+        public int getWarnLevel() {
+            return warnLevel;
+        }
     }
+
     public static class PlayerInfo {
         private final String punishmentId;
         private final String ip;
@@ -1759,6 +2074,7 @@ public class DatabaseManager {
             return lastJoined;
         }
     }
+
     public static class PlayerLastState {
         private final UUID uuid;
         private final long lastSeen;
@@ -1774,11 +2090,25 @@ public class DatabaseManager {
             this.world = world;
         }
 
-        public UUID getUuid() { return uuid; }
-        public long getLastSeen() { return lastSeen; }
-        public String getIp() { return ip; }
-        public String getLocation() { return location; }
-        public String getWorld() { return world; }
+        public UUID getUuid() {
+            return uuid;
+        }
+
+        public long getLastSeen() {
+            return lastSeen;
+        }
+
+        public String getIp() {
+            return ip;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public String getWorld() {
+            return world;
+        }
     }
 
     // NEW: Inner class for Audit Log entries
@@ -1799,11 +2129,109 @@ public class DatabaseManager {
             this.details = details;
         }
 
-        public int getId() { return id; }
-        public UUID getTargetUUID() { return targetUUID; }
-        public UUID getExecutorUUID() { return executorUUID; }
-        public Timestamp getTimestamp() { return timestamp; }
-        public String getActionType() { return actionType; }
-        public String getDetails() { return details; }
+        public int getId() {
+            return id;
+        }
+
+        public UUID getTargetUUID() {
+            return targetUUID;
+        }
+
+        public UUID getExecutorUUID() {
+            return executorUUID;
+        }
+
+        public Timestamp getTimestamp() {
+            return timestamp;
+        }
+
+        public String getActionType() {
+            return actionType;
+        }
+
+        public String getDetails() {
+            return details;
+        }
+    }
+
+    // ADDED START: New inner class for Report entries
+    public static class ReportEntry {
+        private final String reportId;
+        private final UUID requesterUUID;
+        private final UUID targetUUID;
+        private final String targetName;
+        private final String reportType;
+        private final String category;
+        private final String reason;
+        private final String details;
+        private final ReportStatus status;
+        private final Timestamp timestamp;
+        private final UUID moderatorUUID;
+        private final String collectedData;
+
+        public ReportEntry(ResultSet rs) throws SQLException {
+            this.reportId = rs.getString("report_id");
+            this.requesterUUID = UUID.fromString(rs.getString("requester_uuid"));
+            String targetUUIDString = rs.getString("target_uuid");
+            this.targetUUID = (targetUUIDString != null) ? UUID.fromString(targetUUIDString) : null;
+            this.targetName = rs.getString("target_name");
+            this.reportType = rs.getString("report_type");
+            this.category = rs.getString("category");
+            this.reason = rs.getString("reason");
+            this.details = rs.getString("details");
+            this.status = ReportStatus.valueOf(rs.getString("status"));
+            this.timestamp = rs.getTimestamp("timestamp");
+            String modUUIDString = rs.getString("moderator_uuid");
+            this.moderatorUUID = (modUUIDString != null) ? UUID.fromString(modUUIDString) : null;
+            this.collectedData = rs.getString("collected_data");
+        }
+
+        public String getReportId() {
+            return reportId;
+        }
+
+        public UUID getRequesterUUID() {
+            return requesterUUID;
+        }
+
+        public UUID getTargetUUID() {
+            return targetUUID;
+        }
+
+        public String getTargetName() {
+            return targetName;
+        }
+
+        public String getReportType() {
+            return reportType;
+        }
+
+        public String getCategory() {
+            return category;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public String getDetails() {
+            return details;
+        }
+
+        public ReportStatus getStatus() {
+            return status;
+        }
+
+        public Timestamp getTimestamp() {
+            return timestamp;
+        }
+
+        public UUID getModeratorUUID() {
+            return moderatorUUID;
+        }
+
+        public String getCollectedData() {
+            return collectedData;
+        }
     }
 }

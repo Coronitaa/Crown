@@ -203,6 +203,23 @@
       frozen_player_chat_self: '&7[&dFrozen&7] &b{player}&7: &f{message}'
       already_frozen: '{prefix}&cPlayer &b{target}&c is already frozen.'
 
+      report_prompt_player_name: '&aEnter the name of the player you want to report (or type ''cancel''):'
+      report_prompt_clan_name: '&aEnter the name of the clan you want to report (or type ''cancel''):'
+      report_prompt_custom_reason: '&aDescribe the reason for your report in chat (or type ''cancel''):'
+      report_prompt_additional_details: '&aPlease provide additional details about your report (or type ''cancel''):' # ADDED
+      report_prompt_filter_target: '&aEnter a target name to filter reports by (or type ''cancel''):' # ADDED
+      report_prompt_filter_requester: '&aEnter a requester name to filter reports by (or type ''cancel''):' # ADDED
+      report_prompt_assign_moderator: '&aEnter the name of the moderator to assign this report to (or type ''cancel''):' # ADDED
+      report_submitted: '{prefix}&aYour report has been submitted successfully. (ID: &e{report_id}&a)'
+      report_submit_failed: '{prefix}&cThere was an error submitting your report. Please try again later.'
+      report_staff_notification: '{prefix}&eNew report from &b{requester}&e against &c{target}&e for &f{reason}&e.'
+      reports_menu_loading: '{prefix}&7Loading reports...'
+      report_status_changed: '{prefix}&aReport &e{report_id}&a status changed to {status_color}{status}&a.'
+      report_assigned: '{prefix}&aReport &e{report_id}&a has been assigned to &b{moderator}&a.' # ADDED
+      report_not_found: '{prefix}&cReport with ID ''{id}'' could not be found.' # ADDED
+      report_no_permission_view: '{prefix}&cYou do not have permission to view reports.'
+      report_no_permission_create: '{prefix}&cYou do not have permission to create reports.'
+
       bypass_error_softban: '{prefix}&cCannot softban &b{target}&c (has bypass permission).'
       bypass_error_freeze: '{prefix}&cCannot freeze &b{target}&c (has bypass permission).'
       bypass_error_ban: '{prefix}&cCannot ban &b{target}&c (has bypass permission).'

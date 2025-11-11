@@ -5,6 +5,7 @@ import cp.corona.Metrics;
 import cp.corona.commands.MainCommand;
 import cp.corona.config.MainConfigManager;
 import cp.corona.database.DatabaseManager;
+import cp.corona.report.ReportBookManager;
 import cp.corona.listeners.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -27,6 +28,7 @@ public final class Crown extends JavaPlugin {
     private MainConfigManager configManager;
     private DatabaseManager databaseManager;
     private boolean placeholderAPIEnabled;
+    private ReportBookManager reportBookManager;
     private final Map<UUID, Boolean> pluginFrozenPlayers = new ConcurrentHashMap<>();
     private final Map<UUID, Long> mutedPlayersCache = new ConcurrentHashMap<>();
     private final Map<UUID, Long> softBannedPlayersCache = new ConcurrentHashMap<>();
@@ -42,6 +44,7 @@ public final class Crown extends JavaPlugin {
     public void onEnable() {
         this.configManager = new MainConfigManager(this);
         this.databaseManager = new DatabaseManager(this);
+        this.reportBookManager = new ReportBookManager(this);
         this.placeholderAPIEnabled = configManager.isPlaceholderAPIEnabled();
 
         if (placeholderAPIEnabled) {
@@ -87,6 +90,8 @@ public final class Crown extends JavaPlugin {
         registerCommand("punish", mainCommand);
         registerCommand("unpunish", mainCommand);
         registerCommand("check", mainCommand);
+        registerCommand("report", mainCommand);
+        registerCommand("reports", mainCommand);
         registerCommand("history", mainCommand);
         registerCommand("profile", mainCommand);
         registerCommand("softban", mainCommand);
@@ -177,7 +182,9 @@ public final class Crown extends JavaPlugin {
     public Map<UUID, List<String>> getSoftbannedCommandsCache() {
         return softbannedCommandsCache;
     }
-
+    public ReportBookManager getReportBookManager() { // ADDED
+        return reportBookManager;
+    }
     public Set<String> getRegisteredCommands() {
         return registeredCommands;
     }

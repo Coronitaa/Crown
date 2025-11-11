@@ -1,0 +1,112 @@
+# PATH: src/main/resources/menus/reports_menu.yml
+# Configuration for the moderator reports view menu.
+## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+
+# --- Available Actions ---
+# - OPEN_REPORT_DETAILS:             (Opens the detail view for the clicked report)
+# - FILTER_REPORTS_STATUS:           (Opens a menu/prompt to filter by status)
+# - FILTER_REPORTS_NAME:             (Prompts for a name to filter by)
+# - ADJUST_PAGE:<next_page|previous_page>
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - NO_ACTION:
+
+# --- Available Placeholders ---
+# - {target}: Report target's name.
+# - {requester}: Report requester's name.
+# - {report_id}: The unique ID of the report.
+# - {reason}: The main reason/category of the report.
+# - {date}: Date of the report.
+# - {status}: Current status of the report (Pending, Resolved, etc.).
+# - {page}: Current page number.
+# - {max_pages}: Total number of pages.
+# - {filter_status}: Current status filter.
+# - {filter_name}: Current name filter.
+
+menu:
+  title: '&c&lReports Menu ({page}/{max_pages})'
+  items:
+    report_entry:
+      material: 'PAPER'
+      name: '&eReport #{report_id} &7- &c{target}'
+      lore:
+        - '&7Requester: &b{requester}'
+        - '&7Category: &f{category}' # ADDED
+        - '&7Reason: &f{reason}' # ADDED
+        - '&7Details: &f{details}' # ADDED
+        - '&7Moderator: &d{moderator}' # ADDED
+        - '&7Date: &b{date}'
+        - ''
+        - '&7Status: {status_color}{status}'
+        - ''
+        - '&aClick to view details.'
+      left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
+        - 'OPEN_REPORT_DETAILS'
+
+    # --- Control Items ---
+    filter_by_status:
+      material: 'HOPPER'
+      slot: 48
+      name: '&aFilter by Status'
+      lore:
+        - '&7Current Filter: &b{filter_status}'
+        - ''
+        - '&eClick to cycle through statuses.'
+      left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'FILTER_REPORTS_STATUS'
+        -
+    filter_my_reports: # ADDED
+      material: 'PLAYER_HEAD'
+      player_head: '{player}'
+      slot: 49
+      name: '&dMy Assigned Reports'
+      lore:
+        - '&7Click to show only reports'
+        - '&7assigned to you.'
+        - ''
+        - '&8(Click again to show all)'
+      left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'FILTER_MY_REPORTS'
+
+    filter_by_name:
+      material: 'NAME_TAG'
+      slot: 50
+      name: '&aFilter by Name'
+      lore:
+        - '&7Current Filter: &b{filter_name}'
+        - ''
+        - '&eClick to enter a player'
+        - '&eor clan name to filter by.'
+      left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'FILTER_REPORTS_NAME'
+
+    next_page_button:
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/19bf3292e126a105b54eba713aa1b152d541a1d8938829c56364d178ed22bf'
+      slot: 53
+      name: '&aNext Page'
+      lore:
+        - '&7Click to view the next page.'
+      left_click_actions:
+        - 'ADJUST_PAGE:next_page'
+        - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2'
+
+    previous_page_button:
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
+      slot: 45
+      name: '&cPrevious Page'
+      lore:
+        - '&7Click to view the previous page.'
+      left_click_actions:
+        - 'ADJUST_PAGE:previous_page'
+        - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2'
+
+    background_fill:
+      material: 'BLACK_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '0-8, 36-44, 46, 47, 51, 52'
+

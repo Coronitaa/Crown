@@ -11,6 +11,8 @@ import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.PunishMenu;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
+import cp.corona.menus.ReportsMenu;
+import cp.corona.report.ReportBookManager;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -45,6 +47,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String HISTORY_SUBCOMMAND = "history";
     private static final String PROFILE_SUBCOMMAND = "profile";
     private static final String HELP_SUBCOMMAND = "help";
+    private static final String REPORT_COMMAND = "report";
+    private static final String REPORTS_COMMAND = "reports";
+    private static final String REPORT_INTERNAL_SUBCOMMAND = "report_internal";
     private static final String SOFTBAN_COMMAND_ALIAS = "softban";
     private static final String FREEZE_COMMAND_ALIAS = "freeze";
     private static final String BAN_COMMAND_ALIAS = "ban";
@@ -78,6 +83,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn";
     private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze";
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
+    private static final String REPORT_CREATE_PERMISSION = "crown.report.create";
+    private static final String REPORT_VIEW_PERMISSION = "crown.report.view";
 
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn", "freeze");
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn", "freeze");
@@ -121,6 +128,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return handleHistoryCommand(sender, args);
             case "profile":
                 return handleProfileCommand(sender, args);
+            case REPORT_COMMAND:
+                return handleReportCommand(sender, args);
+            case REPORTS_COMMAND:
+                return handleReportsCommand(sender, args);
             case "softban":
             case "freeze":
             case "ban":
@@ -161,6 +172,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return handleHistoryCommand(sender, subArgs);
             case PROFILE_SUBCOMMAND:
                 return handleProfileCommand(sender, subArgs);
+            case REPORT_INTERNAL_SUBCOMMAND:
+                if (sender instanceof Player) {
+                    plugin.getReportBookManager().handleBookCommand((Player) sender, subArgs);
+                }
+                return true;
             case HELP_SUBCOMMAND:
             default:
                 help(sender);
@@ -1353,6 +1369,54 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
             }
         }
+    }
+
+    private boolean handleReportCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sendConfigMessage(sender, "messages.player_only");
+            return true;
+        }
+        if (!player.hasPermission(REPORT_CREATE_PERMISSION)) {
+            sendConfigMessage(player, "messages.no_permission");
+            return true;
+        }
+
+        ReportBookManager reportManager = plugin.getReportBookManager();
+
+        if (args.length >= 2) { // Direct report: /report <player> <reason...>
+            OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                sendConfigMessage(player, "messages.never_played", "{input}", args[0]);
+                return true;
+            }
+            String reason = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+            reportManager.createDirectReport(player, target, reason);
+
+        } else if (args.length == 1) { // Open book pre-filled with target
+            OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                sendConfigMessage(player, "messages.never_played", "{input}", args[0]);
+                return true;
+            }
+            reportManager.startReportProcess(player, target);
+        } else { // Open book from scratch
+            reportManager.startReportProcess(player);
+        }
+        return true;
+    }
+
+    private boolean handleReportsCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sendConfigMessage(sender, "messages.player_only");
+            return true;
+        }
+        if (!player.hasPermission(REPORT_VIEW_PERMISSION)) {
+            sendConfigMessage(player, "messages.no_permission");
+            return true;
+        }
+
+        new ReportsMenu(plugin, player).open(player);
+        return true;
     }
 
     private boolean checkPunishDetailsPermission(CommandSender sender, String punishType) {

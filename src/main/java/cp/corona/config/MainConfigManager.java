@@ -35,7 +35,9 @@ public class MainConfigManager {
     private final CustomConfig profileMenuConfig;
     private final CustomConfig fullInventoryMenuConfig;
     private final CustomConfig enderChestMenuConfig;
-    private final CustomConfig auditLogConfig; // ADDED
+    private final CustomConfig auditLogConfig;
+    private final CustomConfig reportsMenuConfig;
+    private final CustomConfig reportDetailsMenuConfig;
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
 
     private final Crown plugin;
@@ -61,7 +63,9 @@ public class MainConfigManager {
         profileMenuConfig = new CustomConfig("profile_menu.yml", "menus", plugin, false);
         fullInventoryMenuConfig = new CustomConfig("full_inventory_menu.yml", "menus", plugin, false);
         enderChestMenuConfig = new CustomConfig("enderchest_menu.yml", "menus", plugin, false);
-        auditLogConfig = new CustomConfig("audit_log.yml", "menus", plugin, false); // ADDED
+        auditLogConfig = new CustomConfig("audit_log.yml", "menus", plugin, false);
+        reportsMenuConfig = new CustomConfig("reports_menu.yml", "menus", plugin, false);
+        reportDetailsMenuConfig = new CustomConfig("report_details_menu.yml", "menus", plugin, false);
 
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
@@ -77,7 +81,9 @@ public class MainConfigManager {
         profileMenuConfig.registerConfig();
         fullInventoryMenuConfig.registerConfig();
         enderChestMenuConfig.registerConfig();
-        auditLogConfig.registerConfig(); // ADDED
+        auditLogConfig.registerConfig();
+        reportsMenuConfig.registerConfig();
+        reportDetailsMenuConfig.registerConfig();
         punishmentConfigs.values().forEach(CustomConfig::registerConfig);
 
         loadConfig();
@@ -97,7 +103,9 @@ public class MainConfigManager {
         profileMenuConfig.reloadConfig();
         fullInventoryMenuConfig.reloadConfig();
         enderChestMenuConfig.reloadConfig();
-        auditLogConfig.reloadConfig(); // ADDED
+        auditLogConfig.reloadConfig();
+        reportsMenuConfig.reloadConfig();
+        reportDetailsMenuConfig.reloadConfig();
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
@@ -344,11 +352,27 @@ public class MainConfigManager {
         return loadMenuItemFromConfig(fullInventoryMenuConfig.getConfig(), "menu.items." + itemKey);
     }
 
-    // ADDED START
     public MenuItem getEnderChestMenuItemConfig(String itemKey) {
         return loadMenuItemFromConfig(enderChestMenuConfig.getConfig(), "menu.items." + itemKey);
     }
-    // ADDED END
+
+    public MenuItem getReportsMenuItemConfig(String itemKey) {
+        return loadMenuItemFromConfig(reportsMenuConfig.getConfig(), "menu.items." + itemKey);
+    }
+
+    public Set<String> getReportsMenuItemKeys() {
+        ConfigurationSection section = reportsMenuConfig.getConfig().getConfigurationSection("menu.items");
+        return section != null ? section.getKeys(false) : Collections.emptySet();
+    }
+
+    public MenuItem getReportDetailsMenuItemConfig(String itemKey) {
+        return loadMenuItemFromConfig(reportDetailsMenuConfig.getConfig(), "menu.items." + itemKey);
+    }
+
+    public Set<String> getReportDetailsMenuItemKeys() {
+        ConfigurationSection section = reportDetailsMenuConfig.getConfig().getConfigurationSection("menu.items");
+        return section != null ? section.getKeys(false) : Collections.emptySet();
+    }
 
     public Set<String> getProfileMenuItemKeys() {
         ConfigurationSection section = profileMenuConfig.getConfig().getConfigurationSection("menu.items");
@@ -360,12 +384,10 @@ public class MainConfigManager {
         return section != null ? section.getKeys(false) : Collections.emptySet();
     }
 
-    // ADDED START
     public Set<String> getEnderChestMenuItemKeys() {
         ConfigurationSection section = enderChestMenuConfig.getConfig().getConfigurationSection("menu.items");
         return section != null ? section.getKeys(false) : Collections.emptySet();
     }
-    // ADDED END
 
     public String getTimeSelectorMenuTitle(OfflinePlayer target) {
         String title = timeSelectorMenuConfig.getConfig().getString("menu.time_selector_title", "&9&lSelect Punishment Time");
@@ -389,12 +411,10 @@ public class MainConfigManager {
         return processPlaceholders(title, target);
     }
 
-    // ADDED START
     public String getEnderChestMenuTitle(OfflinePlayer target) {
         String title = enderChestMenuConfig.getConfig().getString("menu.title", "&8Ender Chest: &b{target}");
         return processPlaceholders(title, target);
     }
-    // ADDED END
 
     public CustomConfig getPunishMenuConfig() {
         return punishMenuConfig;
@@ -424,11 +444,17 @@ public class MainConfigManager {
         return fullInventoryMenuConfig;
     }
 
-    // ADDED START
     public CustomConfig getEnderChestMenuConfig() {
         return enderChestMenuConfig;
     }
-    // ADDED END
+
+    public CustomConfig getReportsMenuConfig() {
+        return reportsMenuConfig;
+    }
+
+    public CustomConfig getReportDetailsMenuConfig() {
+        return reportDetailsMenuConfig;
+    }
 
     public List<String> getDetailsMenuItemLore(String punishmentType, String itemKey, OfflinePlayer target, String... replacements) {
         if (isDebugEnabled()) {
@@ -629,7 +655,7 @@ public class MainConfigManager {
         if (onlineTarget != null) {
             text = text
                     .replace("{target_ip}", onlineTarget.getAddress() != null ? onlineTarget.getAddress().getHostString() : "-")
-                    .replace("{target_coords}", String.format("%d %d %d", // MODIFIED: Changed format to space-separated
+                    .replace("{target_coords}", String.format("%d %d %d",
                             onlineTarget.getLocation().getBlockX(),
                             onlineTarget.getLocation().getBlockY(),
                             onlineTarget.getLocation().getBlockZ()))
@@ -645,7 +671,7 @@ public class MainConfigManager {
             if (lastState != null) {
                 text = text
                         .replace("{target_ip}", lastState.getIp() != null ? lastState.getIp() : "-")
-                        .replace("{target_coords}", lastState.getLocation() != null ? lastState.getLocation().replace(", ", " ") : "-") // MODIFIED: Replaced commas with spaces
+                        .replace("{target_coords}", lastState.getLocation() != null ? lastState.getLocation().replace(", ", " ") : "-")
                         .replace("{target_world}", lastState.getWorld() != null ? lastState.getWorld() : "-");
             } else {
                 text = text
@@ -708,7 +734,7 @@ public class MainConfigManager {
 
     public String getPunishmentDisplayForm(String punishmentType, boolean isVerb) {
         if (punishmentType == null || punishmentType.isEmpty()) {
-            return "unknown"; // Should not happen with current usage
+            return "unknown";
         }
         String typeKey = punishmentType.toLowerCase();
         String path;
@@ -716,7 +742,6 @@ public class MainConfigManager {
 
         if (isVerb) {
             path = "placeholders.punishment_action_verbs." + typeKey;
-            // Simple fallback for verbs
             switch (typeKey) {
                 case "ban":
                     fallback = "banned";
@@ -737,11 +762,10 @@ public class MainConfigManager {
                     fallback = "frozen";
                     break;
                 default:
-                    fallback = typeKey + "ed"; // Generic fallback
+                    fallback = typeKey + "ed";
             }
-        } else { // Noun form
+        } else {
             path = "placeholders.punishment_type_names." + typeKey;
-            // Fallback for nouns: capitalize the input type
             fallback = typeKey.substring(0, 1).toUpperCase() + typeKey.substring(1);
         }
 
@@ -753,7 +777,7 @@ public class MainConfigManager {
         String message = messagesConfig.getConfig().getString(path, "");
         if (message == null || message.isEmpty()) return "";
 
-        message = processPlaceholders(message, null); // Process general placeholders
+        message = processPlaceholders(message, null);
 
         for (int i = 0; i < replacements.length; i += 2) {
             if (i + 1 >= replacements.length) break;
@@ -775,12 +799,10 @@ public class MainConfigManager {
 
         MenuItem menuItem = loadMenuItemData(config, configPath);
 
-        // MODIFIED START: Recursively load confirm_state
         String confirmStatePath = configPath + ".confirm_state";
         if (config.isConfigurationSection(confirmStatePath)) {
             MenuItem confirmStateItem = loadMenuItemData(config, confirmStatePath);
             if (confirmStateItem != null) {
-                // Inherit slots and actions if not defined in confirm_state
                 if (confirmStateItem.getSlots() == null || confirmStateItem.getSlots().isEmpty()) {
                     confirmStateItem.setSlots(menuItem.getSlots());
                 }
@@ -793,12 +815,10 @@ public class MainConfigManager {
                 menuItem.setConfirmState(confirmStateItem);
             }
         }
-        // MODIFIED END
 
         return menuItem;
     }
 
-    // ADDED: Helper method to load item data from a path
     private MenuItem loadMenuItemData(FileConfiguration config, String configPath) {
         MenuItem menuItem = new MenuItem();
 
@@ -951,7 +971,6 @@ public class MainConfigManager {
         return pluginConfig;
     }
 
-    // ADDED: Getter and helper for audit log config
     public CustomConfig getAuditLogConfig() {
         return auditLogConfig;
     }

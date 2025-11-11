@@ -8,11 +8,11 @@ commands:
     description: Main command for Crown.
     usage: /<command> [punish|reload|help|unpunish|history|profile]
 
-  punish: # Alias command for direct /punish usage - ALIAS OF /CROWN PUNISH
+  punish:
     description: Alias for /crown punish command.
     usage: /<command> <player> [type] [time] [reason]
 
-  unpunish: # Top level command for unpunishing players directly - SEPARATE TOP LEVEL COMMAND
+  unpunish:
     description: Command to directly unpunish players.
     usage: /<command> <player> <type> [reason]
 
@@ -29,13 +29,21 @@ commands:
     description: Command to view a player's profile.
     usage: /<command> <player>
 
-  softban: # Top level command for softbanning players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /CROWN PUNISH SOFTBAN
+  report: # ADDED
+    description: Command to report a player or a server issue.
+    usage: /<command> [player]
+
+  reports: # ADDED
+    description: Command for moderators to view and manage reports.
+    usage: /<command>
+
+  softban:
     description: Command to directly softban players.
     usage: /<command> <player> [time] [reason]
 
-  freeze: # Top level command for freezing players directly - SEPARATE TOP LEVEL COMMAND, MIRRORS /crown punish freeze - NEW
-    description: Command to directly freeze players for manual review. # Description for /freeze command - NEW
-    usage: /<command> <player> [reason] # Usage for /freeze command - NEW - Reason is now optional
+  freeze:
+    description: Command to directly freeze players for manual review.
+    usage: /<command> <player> [reason]
   ban:
     description: Command to directly ban players.
     usage: /<command> <player> [time] [reason]
@@ -69,6 +77,12 @@ commands:
 permissions:
   crown.use:
     description: Allows player to use basic crown commands and punish menu
+    default: op
+  crown.report.create: # ADDED
+    description: Allows player to use the /report command.
+    default: true # Usually all players can report
+  crown.report.view: # ADDED
+    description: Allows player to use the /reports command to manage reports.
     default: op
   crown.profile:
     description: Allows player to use the profile command

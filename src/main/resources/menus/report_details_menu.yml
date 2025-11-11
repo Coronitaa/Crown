@@ -1,0 +1,172 @@
+# PATH: src/main/resources/menus/report_details_menu.yml
+# Configuration for the detailed report view menu.
+## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+
+# --- Available Actions ---
+# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu)
+# - CHANGE_REPORT_STATUS:
+# - ASSIGN_MODERATOR:                (Prompts for moderator name)
+# - PLAYER_COMMAND:<command>
+# - CLOSE_MENU:
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - NO_ACTION:
+
+# --- Available Placeholders ---
+# - {target}: Report target's name.
+# - {requester}: Report requester's name.
+# - {report_id}, {reason}, {date}, {status}, {details}
+# - {target_ip}, {target_health}, {target_hunger}, etc.
+# - {server_tps}, {server_chunks}, etc.
+
+# PATH: src/main/resources/menus/report_details_menu.yml
+menu:
+  title: '&c&lReport Details: #{report_id}'
+  items:
+    target_info:
+      material: 'PLAYER_HEAD'
+      player_head: '{target}'
+      slot: 11
+      name: '&cTarget Info: &b{target}'
+      lore:
+        - '&7Click to open profile.'
+      left_click_actions: # MODIFIED
+        - 'OPEN_PROFILE_TARGET'
+
+    target_summary: # ADDED
+      material: 'WRITABLE_BOOK'
+      slot: 20
+      name: '&6{target}''s Record'
+      lore:
+        - '&7Bans: &c{ban_count}'
+        - '&7Mutes: &e{mute_count}'
+        - '&7Warns: &6{warn_count}'
+        - '&7Kicks: &9{kick_count}'
+        - ''
+        - '&7Reports Received: &c{reports_received}'
+        - '&7Reports Sent: &a{reports_sent}'
+        - ''
+        - '&eLeft-Click to see their reports.'
+        - '&eRight-Click to see their history.'
+      left_click_actions:
+        - 'REPORTS_FILTER_TARGET'
+      right_click_actions:
+        - 'HISTORY_TARGET'
+
+    requester_info:
+      material: 'PLAYER_HEAD'
+      player_head: '{requester}'
+      slot: 15
+      name: '&aRequester Info: &b{requester}'
+      lore:
+        - '&7Click to open profile.'
+      left_click_actions: # MODIFIED
+        - 'OPEN_PROFILE_REQUESTER'
+
+    requester_summary: # ADDED
+      material: 'WRITABLE_BOOK'
+      slot: 24
+      name: '&6{requester}''s Record'
+      lore:
+        - '&7Bans: &c{ban_count}'
+        - '&7Mutes: &e{mute_count}'
+        - '&7Warns: &6{warn_count}'
+        - '&7Kicks: &9{kick_count}'
+        - ''
+        - '&7Reports Received: &c{reports_received}'
+        - '&7Reports Sent: &a{reports_sent}'
+        - ''
+        - '&eLeft-Click to see their reports.'
+        - '&eRight-Click to see their history.'
+      left_click_actions:
+        - 'REPORTS_FILTER_REQUESTER'
+      right_click_actions:
+        - 'HISTORY_REQUESTER'
+
+    report_details:
+      material: 'BOOK'
+      slot: 4
+      name: '&eReport Information'
+      lore:
+        - '&7Category: &f{category}' # MODIFIED
+        - '&7Reason: &f{reason}' # MODIFIED
+        - '&7Details: &f{details}' # MODIFIED
+        - '&7Date: &b{date}'
+
+    moderator_info: # ADDED
+      material: 'PLAYER_HEAD'
+      player_head: '{moderator}'
+      slot: 2
+      name: '&dModerator Info'
+      lore:
+        - '&7Handled by: &b{moderator}'
+        - ''
+        - '&7Click to open profile.'
+      left_click_actions:
+        - 'OPEN_PROFILE_MODERATOR' # Requires new ClickAction
+
+    collected_data:
+      material: 'COMPASS'
+      slot: 22
+      name: '&6Collected Data'
+      lore:
+        - '&7Loading data...'
+
+    change_status:
+      material: 'REPEATER'
+      slot: 38
+      name: '&aChange Status'
+      lore:
+        - '&7Current: {status_color}{status}'
+        - ''
+        - '&eClick to cycle status.'
+      left_click_actions:
+        - 'CHANGE_REPORT_STATUS'
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+
+    assign_moderator:
+      material: 'DIAMOND_HELMET'
+      slot: 40
+      name: '&bAssign to Moderator'
+      lore:
+        - '&7Assign this report to'
+        - '&7another moderator for review.'
+        - ''
+        - '&eClick to assign.'
+      left_click_actions:
+        - 'ASSIGN_MODERATOR'
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+
+    punish_target:
+      material: 'NETHERITE_SWORD'
+      slot: 42
+      name: '&cPunish Target'
+      lore:
+        - '&7Open punish menu for &b{target}&7.'
+      left_click_actions:
+        - 'OPEN_MENU:punish_menu_target'
+
+    punish_requester:
+      material: 'WOODEN_SWORD'
+      slot: 43
+      name: '&cPunish Requester'
+      lore:
+        - '&7Open punish menu for &b{requester}&7.'
+        - '&c(For false reports)'
+      left_click_actions:
+        - 'OPEN_MENU:punish_menu_requester'
+
+    back_button:
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
+      slot: 36
+      name: '&c&lBack to Reports'
+      lore:
+        - '&7Return to the main reports list.'
+      left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'OPEN_REPORTS_MENU'
+
+    background_fill:
+      material: 'GRAY_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '0-1,3,5-10,12-14,16-19,21,23-35,37,39,41,44'
