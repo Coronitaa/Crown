@@ -157,7 +157,7 @@ public class MenuListener implements Listener {
                 event.getClickedInventory().setItem(clickedSlot, cursorItem);
 
                 // Log action
-                logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), cursorItem, currentItem);
+                logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), cursorItem, currentItem, holder);
             } else if (click.isShiftClick()) {
                 handleShiftClick(player.getInventory(), event.getView().getTopInventory(), currentItem, isTopInventory);
                 event.getClickedInventory().setItem(clickedSlot, null);
@@ -178,24 +178,38 @@ public class MenuListener implements Listener {
         }
     }
 
-    private void logItemAction(UUID executorUUID, UUID targetUUID, ItemStack cursorItem, ItemStack currentItem) {
+    private void logItemAction(UUID executorUUID, UUID targetUUID, ItemStack cursorItem, ItemStack currentItem, InventoryHolder holder) {
         boolean cursorEmpty = (cursorItem == null || cursorItem.getType() == Material.AIR);
         boolean currentEmpty = (currentItem == null || currentItem.getType() == Material.AIR);
-        String actionType = null;
-        String details = null;
+
+        String action = null;
+        ItemStack involvedItem = null;
 
         if (!cursorEmpty && currentEmpty) {
-            actionType = "ITEM_ADD";
-            details = cursorItem.getAmount() + ":" + AuditLogBook.serialize(cursorItem);
+            action = "ITEM_ADD";
+            involvedItem = cursorItem;
         } else if (cursorEmpty && !currentEmpty) {
-            actionType = "ITEM_REMOVE";
-            details = currentItem.getAmount() + ":" + AuditLogBook.serialize(currentItem);
+            action = "ITEM_REMOVE";
+            involvedItem = currentItem;
         } else if (!cursorEmpty && !currentEmpty) {
-            actionType = "ITEM_MOVE"; // Represents a swap, logging the item placed
-            details = cursorItem.getAmount() + ":" + AuditLogBook.serialize(cursorItem);
+            action = "ITEM_MOVE"; // Represents a swap, logging the item placed
+            involvedItem = cursorItem;
         }
 
-        if (actionType != null) {
+        if (action != null && involvedItem != null) {
+            String inventoryType;
+            if (holder instanceof FullInventoryMenu) {
+                inventoryType = "_INVENTORY";
+            } else if (holder instanceof EnderChestMenu) {
+                inventoryType = "_ENDERCHEST";
+            } else if (holder instanceof ProfileMenu) {
+                inventoryType = "_PROFILE";
+            } else {
+                inventoryType = ""; // Fallback
+            }
+
+            String actionType = action + inventoryType;
+            String details = involvedItem.getAmount() + ":" + AuditLogBook.serialize(involvedItem);
             plugin.getSoftBanDatabaseManager().logOperatorAction(targetUUID, executorUUID, actionType, details);
         }
     }
@@ -491,19 +505,23 @@ public class MenuListener implements Listener {
             }
 
             int clearedCount = 0;
+            String actionType = "";
+
             if (type.equals("full")) {
                 PlayerInventory inv = targetPlayer.getInventory();
                 clearedCount = (int) Arrays.stream(inv.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
                 inv.clear();
                 inv.setArmorContents(new ItemStack[4]);
                 inv.setItemInOffHand(null);
-                plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, "CLEAR_INVENTORY", String.valueOf(clearedCount));
-            } else {
+                actionType = "CLEAR_INVENTORY";
+            } else { // ender
                 Inventory enderChest = targetPlayer.getEnderChest();
                 clearedCount = (int) Arrays.stream(enderChest.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
                 enderChest.clear();
-                plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, "CLEAR_ENDER_CHEST", String.valueOf(clearedCount));
+                actionType = "CLEAR_ENDER_CHEST";
             }
+
+            plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, actionType, String.valueOf(clearedCount));
 
             confirmationMap.remove(moderatorId);
             BukkitTask task = pendingClearTasks.remove(moderatorId);

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class AuditLogBook {
 
@@ -49,7 +50,7 @@ public class AuditLogBook {
         BookMeta loadingMeta = (BookMeta) book.getItemMeta();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
 
-        String title = plugin.getConfigManager().getAuditLogText("book.title").replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+        String title = plugin.getConfigManager().getAuditLogText("book.title", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
         loadingMeta.setTitle(MessageUtils.getColorMessage(title));
         loadingMeta.setAuthor(MessageUtils.getColorMessage(plugin.getConfigManager().getAuditLogText("book.author")));
         loadingMeta.addPage("Loading audit log...");
@@ -64,7 +65,7 @@ public class AuditLogBook {
 
     private void buildAndOpen(List<DatabaseManager.AuditLogEntry> logEntries, ItemStack book) {
         if (viewer == null || !viewer.isOnline()) {
-            return; // Don't proceed if the player closed the menu or went offline
+            return;
         }
 
         BookMeta bookMeta = (BookMeta) book.getItemMeta();
@@ -78,8 +79,6 @@ public class AuditLogBook {
         }
 
         book.setItemMeta(bookMeta);
-
-        // This is the crucial step: Re-open the book for the player to force a client-side update.
         viewer.openBook(book);
     }
 
@@ -87,7 +86,7 @@ public class AuditLogBook {
         List<BaseComponent[]> pages = new ArrayList<>();
         ComponentBuilder currentPageBuilder = new ComponentBuilder();
         int linesOnPage = 0;
-        final int MAX_LINES_PER_PAGE = 5;
+        final int MAX_LINES_PER_PAGE = 6; // Increased slightly as we saved space
 
         for (DatabaseManager.AuditLogEntry entry : logEntries) {
             if (linesOnPage >= MAX_LINES_PER_PAGE) {
@@ -107,40 +106,33 @@ public class AuditLogBook {
         if (linesOnPage > 0) {
             pages.add(currentPageBuilder.create());
         }
-
-        // Add page numbers
-        for (int i = 0; i < pages.size(); i++) {
-            String pageHeader = plugin.getConfigManager().getAuditLogText("book.page-format")
-                    .replace("{page}", String.valueOf(i + 1))
-                    .replace("{totalPages}", String.valueOf(pages.size()));
-
-            BaseComponent[] pageContent = pages.get(i);
-            pages.set(i, new ComponentBuilder(MessageUtils.getColorMessage(pageHeader)).append(pageContent).create());
-        }
-
         return pages;
     }
 
     private BaseComponent[] formatLogEntry(DatabaseManager.AuditLogEntry entry) {
-        String formatKey = "book.line-formats." + entry.getActionType().toLowerCase().replace("_", "-");
+        String actionTypeKey = entry.getActionType().toLowerCase();
+        String formatKey = "book.line-formats." + actionTypeKey.replace("_", "-");
         String format = plugin.getConfigManager().getAuditLogText(formatKey);
         if (format.isEmpty()) return null;
 
-        String executorName = Bukkit.getOfflinePlayer(entry.getExecutorUUID()).getName();
-        Timestamp ts = entry.getTimestamp();
-        String date = new SimpleDateFormat("yyyy-MM-dd").format(ts);
-        String time = new SimpleDateFormat("HH:mm:ss").format(ts);
+        OfflinePlayer executor = Bukkit.getOfflinePlayer(entry.getExecutorUUID());
+        OfflinePlayer target = Bukkit.getOfflinePlayer(entry.getTargetUUID());
 
-        format = format.replace("{header}", plugin.getConfigManager().getAuditLogText("book.line-formats.header"));
-        format = format.replace("{executor}", executorName != null ? executorName : "Unknown");
-        format = format.replace("{date}", date);
-        format = format.replace("{time}", time);
+        // Prepare hover text
+        HoverEvent actionHoverEvent = createActionHoverEvent(entry, executor, target);
+
+        // Prepare visible text
+        format = format.replace("{executor}", executor.getName() != null ? executor.getName() : "Unknown");
 
         ComponentBuilder builder = new ComponentBuilder();
-        String[] parts = format.split("(\\{item_name\\})|(\\{cleared_count\\})");
+        String[] parts = format.split("(\\{item_name\\})");
 
-        builder.append(MessageUtils.getColorMessage(parts[0]));
+        // Part before item
+        TextComponent preText = new TextComponent(MessageUtils.getColorMessage(parts[0]));
+        preText.setHoverEvent(actionHoverEvent);
+        builder.append(preText);
 
+        // Item part (if exists)
         if (entry.getActionType().startsWith("ITEM_")) {
             String[] details = entry.getDetails().split(":", 2);
             int amount = Integer.parseInt(details[0]);
@@ -150,23 +142,51 @@ public class AuditLogBook {
                 builder.append(createHoverableItemComponent(item));
             }
             if (parts.length > 1) {
-                builder.append(MessageUtils.getColorMessage(parts[1].replace("{item_count}", String.valueOf(amount))));
+                TextComponent postText = new TextComponent(MessageUtils.getColorMessage(parts[1].replace("{item_count}", String.valueOf(amount))));
+                postText.setHoverEvent(actionHoverEvent);
+                builder.append(postText);
             }
         } else if (entry.getActionType().contains("CLEAR")) {
-            builder.append(MessageUtils.getColorMessage(entry.getDetails()));
             if (parts.length > 1) {
-                builder.append(MessageUtils.getColorMessage(parts[1]));
+                builder.append(MessageUtils.getColorMessage(parts[1].replace("{cleared_count}", entry.getDetails())));
             }
         }
 
         return builder.create();
     }
 
+    private HoverEvent createActionHoverEvent(DatabaseManager.AuditLogEntry entry, OfflinePlayer executor, OfflinePlayer target) {
+        Timestamp ts = entry.getTimestamp();
+        String date = new SimpleDateFormat("yyyy-MM-dd").format(ts);
+        String time = new SimpleDateFormat("HH:mm:ss z").format(ts);
+
+        String inventoryType = getInventoryType(entry.getActionType());
+
+        List<String> hoverLines = plugin.getConfigManager().getAuditLogConfig().getConfig().getStringList("book.hover-format");
+        String hoverText = hoverLines.stream()
+                .map(line -> line.replace("{executor}", executor.getName() != null ? executor.getName() : "Unknown"))
+                .map(line -> line.replace("{target}", target.getName() != null ? target.getName() : "Unknown"))
+                .map(line -> line.replace("{date}", date))
+                .map(line -> line.replace("{time}", time))
+                .map(line -> line.replace("{inventory_type}", inventoryType))
+                .map(MessageUtils::getColorMessage)
+                .collect(Collectors.joining("\n"));
+
+        return new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(hoverText));
+    }
+
+    private String getInventoryType(String actionType) {
+        if (actionType.contains("INVENTORY")) return "Player Inventory";
+        if (actionType.contains("ENDERCHEST")) return "Ender Chest";
+        if (actionType.contains("PROFILE")) return "Player Equipment";
+        return "Unknown";
+    }
+
     private TextComponent createHoverableItemComponent(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
         String itemName = (meta != null && meta.hasDisplayName()) ? meta.getDisplayName() : item.getType().name().replace("_", " ").toLowerCase();
 
-        TextComponent itemComponent = new TextComponent(MessageUtils.getColorMessage("&b[" + itemName + "]"));
+        TextComponent itemComponent = new TextComponent(MessageUtils.getColorMessage(" &b[" + itemName + "]&r "));
 
         ComponentBuilder hoverBuilder = new ComponentBuilder();
         hoverBuilder.append(new TextComponent(itemName)).color(net.md_5.bungee.api.ChatColor.AQUA);

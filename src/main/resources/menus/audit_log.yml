@@ -5,16 +5,30 @@
 book:
   title: '&cAudit Log: &4{target}'
   author: '&6Crown System'
-  page-format: "&0Page &8{page}&0/&8{totalPages}\n\n"
   no-logs-message: "&4No operator actions have been recorded for this player yet."
 
-  # Placeholders: {executor}, {date}, {time}
+  # Format for the hover-over tooltip on the main action text.
+  # Placeholders: {executor}, {target}, {date}, {time}, {inventory_type}
+  hover-format:
+    - "&eAction Details"
+    - "&7Executor: &b{executor}"
+    - "&7Target: &b{target}"
+    - "&7Date: &f{date}"
+    - "&7Time: &f{time}"
+    - "&7Inventory: &f{inventory_type}"
+
+  # Placeholders: {executor}
   # Item Placeholders: {item_name}, {item_count}
   # Clear Placeholders: {cleared_count}
   line-formats:
-    header: "&n&8{date} - {time}&r\n"
-    clear-inventory: "{header}&c{executor} &7cleared the full inventory ({cleared_count} items)."
-    clear-ender-chest: "{header}&c{executor} &7cleared the ender chest ({cleared_count} items)."
-    item-add: "{header}&a{executor} &7added {item_name} &7x{item_count}."
-    item-remove: "{header}&c{executor} &7removed {item_name} &7x{item_count}."
-    item-move: "{header}&e{executor} &7moved {item_name} &7x{item_count}."
+    clear-inventory: "&c{executor} &7cleared the inventory ({cleared_count} items)."
+    clear-ender-chest: "&c{executor} &7cleared the ender chest ({cleared_count} items)."
+    item-add-inventory: "&a{executor} &7added {item_name} &7x{item_count} to inventory."
+    item-remove-inventory: "&c{executor} &7removed {item_name} &7x{item_count} from inventory."
+    item-move-inventory: "&e{executor} &7moved {item_name} &7x{item_count} in inventory."
+    item-add-enderchest: "&a{executor} &7added {item_name} &7x{item_count} to ender chest."
+    item-remove-enderchest: "&c{executor} &7removed {item_name} &7x{item_count} from ender chest."
+    item-move-enderchest: "&e{executor} &7moved {item_name} &7x{item_count} in ender chest."
+    item-add-profile: "&a{executor} &7equipped {item_name} &7x{item_count}."
+    item-remove-profile: "&c{executor} &7unequipped {item_name} &7x{item_count}."
+    item-move-profile: "&e{executor} &7swapped {item_name} &7x{item_count}."
