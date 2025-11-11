@@ -134,6 +134,7 @@ messages:
     &7You cannot send messages during this time.
 
   chat_while_muted: '{prefix}&cYou are currently muted and cannot send messages.'
+  clear_inventory_success: '{prefix}&aSuccessfully cleared &b{target}''s {inventory_type}.'
 
   invalid_punishment_type: '{prefix}&cInvalid punishment type. Available: &b{types}'
   direct_punishment_confirmed: '{prefix}&aApplied {punishment_type} to &b{target}&a. (ID: &e{punishment_id}&a) Time: &b{time}&a, Reason: &f{reason}'

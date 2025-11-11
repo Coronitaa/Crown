@@ -66,6 +66,9 @@ public class MenuListener implements Listener {
     private final Map<UUID, UUID> pendingEnderChestClear = new HashMap<>();
     private final Map<UUID, BukkitTask> pendingClearTasks = new HashMap<>();
 
+    // AÑADIDO: Flag para evitar la sincronización al cerrar después de una acción destructiva
+    private final Set<UUID> bypassCloseSync = new HashSet<>();
+
     private static final Set<Integer> PROFILE_ARMOR_SLOTS = Set.of(10, 19, 28, 37);
     private static final Set<Integer> PROFILE_HAND_SLOTS = Set.of(23, 24);
 
@@ -118,7 +121,6 @@ public class MenuListener implements Listener {
     }
 
     private void handleInteractiveMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
-        // First, check if the clicked item is a static button, even in an interactive menu
         MenuItem clickedMenuItem = getMenuItemClicked(event.getRawSlot(), holder);
         boolean isStaticButton = clickedMenuItem != null && clickedMenuItem.getLeftClickActions() != null && !clickedMenuItem.getLeftClickActions().isEmpty();
 
@@ -158,10 +160,8 @@ public class MenuListener implements Listener {
                 handleShiftClick(player.getInventory(), event.getView().getTopInventory(), currentItem, isTopInventory);
                 event.getClickedInventory().setItem(clickedSlot, null);
             }
-            // Schedule sync to ensure it runs after the event is fully processed
             Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getView().getTopInventory()));
         } else if (event.getClickedInventory() == player.getInventory()) {
-            // Allow normal interaction in player's own inventory below the GUI
             event.setCancelled(false);
         }
     }
@@ -171,8 +171,6 @@ public class MenuListener implements Listener {
 
         if (fromTop) {
             playerInv.addItem(itemToMove.clone());
-        } else {
-            // Block shift-clicking from player inv to gui for simplicity
         }
     }
 
@@ -245,6 +243,12 @@ public class MenuListener implements Listener {
 
         if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
             stopInventorySyncTask(player);
+
+            // MODIFICADO: Añadido chequeo del flag
+            if (bypassCloseSync.remove(player.getUniqueId())) {
+                return;
+            }
+
             if (player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
                 synchronizeInventory(holder, event.getInventory());
             }
@@ -439,13 +443,13 @@ public class MenuListener implements Listener {
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData));
     }
 
+    // MODIFICADO: Lógica de borrado y refresco
     private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
         Map<UUID, UUID> confirmationMap = type.equals("full") ? pendingFullInvClear : pendingEnderChestClear;
         UUID moderatorId = moderator.getUniqueId();
         UUID targetId = target.getUniqueId();
 
         if (confirmationMap.containsKey(moderatorId) && confirmationMap.get(moderatorId).equals(targetId)) {
-            // Confirmation step
             Player targetPlayer = Bukkit.getPlayer(targetId);
             if (targetPlayer == null || !targetPlayer.isOnline()) {
                 sendConfigMessage(moderator, "messages.player_not_online", "{input}", target.getName());
@@ -453,42 +457,50 @@ public class MenuListener implements Listener {
             }
 
             if (type.equals("full")) {
-                targetPlayer.getInventory().clear();
+                PlayerInventory inv = targetPlayer.getInventory();
+                inv.clear();
+                inv.setArmorContents(new ItemStack[4]);
+                inv.setItemInOffHand(null);
             } else {
                 targetPlayer.getEnderChest().clear();
             }
 
-            // Cleanup
             confirmationMap.remove(moderatorId);
             BukkitTask task = pendingClearTasks.remove(moderatorId);
             if (task != null) task.cancel();
 
-            sendConfigMessage(moderator, "{prefix}&aSuccessfully cleared &b" + target.getName() + "'s " + (type.equals("full") ? "inventory" : "ender chest") + ".");
+            sendConfigMessage(moderator, "messages.clear_inventory_success", "{target}", target.getName(), "{inventory_type}", type.equals("full") ? "inventory" : "ender chest");
             playSound(moderator, "punish_confirm");
-            moderator.closeInventory();
+
+            bypassCloseSync.add(moderatorId);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if(type.equals("full")) {
+                    new FullInventoryMenu(targetId, plugin).open(moderator);
+                } else {
+                    new EnderChestMenu(targetId, plugin).open(moderator);
+                }
+            });
 
         } else {
-            // Initial click
             confirmationMap.put(moderatorId, targetId);
             MenuItem confirmState = clickedItem.getConfirmState();
             if (confirmState != null) {
                 event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(target, plugin.getConfigManager()));
-                playSound(moderator, "punish_error"); // Warning sound
+                playSound(moderator, "punish_error");
             }
 
-            // Auto-cancel task
             BukkitTask task = new BukkitRunnable() {
                 @Override
                 public void run() {
                     if (confirmationMap.remove(moderatorId) != null) {
-                        // Revert button if menu is still open
                         if (moderator.getOpenInventory().getTopInventory().getHolder() == event.getInventory().getHolder()) {
                             event.getInventory().setItem(event.getSlot(), clickedItem.toItemStack(target, plugin.getConfigManager()));
                         }
                         pendingClearTasks.remove(moderatorId);
                     }
                 }
-            }.runTaskLater(plugin, 100L); // 5 seconds
+            }.runTaskLater(plugin, 100L);
             pendingClearTasks.put(moderatorId, task);
         }
     }
@@ -1977,8 +1989,6 @@ public class MenuListener implements Listener {
             } else if (punishmentType.equalsIgnoreCase(FREEZE_PUNISHMENT_TYPE)) {
                 punishmentEndTime = Long.MAX_VALUE;
             }
-            // This is now handled by the async flow, this sync call is incorrect.
-            // punishmentId = plugin.getSoftBanDatabaseManager().logPunishment(target.getUniqueId(), punishmentType, reason, player.getName(), punishmentEndTime, durationString, byIp);
         }
         sendPunishmentConfirmation(player, target, timeValue, reason, punishmentType, punishmentId);
         executeHookActions(player, target, punishmentType, timeValue, reason, false, Collections.emptyList());
