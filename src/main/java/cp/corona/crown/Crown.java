@@ -73,8 +73,11 @@ public final class Crown extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
-                configManager.getMessage("messages.plugin_disabled")));
+        // ADDED: Null check to prevent errors on disable if onEnable fails
+        if (configManager != null) {
+            Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
+                    configManager.getMessage("messages.plugin_disabled")));
+        }
     }
 
     public void registerCommands() {
@@ -85,6 +88,7 @@ public final class Crown extends JavaPlugin {
         registerCommand("unpunish", mainCommand);
         registerCommand("check", mainCommand);
         registerCommand("history", mainCommand);
+        registerCommand("profile", mainCommand);
         registerCommand("softban", mainCommand);
         registerCommand("freeze", mainCommand);
         registerCommand("ban", mainCommand);

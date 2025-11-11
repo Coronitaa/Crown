@@ -10,10 +10,14 @@ import cp.corona.utils.TimeUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Statistic;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,6 +32,8 @@ public class MainConfigManager {
     private final CustomConfig punishDetailsMenuConfig;
     private final CustomConfig timeSelectorMenuConfig;
     private final CustomConfig historyMenuConfig;
+    private final CustomConfig profileMenuConfig;
+    private final CustomConfig fullInventoryMenuConfig;
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
 
     private final Crown plugin;
@@ -50,6 +56,9 @@ public class MainConfigManager {
         punishDetailsMenuConfig = new CustomConfig("punish_details_menu.yml", "menus", plugin, false);
         timeSelectorMenuConfig = new CustomConfig("time_selector_menu.yml", "menus", plugin, false);
         historyMenuConfig = new CustomConfig("history_menu.yml", "menus", plugin, false);
+        profileMenuConfig = new CustomConfig("profile_menu.yml", "menus", plugin, false);
+        fullInventoryMenuConfig = new CustomConfig("full_inventory_menu.yml", "menus", plugin, false);
+
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
                 punishmentConfigs.put(punishment, new CustomConfig(punishment + ".yml", "punishments", plugin, false))
@@ -61,6 +70,8 @@ public class MainConfigManager {
         punishDetailsMenuConfig.registerConfig();
         timeSelectorMenuConfig.registerConfig();
         historyMenuConfig.registerConfig();
+        profileMenuConfig.registerConfig();
+        fullInventoryMenuConfig.registerConfig();
         punishmentConfigs.values().forEach(CustomConfig::registerConfig);
 
         loadConfig();
@@ -77,6 +88,8 @@ public class MainConfigManager {
         punishDetailsMenuConfig.reloadConfig();
         timeSelectorMenuConfig.reloadConfig();
         historyMenuConfig.reloadConfig();
+        profileMenuConfig.reloadConfig();
+        fullInventoryMenuConfig.reloadConfig();
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
@@ -315,6 +328,24 @@ public class MainConfigManager {
         return loadMenuItemFromConfig(historyMenuConfig.getConfig(), "menu.items." + itemKey);
     }
 
+    public MenuItem getProfileMenuItemConfig(String itemKey) {
+        return loadMenuItemFromConfig(profileMenuConfig.getConfig(), "menu.items." + itemKey);
+    }
+
+    public MenuItem getFullInventoryMenuItemConfig(String itemKey) {
+        return loadMenuItemFromConfig(fullInventoryMenuConfig.getConfig(), "menu.items." + itemKey);
+    }
+
+    public Set<String> getProfileMenuItemKeys() {
+        ConfigurationSection section = profileMenuConfig.getConfig().getConfigurationSection("menu.items");
+        return section != null ? section.getKeys(false) : Collections.emptySet();
+    }
+
+    public Set<String> getFullInventoryMenuItemKeys() {
+        ConfigurationSection section = fullInventoryMenuConfig.getConfig().getConfigurationSection("menu.items");
+        return section != null ? section.getKeys(false) : Collections.emptySet();
+    }
+
     public String getTimeSelectorMenuTitle(OfflinePlayer target) {
         String title = timeSelectorMenuConfig.getConfig().getString("menu.time_selector_title", "&9&lSelect Punishment Time");
         if (title == null) return "";
@@ -324,6 +355,16 @@ public class MainConfigManager {
     public String getHistoryMenuTitle(OfflinePlayer target) {
         String title = historyMenuConfig.getConfig().getString("menu.title", "&7&lPunishment History");
         if (title == null) return "";
+        return processPlaceholders(title, target);
+    }
+
+    public String getProfileMenuTitle(OfflinePlayer target) {
+        String title = profileMenuConfig.getConfig().getString("menu.title", "&8Profile: &b{target}");
+        return processPlaceholders(title, target);
+    }
+
+    public String getFullInventoryMenuTitle(OfflinePlayer target) {
+        String title = fullInventoryMenuConfig.getConfig().getString("menu.title", "&8Inventory: &b{target}");
         return processPlaceholders(title, target);
     }
 
@@ -345,6 +386,14 @@ public class MainConfigManager {
 
     public CustomConfig getHistoryMenuConfig() {
         return historyMenuConfig;
+    }
+
+    public CustomConfig getProfileMenuConfig() {
+        return profileMenuConfig;
+    }
+
+    public CustomConfig getFullInventoryMenuConfig() {
+        return fullInventoryMenuConfig;
     }
 
     public List<String> getDetailsMenuItemLore(String punishmentType, String itemKey, OfflinePlayer target, String... replacements) {
@@ -459,6 +508,41 @@ public class MainConfigManager {
         return lore;
     }
 
+    public ItemMetaBuilder getProfileMenuItemBuilder(String itemKey, OfflinePlayer target) {
+        MenuItem menuItem = getProfileMenuItemConfig(itemKey);
+        if (menuItem == null) return new ItemMetaBuilder(new ItemStack(Material.AIR));
+        return new ItemMetaBuilder(menuItem.toItemStack(target, this));
+    }
+
+    public static class ItemMetaBuilder {
+        private final ItemStack itemStack;
+        private final ItemMeta itemMeta;
+
+        public ItemMetaBuilder(ItemStack itemStack) {
+            this.itemStack = itemStack.clone();
+            this.itemMeta = itemStack.hasItemMeta() ? itemStack.getItemMeta().clone() : Bukkit.getItemFactory().getItemMeta(itemStack.getType());
+        }
+
+        public ItemMetaBuilder withPlaceholder(String placeholder, String value) {
+            if (itemMeta.hasDisplayName()) {
+                itemMeta.setDisplayName(itemMeta.getDisplayName().replace(placeholder, value));
+            }
+            if (itemMeta.hasLore()) {
+                List<String> newLore = new ArrayList<>();
+                for (String line : itemMeta.getLore()) {
+                    newLore.add(line.replace(placeholder, value));
+                }
+                itemMeta.setLore(newLore);
+            }
+            return this;
+        }
+
+        public ItemStack build() {
+            itemStack.setItemMeta(itemMeta);
+            return itemStack;
+        }
+    }
+
     public boolean isDebugEnabled() {
         return debugEnabled;
     }
@@ -515,7 +599,13 @@ public class MainConfigManager {
                             onlineTarget.getLocation().getBlockX(),
                             onlineTarget.getLocation().getBlockY(),
                             onlineTarget.getLocation().getBlockZ()))
-                    .replace("{target_world}", onlineTarget.getWorld().getName());
+                    .replace("{target_world}", onlineTarget.getWorld().getName())
+                    .replace("{xp_level}", String.valueOf(onlineTarget.getLevel()))
+                    .replace("{play_time}", TimeUtils.formatTime(onlineTarget.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20, this))
+                    .replace("{health}", String.format("%.1f/%.1f", onlineTarget.getHealth(), onlineTarget.getMaxHealth()))
+                    .replace("{food_level}", String.valueOf(onlineTarget.getFoodLevel()))
+                    .replace("{player_kills}", String.valueOf(onlineTarget.getStatistic(Statistic.PLAYER_KILLS)))
+                    .replace("{deaths}", String.valueOf(onlineTarget.getStatistic(Statistic.DEATHS)));
         } else {
             DatabaseManager.PlayerLastState lastState = plugin.getSoftBanDatabaseManager().getPlayerLastState(target.getUniqueId());
             if (lastState != null) {
@@ -529,6 +619,12 @@ public class MainConfigManager {
                         .replace("{target_coords}", "-")
                         .replace("{target_world}", "-");
             }
+            text = text.replace("{xp_level}", "N/A")
+                    .replace("{play_time}", "N/A")
+                    .replace("{health}", "N/A")
+                    .replace("{food_level}", "N/A")
+                    .replace("{player_kills}", "N/A")
+                    .replace("{deaths}", "N/A");
         }
 
 

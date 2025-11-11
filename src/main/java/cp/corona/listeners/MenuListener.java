@@ -5,10 +5,7 @@ import cp.corona.config.WarnLevel;
 import cp.corona.crown.Crown;
 import cp.corona.database.ActiveWarningEntry;
 import cp.corona.database.DatabaseManager;
-import cp.corona.menus.HistoryMenu;
-import cp.corona.menus.PunishDetailsMenu;
-import cp.corona.menus.PunishMenu;
-import cp.corona.menus.TimeSelectorMenu;
+import cp.corona.menus.*;
 import cp.corona.menus.actions.ClickAction;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.menus.items.MenuItem.ClickActionData;
@@ -31,12 +28,14 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -59,6 +58,11 @@ public class MenuListener implements Listener {
     private final HashMap<UUID, BukkitTask> inputTimeouts = new HashMap<>();
     private final HashMap<UUID, PunishDetailsMenu> pendingDetailsMenus = new HashMap<>();
     private final HashMap<UUID, String> inputTypes = new HashMap<>();
+    private final Map<UUID, BukkitTask> inventorySyncTasks = new HashMap<>();
+
+    // Constants for ProfileMenu interactive slots
+    private static final Set<Integer> PROFILE_ARMOR_SLOTS = Set.of(10, 19, 28, 37);
+    private static final Set<Integer> PROFILE_HAND_SLOTS = Set.of(23, 24);
 
     private static final String BAN_PUNISHMENT_TYPE = "ban";
     private static final String MUTE_PUNISHMENT_TYPE = "mute";
@@ -70,6 +74,7 @@ public class MenuListener implements Listener {
     private static final String MOD_PERMISSION = "crown.mod";
     private static final String ADMIN_PERMISSION = "crown.admin";
     private static final String USE_PERMISSION = "crown.use";
+    private static final String EDIT_INVENTORY_PERMISSION = "crown.profile.editinventory";
     private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban";
     private static final String UNPUNISH_BAN_PERMISSION = "crown.unpunish.ban";
     private static final String PUNISH_MUTE_PERMISSION = "crown.punish.mute";
@@ -90,7 +95,8 @@ public class MenuListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         InventoryHolder holder = event.getInventory().getHolder();
         if (!(holder instanceof PunishMenu) && !(holder instanceof PunishDetailsMenu) &&
-                !(holder instanceof TimeSelectorMenu) && !(holder instanceof HistoryMenu)) {
+                !(holder instanceof TimeSelectorMenu) && !(holder instanceof HistoryMenu) &&
+                !(holder instanceof ProfileMenu) && !(holder instanceof FullInventoryMenu)) {
             return;
         }
 
@@ -98,18 +104,50 @@ public class MenuListener implements Listener {
             return;
         }
 
+        if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu) {
+            handleInteractiveMenuClick(event, player, holder);
+        } else {
+            handleStaticMenuClick(event, player, holder);
+        }
+    }
+
+    private void handleInteractiveMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
+        int clickedSlot = event.getRawSlot();
+        boolean isEditableSlot = false;
+
+        if (holder instanceof ProfileMenu) {
+            isEditableSlot = PROFILE_ARMOR_SLOTS.contains(clickedSlot) || PROFILE_HAND_SLOTS.contains(clickedSlot);
+        } else if (holder instanceof FullInventoryMenu) {
+            isEditableSlot = clickedSlot >= 0 && clickedSlot < 36;
+        }
+
+        if (event.getClickedInventory() != null && (event.getClickedInventory().getType() == InventoryType.PLAYER || isEditableSlot)) {
+            if (player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
+                // Schedule a task to sync from GUI to player 1 tick after the click
+                Bukkit.getScheduler().runTaskLater(plugin, () -> synchronizeInventory(holder, event.getInventory()), 1L);
+                return;
+            }
+        }
+
+        if (isEditableSlot) {
+            event.setCancelled(true); // Always cancel for non-mods
+        } else {
+            // This is a static button, handle it like other menus
+            handleStaticMenuClick(event, player, holder);
+        }
+    }
+
+    private void handleStaticMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
+        event.setCancelled(true);
+
         if (event.getClickedInventory() != null && event.getClickedInventory().getType() == InventoryType.PLAYER) {
-            event.setCancelled(true);
             return;
         }
 
         ItemStack clickedItem = event.getCurrentItem();
         if (event.getClickedInventory() == null || clickedItem == null || clickedItem.getType() == Material.AIR) {
-            event.setCancelled(true);
             return;
         }
-
-        event.setCancelled(true);
 
         MenuItem clickedMenuItem = getMenuItemClicked(event.getRawSlot(), holder);
         if (clickedMenuItem != null) {
@@ -133,19 +171,134 @@ public class MenuListener implements Listener {
     }
 
     @EventHandler
-    public void onInventoryOpen(InventoryOpenEvent event) {
+    public void onInventoryDrag(InventoryDragEvent event) {
         InventoryHolder holder = event.getInventory().getHolder();
-        if (event.getPlayer() instanceof Player player) {
-            if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
-                executeMenuOpenActions(player, holder);
+        if (!(holder instanceof ProfileMenu) && !(holder instanceof FullInventoryMenu)) {
+            return;
+        }
+
+        if (event.getWhoClicked() instanceof Player player) {
+            if (!player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
+                event.setCancelled(true);
+            } else {
+                // Sync after the drag is complete
+                Bukkit.getScheduler().runTaskLater(plugin, () -> synchronizeInventory(holder, event.getInventory()), 1L);
             }
         }
     }
 
     @EventHandler
-    public void onInventoryClose(InventoryCloseEvent event) {
-        // No action needed here for now
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (!(event.getPlayer() instanceof Player player)) return;
+
+        if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
+            executeMenuOpenActions(player, holder);
+        } else if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu) {
+            executeMenuOpenActions(player, holder);
+            startInventorySyncTask(player, holder);
+        }
     }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (!(event.getPlayer() instanceof Player player)) return;
+
+        if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu) {
+            // Stop the sync task
+            stopInventorySyncTask(player);
+            // Final sync on close
+            if (player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
+                synchronizeInventory(holder, event.getInventory());
+            }
+        }
+    }
+
+    private void startInventorySyncTask(Player moderator, InventoryHolder holder) {
+        stopInventorySyncTask(moderator); // Ensure no old task is running
+
+        UUID targetUUID = getTargetForAction(holder).getUniqueId();
+
+        BukkitTask task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                Player target = Bukkit.getPlayer(targetUUID);
+                // Check if the moderator and target are still valid
+                if (!moderator.isOnline() || moderator.getOpenInventory().getTopInventory().getHolder() != holder || target == null || !target.isOnline()) {
+                    this.cancel();
+                    inventorySyncTasks.remove(moderator.getUniqueId());
+                    return;
+                }
+
+                // Sync from Player -> GUI
+                Inventory guiInventory = moderator.getOpenInventory().getTopInventory();
+                PlayerInventory targetInv = target.getInventory();
+
+                if (holder instanceof ProfileMenu) {
+                    updateSlotIfNeeded(guiInventory, 10, targetInv.getHelmet());
+                    updateSlotIfNeeded(guiInventory, 19, targetInv.getChestplate());
+                    updateSlotIfNeeded(guiInventory, 28, targetInv.getLeggings());
+                    updateSlotIfNeeded(guiInventory, 37, targetInv.getBoots());
+                    updateSlotIfNeeded(guiInventory, 23, targetInv.getItemInMainHand());
+                    updateSlotIfNeeded(guiInventory, 24, targetInv.getItemInOffHand());
+                } else if (holder instanceof FullInventoryMenu) {
+                    for (int i = 0; i < 36; i++) {
+                        updateSlotIfNeeded(guiInventory, i, targetInv.getItem(i));
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 10L, 10L); // Sync every half second (10 ticks)
+
+        inventorySyncTasks.put(moderator.getUniqueId(), task);
+    }
+
+    private void stopInventorySyncTask(Player moderator) {
+        BukkitTask task = inventorySyncTasks.remove(moderator.getUniqueId());
+        if (task != null && !task.isCancelled()) {
+            task.cancel();
+        }
+    }
+
+    private void updateSlotIfNeeded(Inventory gui, int slot, ItemStack playerItem) {
+        ItemStack guiItem = gui.getItem(slot);
+        if (!Objects.equals(guiItem, playerItem)) {
+            gui.setItem(slot, playerItem);
+        }
+    }
+
+    private void synchronizeInventory(InventoryHolder holder, Inventory guiInventory) {
+        UUID targetUUID;
+        if (holder instanceof ProfileMenu profileMenu) {
+            targetUUID = profileMenu.getTargetUUID();
+        } else if (holder instanceof FullInventoryMenu inventoryMenu) {
+            targetUUID = inventoryMenu.getTargetUUID();
+        } else {
+            return;
+        }
+
+        Player targetPlayer = Bukkit.getPlayer(targetUUID);
+        if (targetPlayer == null || !targetPlayer.isOnline()) {
+            return;
+        }
+
+        PlayerInventory targetInv = targetPlayer.getInventory();
+
+        if (holder instanceof ProfileMenu) {
+            targetInv.setHelmet(guiInventory.getItem(10));
+            targetInv.setChestplate(guiInventory.getItem(19));
+            targetInv.setLeggings(guiInventory.getItem(28));
+            targetInv.setBoots(guiInventory.getItem(37));
+            targetInv.setItemInMainHand(guiInventory.getItem(23));
+            targetInv.setItemInOffHand(guiInventory.getItem(24));
+        } else if (holder instanceof FullInventoryMenu) {
+            for (int i = 0; i < 36; i++) {
+                targetInv.setItem(i, guiInventory.getItem(i));
+            }
+        }
+    }
+
+    // ... (El resto de los métodos desde onPlayerChat hasta el final permanecen igual)
 
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
@@ -195,6 +348,10 @@ public class MenuListener implements Listener {
             handledByMenuSpecific = handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData, clickedMenuItem);
         } else if (holder instanceof HistoryMenu historyMenu) {
             handledByMenuSpecific = handleHistoryMenuActions(player, historyMenu, action, actionData, clickedMenuItem);
+        } else if (holder instanceof ProfileMenu profileMenu) {
+            handledByMenuSpecific = handleProfileMenuActions(player, profileMenu, action, actionData);
+        } else if (holder instanceof FullInventoryMenu fullInventoryMenu) {
+            handledByMenuSpecific = handleFullInventoryMenuActions(player, fullInventoryMenu, action, actionData);
         }
 
         if (!handledByMenuSpecific) {
@@ -263,6 +420,10 @@ public class MenuListener implements Listener {
             config = plugin.getConfigManager().getTimeSelectorMenuConfig().getConfig(); path = "menu";
         } else if (holder instanceof HistoryMenu) {
             config = plugin.getConfigManager().getHistoryMenuConfig().getConfig(); path = "menu";
+        } else if (holder instanceof ProfileMenu) {
+            config = plugin.getConfigManager().getProfileMenuConfig().getConfig(); path = "menu";
+        } else if (holder instanceof FullInventoryMenu) {
+            config = plugin.getConfigManager().getFullInventoryMenuConfig().getConfig(); path = "menu";
         }
 
         if (config != null && path != null) {
@@ -559,8 +720,33 @@ public class MenuListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
     }
 
-    // The rest of the methods remain unchanged, as they handle menu logic, not placeholder processing for actions.
-    // ... (All other methods from the original file from handlePunishMenuActions downwards)
+    private boolean handleProfileMenuActions(Player player, ProfileMenu profileMenu, ClickAction action, String[] actionData) {
+        UUID targetUUID = profileMenu.getTargetUUID();
+        String firstArg = (actionData != null && actionData.length > 0) ? actionData[0] : null;
+        if (action == ClickAction.OPEN_MENU && firstArg != null) {
+            switch (firstArg.toLowerCase()) {
+                case "punish_menu":
+                    new PunishMenu(targetUUID, plugin).open(player);
+                    return true;
+                case "full_inventory_menu":
+                    new FullInventoryMenu(targetUUID, plugin).open(player);
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean handleFullInventoryMenuActions(Player player, FullInventoryMenu fullInventoryMenu, ClickAction action, String[] actionData) {
+        UUID targetUUID = fullInventoryMenu.getTargetUUID();
+        String firstArg = (actionData != null && actionData.length > 0) ? actionData[0] : null;
+        if (action == ClickAction.OPEN_MENU && firstArg != null) {
+            if ("profile_menu".equalsIgnoreCase(firstArg)) {
+                new ProfileMenu(targetUUID, plugin).open(player);
+                return true;
+            }
+        }
+        return false;
+    }
 
     private boolean handlePunishMenuActions(Player player, PunishMenu punishMenu, ClickAction action, String[] actionData, MenuItem clickedMenuItem) {
         UUID targetUUID = punishMenu.getTargetUUID();
@@ -1461,6 +1647,8 @@ public class MenuListener implements Listener {
         if (holder instanceof PunishDetailsMenu menu) return getPunishDetailsMenuItem(slot, menu);
         if (holder instanceof TimeSelectorMenu menu) return getTimeSelectorMenuItem(slot, menu);
         if (holder instanceof HistoryMenu menu) return getHistoryMenuItem(slot, menu);
+        if (holder instanceof ProfileMenu) return getProfileMenuItem(slot);
+        if (holder instanceof FullInventoryMenu) return getFullInventoryMenuItem(slot);
         return null;
     }
 
@@ -1500,11 +1688,33 @@ public class MenuListener implements Listener {
         return null;
     }
 
+    private MenuItem getProfileMenuItem(int slot) {
+        for (String key : plugin.getConfigManager().getProfileMenuItemKeys()) {
+            MenuItem item = plugin.getConfigManager().getProfileMenuItemConfig(key);
+            if (item != null && item.getSlots() != null && item.getSlots().contains(slot)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private MenuItem getFullInventoryMenuItem(int slot) {
+        for (String key : plugin.getConfigManager().getFullInventoryMenuItemKeys()) {
+            MenuItem item = plugin.getConfigManager().getFullInventoryMenuItemConfig(key);
+            if (item != null && item.getSlots() != null && item.getSlots().contains(slot)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
     private OfflinePlayer getTargetForAction(InventoryHolder holder) {
         if (holder instanceof PunishMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof PunishDetailsMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof TimeSelectorMenu menu) return Bukkit.getOfflinePlayer(menu.getPunishDetailsMenu().getTargetUUID());
         if (holder instanceof HistoryMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
+        if (holder instanceof ProfileMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
+        if (holder instanceof FullInventoryMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof TempHolder temp) return Bukkit.getOfflinePlayer(temp.getTargetUUID());
         return null;
     }

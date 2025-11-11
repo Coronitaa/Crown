@@ -144,6 +144,7 @@ messages:
   punishment_not_found: '{prefix}&cPunishment with ID ''{id}'' not found.'
   punishment_not_active: '{prefix}&cThe punishment with ID ''{id}'' is already inactive.'
   history_usage: '{prefix}&cUsage: /history <player>'
+  profile_usage: '{prefix}&cUsage: /profile <player>'
   check_info_header: '&6&lPunishment Information for ID: &e{id}'
   check_info_player: '&7Player: &b{player} &7({uuid})'
   check_info_type: '&7Type: &b{type} &7({method})'
