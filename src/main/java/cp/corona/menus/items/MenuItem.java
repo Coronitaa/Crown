@@ -63,6 +63,7 @@ public class MenuItem {
     // Refactored actions to support multiple actions per click type
     private List<ClickActionData> leftClickActions = Collections.emptyList();
     private List<ClickActionData> rightClickActions = Collections.emptyList();
+    private MenuItem confirmState;
 
 
     public MenuItem() {
@@ -104,6 +105,14 @@ public class MenuItem {
     // Player Head - Unified to handle both username and URL - MODIFIED
     public String getPlayerHead() {
         return playerHead;
+    }
+
+    public MenuItem getConfirmState() {
+        return confirmState;
+    }
+
+    public void setConfirmState(MenuItem confirmState) {
+        this.confirmState = confirmState;
     }
 
     /**

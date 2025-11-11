@@ -2,12 +2,6 @@
 # Configuration for the full inventory view menu.
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
-# --- Available Actions ---
-# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:profile_menu)
-# - PLAY_SOUND:<sound>:<vol>:<pitch>
-# - CLOSE_MENU:
-# - NO_ACTION:
-
 menu:
   title: '&8&lInventory: &b{target}'
   open_actions:
@@ -24,7 +18,27 @@ menu:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_MENU:profile_menu'
 
+    clear_inventory_button:
+      material: 'TNT'
+      slot: 48
+      name: '&c&lClear Inventory'
+      lore:
+        - '&7Click to remove all items'
+        - '&7from &b{target}''s&7 inventory.'
+        - ''
+        - '&8(Requires confirmation)'
+      left_click_actions:
+        - 'REQUEST_CLEAR_FULL_INVENTORY'
+      confirm_state:
+        material: 'LAVA_BUCKET'
+        name: '&4&lCONFIRM CLEAR INVENTORY'
+        lore:
+          - '&cClick again to permanently'
+          - '&cdelete all items.'
+          - ''
+          - '&eThis action cannot be undone.'
+
     background_fill:
       material: 'GRAY_STAINED_GLASS_PANE'
       name: ' '
-      slot: '36-48,50-53'
+      slot: '36-47,50-53'

@@ -1,16 +1,5 @@
 package cp.corona.menus.actions;
 
-/**
- * ////////////////////////////////////////////////
- * //             Crown             //
- * //         Developed with passion by         //
- * //                   Corona                 //
- * ////////////////////////////////////////////////
- *
- * Enumeration of possible actions that can be triggered when clicking a MenuItem or opening a menu.
- * Defines actions like opening menus, setting punishment types, requesting input, executing commands,
- * playing sounds, showing titles, sending messages and more.
- */
 public enum ClickAction {
     OPEN_MENU,
     SET_PUNISHMENT_TYPE,
@@ -44,6 +33,8 @@ public enum ClickAction {
     MESSAGE_MODS,
     TITLE_MODS,
     PLAY_SOUND_MODS,
+    REQUEST_CLEAR_FULL_INVENTORY,
+    REQUEST_CLEAR_ENDER_CHEST,
     NO_ACTION;
 
     public static ClickAction safeValueOf(String name) {

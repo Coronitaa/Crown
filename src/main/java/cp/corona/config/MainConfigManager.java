@@ -765,92 +765,65 @@ public class MainConfigManager {
     }
 
     private MenuItem loadMenuItemFromConfig(FileConfiguration config, String configPath) {
-        if (config == null || configPath == null) {
-            if (isDebugEnabled())
-                plugin.getLogger().warning("[MainConfigManager] loadMenuItemFromConfig - Cannot load item: Null config or configPath provided.");
+        if (config == null || configPath == null || !config.isConfigurationSection(configPath)) {
             return null;
         }
 
-        if (!config.isConfigurationSection(configPath)) {
-            if (isDebugEnabled() && !configPath.contains("history_entry")) {
-                plugin.getLogger().warning("[MainConfigManager] loadMenuItemFromConfig - Configuration section not found at path: " + configPath);
+        MenuItem menuItem = loadMenuItemData(config, configPath);
+
+        // MODIFIED START: Recursively load confirm_state
+        String confirmStatePath = configPath + ".confirm_state";
+        if (config.isConfigurationSection(confirmStatePath)) {
+            MenuItem confirmStateItem = loadMenuItemData(config, confirmStatePath);
+            if (confirmStateItem != null) {
+                // Inherit slots and actions if not defined in confirm_state
+                if (confirmStateItem.getSlots() == null || confirmStateItem.getSlots().isEmpty()) {
+                    confirmStateItem.setSlots(menuItem.getSlots());
+                }
+                if (confirmStateItem.getLeftClickActions().isEmpty()) {
+                    confirmStateItem.setLeftClickActions(menuItem.getLeftClickActions());
+                }
+                if (confirmStateItem.getRightClickActions().isEmpty()) {
+                    confirmStateItem.setRightClickActions(menuItem.getRightClickActions());
+                }
+                menuItem.setConfirmState(confirmStateItem);
             }
-            return null;
         }
+        // MODIFIED END
 
+        return menuItem;
+    }
+
+    // ADDED: Helper method to load item data from a path
+    private MenuItem loadMenuItemData(FileConfiguration config, String configPath) {
         MenuItem menuItem = new MenuItem();
-        if (isDebugEnabled())
-            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Loading item from path: " + configPath);
 
-        String materialStr = config.getString(configPath + ".material", "STONE");
-        menuItem.setMaterial(materialStr);
-        if (isDebugEnabled())
-            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Material set to: " + materialStr);
-
-        String name = config.getString(configPath + ".name");
-        menuItem.setName(name);
-        if (isDebugEnabled() && name != null)
-            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Name set to: " + name);
-
-        List<String> lore = config.getStringList(configPath + ".lore");
-        menuItem.setLore(lore);
-        if (isDebugEnabled() && lore != null && !lore.isEmpty())
-            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Lore lines loaded: " + lore.size());
-
-        String playerHeadConfig = config.getString(configPath + ".player_head");
-        menuItem.setPlayerHead(playerHeadConfig);
-        if (isDebugEnabled() && playerHeadConfig != null)
-            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - PlayerHead set to: " + playerHeadConfig);
-
-        if (config.contains(configPath + ".custom_model_data") && config.isInt(configPath + ".custom_model_data")) {
-            int cmd = config.getInt(configPath + ".custom_model_data");
-            menuItem.setCustomModelData(cmd);
-            if (isDebugEnabled())
-                plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - CustomModelData set to: " + cmd);
+        menuItem.setMaterial(config.getString(configPath + ".material", "STONE"));
+        menuItem.setName(config.getString(configPath + ".name"));
+        menuItem.setLore(config.getStringList(configPath + ".lore"));
+        menuItem.setPlayerHead(config.getString(configPath + ".player_head"));
+        if (config.contains(configPath + ".custom_model_data")) {
+            menuItem.setCustomModelData(config.getInt(configPath + ".custom_model_data"));
         }
-
-        if (config.contains(configPath + ".quantity") && config.isInt(configPath + ".quantity")) {
-            int qty = config.getInt(configPath + ".quantity", 1);
-            menuItem.setQuantity(Math.max(1, qty));
-            if (isDebugEnabled())
-                plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Quantity set to: " + menuItem.getQuantity());
-        } else {
-            menuItem.setQuantity(1);
-        }
-
-        List<Integer> slots = parseSlots(config.getString(configPath + ".slot"));
-        menuItem.setSlots(slots);
-        if (isDebugEnabled() && slots != null && !slots.isEmpty())
-            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Slots parsed and set: " + slots);
+        menuItem.setQuantity(config.getInt(configPath + ".quantity", 1));
+        menuItem.setSlots(parseSlots(config.getString(configPath + ".slot")));
 
         List<String> leftClickActionConfigs = config.getStringList(configPath + ".left_click_actions");
         if (!leftClickActionConfigs.isEmpty()) {
-            List<MenuItem.ClickActionData> leftClickActions = leftClickActionConfigs.stream()
+            menuItem.setLeftClickActions(leftClickActionConfigs.stream()
                     .map(MenuItem.ClickActionData::fromConfigString)
                     .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-            menuItem.setLeftClickActions(leftClickActions);
-            if (isDebugEnabled())
-                plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Left-click actions loaded: " + leftClickActions.size());
-        } else {
-            menuItem.setLeftClickActions(Collections.emptyList());
+                    .collect(Collectors.toList()));
         }
 
         List<String> rightClickActionConfigs = config.getStringList(configPath + ".right_click_actions");
         if (!rightClickActionConfigs.isEmpty()) {
-            List<MenuItem.ClickActionData> rightClickActions = rightClickActionConfigs.stream()
+            menuItem.setRightClickActions(rightClickActionConfigs.stream()
                     .map(MenuItem.ClickActionData::fromConfigString)
                     .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-            menuItem.setRightClickActions(rightClickActions);
-            if (isDebugEnabled())
-                plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - Right-click actions loaded: " + rightClickActions.size());
-        } else {
-            menuItem.setRightClickActions(Collections.emptyList());
+                    .collect(Collectors.toList()));
         }
 
-        if (isDebugEnabled())
-            plugin.getLogger().info("[MainConfigManager] loadMenuItemFromConfig - MenuItem loaded successfully from path: " + configPath);
         return menuItem;
     }
 

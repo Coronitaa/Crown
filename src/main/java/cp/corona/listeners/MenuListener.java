@@ -26,6 +26,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -58,10 +59,13 @@ public class MenuListener implements Listener {
     private final HashMap<UUID, BukkitTask> inputTimeouts = new HashMap<>();
     private final HashMap<UUID, PunishDetailsMenu> pendingDetailsMenus = new HashMap<>();
     private final HashMap<UUID, String> inputTypes = new HashMap<>();
-    private final HashMap<UUID, String> inputOrigin = new HashMap<>(); // ADDED
+    private final HashMap<UUID, String> inputOrigin = new HashMap<>();
     private final Map<UUID, BukkitTask> inventorySyncTasks = new HashMap<>();
 
-    // Constants for ProfileMenu interactive slots
+    private final Map<UUID, UUID> pendingFullInvClear = new HashMap<>();
+    private final Map<UUID, UUID> pendingEnderChestClear = new HashMap<>();
+    private final Map<UUID, BukkitTask> pendingClearTasks = new HashMap<>();
+
     private static final Set<Integer> PROFILE_ARMOR_SLOTS = Set.of(10, 19, 28, 37);
     private static final Set<Integer> PROFILE_HAND_SLOTS = Set.of(23, 24);
 
@@ -98,7 +102,7 @@ public class MenuListener implements Listener {
         if (!(holder instanceof PunishMenu) && !(holder instanceof PunishDetailsMenu) &&
                 !(holder instanceof TimeSelectorMenu) && !(holder instanceof HistoryMenu) &&
                 !(holder instanceof ProfileMenu) && !(holder instanceof FullInventoryMenu) &&
-                !(holder instanceof EnderChestMenu)) { // MODIFIED
+                !(holder instanceof EnderChestMenu)) {
             return;
         }
 
@@ -106,7 +110,7 @@ public class MenuListener implements Listener {
             return;
         }
 
-        if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) { // MODIFIED
+        if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
             handleInteractiveMenuClick(event, player, holder);
         } else {
             handleStaticMenuClick(event, player, holder);
@@ -114,29 +118,63 @@ public class MenuListener implements Listener {
     }
 
     private void handleInteractiveMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
+        // First, check if the clicked item is a static button, even in an interactive menu
+        MenuItem clickedMenuItem = getMenuItemClicked(event.getRawSlot(), holder);
+        boolean isStaticButton = clickedMenuItem != null && clickedMenuItem.getLeftClickActions() != null && !clickedMenuItem.getLeftClickActions().isEmpty();
+
+        if (isStaticButton) {
+            handleStaticMenuClick(event, player, holder);
+            return;
+        }
+
+        if (!player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        event.setCancelled(true);
+
         int clickedSlot = event.getRawSlot();
+        boolean isTopInventory = event.getClickedInventory() == event.getView().getTopInventory();
         boolean isEditableSlot = false;
 
         if (holder instanceof ProfileMenu) {
             isEditableSlot = PROFILE_ARMOR_SLOTS.contains(clickedSlot) || PROFILE_HAND_SLOTS.contains(clickedSlot);
         } else if (holder instanceof FullInventoryMenu) {
-            isEditableSlot = clickedSlot >= 0 && clickedSlot < 36;
-        } else if (holder instanceof EnderChestMenu) { // ADDED
-            isEditableSlot = clickedSlot >= 0 && clickedSlot < 27;
+            isEditableSlot = isTopInventory && clickedSlot >= 0 && clickedSlot < 36;
+        } else if (holder instanceof EnderChestMenu) {
+            isEditableSlot = isTopInventory && clickedSlot >= 0 && clickedSlot < 27;
         }
 
-        if (event.getClickedInventory() != null && (event.getClickedInventory().getType() == InventoryType.PLAYER || isEditableSlot)) {
-            if (player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
-                // Schedule a task to sync from GUI to player 1 tick after the click
-                Bukkit.getScheduler().runTaskLater(plugin, () -> synchronizeInventory(holder, event.getInventory()), 1L);
-                return;
+        if (isEditableSlot) {
+            ClickType click = event.getClick();
+            ItemStack cursorItem = event.getCursor();
+            ItemStack currentItem = event.getCurrentItem();
+
+            if (click.isLeftClick() || click.isRightClick()) {
+                event.getView().setCursor(currentItem);
+                event.getClickedInventory().setItem(clickedSlot, cursorItem);
+            } else if (click.isShiftClick()) {
+                handleShiftClick(player.getInventory(), event.getView().getTopInventory(), currentItem, isTopInventory);
+                event.getClickedInventory().setItem(clickedSlot, null);
             }
+            // Schedule sync to ensure it runs after the event is fully processed
+            Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getView().getTopInventory()));
+        } else if (event.getClickedInventory() == player.getInventory()) {
+            // Allow normal interaction in player's own inventory below the GUI
+            event.setCancelled(false);
         }
-
-        // If it's not an editable slot or player lacks permissions, treat as a static button click
-        handleStaticMenuClick(event, player, holder);
     }
 
+    private void handleShiftClick(PlayerInventory playerInv, Inventory guiInv, ItemStack itemToMove, boolean fromTop) {
+        if (itemToMove == null || itemToMove.getType() == Material.AIR) return;
+
+        if (fromTop) {
+            playerInv.addItem(itemToMove.clone());
+        } else {
+            // Block shift-clicking from player inv to gui for simplicity
+        }
+    }
 
     private void handleStaticMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
         event.setCancelled(true);
@@ -174,7 +212,7 @@ public class MenuListener implements Listener {
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         InventoryHolder holder = event.getInventory().getHolder();
-        if (!(holder instanceof ProfileMenu) && !(holder instanceof FullInventoryMenu) && !(holder instanceof EnderChestMenu)) { // MODIFIED
+        if (!(holder instanceof ProfileMenu) && !(holder instanceof FullInventoryMenu) && !(holder instanceof EnderChestMenu)) {
             return;
         }
 
@@ -182,8 +220,7 @@ public class MenuListener implements Listener {
             if (!player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
                 event.setCancelled(true);
             } else {
-                // Sync after the drag is complete
-                Bukkit.getScheduler().runTaskLater(plugin, () -> synchronizeInventory(holder, event.getInventory()), 1L);
+                Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getInventory()));
             }
         }
     }
@@ -195,7 +232,7 @@ public class MenuListener implements Listener {
 
         if (holder instanceof PunishMenu || holder instanceof PunishDetailsMenu || holder instanceof TimeSelectorMenu || holder instanceof HistoryMenu) {
             executeMenuOpenActions(player, holder);
-        } else if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) { // MODIFIED
+        } else if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
             executeMenuOpenActions(player, holder);
             startInventorySyncTask(player, holder);
         }
@@ -206,7 +243,7 @@ public class MenuListener implements Listener {
         InventoryHolder holder = event.getInventory().getHolder();
         if (!(event.getPlayer() instanceof Player player)) return;
 
-        if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) { // MODIFIED
+        if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
             stopInventorySyncTask(player);
             if (player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
                 synchronizeInventory(holder, event.getInventory());
@@ -244,7 +281,7 @@ public class MenuListener implements Listener {
                     for (int i = 0; i < 36; i++) {
                         updateSlotIfNeeded(guiInventory, i, targetInv.getItem(i));
                     }
-                } else if (holder instanceof EnderChestMenu) { // ADDED
+                } else if (holder instanceof EnderChestMenu) {
                     Inventory targetEnderChest = target.getEnderChest();
                     for (int i = 0; i < 27; i++) {
                         updateSlotIfNeeded(guiInventory, i, targetEnderChest.getItem(i));
@@ -276,7 +313,7 @@ public class MenuListener implements Listener {
             targetUUID = profileMenu.getTargetUUID();
         } else if (holder instanceof FullInventoryMenu inventoryMenu) {
             targetUUID = inventoryMenu.getTargetUUID();
-        } else if (holder instanceof EnderChestMenu enderChestMenu) { // ADDED
+        } else if (holder instanceof EnderChestMenu enderChestMenu) {
             targetUUID = enderChestMenu.getTargetUUID();
         } else {
             return;
@@ -300,7 +337,7 @@ public class MenuListener implements Listener {
             for (int i = 0; i < 36; i++) {
                 targetInv.setItem(i, guiInventory.getItem(i));
             }
-        } else if (holder instanceof EnderChestMenu) { // ADDED
+        } else if (holder instanceof EnderChestMenu) {
             Inventory targetEnderChest = targetPlayer.getEnderChest();
             for (int i = 0; i < 27; i++) {
                 targetEnderChest.setItem(i, guiInventory.getItem(i));
@@ -347,6 +384,15 @@ public class MenuListener implements Listener {
     private void handleMenuItemClick(Player player, InventoryHolder holder, ClickAction action, String[] actionData, InventoryClickEvent event, MenuItem clickedMenuItem) {
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - START - Action: " + action + ", ActionData: " + Arrays.toString(actionData) + ", Item: " + (clickedMenuItem != null ? clickedMenuItem.getName() : "null") + ", Holder Type: " + holder.getClass().getSimpleName());
 
+        switch (action) {
+            case REQUEST_CLEAR_FULL_INVENTORY:
+                handleClearConfirmation(player, getTargetForAction(holder), "full", clickedMenuItem, event);
+                return;
+            case REQUEST_CLEAR_ENDER_CHEST:
+                handleClearConfirmation(player, getTargetForAction(holder), "ender", clickedMenuItem, event);
+                return;
+        }
+
         boolean handledByMenuSpecific = false;
         if (holder instanceof PunishMenu punishMenu) {
             handledByMenuSpecific = handlePunishMenuActions(player, punishMenu, action, actionData, clickedMenuItem);
@@ -360,7 +406,7 @@ public class MenuListener implements Listener {
             handledByMenuSpecific = handleProfileMenuActions(player, profileMenu, action, actionData);
         } else if (holder instanceof FullInventoryMenu fullInventoryMenu) {
             handledByMenuSpecific = handleFullInventoryMenuActions(player, fullInventoryMenu, action, actionData);
-        } else if (holder instanceof EnderChestMenu enderChestMenu) { // ADDED
+        } else if (holder instanceof EnderChestMenu enderChestMenu) {
             handledByMenuSpecific = handleEnderChestMenuActions(player, enderChestMenu, action, actionData);
         }
 
@@ -391,6 +437,60 @@ public class MenuListener implements Listener {
         }
 
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] handleMenuItemClick - END - Action: " + action + ", ActionData: " + Arrays.toString(actionData));
+    }
+
+    private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
+        Map<UUID, UUID> confirmationMap = type.equals("full") ? pendingFullInvClear : pendingEnderChestClear;
+        UUID moderatorId = moderator.getUniqueId();
+        UUID targetId = target.getUniqueId();
+
+        if (confirmationMap.containsKey(moderatorId) && confirmationMap.get(moderatorId).equals(targetId)) {
+            // Confirmation step
+            Player targetPlayer = Bukkit.getPlayer(targetId);
+            if (targetPlayer == null || !targetPlayer.isOnline()) {
+                sendConfigMessage(moderator, "messages.player_not_online", "{input}", target.getName());
+                return;
+            }
+
+            if (type.equals("full")) {
+                targetPlayer.getInventory().clear();
+            } else {
+                targetPlayer.getEnderChest().clear();
+            }
+
+            // Cleanup
+            confirmationMap.remove(moderatorId);
+            BukkitTask task = pendingClearTasks.remove(moderatorId);
+            if (task != null) task.cancel();
+
+            sendConfigMessage(moderator, "{prefix}&aSuccessfully cleared &b" + target.getName() + "'s " + (type.equals("full") ? "inventory" : "ender chest") + ".");
+            playSound(moderator, "punish_confirm");
+            moderator.closeInventory();
+
+        } else {
+            // Initial click
+            confirmationMap.put(moderatorId, targetId);
+            MenuItem confirmState = clickedItem.getConfirmState();
+            if (confirmState != null) {
+                event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(target, plugin.getConfigManager()));
+                playSound(moderator, "punish_error"); // Warning sound
+            }
+
+            // Auto-cancel task
+            BukkitTask task = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (confirmationMap.remove(moderatorId) != null) {
+                        // Revert button if menu is still open
+                        if (moderator.getOpenInventory().getTopInventory().getHolder() == event.getInventory().getHolder()) {
+                            event.getInventory().setItem(event.getSlot(), clickedItem.toItemStack(target, plugin.getConfigManager()));
+                        }
+                        pendingClearTasks.remove(moderatorId);
+                    }
+                }
+            }.runTaskLater(plugin, 100L); // 5 seconds
+            pendingClearTasks.put(moderatorId, task);
+        }
     }
 
     public void executeMenuItemAction(Player player, ClickAction action, String[] actionData) {
@@ -434,7 +534,7 @@ public class MenuListener implements Listener {
             config = plugin.getConfigManager().getProfileMenuConfig().getConfig(); path = "menu";
         } else if (holder instanceof FullInventoryMenu) {
             config = plugin.getConfigManager().getFullInventoryMenuConfig().getConfig(); path = "menu";
-        } else if (holder instanceof EnderChestMenu) { // ADDED
+        } else if (holder instanceof EnderChestMenu) {
             config = plugin.getConfigManager().getEnderChestMenuConfig().getConfig(); path = "menu";
         }
 
@@ -679,7 +779,7 @@ public class MenuListener implements Listener {
 
         final String finalMessage = MessageUtils.getColorMessage(processAllPlaceholders(baseMessage, player, holder));
         mods.forEach(mod -> mod.sendMessage(finalMessage));
-        Bukkit.getConsoleSender().sendMessage(finalMessage); // Also send to console
+        Bukkit.getConsoleSender().sendMessage(finalMessage);
 
         if (plugin.getConfigManager().isDebugEnabled()) {
             plugin.getLogger().info("[DEBUG] MESSAGE_MODS sent to " + mods.size() + " mods and console: " + finalMessage);
@@ -744,11 +844,11 @@ public class MenuListener implements Listener {
                 case "full_inventory_menu":
                     new FullInventoryMenu(targetUUID, plugin).open(player);
                     return true;
-                case "enderchest_menu": // ADDED
+                case "enderchest_menu":
                     new EnderChestMenu(targetUUID, plugin).open(player);
                     return true;
             }
-        } else if (action == ClickAction.REQUEST_INPUT && firstArg != null) { // ADDED
+        } else if (action == ClickAction.REQUEST_INPUT && firstArg != null) {
             if (firstArg.equalsIgnoreCase("change_target")) {
                 player.closeInventory();
                 requestNewTargetName(player, "profile_menu");
@@ -770,7 +870,6 @@ public class MenuListener implements Listener {
         return false;
     }
 
-    // ADDED START
     private boolean handleEnderChestMenuActions(Player player, EnderChestMenu enderChestMenu, ClickAction action, String[] actionData) {
         UUID targetUUID = enderChestMenu.getTargetUUID();
         String firstArg = (actionData != null && actionData.length > 0) ? actionData[0] : null;
@@ -782,7 +881,6 @@ public class MenuListener implements Listener {
         }
         return false;
     }
-    // ADDED END
 
     private boolean handlePunishMenuActions(Player player, PunishMenu punishMenu, ClickAction action, String[] actionData, MenuItem clickedMenuItem) {
         UUID targetUUID = punishMenu.getTargetUUID();
@@ -809,7 +907,7 @@ public class MenuListener implements Listener {
                     if (firstArg.equalsIgnoreCase("change_target")) {
                         if (!player.hasPermission(USE_PERMISSION)) { sendNoPermissionMenuMessage(player, "change target action"); return true; }
                         player.closeInventory();
-                        requestNewTargetName(player, "punish_menu"); // MODIFIED
+                        requestNewTargetName(player, "punish_menu");
                         return true;
                     }
                 }
@@ -887,7 +985,7 @@ public class MenuListener implements Listener {
         }
     }
 
-    private void requestNewTargetName(Player player, String originMenu) { // MODIFIED
+    private void requestNewTargetName(Player player, String originMenu) {
         sendConfigMessage(player, "messages.prompt_new_target");
         storeInputData(player, setupChatInputTimeout(player, null, "change_target"), null, "change_target", originMenu);
     }
@@ -923,7 +1021,7 @@ public class MenuListener implements Listener {
         return timeoutTask;
     }
 
-    private void storeInputData(Player player, BukkitTask task, PunishDetailsMenu menu, String inputType, String origin) { // MODIFIED
+    private void storeInputData(Player player, BukkitTask task, PunishDetailsMenu menu, String inputType, String origin) {
         if (task != null) {
             inputTimeouts.put(player.getUniqueId(), task);
         } else {
@@ -936,7 +1034,7 @@ public class MenuListener implements Listener {
             pendingDetailsMenus.remove(player.getUniqueId());
         }
         inputTypes.put(player.getUniqueId(), inputType);
-        if (origin != null) { // ADDED
+        if (origin != null) {
             inputOrigin.put(player.getUniqueId(), origin);
         }
 
@@ -967,7 +1065,7 @@ public class MenuListener implements Listener {
     private void handlePlayerInput(Player player, String input) {
         PunishDetailsMenu detailsMenu = pendingDetailsMenus.get(player.getUniqueId());
         String inputType = inputTypes.get(player.getUniqueId());
-        String origin = inputOrigin.get(player.getUniqueId()); // ADDED
+        String origin = inputOrigin.get(player.getUniqueId());
 
         if (inputType == null) {
             if (plugin.getConfigManager().isDebugEnabled()) {
@@ -983,7 +1081,7 @@ public class MenuListener implements Listener {
             return;
         }
 
-        processValidInput(player, input, detailsMenu, inputType, origin); // MODIFIED
+        processValidInput(player, input, detailsMenu, inputType, origin);
     }
 
     private void handleCancelInput(Player player, PunishDetailsMenu detailsMenu) {
@@ -994,10 +1092,10 @@ public class MenuListener implements Listener {
         clearPlayerInputData(player);
     }
 
-    private void processValidInput(Player player, String input, PunishDetailsMenu detailsMenu, String inputType, String origin) { // MODIFIED
+    private void processValidInput(Player player, String input, PunishDetailsMenu detailsMenu, String inputType, String origin) {
         switch (inputType.toLowerCase()) {
             case "change_target":
-                handleNewTargetInput(player, input, origin); // MODIFIED
+                handleNewTargetInput(player, input, origin);
                 break;
             case "reason_input":
                 if (detailsMenu != null) {
@@ -1020,7 +1118,7 @@ public class MenuListener implements Listener {
         clearPlayerInputData(player);
     }
 
-    private void handleNewTargetInput(Player player, String input, String origin) { // MODIFIED
+    private void handleNewTargetInput(Player player, String input, String origin) {
         OfflinePlayer newTarget = Bukkit.getOfflinePlayer(input);
         if (!newTarget.hasPlayedBefore() && !newTarget.isOnline()) {
             sendConfigMessage(player, "messages.never_played", "{input}", input);
@@ -1028,7 +1126,7 @@ public class MenuListener implements Listener {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if ("profile_menu".equals(origin)) {
                     new ProfileMenu(newTarget.getUniqueId(), plugin).open(player);
-                } else { // Default to punish_menu
+                } else {
                     new PunishMenu(newTarget.getUniqueId(), plugin).open(player);
                 }
             });
@@ -1062,7 +1160,7 @@ public class MenuListener implements Listener {
         cancelExistingTimeout(player);
         pendingDetailsMenus.remove(player.getUniqueId());
         inputTypes.remove(player.getUniqueId());
-        inputOrigin.remove(player.getUniqueId()); // ADDED
+        inputOrigin.remove(player.getUniqueId());
     }
 
     private void handleConfirmButtonClick(Player player, PunishDetailsMenu punishDetailsMenu) {
@@ -1696,7 +1794,7 @@ public class MenuListener implements Listener {
         if (holder instanceof HistoryMenu menu) return getHistoryMenuItem(slot, menu);
         if (holder instanceof ProfileMenu) return getProfileMenuItem(slot);
         if (holder instanceof FullInventoryMenu) return getFullInventoryMenuItem(slot);
-        if (holder instanceof EnderChestMenu) return getEnderChestMenuItem(slot); // ADDED
+        if (holder instanceof EnderChestMenu) return getEnderChestMenuItem(slot);
         return null;
     }
 
@@ -1756,7 +1854,6 @@ public class MenuListener implements Listener {
         return null;
     }
 
-    // ADDED START
     private MenuItem getEnderChestMenuItem(int slot) {
         for (String key : plugin.getConfigManager().getEnderChestMenuItemKeys()) {
             MenuItem item = plugin.getConfigManager().getEnderChestMenuItemConfig(key);
@@ -1766,7 +1863,6 @@ public class MenuListener implements Listener {
         }
         return null;
     }
-    // ADDED END
 
     private OfflinePlayer getTargetForAction(InventoryHolder holder) {
         if (holder instanceof PunishMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
@@ -1775,7 +1871,7 @@ public class MenuListener implements Listener {
         if (holder instanceof HistoryMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof ProfileMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof FullInventoryMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
-        if (holder instanceof EnderChestMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID()); // ADDED
+        if (holder instanceof EnderChestMenu menu) return Bukkit.getOfflinePlayer(menu.getTargetUUID());
         if (holder instanceof TempHolder temp) return Bukkit.getOfflinePlayer(temp.getTargetUUID());
         return null;
     }
@@ -2126,7 +2222,7 @@ public class MenuListener implements Listener {
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             if (onlinePlayer.getUniqueId().equals(originalTargetUUID)) {
-                continue; // Skip the original target, they are already handled
+                continue;
             }
 
             InetSocketAddress playerAddress = onlinePlayer.getAddress();
