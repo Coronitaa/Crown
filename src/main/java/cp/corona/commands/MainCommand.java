@@ -1,4 +1,3 @@
-// MainCommand.java
 package cp.corona.commands;
 
 import cp.corona.config.WarnLevel;
@@ -263,13 +262,20 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        Player playerSender = (Player) sender;
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
-        if (!target.isOnline()) { // Profile and inventory can only be viewed for online players
+
+        if (playerSender.getUniqueId().equals(target.getUniqueId())) {
+            sendConfigMessage(sender, "messages.profile_self_check_error");
+            return true;
+        }
+
+        if (!target.isOnline()) {
             sendConfigMessage(sender, "messages.player_not_online", "{input}", args[0]);
             return true;
         }
 
-        new ProfileMenu(target.getUniqueId(), plugin).open((Player) sender);
+        new ProfileMenu(target.getUniqueId(), plugin).open(playerSender);
         return true;
     }
 
