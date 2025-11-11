@@ -34,6 +34,7 @@ public class MainConfigManager {
     private final CustomConfig historyMenuConfig;
     private final CustomConfig profileMenuConfig;
     private final CustomConfig fullInventoryMenuConfig;
+    private final CustomConfig enderChestMenuConfig; // ADDED
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
 
     private final Crown plugin;
@@ -58,6 +59,7 @@ public class MainConfigManager {
         historyMenuConfig = new CustomConfig("history_menu.yml", "menus", plugin, false);
         profileMenuConfig = new CustomConfig("profile_menu.yml", "menus", plugin, false);
         fullInventoryMenuConfig = new CustomConfig("full_inventory_menu.yml", "menus", plugin, false);
+        enderChestMenuConfig = new CustomConfig("enderchest_menu.yml", "menus", plugin, false); // ADDED
 
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
@@ -72,6 +74,7 @@ public class MainConfigManager {
         historyMenuConfig.registerConfig();
         profileMenuConfig.registerConfig();
         fullInventoryMenuConfig.registerConfig();
+        enderChestMenuConfig.registerConfig(); // ADDED
         punishmentConfigs.values().forEach(CustomConfig::registerConfig);
 
         loadConfig();
@@ -90,6 +93,7 @@ public class MainConfigManager {
         historyMenuConfig.reloadConfig();
         profileMenuConfig.reloadConfig();
         fullInventoryMenuConfig.reloadConfig();
+        enderChestMenuConfig.reloadConfig(); // ADDED
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
@@ -336,6 +340,12 @@ public class MainConfigManager {
         return loadMenuItemFromConfig(fullInventoryMenuConfig.getConfig(), "menu.items." + itemKey);
     }
 
+    // ADDED START
+    public MenuItem getEnderChestMenuItemConfig(String itemKey) {
+        return loadMenuItemFromConfig(enderChestMenuConfig.getConfig(), "menu.items." + itemKey);
+    }
+    // ADDED END
+
     public Set<String> getProfileMenuItemKeys() {
         ConfigurationSection section = profileMenuConfig.getConfig().getConfigurationSection("menu.items");
         return section != null ? section.getKeys(false) : Collections.emptySet();
@@ -345,6 +355,13 @@ public class MainConfigManager {
         ConfigurationSection section = fullInventoryMenuConfig.getConfig().getConfigurationSection("menu.items");
         return section != null ? section.getKeys(false) : Collections.emptySet();
     }
+
+    // ADDED START
+    public Set<String> getEnderChestMenuItemKeys() {
+        ConfigurationSection section = enderChestMenuConfig.getConfig().getConfigurationSection("menu.items");
+        return section != null ? section.getKeys(false) : Collections.emptySet();
+    }
+    // ADDED END
 
     public String getTimeSelectorMenuTitle(OfflinePlayer target) {
         String title = timeSelectorMenuConfig.getConfig().getString("menu.time_selector_title", "&9&lSelect Punishment Time");
@@ -367,6 +384,13 @@ public class MainConfigManager {
         String title = fullInventoryMenuConfig.getConfig().getString("menu.title", "&8Inventory: &b{target}");
         return processPlaceholders(title, target);
     }
+
+    // ADDED START
+    public String getEnderChestMenuTitle(OfflinePlayer target) {
+        String title = enderChestMenuConfig.getConfig().getString("menu.title", "&8Ender Chest: &b{target}");
+        return processPlaceholders(title, target);
+    }
+    // ADDED END
 
     public CustomConfig getPunishMenuConfig() {
         return punishMenuConfig;
@@ -395,6 +419,12 @@ public class MainConfigManager {
     public CustomConfig getFullInventoryMenuConfig() {
         return fullInventoryMenuConfig;
     }
+
+    // ADDED START
+    public CustomConfig getEnderChestMenuConfig() {
+        return enderChestMenuConfig;
+    }
+    // ADDED END
 
     public List<String> getDetailsMenuItemLore(String punishmentType, String itemKey, OfflinePlayer target, String... replacements) {
         if (isDebugEnabled()) {

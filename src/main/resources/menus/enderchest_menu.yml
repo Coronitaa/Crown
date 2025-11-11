@@ -1,0 +1,30 @@
+# PATH: src/main/resources/menus/enderchest_menu.yml
+# Configuration for the ender chest view menu.
+## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+
+# --- Available Actions ---
+# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:profile_menu)
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - CLOSE_MENU:
+# - NO_ACTION:
+
+menu:
+  title: '&8&lEnder Chest: &b{target}'
+  open_actions:
+    - 'PLAY_SOUND:BLOCK_ENDER_CHEST_OPEN:1.0:1.0'
+  items:
+    back_button:
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
+      slot: 40
+      name: '&c&lBack to Profile'
+      lore:
+        - '&7Return to the profile menu.'
+      left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'OPEN_MENU:profile_menu'
+
+    background_fill:
+      material: 'BLACK_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '27-39,41-44'

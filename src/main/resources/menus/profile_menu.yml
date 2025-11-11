@@ -9,6 +9,7 @@
 # - PLAYER_COMMAND_OP:<command>
 # - PLAY_SOUND:<sound>:<vol>:<pitch>
 # - CLOSE_MENU:
+# - REQUEST_INPUT:<input_type>
 # - NO_ACTION:
 
 # --- Available Placeholders ---
@@ -35,7 +36,12 @@ menu:
         - ''
         - '&7Kills: &a{player_kills}'
         - '&7Deaths: &c{deaths}'
+        - ''
+        - '&eLeft-Click to change target.'
       left_click_actions:
+        - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0'
+        - 'REQUEST_INPUT:change_target'
+      right_click_actions:
         - 'NO_ACTION'
 
 
@@ -50,6 +56,17 @@ menu:
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_MENU:punish_menu'
+
+    open_enderchest_menu:
+      material: 'ENDER_CHEST'
+      slot: 49
+      name: '&5&lView Ender Chest'
+      lore:
+        - '&7View and edit the'
+        - '&7ender chest of &b{target}&7.'
+      left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'OPEN_MENU:enderchest_menu'
 
     open_inventory_menu:
       material: 'CHEST'
@@ -66,4 +83,4 @@ menu:
       material: 'BLACK_STAINED_GLASS_PANE'
       name: ' '
       # Fills the remaining slots
-      slot: '0-3,5-9,11-18,20-22,25-27,29-36,38-47,49,51-53'
+      slot: '0-3,5-9,11-18,20-22,25-27,29-36,38-47,51-53'
