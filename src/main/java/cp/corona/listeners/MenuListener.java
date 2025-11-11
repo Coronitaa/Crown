@@ -100,22 +100,51 @@ public class MenuListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        InventoryHolder holder = event.getInventory().getHolder();
-        if (!(holder instanceof PunishMenu) && !(holder instanceof PunishDetailsMenu) &&
-                !(holder instanceof TimeSelectorMenu) && !(holder instanceof HistoryMenu) &&
-                !(holder instanceof ProfileMenu) && !(holder instanceof FullInventoryMenu) &&
-                !(holder instanceof EnderChestMenu)) {
-            return;
-        }
-
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
 
-        if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
-            handleInteractiveMenuClick(event, player, holder);
+        // Determine the context by checking the top inventory's holder.
+        InventoryHolder topHolder = event.getView().getTopInventory().getHolder();
+
+        boolean isPluginMenu = topHolder instanceof PunishMenu || topHolder instanceof PunishDetailsMenu ||
+                topHolder instanceof TimeSelectorMenu || topHolder instanceof HistoryMenu ||
+                topHolder instanceof ProfileMenu || topHolder instanceof FullInventoryMenu ||
+                topHolder instanceof EnderChestMenu;
+
+        // If the open inventory is not from our plugin, ignore the event completely.
+        if (!isPluginMenu) {
+            return;
+        }
+
+        Inventory clickedInventory = event.getClickedInventory();
+        if (clickedInventory == null) {
+            return; // Clicked outside of any inventory window.
+        }
+
+        // Check if the click was in the top inventory (our GUI) or the bottom (player's inventory).
+        boolean isTopInventoryClick = clickedInventory.equals(event.getView().getTopInventory());
+
+        if (isTopInventoryClick) {
+            // The click is inside our GUI.
+            if (topHolder instanceof ProfileMenu || topHolder instanceof FullInventoryMenu || topHolder instanceof EnderChestMenu) {
+                handleInteractiveMenuClick(event, player, topHolder);
+            } else {
+                handleStaticMenuClick(event, player, topHolder);
+            }
         } else {
-            handleStaticMenuClick(event, player, holder);
+            // The click is in the player's own inventory while our GUI is open.
+            if (topHolder instanceof ProfileMenu || topHolder instanceof FullInventoryMenu || topHolder instanceof EnderChestMenu) {
+                // For interactive menus, allow most clicks in the player's own inventory.
+                // However, we must cancel shift-clicks to prevent items from moving into our protected GUI slots.
+                if (player.hasPermission(EDIT_INVENTORY_PERMISSION) && event.getClick().isShiftClick()) {
+                    event.setCancelled(true);
+                }
+                // Normal clicks, drags, etc., are not cancelled, allowing self-inventory management.
+            } else {
+                // For all other (static) plugin menus, we prevent any interaction with the player's inventory.
+                event.setCancelled(true);
+            }
         }
     }
 
@@ -290,6 +319,7 @@ public class MenuListener implements Listener {
     private void handleStaticMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
         event.setCancelled(true);
 
+        // This check was redundant because of the new logic in onInventoryClick, but it's kept as a safeguard.
         if (event.getClickedInventory() != null && event.getClickedInventory().getType() == InventoryType.PLAYER) {
             return;
         }
