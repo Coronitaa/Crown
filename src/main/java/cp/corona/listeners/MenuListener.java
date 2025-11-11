@@ -387,6 +387,17 @@ public class MenuListener implements Listener {
         if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
             stopInventorySyncTask(player);
 
+            UUID moderatorId = player.getUniqueId();
+            if (holder instanceof FullInventoryMenu) {
+                pendingFullInvClear.remove(moderatorId);
+            } else if (holder instanceof EnderChestMenu) {
+                pendingEnderChestClear.remove(moderatorId);
+            }
+            BukkitTask clearTask = pendingClearTasks.remove(moderatorId);
+            if (clearTask != null) {
+                clearTask.cancel();
+            }
+
             if (bypassCloseSync.remove(player.getUniqueId())) {
                 return;
             }
