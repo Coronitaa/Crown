@@ -1,3 +1,5 @@
+// --- FILE: ReportDetailsMenu.java ---
+// --- PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\ReportDetailsMenu.java ---
 package cp.corona.menus;
 
 import cp.corona.crown.Crown;
@@ -98,18 +100,33 @@ public class ReportDetailsMenu implements InventoryHolder {
         OfflinePlayer requester = Bukkit.getOfflinePlayer(reportEntry.getRequesterUUID());
         OfflinePlayer moderator = (reportEntry.getModeratorUUID() != null) ? Bukkit.getOfflinePlayer(reportEntry.getModeratorUUID()) : null;
 
+        ReportStatus status = reportEntry.getStatus();
         boolean isAssignedToViewer = viewer.getUniqueId().equals(reportEntry.getModeratorUUID());
+        boolean isClosed = (status == ReportStatus.RESOLVED || status == ReportStatus.REJECTED);
 
         for (String key : plugin.getConfigManager().getReportDetailsMenuItemKeys()) {
             MenuItem itemConfig = plugin.getConfigManager().getReportDetailsMenuItemConfig(key);
             if (itemConfig == null) continue;
 
-            // Conditional item visibility
-            if (key.equals("take_report") && isAssignedToViewer) continue;
-            if ((key.equals("resolve_report") || key.equals("reject_report")) && !isAssignedToViewer) continue;
-            if (key.equals("mark_as_pending_button") && (reportEntry.getStatus() != ReportStatus.RESOLVED && reportEntry.getStatus() != ReportStatus.REJECTED)) continue;
-            if ((key.equals("punish_target") || key.equals("target_info") || key.equals("target_summary")) && target == null) continue;
-            if (key.equals("moderator_info") && moderator == null) continue;
+            // Conditional item visibility logic
+            if (isClosed && (key.equals("take_report") || key.equals("resolve_report") || key.equals("reject_report") || key.equals("assign_moderator"))) {
+                continue;
+            }
+            if (key.equals("take_report") && isAssignedToViewer) {
+                continue;
+            }
+            if ((key.equals("resolve_report") || key.equals("reject_report")) && !isAssignedToViewer) {
+                continue;
+            }
+            if (key.equals("mark_as_pending_button") && status == ReportStatus.PENDING) {
+                continue;
+            }
+            if ((key.equals("punish_target") || key.equals("target_info") || key.equals("target_summary")) && target == null) {
+                continue;
+            }
+            if (key.equals("moderator_info") && moderator == null) {
+                continue;
+            }
 
             ItemStack item = itemConfig.toItemStack(target, plugin.getConfigManager());
             if (item == null) continue;
