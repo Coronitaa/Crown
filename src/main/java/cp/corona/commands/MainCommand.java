@@ -1205,6 +1205,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             if (args.length == 1) {
                 StringUtil.copyPartialMatches(args[0], playerNames, completions);
             }
+        } else if (commandLabel.equals(REPORT_COMMAND)) {
+            if (args.length == 1) {
+                StringUtil.copyPartialMatches(args[0], playerNames, completions);
+            }
+        } else if (commandLabel.equals(REPORTS_COMMAND)) {
+            // No arguments, so no completions needed.
+            return Collections.emptyList();
         }
 
         Collections.sort(completions);

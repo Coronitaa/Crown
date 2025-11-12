@@ -210,7 +210,7 @@
       report_prompt_filter_target: '&aEnter a target name to filter reports by (or type ''cancel''):' # ADDED
       report_prompt_filter_requester: '&aEnter a requester name to filter reports by (or type ''cancel''):' # ADDED
       report_prompt_assign_moderator: '&aEnter the name of the moderator to assign this report to (or type ''cancel''):' # ADDED
-      report_submitted: '{prefix}&aYour report has been submitted successfully. (ID: &e{report_id}&a)'
+      report_submitted: '{prefix}&aYour report has been submitted successfully. (ID: &e#{report_id}&a)'
       report_submit_failed: '{prefix}&cThere was an error submitting your report. Please try again later.'
       report_staff_notification: '{prefix}&eNew report from &b{requester}&e against &c{target}&e for &f{reason}&e.'
       reports_menu_loading: '{prefix}&7Loading reports...'

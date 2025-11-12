@@ -1681,7 +1681,7 @@ public class DatabaseManager {
         StringBuilder idBuilder;
         do {
             idBuilder = new StringBuilder();
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 8; i++) {
                 idBuilder.append(chars.charAt(ThreadLocalRandom.current().nextInt(chars.length())));
             }
         } while (reportIdExists(idBuilder.toString()));

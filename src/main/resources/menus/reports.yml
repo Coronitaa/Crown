@@ -11,7 +11,7 @@ report-menu:
   # Each page has a unique key (e.g., "root", "player_categories").
   pages:
     root:
-      title: "Create a Report"
+      title: "#90433cCreate a Report"
       options:
         - text: "&bReport a Player or Clan"
           hover: "&7Report a user or group of users."
