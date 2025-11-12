@@ -236,7 +236,7 @@ public class DatabaseManager {
             }
             statement.execute(createAuditLogTableSQL);
 
-            // ADDED START: Reports Table
+            // Reports Table
             String createReportsTableSQL = "CREATE TABLE IF NOT EXISTS reports (" +
                     "report_id VARCHAR(12) PRIMARY KEY," +
                     "requester_uuid VARCHAR(36) NOT NULL," +
@@ -249,7 +249,9 @@ public class DatabaseManager {
                     "status VARCHAR(50) NOT NULL," +
                     "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
                     "moderator_uuid VARCHAR(36)," +
-                    "collected_data TEXT)";
+                    "collected_data TEXT," +
+                    "resolved_at DATETIME," +
+                    "resolver_uuid VARCHAR(36))";
             if ("sqlite".equalsIgnoreCase(dbType)) {
                 createReportsTableSQL = "CREATE TABLE IF NOT EXISTS reports (" +
                         "report_id VARCHAR(12) PRIMARY KEY," +
@@ -263,11 +265,11 @@ public class DatabaseManager {
                         "status VARCHAR(50) NOT NULL," +
                         "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP," +
                         "moderator_uuid VARCHAR(36)," +
-                        "collected_data TEXT)";
+                        "collected_data TEXT," +
+                        "resolved_at DATETIME," +
+                        "resolver_uuid VARCHAR(36))";
             }
             statement.execute(createReportsTableSQL);
-            // ADDED END
-
 
             updateTableStructure(connection);
 
@@ -304,6 +306,12 @@ public class DatabaseManager {
             }
             if (!columnExists(connection, "active_warnings", "paused_associated_punishments")) { // NEW
                 statement.execute("ALTER TABLE active_warnings ADD COLUMN paused_associated_punishments TEXT");
+            }
+            if (!columnExists(connection, "reports", "resolved_at")) {
+                statement.execute("ALTER TABLE reports ADD COLUMN resolved_at DATETIME");
+            }
+            if (!columnExists(connection, "reports", "resolver_uuid")) {
+                statement.execute("ALTER TABLE reports ADD COLUMN resolver_uuid VARCHAR(36)");
             }
         }
     }
@@ -532,9 +540,9 @@ public class DatabaseManager {
 
     public void removeActiveWarning(UUID playerUUID, String punishmentId, String removerName, String reason) {
         CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection()) {
+            try(Connection connection = getConnection()){
                 removeActiveWarning(connection, playerUUID, punishmentId, removerName, reason);
-            } catch (SQLException e) {
+            } catch(SQLException e){
                 plugin.getLogger().log(Level.SEVERE, "Could not remove active warning for punishmentId: " + punishmentId, e);
             }
         });
@@ -1269,7 +1277,6 @@ public class DatabaseManager {
         }
         return history;
     }
-
     public PunishmentEntry getPunishmentById(String punishmentId) {
         String sql = "SELECT * FROM punishment_history WHERE punishment_id = ?";
         try (Connection connection = getConnection();
@@ -1365,14 +1372,13 @@ public class DatabaseManager {
     }
 
     public String getLatestActivePunishmentId(UUID playerUUID, String punishmentType) {
-        try (Connection connection = getConnection()) {
+        try(Connection connection = getConnection()) {
             return getLatestActivePunishmentId(connection, playerUUID, punishmentType);
-        } catch (SQLException e) {
+        } catch(SQLException e){
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment ID!", e);
         }
         return null;
     }
-
     private String getLatestActivePunishmentId(Connection connection, UUID playerUUID, String punishmentType) throws SQLException {
         String sql = "SELECT punishment_id FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 ORDER BY timestamp DESC LIMIT 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -1388,9 +1394,9 @@ public class DatabaseManager {
     }
 
     public PunishmentEntry getLatestActivePunishment(UUID playerUUID, String punishmentType) {
-        try (Connection connection = getConnection()) {
+        try(Connection connection = getConnection()){
             return getLatestActivePunishment(connection, playerUUID, punishmentType);
-        } catch (SQLException e) {
+        } catch(SQLException e){
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment!", e);
         }
         return null;
@@ -1477,14 +1483,13 @@ public class DatabaseManager {
     }
 
     public boolean updatePunishmentAsRemoved(String punishmentId, String removedByName, String removedReason) {
-        try (Connection connection = getConnection()) {
+        try(Connection connection = getConnection()){
             return updatePunishmentAsRemoved(connection, punishmentId, removedByName, removedReason);
-        } catch (SQLException e) {
+        } catch (SQLException e){
             plugin.getLogger().log(Level.SEVERE, "Failed to update punishment status", e);
             return false;
         }
     }
-
     private boolean updatePunishmentAsRemoved(Connection connection, String punishmentId, String removedByName, String removedReason) throws SQLException {
         String sql = "UPDATE punishment_history SET active = 0, removed_by_name = ?, removed_reason = ?, removed_at = ? WHERE punishment_id = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -1744,19 +1749,25 @@ public class DatabaseManager {
         });
     }
 
-
-    public CompletableFuture<List<ReportEntry>> getReports(int page, int entriesPerPage, ReportStatus filterStatus, String filterName, boolean filterAsRequester, UUID assignedTo) {
+    public CompletableFuture<List<ReportEntry>> getReports(int page, int entriesPerPage, ReportStatus filterStatus, String filterName, boolean filterAsRequester, UUID assignedTo, String reportType) {
         return CompletableFuture.supplyAsync(() -> {
             List<ReportEntry> reports = new ArrayList<>();
             int offset = (page - 1) * entriesPerPage;
 
             StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM reports ");
             List<Object> params = new ArrayList<>();
-
             boolean whereAdded = false;
+
             if (assignedTo != null) {
                 sqlBuilder.append("WHERE moderator_uuid = ? ");
                 params.add(assignedTo.toString());
+                whereAdded = true;
+            }
+
+            if (reportType != null) {
+                sqlBuilder.append(whereAdded ? "AND " : "WHERE ");
+                sqlBuilder.append("report_type = ? ");
+                params.add(reportType);
                 whereAdded = true;
             }
 
@@ -1800,7 +1811,7 @@ public class DatabaseManager {
         });
     }
 
-    public CompletableFuture<Integer> countReports(ReportStatus filterStatus, String filterName, boolean filterAsRequester, UUID assignedTo) {
+    public CompletableFuture<Integer> countReports(ReportStatus filterStatus, String filterName, boolean filterAsRequester, UUID assignedTo, String reportType) {
         return CompletableFuture.supplyAsync(() -> {
             StringBuilder sqlBuilder = new StringBuilder("SELECT COUNT(*) FROM reports ");
             List<Object> params = new ArrayList<>();
@@ -1809,6 +1820,13 @@ public class DatabaseManager {
             if (assignedTo != null) {
                 sqlBuilder.append("WHERE moderator_uuid = ? ");
                 params.add(assignedTo.toString());
+                whereAdded = true;
+            }
+
+            if (reportType != null) {
+                sqlBuilder.append(whereAdded ? "AND " : "WHERE ");
+                sqlBuilder.append("report_type = ? ");
+                params.add(reportType);
                 whereAdded = true;
             }
 
@@ -1848,7 +1866,30 @@ public class DatabaseManager {
         });
     }
 
-    // ADDED START
+    public CompletableFuture<Boolean> updateReportStatus(String reportId, ReportStatus status, UUID moderatorUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            boolean isResolution = (status == ReportStatus.RESOLVED || status == ReportStatus.REJECTED);
+            String sql = "UPDATE reports SET status = ?, moderator_uuid = ?" +
+                    (isResolution ? ", resolved_at = CURRENT_TIMESTAMP, resolver_uuid = ?" : "") +
+                    " WHERE report_id = ?";
+            try (Connection connection = getConnection();
+                 PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, status.name());
+                ps.setString(2, moderatorUUID != null ? moderatorUUID.toString() : null);
+                if (isResolution) {
+                    ps.setString(3, moderatorUUID != null ? moderatorUUID.toString() : null);
+                    ps.setString(4, reportId);
+                } else {
+                    ps.setString(3, reportId);
+                }
+                return ps.executeUpdate() > 0;
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not update report status for ID: " + reportId, e);
+                return false;
+            }
+        });
+    }
+
     public CompletableFuture<Integer> countReportsAsTarget(UUID targetUUID) {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "SELECT COUNT(*) FROM reports WHERE target_uuid = ?";
@@ -1880,24 +1921,6 @@ public class DatabaseManager {
             return 0;
         });
     }
-
-    public CompletableFuture<Boolean> updateReportStatus(String reportId, ReportStatus status, UUID moderatorUUID) {
-        return CompletableFuture.supplyAsync(() -> {
-            String sql = "UPDATE reports SET status = ?, moderator_uuid = ? WHERE report_id = ?";
-            try (Connection connection = getConnection();
-                 PreparedStatement ps = connection.prepareStatement(sql)) {
-                ps.setString(1, status.name());
-                ps.setString(2, moderatorUUID != null ? moderatorUUID.toString() : null);
-                ps.setString(3, reportId);
-                return ps.executeUpdate() > 0;
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Could not update report status for ID: " + reportId, e);
-                return false;
-            }
-        });
-    }
-    // ADDED END
-
 
     public static class PunishmentEntry {
         private final String punishmentId;
@@ -1933,75 +1956,24 @@ public class DatabaseManager {
             this.warnLevel = warnLevel;
         }
 
-        public String getPunishmentId() {
-            return punishmentId;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public String getReason() {
-            return reason;
-        }
-
-        public Timestamp getTimestamp() {
-            return timestamp;
-        }
-
-        public UUID getPlayerUUID() {
-            return playerUUID;
-        }
-
-        public String getPunisherName() {
-            return punisherName;
-        }
-
-        public long getPunishmentTime() {
-            return punishmentTime;
-        }
-
-        public String getDurationString() {
-            return durationString;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public long getEndTime() {
-            return punishmentTime;
-        }
-
-        public boolean isActive() {
-            return active;
-        }
-
-        public String getRemovedByName() {
-            return removedByName;
-        }
-
-        public Timestamp getRemovedAt() {
-            return removedAt;
-        }
-
-        public String getRemovedReason() {
-            return removedReason;
-        }
-
-        public boolean wasByIp() {
-            return byIp;
-        }
-
-        public int getWarnLevel() {
-            return warnLevel;
-        }
+        public String getPunishmentId() { return punishmentId; }
+        public String getType() { return type; }
+        public String getReason() { return reason; }
+        public Timestamp getTimestamp() { return timestamp; }
+        public UUID getPlayerUUID() { return playerUUID; }
+        public String getPunisherName() { return punisherName; }
+        public long getPunishmentTime() { return punishmentTime; }
+        public String getDurationString() { return durationString; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public long getEndTime() { return punishmentTime; }
+        public boolean isActive() { return active; }
+        public String getRemovedByName() { return removedByName; }
+        public Timestamp getRemovedAt() { return removedAt; }
+        public String getRemovedReason() { return removedReason; }
+        public boolean wasByIp() { return byIp; }
+        public int getWarnLevel() { return warnLevel; }
     }
-
     public static class PlayerInfo {
         private final String punishmentId;
         private final String ip;
@@ -2074,7 +2046,6 @@ public class DatabaseManager {
             return lastJoined;
         }
     }
-
     public static class PlayerLastState {
         private final UUID uuid;
         private final long lastSeen;
@@ -2090,25 +2061,11 @@ public class DatabaseManager {
             this.world = world;
         }
 
-        public UUID getUuid() {
-            return uuid;
-        }
-
-        public long getLastSeen() {
-            return lastSeen;
-        }
-
-        public String getIp() {
-            return ip;
-        }
-
-        public String getLocation() {
-            return location;
-        }
-
-        public String getWorld() {
-            return world;
-        }
+        public UUID getUuid() { return uuid; }
+        public long getLastSeen() { return lastSeen; }
+        public String getIp() { return ip; }
+        public String getLocation() { return location; }
+        public String getWorld() { return world; }
     }
 
     // NEW: Inner class for Audit Log entries
@@ -2129,29 +2086,12 @@ public class DatabaseManager {
             this.details = details;
         }
 
-        public int getId() {
-            return id;
-        }
-
-        public UUID getTargetUUID() {
-            return targetUUID;
-        }
-
-        public UUID getExecutorUUID() {
-            return executorUUID;
-        }
-
-        public Timestamp getTimestamp() {
-            return timestamp;
-        }
-
-        public String getActionType() {
-            return actionType;
-        }
-
-        public String getDetails() {
-            return details;
-        }
+        public int getId() { return id; }
+        public UUID getTargetUUID() { return targetUUID; }
+        public UUID getExecutorUUID() { return executorUUID; }
+        public Timestamp getTimestamp() { return timestamp; }
+        public String getActionType() { return actionType; }
+        public String getDetails() { return details; }
     }
 
     // ADDED START: New inner class for Report entries
@@ -2168,6 +2108,8 @@ public class DatabaseManager {
         private final Timestamp timestamp;
         private final UUID moderatorUUID;
         private final String collectedData;
+        private final Timestamp resolvedAt;
+        private final UUID resolverUUID;
 
         public ReportEntry(ResultSet rs) throws SQLException {
             this.reportId = rs.getString("report_id");
@@ -2184,54 +2126,25 @@ public class DatabaseManager {
             String modUUIDString = rs.getString("moderator_uuid");
             this.moderatorUUID = (modUUIDString != null) ? UUID.fromString(modUUIDString) : null;
             this.collectedData = rs.getString("collected_data");
+            this.resolvedAt = rs.getTimestamp("resolved_at");
+            String resolverUUIDString = rs.getString("resolver_uuid");
+            this.resolverUUID = (resolverUUIDString != null) ? UUID.fromString(resolverUUIDString) : null;
         }
 
-        public String getReportId() {
-            return reportId;
-        }
-
-        public UUID getRequesterUUID() {
-            return requesterUUID;
-        }
-
-        public UUID getTargetUUID() {
-            return targetUUID;
-        }
-
-        public String getTargetName() {
-            return targetName;
-        }
-
-        public String getReportType() {
-            return reportType;
-        }
-
-        public String getCategory() {
-            return category;
-        }
-
-        public String getReason() {
-            return reason;
-        }
-
-        public String getDetails() {
-            return details;
-        }
-
-        public ReportStatus getStatus() {
-            return status;
-        }
-
-        public Timestamp getTimestamp() {
-            return timestamp;
-        }
-
-        public UUID getModeratorUUID() {
-            return moderatorUUID;
-        }
-
-        public String getCollectedData() {
-            return collectedData;
-        }
+        public String getReportId() { return reportId; }
+        public UUID getRequesterUUID() { return requesterUUID; }
+        public UUID getTargetUUID() { return targetUUID; }
+        public String getTargetName() { return targetName; }
+        public String getReportType() { return reportType; }
+        public String getCategory() { return category; }
+        public String getReason() { return reason; }
+        public String getDetails() { return details; }
+        public ReportStatus getStatus() { return status; }
+        public Timestamp getTimestamp() { return timestamp; }
+        public UUID getModeratorUUID() { return moderatorUUID; }
+        public String getCollectedData() { return collectedData; }
+        public Timestamp getResolvedAt() { return resolvedAt; }
+        public UUID getResolverUUID() { return resolverUUID; }
     }
+    // ADDED END
 }

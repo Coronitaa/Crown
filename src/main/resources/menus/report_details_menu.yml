@@ -2,25 +2,9 @@
 # Configuration for the detailed report view menu.
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
-# --- Available Actions ---
-# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu)
-# - CHANGE_REPORT_STATUS:
-# - ASSIGN_MODERATOR:                (Prompts for moderator name)
-# - PLAYER_COMMAND:<command>
-# - CLOSE_MENU:
-# - PLAY_SOUND:<sound>:<vol>:<pitch>
-# - NO_ACTION:
-
-# --- Available Placeholders ---
-# - {target}: Report target's name.
-# - {requester}: Report requester's name.
-# - {report_id}, {reason}, {date}, {status}, {details}
-# - {target_ip}, {target_health}, {target_hunger}, etc.
-# - {server_tps}, {server_chunks}, etc.
-
-# PATH: src/main/resources/menus/report_details_menu.yml
 menu:
   title: '&c&lReport Details: #{report_id}'
+  size: 54 # MODIFIED: Increased size to 6 rows
   items:
     target_info:
       material: 'PLAYER_HEAD'
@@ -29,10 +13,10 @@ menu:
       name: '&cTarget Info: &b{target}'
       lore:
         - '&7Click to open profile.'
-      left_click_actions: # MODIFIED
+      left_click_actions:
         - 'OPEN_PROFILE_TARGET'
 
-    target_summary: # ADDED
+    target_summary:
       material: 'WRITABLE_BOOK'
       slot: 20
       name: '&6{target}''s Record'
@@ -59,10 +43,10 @@ menu:
       name: '&aRequester Info: &b{requester}'
       lore:
         - '&7Click to open profile.'
-      left_click_actions: # MODIFIED
+      left_click_actions:
         - 'OPEN_PROFILE_REQUESTER'
 
-    requester_summary: # ADDED
+    requester_summary:
       material: 'WRITABLE_BOOK'
       slot: 24
       name: '&6{requester}''s Record'
@@ -87,12 +71,12 @@ menu:
       slot: 4
       name: '&eReport Information'
       lore:
-        - '&7Category: &f{category}' # MODIFIED
-        - '&7Reason: &f{reason}' # MODIFIED
-        - '&7Details: &f{details}' # MODIFIED
+        - '&7Category: &f{category}'
+        - '&7Reason: &f{reason}'
+        - '&7Details: &f{details}'
         - '&7Date: &b{date}'
 
-    moderator_info: # ADDED
+    moderator_info:
       material: 'PLAYER_HEAD'
       player_head: '{moderator}'
       slot: 2
@@ -102,7 +86,7 @@ menu:
         - ''
         - '&7Click to open profile.'
       left_click_actions:
-        - 'OPEN_PROFILE_MODERATOR' # Requires new ClickAction
+        - 'OPEN_PROFILE_MODERATOR'
 
     collected_data:
       material: 'COMPASS'
@@ -111,34 +95,78 @@ menu:
       lore:
         - '&7Loading data...'
 
-    change_status:
-      material: 'REPEATER'
-      slot: 38
-      name: '&aChange Status'
+    take_report:
+      material: 'LIME_DYE'
+      slot: 47
+      name: '&a&lTake Report'
       lore:
-        - '&7Current: {status_color}{status}'
-        - ''
-        - '&eClick to cycle status.'
+        - '&7Assign this report to yourself'
+        - '&7and change its status to &6Taken&7.'
       left_click_actions:
-        - 'CHANGE_REPORT_STATUS'
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'SET_REPORT_STATUS_TAKE'
+        - 'PLAY_SOUND:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:1.2'
+
+    resolve_report:
+      material: 'EMERALD_BLOCK'
+      slot: 48
+      name: '&a&lResolve Report'
+      lore:
+        - '&7Mark this report as resolved.'
+        - '&8(Requires confirmation)'
+      left_click_actions:
+        - 'SET_REPORT_STATUS_RESOLVED'
+      confirm_state:
+        material: 'LIME_WOOL'
+        name: '&2&lCONFIRM RESOLVE'
+        lore:
+          - '&aClick again to resolve.'
+
+    reject_report:
+      material: 'REDSTONE_BLOCK'
+      slot: 49
+      name: '&c&lReject Report'
+      lore:
+        - '&7Mark this report as rejected.'
+        - '&8(Requires confirmation)'
+      left_click_actions:
+        - 'SET_REPORT_STATUS_REJECTED'
+      confirm_state:
+        material: 'RED_WOOL'
+        name: '&4&lCONFIRM REJECT'
+        lore:
+          - '&cClick again to reject.'
+
+    delete_report:
+      material: 'BARRIER'
+      slot: 50
+      name: '&8&lDelete Report'
+      lore:
+        - '&7Mark this report as deleted.'
+        - '&8Requires confirmation)'
+      left_click_actions:
+        - 'SET_REPORT_STATUS_DELETED'
+      confirm_state:
+        material: 'COAL_BLOCK'
+        name: '&8&lCONFIRM DELETE'
+        lore:
+          - '&7Click again to delete.'
 
     assign_moderator:
       material: 'DIAMOND_HELMET'
-      slot: 40
+      slot: 51
       name: '&bAssign to Moderator'
       lore:
-        - '&7Assign this report to'
-        - '&7another moderator for review.'
+        - '&7Assign this report to another'
+        - '&7moderator for review.'
         - ''
         - '&eClick to assign.'
       left_click_actions:
         - 'ASSIGN_MODERATOR'
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
 
     punish_target:
       material: 'NETHERITE_SWORD'
-      slot: 42
+      slot: 30
       name: '&cPunish Target'
       lore:
         - '&7Open punish menu for &b{target}&7.'
@@ -147,7 +175,7 @@ menu:
 
     punish_requester:
       material: 'WOODEN_SWORD'
-      slot: 43
+      slot: 32
       name: '&cPunish Requester'
       lore:
         - '&7Open punish menu for &b{requester}&7.'
@@ -158,7 +186,7 @@ menu:
     back_button:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
-      slot: 36
+      slot: 45
       name: '&c&lBack to Reports'
       lore:
         - '&7Return to the main reports list.'
@@ -169,4 +197,4 @@ menu:
     background_fill:
       material: 'GRAY_STAINED_GLASS_PANE'
       name: ' '
-      slot: '0-1,3,5-10,12-14,16-19,21,23-35,37,39,41,44'
+      slot: '0-1,3,5-10,12-14,16-19,21,23,25-29,31,33-44,46,52,53'

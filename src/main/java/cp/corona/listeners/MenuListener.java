@@ -24,6 +24,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -59,6 +60,7 @@ import java.util.stream.Collectors;
 public class MenuListener implements Listener {
     private final Crown plugin;
     private final HashMap<UUID, BukkitTask> inputTimeouts = new HashMap<>();
+    private final Map<UUID, String> pendingReportStateChanges = new HashMap<>();
     private final HashMap<UUID, PunishDetailsMenu> pendingDetailsMenus = new HashMap<>();
     private final HashMap<UUID, String> inputTypes = new HashMap<>();
     private final HashMap<UUID, String> inputOrigin = new HashMap<>();
@@ -1129,6 +1131,9 @@ public class MenuListener implements Listener {
             case FILTER_REPORTS_STATUS:
                 menu.cycleFilterStatus();
                 return true;
+            case FILTER_REPORTS_TYPE: // MODIFIED
+                menu.cycleReportTypeFilter();
+                return true;
             case FILTER_REPORTS_NAME:
                 boolean byRequester = event.getClick().isRightClick();
                 requestReportFilterInput(player, menu, byRequester);
@@ -1156,8 +1161,20 @@ public class MenuListener implements Listener {
         if (report == null) return true;
 
         switch (action) {
-            case CHANGE_REPORT_STATUS:
-                menu.cycleStatus();
+            case SET_REPORT_STATUS_TAKE:
+                plugin.getSoftBanDatabaseManager().updateReportStatus(report.getReportId(), ReportStatus.TAKEN, player.getUniqueId())
+                        .thenAccept(success -> {
+                            if (success) {
+                                MessageUtils.sendConfigMessage(plugin, player, "messages.report_status_changed", "{report_id}", report.getReportId(), "{status_color}", ReportStatus.TAKEN.getColor(), "{status}", ReportStatus.TAKEN.getDisplayName());
+                                menu.loadReportAndInitialize();
+                            }
+                        });
+                return true;
+
+            case SET_REPORT_STATUS_RESOLVED:
+            case SET_REPORT_STATUS_REJECTED:
+            case SET_REPORT_STATUS_DELETED:
+                handleReportStateChangeConfirmation(player, menu, action, event.getCurrentItem(), event.getSlot());
                 return true;
             case ASSIGN_MODERATOR:
                 requestModeratorAssignmentInput(player, menu);
@@ -1207,6 +1224,58 @@ public class MenuListener implements Listener {
             // ADDED END
             default:
                 return false;
+        }
+    }
+
+    // MODIFIED: Added confirmation feedback logic
+    private void handleReportStateChangeConfirmation(Player player, ReportDetailsMenu menu, ClickAction action, ItemStack clickedItem, int slot) {
+        String reportId = menu.getReportId();
+        String confirmationKey = reportId + ":" + action.name();
+
+        if (pendingReportStateChanges.containsKey(player.getUniqueId()) && pendingReportStateChanges.get(player.getUniqueId()).equals(confirmationKey)) {
+            pendingReportStateChanges.remove(player.getUniqueId());
+
+            ReportStatus newStatus = switch(action) {
+                case SET_REPORT_STATUS_RESOLVED -> ReportStatus.RESOLVED;
+                case SET_REPORT_STATUS_REJECTED -> ReportStatus.REJECTED;
+                case SET_REPORT_STATUS_DELETED -> ReportStatus.DELETED;
+                default -> null;
+            };
+            if (newStatus == null) return;
+
+            plugin.getSoftBanDatabaseManager().updateReportStatus(reportId, newStatus, player.getUniqueId())
+                    .thenAccept(success -> {
+                        if (success) {
+                            MessageUtils.sendConfigMessage(plugin, player, "messages.report_status_changed", "{report_id}", reportId, "{status_color}", newStatus.getColor(), "{status}", newStatus.getDisplayName());
+                            menu.loadReportAndInitialize();
+                        }
+                    });
+
+        } else {
+            pendingReportStateChanges.put(player.getUniqueId(), confirmationKey);
+            MenuItem menuItem = getMenuItemClicked(slot, menu);
+
+            if (menuItem != null && menuItem.getConfirmState() != null) {
+                ItemStack confirmStack = menuItem.getConfirmState().toItemStack(null, plugin.getConfigManager());
+                confirmStack.addUnsafeEnchantment(Enchantment.FORTUNE, 1);
+                ItemMeta meta = confirmStack.getItemMeta();
+                meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+                confirmStack.setItemMeta(meta);
+
+                menu.getInventory().setItem(slot, confirmStack);
+                playSound(player, "punish_error");
+
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (pendingReportStateChanges.remove(player.getUniqueId(), confirmationKey)) {
+                            if (player.getOpenInventory().getTopInventory().getHolder() == menu) {
+                                menu.getInventory().setItem(slot, clickedItem);
+                            }
+                        }
+                    }
+                }.runTaskLater(plugin, 100L); // 5-second timeout
+            }
         }
     }
 

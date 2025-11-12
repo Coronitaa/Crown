@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.time.Duration;
 
 public class ReportDetailsMenu implements InventoryHolder {
 
@@ -40,11 +41,11 @@ public class ReportDetailsMenu implements InventoryHolder {
         this.plugin = plugin;
         this.viewer = viewer;
         this.reportId = reportId;
-        this.inventory = Bukkit.createInventory(this, 54, "Loading Report #" + reportId);
+        this.inventory = Bukkit.createInventory(this, 54, "Loading Report #" + reportId); // MODIFIED: Changed size to 54
         loadReportAndInitialize();
     }
 
-    private void loadReportAndInitialize() {
+    public void loadReportAndInitialize() {
         plugin.getSoftBanDatabaseManager().getReportById(reportId).thenAcceptAsync(entry -> {
             this.reportEntry = entry;
             if (entry == null) {
@@ -69,7 +70,7 @@ public class ReportDetailsMenu implements InventoryHolder {
 
     private CompletableFuture<PlayerRecordStats> getPlayerStats(UUID playerUUID) {
         if (playerUUID == null) {
-            return CompletableFuture.completedFuture(new PlayerRecordStats()); // Return empty stats for null UUID
+            return CompletableFuture.completedFuture(new PlayerRecordStats());
         }
         CompletableFuture<HashMap<String, Integer>> punishments = CompletableFuture.supplyAsync(() -> plugin.getSoftBanDatabaseManager().getPunishmentCounts(playerUUID));
         CompletableFuture<Integer> received = plugin.getSoftBanDatabaseManager().countReportsAsTarget(playerUUID);
@@ -87,7 +88,7 @@ public class ReportDetailsMenu implements InventoryHolder {
     private void initializeItems(PlayerRecordStats targetStats, PlayerRecordStats requesterStats) {
         String title = MessageUtils.getColorMessage(plugin.getConfigManager().getReportDetailsMenuConfig().getConfig().getString("menu.title", "&c&lReport Details: #{report_id}").replace("{report_id}", reportId));
         if (!viewer.getOpenInventory().getTitle().equals(title)) {
-            Inventory newInv = Bukkit.createInventory(this, 54, title);
+            Inventory newInv = Bukkit.createInventory(this, 54, title); // MODIFIED: Changed size to 54
             inventory.setContents(newInv.getContents());
             viewer.openInventory(inventory);
         }
@@ -97,11 +98,15 @@ public class ReportDetailsMenu implements InventoryHolder {
         OfflinePlayer requester = Bukkit.getOfflinePlayer(reportEntry.getRequesterUUID());
         OfflinePlayer moderator = (reportEntry.getModeratorUUID() != null) ? Bukkit.getOfflinePlayer(reportEntry.getModeratorUUID()) : null;
 
+        boolean isHandled = reportEntry.getStatus() == ReportStatus.TAKEN || reportEntry.getStatus() == ReportStatus.ASSIGNED;
+
         for (String key : plugin.getConfigManager().getReportDetailsMenuItemKeys()) {
             MenuItem itemConfig = plugin.getConfigManager().getReportDetailsMenuItemConfig(key);
             if (itemConfig == null) continue;
 
-            if (key.equals("assign_moderator") && reportEntry.getStatus() != ReportStatus.PENDING) continue;
+            // MODIFIED: Conditional item visibility
+            if (key.equals("take_report") && isHandled) continue;
+            if ((key.equals("resolve_report") || key.equals("reject_report")) && !isHandled) continue;
             if ((key.equals("punish_target") || key.equals("target_info") || key.equals("target_summary")) && target == null) continue;
             if (key.equals("moderator_info") && moderator == null) continue;
 
@@ -111,11 +116,16 @@ public class ReportDetailsMenu implements InventoryHolder {
             ItemMeta meta = item.getItemMeta();
             if(meta == null) continue;
 
-            PlayerRecordStats currentStats = key.contains("requester") ? requesterStats : targetStats;
+            PlayerRecordStats currentStats = (key.contains("requester") || key.equals("punish_requester")) ? requesterStats : targetStats;
 
             if (meta.hasDisplayName()) {
-                meta.setDisplayName(replacePlaceholders(meta.getDisplayName(), target, requester, moderator, currentStats));
+                String name = meta.getDisplayName();
+                if (key.equals("assign_moderator") && moderator != null) {
+                    name = name.replace("Assign to", "Reassign");
+                }
+                meta.setDisplayName(replacePlaceholders(name, target, requester, moderator, currentStats));
             }
+
             if (meta.hasLore()) {
                 List<String> newLore = new ArrayList<>();
                 if (key.equals("collected_data")) {

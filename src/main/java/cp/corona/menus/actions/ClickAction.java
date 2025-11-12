@@ -1,4 +1,3 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\actions\ClickAction.java
 package cp.corona.menus.actions;
 
 public enum ClickAction {
@@ -52,6 +51,11 @@ public enum ClickAction {
     HISTORY_TARGET,
     HISTORY_REQUESTER,
     FILTER_MY_REPORTS,
+    SET_REPORT_STATUS_RESOLVED,
+    SET_REPORT_STATUS_REJECTED,
+    SET_REPORT_STATUS_DELETED,
+    SET_REPORT_STATUS_TAKE,
+    FILTER_REPORTS_TYPE,
 
     NO_ACTION;
 

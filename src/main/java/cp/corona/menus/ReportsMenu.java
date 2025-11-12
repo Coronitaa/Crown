@@ -17,6 +17,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
 
 public class ReportsMenu implements InventoryHolder {
@@ -30,7 +31,8 @@ public class ReportsMenu implements InventoryHolder {
     private ReportStatus filterStatus = null;
     private String filterName = null;
     private boolean filterAsRequester = false;
-    private boolean filterAssignedToMe = false; // ADDED
+    private boolean filterAssignedToMe = false;
+    private String reportTypeFilter = null; // ADDED
 
     private static final List<Integer> REPORT_SLOTS = List.of(
             10, 11, 12, 13, 14, 15, 16,
@@ -58,6 +60,20 @@ public class ReportsMenu implements InventoryHolder {
         loadPageAsync();
     }
 
+    // Overload for reports filter
+    public ReportsMenu(Crown plugin, Player viewer, int page, ReportStatus status, String name, boolean asRequester, boolean assignedToMe, String reportType) {
+        this.plugin = plugin;
+        this.viewer = viewer;
+        this.page = page;
+        this.filterStatus = status;
+        this.filterName = name;
+        this.filterAsRequester = asRequester;
+        this.filterAssignedToMe = assignedToMe;
+        this.reportTypeFilter = reportType;
+        this.inventory = Bukkit.createInventory(this, 54, "Loading reports...");
+        loadPageAsync();
+    }
+
     public void loadPageAsync() {
         inventory.clear();
         MenuItem loadingItem = plugin.getConfigManager().getHistoryMenuItemConfig("loading_item");
@@ -67,8 +83,8 @@ public class ReportsMenu implements InventoryHolder {
 
         UUID assignedTo = filterAssignedToMe ? viewer.getUniqueId() : null;
 
-        plugin.getSoftBanDatabaseManager().countReports(filterStatus, filterName, filterAsRequester, assignedTo).thenAcceptBothAsync(
-                plugin.getSoftBanDatabaseManager().getReports(page, entriesPerPage, filterStatus, filterName, filterAsRequester, assignedTo),
+        plugin.getSoftBanDatabaseManager().countReports(filterStatus, filterName, filterAsRequester, assignedTo, reportTypeFilter).thenAcceptBothAsync(
+                plugin.getSoftBanDatabaseManager().getReports(page, entriesPerPage, filterStatus, filterName, filterAsRequester, assignedTo, reportTypeFilter),
                 (totalCount, reportEntries) -> Bukkit.getScheduler().runTask(plugin, () -> {
                     if (viewer == null || !viewer.isOnline() || viewer.getOpenInventory().getTopInventory().getHolder() != this) return;
 
@@ -127,6 +143,12 @@ public class ReportsMenu implements InventoryHolder {
 
             List<String> lore = new ArrayList<>();
             for(String line : meta.getLore()) {
+                String resolutionTime = "";
+                if (entry.getResolvedAt() != null && (entry.getStatus() == ReportStatus.RESOLVED || entry.getStatus() == ReportStatus.REJECTED)) {
+                    Duration duration = Duration.between(entry.getTimestamp().toInstant(), entry.getResolvedAt().toInstant());
+                    resolutionTime = "&8Resolved in: &7" + formatDuration(duration);
+                }
+
                 lore.add(MessageUtils.getColorMessage(line
                         .replace("{requester}", requesterName != null ? requesterName : entry.getRequesterUUID().toString())
                         .replace("{category}", entry.getCategory())
@@ -136,6 +158,7 @@ public class ReportsMenu implements InventoryHolder {
                         .replace("{date}", dateFormat.format(entry.getTimestamp()))
                         .replace("{status_color}", statusColor)
                         .replace("{status}", statusName)
+                        .replace("{resolution_time}", resolutionTime)
                 ));
             }
             meta.setLore(lore);
@@ -144,6 +167,17 @@ public class ReportsMenu implements InventoryHolder {
             item.setItemMeta(meta);
             inventory.setItem(slot, item);
         }
+    }
+
+    private String formatDuration(Duration duration) {
+        long seconds = duration.getSeconds();
+        if (seconds < 60) return seconds + "s";
+        long minutes = seconds / 60;
+        if (minutes < 60) return minutes + "m " + (seconds % 60) + "s";
+        long hours = minutes / 60;
+        if (hours < 24) return hours + "h " + (minutes % 60) + "m";
+        long days = hours / 24;
+        return days + "d " + (hours % 24) + "h";
     }
 
     private void placeStaticItems() {
@@ -162,6 +196,7 @@ public class ReportsMenu implements InventoryHolder {
                         newLore.add(MessageUtils.getColorMessage(line
                                 .replace("{filter_status}", statusDisplay)
                                 .replace("{filter_name}", nameDisplay)
+                                .replace("{filter_type}", reportTypeFilter != null ? reportTypeFilter : "All")
                         ));
                     }
 
@@ -204,7 +239,8 @@ public class ReportsMenu implements InventoryHolder {
     }
 
     public void cycleFilterStatus() {
-        this.filterAssignedToMe = false; // Disable "my reports" filter when using status filter
+        this.filterAssignedToMe = false;
+        this.reportTypeFilter = null;
         if (filterStatus == null) {
             filterStatus = ReportStatus.PENDING;
         } else {
@@ -215,6 +251,25 @@ public class ReportsMenu implements InventoryHolder {
                 filterStatus = ReportStatus.values()[nextOrdinal];
             }
         }
+        this.filterName = null;
+        page = 1;
+        loadPageAsync();
+    }
+
+    public void cycleReportTypeFilter() {
+        this.filterAssignedToMe = false;
+        this.filterStatus = null;
+        this.filterName = null;
+
+        if (reportTypeFilter == null) {
+            reportTypeFilter = "PLAYER";
+        } else if ("PLAYER".equals(reportTypeFilter)) {
+            reportTypeFilter = "CLAN";
+        } else if ("CLAN".equals(reportTypeFilter)) {
+            reportTypeFilter = "SERVER";
+        } else {
+            reportTypeFilter = null; // Back to ALL
+        }
         page = 1;
         loadPageAsync();
     }
@@ -223,15 +278,17 @@ public class ReportsMenu implements InventoryHolder {
         this.filterName = name;
         this.filterAsRequester = asRequester;
         this.filterAssignedToMe = false;
+        this.filterStatus = null;
+        this.reportTypeFilter = null;
         this.page = 1;
         loadPageAsync();
     }
 
     public void toggleMyReportsFilter() {
         this.filterAssignedToMe = !this.filterAssignedToMe;
-        // Reset other filters to avoid conflict
         this.filterName = null;
         this.filterStatus = null;
+        this.reportTypeFilter = null;
         this.page = 1;
         loadPageAsync();
     }

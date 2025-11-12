@@ -4,7 +4,8 @@
 
 # --- Available Actions ---
 # - OPEN_REPORT_DETAILS:             (Opens the detail view for the clicked report)
-# - FILTER_REPORTS_STATUS:           (Opens a menu/prompt to filter by status)
+# - FILTER_REPORTS_STATUS:           (Cycles through statuses to filter by)
+# - FILTER_REPORTS_TYPE:             (Cycles through report types to filter by)
 # - FILTER_REPORTS_NAME:             (Prompts for a name to filter by)
 # - ADJUST_PAGE:<next_page|previous_page>
 # - PLAY_SOUND:<sound>:<vol>:<pitch>
@@ -21,6 +22,7 @@
 # - {max_pages}: Total number of pages.
 # - {filter_status}: Current status filter.
 # - {filter_name}: Current name filter.
+# - {filter_type}: Current report type filter.
 
 menu:
   title: '&c&lReports Menu ({page}/{max_pages})'
@@ -30,11 +32,11 @@ menu:
       name: '&eReport #{report_id} &7- &c{target}'
       lore:
         - '&7Requester: &b{requester}'
-        - '&7Category: &f{category}' # ADDED
-        - '&7Reason: &f{reason}' # ADDED
-        - '&7Details: &f{details}' # ADDED
-        - '&7Moderator: &d{moderator}' # ADDED
+        - '&7Category: &f{category} &8» &7Reason: &f{reason}'
+        - '&7Details: &f{details}'
+        - '&7Moderator: &d{moderator}'
         - '&7Date: &b{date}'
+        - '{resolution_time}'
         - ''
         - '&7Status: {status_color}{status}'
         - ''
@@ -43,20 +45,33 @@ menu:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
         - 'OPEN_REPORT_DETAILS'
 
+    filter_by_type:
+      material: 'OAK_SIGN'
+      slot: 47
+      name: '&aFilter by Type'
+      lore:
+        - '&7Current Filter: &b{filter_type}'
+        - ''
+        - '&eClick to cycle through types.'
+        - '&8(All, Player, Clan, Server)'
+      left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'FILTER_REPORTS_TYPE'
+
     # --- Control Items ---
     filter_by_status:
       material: 'HOPPER'
       slot: 48
       name: '&aFilter by Status'
       lore:
-        - '&7Current Filter: &b{filter_status}'
+        - '&7Current Filter: {filter_status}'
         - ''
         - '&eClick to cycle through statuses.'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'FILTER_REPORTS_STATUS'
-        -
-    filter_my_reports: # ADDED
+
+    filter_my_reports:
       material: 'PLAYER_HEAD'
       player_head: '{player}'
       slot: 49
@@ -77,9 +92,12 @@ menu:
       lore:
         - '&7Current Filter: &b{filter_name}'
         - ''
-        - '&eClick to enter a player'
-        - '&eor clan name to filter by.'
+        - '&eLeft-Click to filter by target.'
+        - '&eRight-Click to filter by requester.'
       left_click_actions:
+        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
+        - 'FILTER_REPORTS_NAME'
+      right_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'FILTER_REPORTS_NAME'
 
@@ -108,5 +126,4 @@ menu:
     background_fill:
       material: 'BLACK_STAINED_GLASS_PANE'
       name: ' '
-      slot: '0-8, 36-44, 46, 47, 51, 52'
-
+      slot: '0-9,17,18,26,27,35,36,44,46,51,52'
