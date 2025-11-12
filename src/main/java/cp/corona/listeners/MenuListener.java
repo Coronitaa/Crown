@@ -289,7 +289,7 @@ public class MenuListener implements Listener {
             MenuItem confirmState = clickedItem.getConfirmState();
             if (confirmState != null) {
                 event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(target, plugin.getConfigManager()));
-                playSound(moderator, "punish_error");
+                playSound(moderator, "confirm_again");
             }
 
             BukkitTask task = new BukkitRunnable() {
@@ -1131,7 +1131,7 @@ public class MenuListener implements Listener {
             case FILTER_REPORTS_STATUS:
                 menu.cycleFilterStatus();
                 return true;
-            case FILTER_REPORTS_TYPE: // MODIFIED
+            case FILTER_REPORTS_TYPE:
                 menu.cycleReportTypeFilter();
                 return true;
             case FILTER_REPORTS_NAME:
@@ -1162,18 +1162,22 @@ public class MenuListener implements Listener {
 
         switch (action) {
             case SET_REPORT_STATUS_TAKE:
-                plugin.getSoftBanDatabaseManager().updateReportStatus(report.getReportId(), ReportStatus.TAKEN, player.getUniqueId())
-                        .thenAccept(success -> {
-                            if (success) {
-                                MessageUtils.sendConfigMessage(plugin, player, "messages.report_status_changed", "{report_id}", report.getReportId(), "{status_color}", ReportStatus.TAKEN.getColor(), "{status}", ReportStatus.TAKEN.getDisplayName());
-                                menu.loadReportAndInitialize();
-                            }
-                        });
+                if (report.getModeratorUUID() != null && !report.getModeratorUUID().equals(player.getUniqueId())) {
+                    handleReportStateChangeConfirmation(player, menu, action, event.getCurrentItem(), event.getSlot());
+                } else {
+                    plugin.getSoftBanDatabaseManager().updateReportStatus(report.getReportId(), ReportStatus.TAKEN, player.getUniqueId())
+                            .thenAccept(success -> {
+                                if (success) {
+                                    MessageUtils.sendConfigMessage(plugin, player, "messages.report_status_changed", "{report_id}", report.getReportId(), "{status_color}", ReportStatus.TAKEN.getColor(), "{status}", ReportStatus.TAKEN.getDisplayName());
+                                    menu.loadReportAndInitialize();
+                                }
+                            });
+                }
                 return true;
 
             case SET_REPORT_STATUS_RESOLVED:
             case SET_REPORT_STATUS_REJECTED:
-            case SET_REPORT_STATUS_DELETED:
+            case SET_REPORT_STATUS_PENDING:
                 handleReportStateChangeConfirmation(player, menu, action, event.getCurrentItem(), event.getSlot());
                 return true;
             case ASSIGN_MODERATOR:
@@ -1204,7 +1208,6 @@ public class MenuListener implements Listener {
                     new ProfileMenu(report.getModeratorUUID(), plugin).open(player);
                 }
                 return true;
-            // ADDED START: Handle record item clicks
             case REPORTS_FILTER_TARGET:
                 if (report.getTargetUUID() != null) {
                     new ReportsMenu(plugin, player, 1, null, Bukkit.getOfflinePlayer(report.getTargetUUID()).getName(), false, false).open(player);
@@ -1221,32 +1224,47 @@ public class MenuListener implements Listener {
             case HISTORY_REQUESTER:
                 new HistoryMenu(report.getRequesterUUID(), plugin).open(player);
                 return true;
-            // ADDED END
             default:
                 return false;
         }
     }
 
-    // MODIFIED: Added confirmation feedback logic
     private void handleReportStateChangeConfirmation(Player player, ReportDetailsMenu menu, ClickAction action, ItemStack clickedItem, int slot) {
         String reportId = menu.getReportId();
         String confirmationKey = reportId + ":" + action.name();
 
-        if (pendingReportStateChanges.containsKey(player.getUniqueId()) && pendingReportStateChanges.get(player.getUniqueId()).equals(confirmationKey)) {
+        if (pendingReportStateChanges.getOrDefault(player.getUniqueId(), "").equals(confirmationKey)) {
             pendingReportStateChanges.remove(player.getUniqueId());
 
-            ReportStatus newStatus = switch(action) {
-                case SET_REPORT_STATUS_RESOLVED -> ReportStatus.RESOLVED;
-                case SET_REPORT_STATUS_REJECTED -> ReportStatus.REJECTED;
-                case SET_REPORT_STATUS_DELETED -> ReportStatus.DELETED;
-                default -> null;
-            };
+            ReportStatus newStatus = null;
+            UUID newModerator = player.getUniqueId();
+
+            switch (action) {
+                case SET_REPORT_STATUS_RESOLVED:
+                    newStatus = ReportStatus.RESOLVED;
+                    break;
+                case SET_REPORT_STATUS_REJECTED:
+                    newStatus = ReportStatus.REJECTED;
+                    break;
+                case SET_REPORT_STATUS_PENDING:
+                    newStatus = ReportStatus.PENDING;
+                    newModerator = null;
+                    break;
+                case SET_REPORT_STATUS_TAKE:
+                    newStatus = ReportStatus.TAKEN;
+                    break;
+            }
+
             if (newStatus == null) return;
 
-            plugin.getSoftBanDatabaseManager().updateReportStatus(reportId, newStatus, player.getUniqueId())
+            // This is the correction: Create final variables before the lambda.
+            final ReportStatus finalStatus = newStatus;
+            final UUID finalModerator = newModerator;
+
+            plugin.getSoftBanDatabaseManager().updateReportStatus(reportId, finalStatus, finalModerator)
                     .thenAccept(success -> {
                         if (success) {
-                            MessageUtils.sendConfigMessage(plugin, player, "messages.report_status_changed", "{report_id}", reportId, "{status_color}", newStatus.getColor(), "{status}", newStatus.getDisplayName());
+                            MessageUtils.sendConfigMessage(plugin, player, "messages.report_status_changed", "{report_id}", reportId, "{status_color}", finalStatus.getColor(), "{status}", finalStatus.getDisplayName());
                             menu.loadReportAndInitialize();
                         }
                     });
@@ -1257,18 +1275,34 @@ public class MenuListener implements Listener {
 
             if (menuItem != null && menuItem.getConfirmState() != null) {
                 ItemStack confirmStack = menuItem.getConfirmState().toItemStack(null, plugin.getConfigManager());
+
+                if (action == ClickAction.SET_REPORT_STATUS_TAKE) {
+                    OfflinePlayer currentMod = Bukkit.getOfflinePlayer(menu.getReportEntry().getModeratorUUID());
+                    ItemMeta confirmMeta = confirmStack.getItemMeta();
+                    if (confirmMeta != null) {
+                        List<String> lore = confirmMeta.getLore();
+                        if (lore != null) {
+                            lore.replaceAll(line -> line.replace("{moderator}", currentMod.getName() != null ? currentMod.getName() : "Unknown"));
+                            confirmMeta.setLore(lore);
+                        }
+                        confirmStack.setItemMeta(confirmMeta);
+                    }
+                }
+
                 confirmStack.addUnsafeEnchantment(Enchantment.FORTUNE, 1);
                 ItemMeta meta = confirmStack.getItemMeta();
-                meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
-                confirmStack.setItemMeta(meta);
+                if (meta != null) {
+                    meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+                    confirmStack.setItemMeta(meta);
+                }
 
                 menu.getInventory().setItem(slot, confirmStack);
-                playSound(player, "punish_error");
+                playSound(player, "confirm_again");
 
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        if (pendingReportStateChanges.remove(player.getUniqueId(), confirmationKey)) {
+                        if (confirmationKey.equals(pendingReportStateChanges.remove(player.getUniqueId()))) {
                             if (player.getOpenInventory().getTopInventory().getHolder() == menu) {
                                 menu.getInventory().setItem(slot, clickedItem);
                             }

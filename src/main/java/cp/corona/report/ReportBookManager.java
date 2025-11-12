@@ -155,12 +155,12 @@ public class ReportBookManager {
 
         plugin.getSoftBanDatabaseManager().createReport(
                 player.getUniqueId(), target.getUniqueId(), target.getName(),
-                "PLAYER", "Direct Command", "Direct Command", reason, collectedData
+                "PLAYER", "Custom", "Custom", reason, collectedData
         ).thenAccept(reportId -> {
             if (reportId != null) {
                 MessageUtils.sendConfigMessage(plugin, player, "messages.report_submitted", "{report_id}", reportId);
                 String notifyMessage = plugin.getConfigManager().getMessage("messages.report_staff_notification",
-                        "{requester}", player.getName(), "{target}", target.getName(), "{reason}", "Direct Command");
+                        "{requester}", player.getName(), "{target}", target.getName(), "{reason}", "Custom Reason");
                 Bukkit.getOnlinePlayers().stream()
                         .filter(p -> p.hasPermission("crown.report.view"))
                         .forEach(staff -> staff.sendMessage(MessageUtils.getColorMessage(notifyMessage)));

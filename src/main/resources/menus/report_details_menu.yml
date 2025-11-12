@@ -1,10 +1,6 @@
-# PATH: src/main/resources/menus/report_details_menu.yml
-# Configuration for the detailed report view menu.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
-
 menu:
   title: '&c&lReport Details: #{report_id}'
-  size: 54 # MODIFIED: Increased size to 6 rows
+  size: 54
   items:
     target_info:
       material: 'PLAYER_HEAD'
@@ -29,7 +25,7 @@ menu:
         - '&7Reports Received: &c{reports_received}'
         - '&7Reports Sent: &a{reports_sent}'
         - ''
-        - '&eLeft-Click to see their reports.'
+        - '&eLeft-Click to see reports against them.'
         - '&eRight-Click to see their history.'
       left_click_actions:
         - 'REPORTS_FILTER_TARGET'
@@ -59,10 +55,10 @@ menu:
         - '&7Reports Received: &c{reports_received}'
         - '&7Reports Sent: &a{reports_sent}'
         - ''
-        - '&eLeft-Click to see their reports.'
+        - '&eLeft-Click to see reports against them.'
         - '&eRight-Click to see their history.'
       left_click_actions:
-        - 'REPORTS_FILTER_REQUESTER'
+        - 'PLAYER_COMMAND:reports {requester}' # MODIFIED
       right_click_actions:
         - 'HISTORY_REQUESTER'
 
@@ -104,7 +100,14 @@ menu:
         - '&7and change its status to &6Taken&7.'
       left_click_actions:
         - 'SET_REPORT_STATUS_TAKE'
-        - 'PLAY_SOUND:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:1.2'
+      confirm_state:
+        material: 'ORANGE_DYE'
+        name: '&6&lConfirm Takeover'
+        lore:
+          - '&cThis report is already assigned to'
+          - '&c&l{moderator}&c.'
+          - ''
+          - '&eClick again to take it anyway.'
 
     resolve_report:
       material: 'EMERALD_BLOCK'
@@ -136,20 +139,21 @@ menu:
         lore:
           - '&cClick again to reject.'
 
-    delete_report:
-      material: 'BARRIER'
+    mark_as_pending_button:
+      material: 'CLOCK'
       slot: 50
-      name: '&8&lDelete Report'
+      name: '&e&lMark as Pending'
       lore:
-        - '&7Mark this report as deleted.'
-        - '&8Requires confirmation)'
+        - '&7Re-open this report and remove'
+        - '&7the assigned moderator.'
+        - '&8(Requires confirmation)'
       left_click_actions:
-        - 'SET_REPORT_STATUS_DELETED'
+        - 'SET_REPORT_STATUS_PENDING'
       confirm_state:
-        material: 'COAL_BLOCK'
-        name: '&8&lCONFIRM DELETE'
+        material: 'GLOWSTONE_DUST'
+        name: '&6&lCONFIRM RE-OPEN'
         lore:
-          - '&7Click again to delete.'
+          - '&eClick again to mark as pending.'
 
     assign_moderator:
       material: 'DIAMOND_HELMET'

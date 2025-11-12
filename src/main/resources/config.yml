@@ -21,6 +21,7 @@ database:
 sounds:
   punish_confirm: 'ENTITY_EXPERIENCE_ORB_PICKUP'
   punish_error: 'ENTITY_VILLAGER_NO'
+  confirm_again: 'BLOCK_ANVIL_LAND'
   punishment_expired: 'BLOCK_NOTE_BLOCK_CHIME' # Sound for when a mute/softban expires
   punishment_removed: 'BLOCK_NOTE_BLOCK_CHIME' # Sound for when a mute/softban expires
   softban_command_blocked: 'ENTITY_VILLAGER_NO'

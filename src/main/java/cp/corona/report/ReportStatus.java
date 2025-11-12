@@ -3,10 +3,9 @@ package cp.corona.report;
 public enum ReportStatus {
     PENDING("Pending", "&e"),
     TAKEN("Taken", "&6"),
-    ASSIGNED("Assigned", "&d"), // ADDED
+    ASSIGNED("Assigned", "&d"),
     RESOLVED("Resolved", "&a"),
-    REJECTED("Rejected", "&c"),
-    DELETED("Deleted", "&7");
+    REJECTED("Rejected", "&c");
 
     private final String displayName;
     private final String color;
@@ -31,8 +30,7 @@ public enum ReportStatus {
             case TAKEN: return RESOLVED;
             case ASSIGNED: return TAKEN; // If an assigned mod takes it
             case RESOLVED: return REJECTED;
-            case REJECTED: return DELETED;
-            case DELETED:
+            case REJECTED:
             default:
                 return PENDING;
         }

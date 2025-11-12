@@ -41,7 +41,7 @@ public class ReportDetailsMenu implements InventoryHolder {
         this.plugin = plugin;
         this.viewer = viewer;
         this.reportId = reportId;
-        this.inventory = Bukkit.createInventory(this, 54, "Loading Report #" + reportId); // MODIFIED: Changed size to 54
+        this.inventory = Bukkit.createInventory(this, 54, "Report #" + reportId);
         loadReportAndInitialize();
     }
 
@@ -88,7 +88,7 @@ public class ReportDetailsMenu implements InventoryHolder {
     private void initializeItems(PlayerRecordStats targetStats, PlayerRecordStats requesterStats) {
         String title = MessageUtils.getColorMessage(plugin.getConfigManager().getReportDetailsMenuConfig().getConfig().getString("menu.title", "&c&lReport Details: #{report_id}").replace("{report_id}", reportId));
         if (!viewer.getOpenInventory().getTitle().equals(title)) {
-            Inventory newInv = Bukkit.createInventory(this, 54, title); // MODIFIED: Changed size to 54
+            Inventory newInv = Bukkit.createInventory(this, 54, title);
             inventory.setContents(newInv.getContents());
             viewer.openInventory(inventory);
         }
@@ -98,15 +98,16 @@ public class ReportDetailsMenu implements InventoryHolder {
         OfflinePlayer requester = Bukkit.getOfflinePlayer(reportEntry.getRequesterUUID());
         OfflinePlayer moderator = (reportEntry.getModeratorUUID() != null) ? Bukkit.getOfflinePlayer(reportEntry.getModeratorUUID()) : null;
 
-        boolean isHandled = reportEntry.getStatus() == ReportStatus.TAKEN || reportEntry.getStatus() == ReportStatus.ASSIGNED;
+        boolean isAssignedToViewer = viewer.getUniqueId().equals(reportEntry.getModeratorUUID());
 
         for (String key : plugin.getConfigManager().getReportDetailsMenuItemKeys()) {
             MenuItem itemConfig = plugin.getConfigManager().getReportDetailsMenuItemConfig(key);
             if (itemConfig == null) continue;
 
-            // MODIFIED: Conditional item visibility
-            if (key.equals("take_report") && isHandled) continue;
-            if ((key.equals("resolve_report") || key.equals("reject_report")) && !isHandled) continue;
+            // Conditional item visibility
+            if (key.equals("take_report") && isAssignedToViewer) continue;
+            if ((key.equals("resolve_report") || key.equals("reject_report")) && !isAssignedToViewer) continue;
+            if (key.equals("mark_as_pending_button") && (reportEntry.getStatus() != ReportStatus.RESOLVED && reportEntry.getStatus() != ReportStatus.REJECTED)) continue;
             if ((key.equals("punish_target") || key.equals("target_info") || key.equals("target_summary")) && target == null) continue;
             if (key.equals("moderator_info") && moderator == null) continue;
 
@@ -121,7 +122,7 @@ public class ReportDetailsMenu implements InventoryHolder {
             if (meta.hasDisplayName()) {
                 String name = meta.getDisplayName();
                 if (key.equals("assign_moderator") && moderator != null) {
-                    name = name.replace("Assign to", "Reassign");
+                    name = name.replace("Assign", "Reassign");
                 }
                 meta.setDisplayName(replacePlaceholders(name, target, requester, moderator, currentStats));
             }
