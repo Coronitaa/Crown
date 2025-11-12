@@ -60,15 +60,13 @@ import java.util.stream.Collectors;
 public class MenuListener implements Listener {
     private final Crown plugin;
     private final HashMap<UUID, BukkitTask> inputTimeouts = new HashMap<>();
-    private final Map<UUID, String> pendingReportStateChanges = new HashMap<>();
     private final HashMap<UUID, PunishDetailsMenu> pendingDetailsMenus = new HashMap<>();
     private final HashMap<UUID, String> inputTypes = new HashMap<>();
     private final HashMap<UUID, String> inputOrigin = new HashMap<>();
     private final Map<UUID, BukkitTask> inventorySyncTasks = new HashMap<>();
 
-    private final Map<UUID, UUID> pendingFullInvClear = new HashMap<>();
-    private final Map<UUID, UUID> pendingEnderChestClear = new HashMap<>();
-    private final Map<UUID, BukkitTask> pendingClearTasks = new HashMap<>();
+    // A single, centralized map to handle all pending confirmations for all players.
+    private final Map<UUID, ConfirmationContext> pendingConfirmations = new HashMap<>();
 
     // ADDED START: Fields for report input handling
     private enum ReportInputType { FILTER_TARGET_NAME, FILTER_REQUESTER_NAME, ASSIGN_MODERATOR }
@@ -107,6 +105,44 @@ public class MenuListener implements Listener {
     public MenuListener(Crown plugin) {
         this.plugin = plugin;
     }
+
+    /**
+     * Holds the context of a pending confirmation action to allow for proper cancellation and state reversion.
+     */
+    private static class ConfirmationContext {
+        final Inventory inventory;
+        final int slot;
+        final ItemStack originalItem;
+        final BukkitTask timeoutTask;
+        final String confirmationKey;
+
+        ConfirmationContext(Inventory inventory, int slot, ItemStack originalItem, BukkitTask timeoutTask, String confirmationKey) {
+            this.inventory = inventory;
+            this.slot = slot;
+            this.originalItem = originalItem;
+            this.timeoutTask = timeoutTask;
+            this.confirmationKey = confirmationKey;
+        }
+    }
+
+    /**
+     * Cancels any existing confirmation for a player, reverting the button's visual state.
+     * This ensures only one confirmation can be active per player at any time.
+     * @param player The player whose confirmation should be cancelled.
+     */
+    private void cancelExistingConfirmation(Player player) {
+        ConfirmationContext existingContext = pendingConfirmations.remove(player.getUniqueId());
+        if (existingContext != null) {
+            if (!existingContext.timeoutTask.isCancelled()) {
+                existingContext.timeoutTask.cancel();
+            }
+            // Check if the same inventory is still open to prevent errors
+            if (player.getOpenInventory().getTopInventory().equals(existingContext.inventory)) {
+                existingContext.inventory.setItem(existingContext.slot, existingContext.originalItem);
+            }
+        }
+    }
+
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
@@ -237,11 +273,15 @@ public class MenuListener implements Listener {
     }
 
     private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
-        Map<UUID, UUID> confirmationMap = type.equals("full") ? pendingFullInvClear : pendingEnderChestClear;
         UUID moderatorId = moderator.getUniqueId();
         UUID targetId = target.getUniqueId();
+        String confirmationKey = "CLEAR_" + type.toUpperCase() + ":" + targetId;
 
-        if (confirmationMap.containsKey(moderatorId) && confirmationMap.get(moderatorId).equals(targetId)) {
+        ConfirmationContext context = pendingConfirmations.get(moderatorId);
+
+        if (context != null && context.confirmationKey.equals(confirmationKey)) {
+            cancelExistingConfirmation(moderator); // Clears the pending confirmation upon success
+
             Player targetPlayer = Bukkit.getPlayer(targetId);
             if (targetPlayer == null || !targetPlayer.isOnline()) {
                 sendConfigMessage(moderator, "messages.player_not_online", "{input}", target.getName());
@@ -258,7 +298,7 @@ public class MenuListener implements Listener {
                 inv.setArmorContents(new ItemStack[4]);
                 inv.setItemInOffHand(null);
                 actionType = "CLEAR_INVENTORY";
-            } else {
+            } else { // "ender"
                 Inventory enderChest = targetPlayer.getEnderChest();
                 clearedCount = (int) Arrays.stream(enderChest.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
                 enderChest.clear();
@@ -267,17 +307,12 @@ public class MenuListener implements Listener {
 
             plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, actionType, String.valueOf(clearedCount));
 
-            confirmationMap.remove(moderatorId);
-            BukkitTask task = pendingClearTasks.remove(moderatorId);
-            if (task != null) task.cancel();
-
             sendConfigMessage(moderator, "messages.clear_inventory_success", "{target}", target.getName(), "{inventory_type}", type.equals("full") ? "inventory" : "ender chest");
             playSound(moderator, "punish_confirm");
 
             bypassCloseSync.add(moderatorId);
-
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if(type.equals("full")) {
+                if (type.equals("full")) {
                     new FullInventoryMenu(targetId, plugin).open(moderator);
                 } else {
                     new EnderChestMenu(targetId, plugin).open(moderator);
@@ -285,7 +320,8 @@ public class MenuListener implements Listener {
             });
 
         } else {
-            confirmationMap.put(moderatorId, targetId);
+            cancelExistingConfirmation(moderator); // Cancel any other pending confirmation first
+
             MenuItem confirmState = clickedItem.getConfirmState();
             if (confirmState != null) {
                 event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(target, plugin.getConfigManager()));
@@ -295,17 +331,16 @@ public class MenuListener implements Listener {
             BukkitTask task = new BukkitRunnable() {
                 @Override
                 public void run() {
-                    if (confirmationMap.remove(moderatorId) != null) {
-                        if (moderator.getOpenInventory().getTopInventory().getHolder() == event.getInventory().getHolder()) {
-                            event.getInventory().setItem(event.getSlot(), clickedItem.toItemStack(target, plugin.getConfigManager()));
-                        }
-                        pendingClearTasks.remove(moderatorId);
-                    }
+                    // This task will only run if not cancelled by a second click or another confirmation
+                    cancelExistingConfirmation(moderator);
                 }
-            }.runTaskLater(plugin, 100L);
-            pendingClearTasks.put(moderatorId, task);
+            }.runTaskLater(plugin, 100L); // 5-second timeout
+
+            ConfirmationContext newContext = new ConfirmationContext(event.getInventory(), event.getSlot(), clickedItem.toItemStack(target, plugin.getConfigManager()), task, confirmationKey);
+            pendingConfirmations.put(moderatorId, newContext);
         }
     }
+
 
     private void handleShiftClick(PlayerInventory playerInv, Inventory guiInv, ItemStack itemToMove, boolean fromTop) {
         if (itemToMove == null || itemToMove.getType() == Material.AIR) return;
@@ -379,33 +414,24 @@ public class MenuListener implements Listener {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        InventoryHolder holder = event.getInventory().getHolder();
         if (!(event.getPlayer() instanceof Player player)) return;
+
+        // Always cancel any pending confirmation when a menu is closed.
+        cancelExistingConfirmation(player);
+
+        InventoryHolder holder = event.getInventory().getHolder();
 
         if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
             stopInventorySyncTask(player);
-
-            UUID moderatorId = player.getUniqueId();
-            if (holder instanceof FullInventoryMenu) {
-                pendingFullInvClear.remove(moderatorId);
-            } else if (holder instanceof EnderChestMenu) {
-                pendingEnderChestClear.remove(moderatorId);
-            }
-            BukkitTask clearTask = pendingClearTasks.remove(moderatorId);
-            if (clearTask != null) {
-                clearTask.cancel();
-            }
-
             if (bypassCloseSync.remove(player.getUniqueId())) {
                 return;
             }
-
             if (player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
                 synchronizeInventory(holder, event.getInventory());
             }
         }
 
-        // Clear any pending chat inputs for this player when they close a menu
+        // Clear any pending chat inputs for this player
         if (pendingReportInputs.containsKey(player.getUniqueId()) || inputTimeouts.containsKey(player.getUniqueId())) {
             clearPlayerInputData(player);
         }
@@ -1231,33 +1257,25 @@ public class MenuListener implements Listener {
 
     private void handleReportStateChangeConfirmation(Player player, ReportDetailsMenu menu, ClickAction action, ItemStack clickedItem, int slot) {
         String reportId = menu.getReportId();
-        String confirmationKey = reportId + ":" + action.name();
+        String confirmationKey = "REPORT_STATUS:" + reportId + ":" + action.name();
 
-        if (pendingReportStateChanges.getOrDefault(player.getUniqueId(), "").equals(confirmationKey)) {
-            pendingReportStateChanges.remove(player.getUniqueId());
+        ConfirmationContext context = pendingConfirmations.get(player.getUniqueId());
+
+        if (context != null && context.confirmationKey.equals(confirmationKey)) {
+            cancelExistingConfirmation(player);
 
             ReportStatus newStatus = null;
             UUID newModerator = player.getUniqueId();
 
             switch (action) {
-                case SET_REPORT_STATUS_RESOLVED:
-                    newStatus = ReportStatus.RESOLVED;
-                    break;
-                case SET_REPORT_STATUS_REJECTED:
-                    newStatus = ReportStatus.REJECTED;
-                    break;
-                case SET_REPORT_STATUS_PENDING:
-                    newStatus = ReportStatus.PENDING;
-                    newModerator = null;
-                    break;
-                case SET_REPORT_STATUS_TAKE:
-                    newStatus = ReportStatus.TAKEN;
-                    break;
+                case SET_REPORT_STATUS_RESOLVED: newStatus = ReportStatus.RESOLVED; break;
+                case SET_REPORT_STATUS_REJECTED: newStatus = ReportStatus.REJECTED; break;
+                case SET_REPORT_STATUS_PENDING: newStatus = ReportStatus.PENDING; newModerator = null; break;
+                case SET_REPORT_STATUS_TAKE: newStatus = ReportStatus.TAKEN; break;
             }
 
             if (newStatus == null) return;
 
-            // This is the correction: Create final variables before the lambda.
             final ReportStatus finalStatus = newStatus;
             final UUID finalModerator = newModerator;
 
@@ -1270,28 +1288,25 @@ public class MenuListener implements Listener {
                     });
 
         } else {
-            pendingReportStateChanges.put(player.getUniqueId(), confirmationKey);
-            MenuItem menuItem = getMenuItemClicked(slot, menu);
+            cancelExistingConfirmation(player);
 
+            MenuItem menuItem = getMenuItemClicked(slot, menu);
             if (menuItem != null && menuItem.getConfirmState() != null) {
                 ItemStack confirmStack = menuItem.getConfirmState().toItemStack(null, plugin.getConfigManager());
+                ItemMeta meta = confirmStack.getItemMeta();
 
                 if (action == ClickAction.SET_REPORT_STATUS_TAKE) {
                     OfflinePlayer currentMod = Bukkit.getOfflinePlayer(menu.getReportEntry().getModeratorUUID());
-                    ItemMeta confirmMeta = confirmStack.getItemMeta();
-                    if (confirmMeta != null) {
-                        List<String> lore = confirmMeta.getLore();
+                    if (meta != null) {
+                        List<String> lore = meta.getLore();
                         if (lore != null) {
                             lore.replaceAll(line -> line.replace("{moderator}", currentMod.getName() != null ? currentMod.getName() : "Unknown"));
-                            confirmMeta.setLore(lore);
+                            meta.setLore(lore);
                         }
-                        confirmStack.setItemMeta(confirmMeta);
                     }
                 }
-
-                confirmStack.addUnsafeEnchantment(Enchantment.FORTUNE, 1);
-                ItemMeta meta = confirmStack.getItemMeta();
                 if (meta != null) {
+                    meta.addEnchant(Enchantment.FORTUNE, 1, true);
                     meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
                     confirmStack.setItemMeta(meta);
                 }
@@ -1299,19 +1314,19 @@ public class MenuListener implements Listener {
                 menu.getInventory().setItem(slot, confirmStack);
                 playSound(player, "confirm_again");
 
-                new BukkitRunnable() {
+                BukkitTask task = new BukkitRunnable() {
                     @Override
                     public void run() {
-                        if (confirmationKey.equals(pendingReportStateChanges.remove(player.getUniqueId()))) {
-                            if (player.getOpenInventory().getTopInventory().getHolder() == menu) {
-                                menu.getInventory().setItem(slot, clickedItem);
-                            }
-                        }
+                        cancelExistingConfirmation(player);
                     }
                 }.runTaskLater(plugin, 100L); // 5-second timeout
+
+                ConfirmationContext newContext = new ConfirmationContext(menu.getInventory(), slot, clickedItem.clone(), task, confirmationKey);
+                pendingConfirmations.put(player.getUniqueId(), newContext);
             }
         }
     }
+
 
     private void requestReportFilterInput(Player player, ReportsMenu menu, boolean byRequester) {
         player.closeInventory();
