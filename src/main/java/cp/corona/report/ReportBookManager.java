@@ -1,5 +1,6 @@
 package cp.corona.report;
 
+import cp.corona.config.MainConfigManager;
 import cp.corona.crown.Crown;
 import cp.corona.utils.MessageUtils;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -24,20 +25,14 @@ public class ReportBookManager {
     private final Crown plugin;
     private final Map<UUID, ReportBuilder> reportSessions = new ConcurrentHashMap<>();
 
-    private enum InputState {
-        AWAITING_PLAYER_NAME,
-        AWAITING_CLAN_NAME,
-        AWAITING_CUSTOM_REASON,
-        AWAITING_ADDITIONAL_DETAILS // ADDED
-    }
-
     public ReportBookManager(Crown plugin) {
         this.plugin = plugin;
     }
 
     public void startReportProcess(Player player) {
         reportSessions.put(player.getUniqueId(), new ReportBuilder(player.getUniqueId()));
-        openBook(player, "Report Menu", getInitialView());
+        String initialPageKey = plugin.getConfigManager().getReportInitialPageKey();
+        openBookForPage(player, initialPageKey);
     }
 
     public void startReportProcess(Player player, OfflinePlayer target) {
@@ -46,55 +41,58 @@ public class ReportBookManager {
         builder.targetName = target.getName();
         builder.reportType = "PLAYER";
         reportSessions.put(player.getUniqueId(), builder);
-        openBook(player, "Report Categories", getCategoriesView("Player"));
+        openBookForPage(player, "player_categories"); // Assumes 'player_categories' is the key for the next step
     }
 
+    // FIXED: Reworked to handle multiple actions in a single command string.
     public void handleBookCommand(Player player, String[] args) {
-        if (args.length < 2) return;
         ReportBuilder builder = reportSessions.get(player.getUniqueId());
         if (builder == null) return;
 
-        String action = args[0];
-        String value = args[1];
+        // Iterate through args in pairs (action, value)
+        for (int i = 0; i < args.length; i += 2) {
+            if (i + 1 >= args.length) continue; // Ensure there's a value for the action
 
-        switch (action) {
-            case "select_target_type":
-                builder.reportType = value;
-                if ("PLAYER".equals(builder.reportType)) {
-                    openBook(player, "Report a Player/Clan", getPlayerOrClanView());
-                } else {
-                    builder.targetName = "Server";
-                    openBook(player, "Report a Server Issue", getCategoriesView("Server"));
-                }
-                break;
-            case "select_player_type":
-                player.closeInventory();
-                if ("PLAYER".equals(value)) {
-                    builder.inputState = InputState.AWAITING_PLAYER_NAME;
-                    MessageUtils.sendConfigMessage(plugin, player, "messages.report_prompt_player_name");
-                } else {
-                    builder.inputState = InputState.AWAITING_CLAN_NAME;
-                    MessageUtils.sendConfigMessage(plugin, player, "messages.report_prompt_clan_name");
-                }
-                break;
-            case "select_category":
-                builder.category = value;
-                openBook(player, "Select Reason", getReasonsView(builder.category));
-                break;
-            case "select_reason":
-                player.closeInventory();
-                if ("CUSTOM".equals(value)) {
-                    builder.category = "Custom";
-                    builder.inputState = InputState.AWAITING_CUSTOM_REASON;
-                    MessageUtils.sendConfigMessage(plugin, player, "messages.report_prompt_custom_reason");
-                } else {
+            String action = args[i];
+            String value = args[i + 1].replace("_SPACE_", " "); // Decode spaces
+
+            switch (action) {
+                case "GOTO":
+                    openBookForPage(player, value);
+                    break;
+                case "REQUEST_INPUT":
+                    player.closeInventory();
+                    builder.inputState = value;
+                    // The next page key is now the third parameter for this specific action
+                    if (args.length > i + 2) {
+                        builder.nextPageKey = args[i + 2];
+                    }
+
+                    String messageKey = "messages.report_prompt_custom_reason"; // Default
+                    if ("PLAYER".equalsIgnoreCase(value)) messageKey = "messages.report_prompt_player_name";
+                    else if ("CLAN".equalsIgnoreCase(value)) messageKey = "messages.report_prompt_clan_name";
+
+                    MessageUtils.sendConfigMessage(plugin, player, messageKey);
+                    return; // Stop processing further actions as we are now awaiting chat input
+                case "SELECT_REASON":
+                    player.closeInventory();
                     builder.reason = value;
-                    builder.inputState = InputState.AWAITING_ADDITIONAL_DETAILS;
+                    builder.inputState = "DETAILS";
                     MessageUtils.sendConfigMessage(plugin, player, "messages.report_prompt_additional_details");
-                }
-                break;
+                    return; // Stop processing, await chat input
+                case "SET_TYPE":
+                    builder.reportType = value;
+                    break;
+                case "SET_TARGET":
+                    builder.targetName = value;
+                    break;
+                case "SET_CATEGORY":
+                    builder.category = value;
+                    break;
+            }
         }
     }
+
 
     public void handleChatInput(Player player, String input) {
         ReportBuilder builder = reportSessions.get(player.getUniqueId());
@@ -106,11 +104,11 @@ public class ReportBookManager {
             return;
         }
 
-        InputState state = builder.inputState;
+        String state = builder.inputState;
         builder.inputState = null;
 
         switch (state) {
-            case AWAITING_PLAYER_NAME:
+            case "PLAYER":
                 OfflinePlayer target = Bukkit.getOfflinePlayer(input);
                 if (!target.hasPlayedBefore() && !target.isOnline()) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.never_played", "{input}", input);
@@ -120,23 +118,92 @@ public class ReportBookManager {
                 builder.targetUUID = target.getUniqueId();
                 builder.targetName = target.getName();
                 builder.reportType = "PLAYER";
-                openBook(player, "Report Categories", getCategoriesView("Player"));
+                if (builder.nextPageKey != null) openBookForPage(player, builder.nextPageKey);
                 break;
-            case AWAITING_CLAN_NAME:
+            case "CLAN":
                 builder.targetName = input;
                 builder.reportType = "CLAN";
-                openBook(player, "Report Categories", getCategoriesView("Clan"));
+                if (builder.nextPageKey != null) openBookForPage(player, builder.nextPageKey);
                 break;
-            case AWAITING_CUSTOM_REASON:
+            case "CUSTOM_REASON":
+                builder.category = "Custom"; // FIXED: Ensure category is set
                 builder.reason = "Custom";
                 builder.details = input;
                 submitReport(player, builder);
                 break;
-            case AWAITING_ADDITIONAL_DETAILS: // ADDED
+            case "DETAILS":
                 builder.details = input;
                 submitReport(player, builder);
                 break;
         }
+    }
+
+    public void openBookForPage(Player player, String pageKey) {
+        ReportBuilder builder = reportSessions.get(player.getUniqueId());
+        if (builder == null) return;
+
+        MainConfigManager.ReportPage pageConfig = plugin.getConfigManager().getReportPage(pageKey);
+        if (pageConfig == null) {
+            plugin.getLogger().warning("Report page with key '" + pageKey + "' not found in reports.yml.");
+            return;
+        }
+
+        ComponentBuilder pageBuilder = new ComponentBuilder();
+        pageBuilder.append(createTitle(pageConfig.title()));
+
+        for (MainConfigManager.ReportOption option : pageConfig.options()) {
+            pageBuilder.append(createClickableOption(option)).append("\n\n");
+        }
+
+        openBook(player, pageConfig.title(), pageBuilder.create());
+    }
+
+    // FIXED: Command generation logic to support multi-actions cleanly.
+    private TextComponent createClickableOption(MainConfigManager.ReportOption option) {
+        TextComponent component = new TextComponent(MessageUtils.getColorMessage(option.text()));
+
+        StringBuilder commandBuilder = new StringBuilder("/crown report_internal ");
+        String[] actions = option.action().split(";");
+        for(String singleAction : actions) {
+            String[] parts = singleAction.split(":", 2);
+            String actionName = parts[0];
+            commandBuilder.append(actionName).append(" ");
+            if (parts.length > 1) {
+                // For REQUEST_INPUT, the structure is ACTION:TYPE:NEXT_PAGE
+                if ("REQUEST_INPUT".equals(actionName)) {
+                    String[] requestParts = parts[1].split(":", 2);
+                    commandBuilder.append(requestParts[0]).append(" "); // Append TYPE
+                    if (requestParts.length > 1) {
+                        commandBuilder.append(requestParts[1]).append(" "); // Append NEXT_PAGE
+                    }
+                } else {
+                    commandBuilder.append(parts[1].replace(" ", "_SPACE_")).append(" ");
+                }
+            }
+        }
+
+        component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, commandBuilder.toString().trim()));
+
+        if (option.hover() != null && !option.hover().isEmpty()) {
+            component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(MessageUtils.getColorMessage(option.hover()))));
+        }
+        return component;
+    }
+
+    private void openBook(Player player, String title, BaseComponent[] page) {
+        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
+        BookMeta meta = (BookMeta) book.getItemMeta();
+        meta.setTitle(MessageUtils.getColorMessage(plugin.getConfigManager().getReportBookTitle()));
+        meta.setAuthor("Crown System");
+        meta.spigot().addPage(page);
+        book.setItemMeta(meta);
+        player.openBook(book);
+    }
+
+    private TextComponent createTitle(String text) {
+        TextComponent title = new TextComponent(text + "\n\n");
+        title.setBold(true);
+        return title;
     }
 
     public void createDirectReport(Player player, OfflinePlayer target, String reason) {
@@ -155,12 +222,12 @@ public class ReportBookManager {
 
         plugin.getSoftBanDatabaseManager().createReport(
                 player.getUniqueId(), target.getUniqueId(), target.getName(),
-                "PLAYER", "Custom", "Custom", reason, collectedData
+                "PLAYER", "Direct", reason, "N/A", collectedData
         ).thenAccept(reportId -> {
             if (reportId != null) {
                 MessageUtils.sendConfigMessage(plugin, player, "messages.report_submitted", "{report_id}", reportId);
                 String notifyMessage = plugin.getConfigManager().getMessage("messages.report_staff_notification",
-                        "{requester}", player.getName(), "{target}", target.getName(), "{reason}", "Custom Reason");
+                        "{requester}", player.getName(), "{target}", target.getName(), "{reason}", reason);
                 Bukkit.getOnlinePlayers().stream()
                         .filter(p -> p.hasPermission("crown.report.view"))
                         .forEach(staff -> staff.sendMessage(MessageUtils.getColorMessage(notifyMessage)));
@@ -214,96 +281,6 @@ public class ReportBookManager {
         return builder != null && builder.inputState != null;
     }
 
-    private void openBook(Player player, String title, BaseComponent[] page) {
-        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        BookMeta meta = (BookMeta) book.getItemMeta();
-        meta.setTitle(title);
-        meta.setAuthor("Crown System");
-        meta.spigot().addPage(page);
-        book.setItemMeta(meta);
-        player.openBook(book);
-    }
-
-    private BaseComponent[] getInitialView() {
-        return new ComponentBuilder()
-                .append(createTitle("Create a Report"))
-                .append(createClickableOption("Report a Player or Clan", "/crown report_internal select_target_type PLAYER", "Report a user or group of users."))
-                .append("\n\n")
-                .append(createClickableOption("Report a Server Issue", "/crown report_internal select_target_type SERVER", "Report bugs, lag, or other server problems."))
-                .create();
-    }
-
-    private BaseComponent[] getPlayerOrClanView() {
-        return new ComponentBuilder()
-                .append(createTitle("Report Type"))
-                .append(createClickableOption("Report a specific Player", "/crown report_internal select_player_type PLAYER", "Report a single user."))
-                .append("\n\n")
-                .append(createClickableOption("Report a Clan", "/crown report_internal select_player_type CLAN", "Report a group of players by their clan name."))
-                .create();
-    }
-
-    private BaseComponent[] getCategoriesView(String type) {
-        ComponentBuilder builder = new ComponentBuilder().append(createTitle("Select a Category"));
-        if ("Server".equals(type)) {
-            builder.append(createClickableOption("Bug or Glitch", "/crown report_internal select_category Bug", "Report an exploit or unintended behavior."))
-                    .append("\n\n")
-                    .append(createClickableOption("Server Performance", "/crown report_internal select_category Performance", "Report lag, crashes, or TPS drops."));
-        } else {
-            builder.append(createClickableOption("Disruptive Gameplay", "/crown report_internal select_category Disruptive", "Cheating, hacking, exploiting."))
-                    .append("\n\n")
-                    .append(createClickableOption("Bad Behavior", "/crown report_internal select_category Verbal", "Insults, harassment, spam."))
-                    .append("\n\n")
-                    .append(createClickableOption("Abusive Gameplay", "/crown report_internal select_category Abusive", "Griefing, spawnkilling, scamming."));
-        }
-        builder.append("\n\n\n").append(createClickableOption("Custom Reason", "/crown report_internal select_reason CUSTOM", "Write your own report reason in chat."));
-        return builder.create();
-    }
-
-    private BaseComponent[] getReasonsView(String category) {
-        ComponentBuilder builder = new ComponentBuilder().append(createTitle("Select a Reason"));
-        switch (category) {
-            case "Disruptive" -> builder.append(createClickableOption("Kill Aura / Aimbot", "/crown report_internal select_reason Killaura", ""))
-                    .append("\n\n")
-                    .append(createClickableOption("Fly / Speed Hacks", "/crown report_internal select_reason FlySpeed", ""))
-                    .append("\n\n")
-                    .append(createClickableOption("X-Ray / Resource Cheats", "/crown report_internal select_reason XRay", ""));
-            case "Verbal" -> builder.append(createClickableOption("Chat Spam", "/crown report_internal select_reason Spam", ""))
-                    .append("\n\n")
-                    .append(createClickableOption("Harassment / Insults", "/crown report_internal select_reason Harassment", ""))
-                    .append("\n\n")
-                    .append(createClickableOption("Inappropriate Content", "/crown report_internal select_reason Inappropriate", ""));
-            case "Abusive" -> builder.append(createClickableOption("Griefing / Raiding", "/crown report_internal select_reason Griefing", ""))
-                    .append("\n\n")
-                    .append(createClickableOption("Scamming Items / Money", "/crown report_internal select_reason Scamming", ""))
-                    .append("\n\n")
-                    .append(createClickableOption("Spawnkilling / Trapping", "/crown report_internal select_reason Trapping", ""));
-            case "Bug" -> builder.append(createClickableOption("Duplication Glitch", "/crown report_internal select_reason Duplication", ""))
-                    .append("\n\n")
-                    .append(createClickableOption("Map Exploit", "/crown report_internal select_reason MapExploit", ""));
-            case "Performance" -> builder.append(createClickableOption("Lag Machine", "/crown report_internal select_reason LagMachine", ""))
-                    .append("\n\n")
-                    .append(createClickableOption("Server Crash", "/crown report_internal select_reason Crash", ""));
-            default -> builder.append(createClickableOption("General Report", "/crown report_internal select_reason General", ""));
-        }
-        builder.append("\n\n\n").append(createClickableOption("Custom Reason", "/crown report_internal select_reason CUSTOM", "Write your own report reason in chat."));
-        return builder.create();
-    }
-
-    private TextComponent createTitle(String text) {
-        TextComponent title = new TextComponent(text + "\n\n");
-        title.setBold(true);
-        return title;
-    }
-
-    private TextComponent createClickableOption(String text, String command, String hoverText) {
-        TextComponent component = new TextComponent("§3§l[§b" + text + "§3§l]");
-        component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command));
-        if (hoverText != null && !hoverText.isEmpty()) {
-            component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("§7" + hoverText)));
-        }
-        return component;
-    }
-
     private static class ReportBuilder {
         final UUID requesterUUID;
         UUID targetUUID;
@@ -312,7 +289,8 @@ public class ReportBookManager {
         String category;
         String reason;
         String details;
-        InputState inputState;
+        String inputState;
+        String nextPageKey;
 
         ReportBuilder(UUID requesterUUID) {
             this.requesterUUID = requesterUUID;

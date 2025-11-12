@@ -38,6 +38,7 @@ public class MainConfigManager {
     private final CustomConfig auditLogConfig;
     private final CustomConfig reportsMenuConfig;
     private final CustomConfig reportDetailsMenuConfig;
+    private final CustomConfig reportsConfig;
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
 
     private final Crown plugin;
@@ -49,6 +50,9 @@ public class MainConfigManager {
 
     private final Map<Integer, WarnLevel> warnLevels = new HashMap<>();
     private String warnExpirationMode;
+
+    public record ReportOption(String text, String hover, String action) {}
+    public record ReportPage(String title, List<ReportOption> options) {}
 
 
     public MainConfigManager(Crown plugin) {
@@ -66,6 +70,7 @@ public class MainConfigManager {
         auditLogConfig = new CustomConfig("audit_log.yml", "menus", plugin, false);
         reportsMenuConfig = new CustomConfig("reports_menu.yml", "menus", plugin, false);
         reportDetailsMenuConfig = new CustomConfig("report_details_menu.yml", "menus", plugin, false);
+        reportsConfig = new CustomConfig("reports.yml", "menus", plugin, false); // MODIFIED
 
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
@@ -84,6 +89,7 @@ public class MainConfigManager {
         auditLogConfig.registerConfig();
         reportsMenuConfig.registerConfig();
         reportDetailsMenuConfig.registerConfig();
+        reportsConfig.registerConfig();
         punishmentConfigs.values().forEach(CustomConfig::registerConfig);
 
         loadConfig();
@@ -106,6 +112,7 @@ public class MainConfigManager {
         auditLogConfig.reloadConfig();
         reportsMenuConfig.reloadConfig();
         reportDetailsMenuConfig.reloadConfig();
+        reportsConfig.reloadConfig();
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
@@ -121,6 +128,35 @@ public class MainConfigManager {
             }
             placeholders.register();
         }
+    }
+
+    public String getReportBookTitle() {
+        return reportsConfig.getConfig().getString("report-menu.book-title", "&c&lCreate a Report");
+    }
+
+    public String getReportInitialPageKey() {
+        return reportsConfig.getConfig().getString("report-menu.initial-page", "root");
+    }
+
+    public ReportPage getReportPage(String key) {
+        ConfigurationSection pageSection = reportsConfig.getConfig().getConfigurationSection("report-menu.pages." + key);
+        if (pageSection == null) {
+            return null;
+        }
+
+        String title = pageSection.getString("title", "Report Menu");
+        List<ReportOption> options = new ArrayList<>();
+        List<Map<?, ?>> optionsList = pageSection.getMapList("options");
+
+        for (Map<?, ?> optionMap : optionsList) {
+            String text = (String) optionMap.get("text");
+            String hover = (String) optionMap.get("hover");
+            String action = (String) optionMap.get("action");
+            if (text != null && action != null) {
+                options.add(new ReportOption(text, hover, action));
+            }
+        }
+        return new ReportPage(title, options);
     }
 
     private void loadWarnLevels() {

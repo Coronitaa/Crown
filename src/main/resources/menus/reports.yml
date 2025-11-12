@@ -1,0 +1,125 @@
+# Configuration for the dynamic /report book menu.
+# This file allows you to create a multi-page book interface for reporting.
+
+report-menu:
+  # Title of the book item itself.
+  book-title: "&c&lCreate a Report"
+  # The key of the first page to be displayed when the book is opened.
+  initial-page: "root"
+
+  # Define all possible pages for the report book here.
+  # Each page has a unique key (e.g., "root", "player_categories").
+  pages:
+    root:
+      title: "Create a Report"
+      options:
+        - text: "&bReport a Player or Clan"
+          hover: "&7Report a user or group of users."
+          # GOTO action navigates to another page defined in this file.
+          action: "GOTO:select_target_type"
+        - text: "&bReport a Server Issue"
+          hover: "&7Report bugs, lag, or other server problems."
+          # This action navigates, and also sets the report type and target name.
+          action: "GOTO:server_categories;SET_TYPE:SERVER;SET_TARGET:Server"
+
+    select_target_type:
+      title: "Report Type"
+      options:
+        - text: "&bReport a specific Player"
+          hover: "&7Report a single user."
+          # REQUEST_INPUT action prompts the user for input in chat.
+          # The value after the colon is the type of input we expect.
+          # The second parameter is the page to go to upon successful input.
+          action: "REQUEST_INPUT:PLAYER:player_categories"
+        - text: "&bReport a Clan"
+          hover: "&7Report a group of players by their clan name."
+          action: "REQUEST_INPUT:CLAN:clan_categories"
+
+    # --- Player-Related Categories & Reasons ---
+    player_categories:
+      title: "Select a Category"
+      options:
+        - text: "&cDisruptive Gameplay"
+          hover: "&7Cheating, hacking, exploiting."
+          action: "GOTO:disruptive_reasons;SET_CATEGORY:Disruptive Gameplay"
+        - text: "&6Bad Behavior"
+          hover: "&7Insults, harassment, spam."
+          action: "GOTO:verbal_reasons;SET_CATEGORY:Bad Behavior"
+        - text: "&eAbusive Gameplay"
+          hover: "&7Griefing, spawnkilling, scamming."
+          action: "GOTO:abusive_reasons;SET_CATEGORY:Abusive Gameplay"
+        - text: "&dOther"
+          hover: "&7If none of the above fit."
+          # REQUEST_INPUT:CUSTOM_REASON is a special type that finalizes the report.
+          action: "REQUEST_INPUT:CUSTOM_REASON"
+
+    disruptive_reasons:
+      title: "Disruptive Gameplay"
+      options:
+        - text: "&bKill Aura / Aimbot"
+          hover: "&7Automatic attacking or aiming."
+          # SELECT_REASON action sets the reason and proceeds to the next step (requesting details).
+          action: "SELECT_REASON:Kill Aura / Aimbot"
+        - text: "&bFly / Speed Hacks"
+          hover: "&7Unnatural movement abilities."
+          action: "SELECT_REASON:Fly / Speed Hacks"
+        - text: "&bX-Ray / Resource Cheats"
+          hover: "&7Seeing through blocks to find resources."
+          action: "SELECT_REASON:X-Ray"
+
+    verbal_reasons:
+      title: "Bad Behavior"
+      options:
+        - text: "&bChat Spam"
+          hover: "&7Flooding chat with messages."
+          action: "SELECT_REASON:Chat Spam"
+        - text: "&bHarassment / Insults"
+          hover: "&7Targeted and repeated insults."
+          action: "SELECT_REASON:Harassment"
+        - text: "&bInappropriate Content"
+          hover: "&7Links, language, or topics that are not allowed."
+          action: "SELECT_REASON:Inappropriate Content"
+
+    abusive_reasons:
+      title: "Abusive Gameplay"
+      options:
+        - text: "&bGriefing / Raiding"
+          hover: "&7Destroying property without permission."
+          action: "SELECT_REASON:Griefing"
+        - text: "&bScamming"
+          hover: "&7Deceiving players for items or money."
+          action: "SELECT_REASON:Scamming"
+        - text: "&bSpawnkilling / Trapping"
+          hover: "&7Repeatedly killing a player at their spawn or trapping them."
+          action: "SELECT_REASON:Trapping"
+
+    # --- Server-Related Categories & Reasons ---
+    server_categories:
+      title: "Server Issues"
+      options:
+        - text: "&9Bug or Glitch"
+          hover: "&7Report an exploit or unintended behavior."
+          action: "GOTO:bug_reasons;SET_CATEGORY:Bug or Glitch"
+        - text: "&5Server Performance"
+          hover: "&7Report lag, crashes, or TPS drops."
+          action: "GOTO:performance_reasons;SET_CATEGORY:Server Performance"
+
+    bug_reasons:
+      title: "Bug or Glitch"
+      options:
+        - text: "&bDuplication Glitch"
+          hover: "&7A way to duplicate items or currency."
+          action: "SELECT_REASON:Duplication Glitch"
+        - text: "&bMap Exploit"
+          hover: "&7Getting into areas you shouldn't be able to."
+          action: "SELECT_REASON:Map Exploit"
+
+    performance_reasons:
+      title: "Server Performance"
+      options:
+        - text: "&bLag Machine"
+          hover: "&7A player-made construction causing server lag."
+          action: "SELECT_REASON:Lag Machine"
+        - text: "&bServer Crash"
+          hover: "&7An action that crashed the server."
+          action: "SELECT_REASON:Server Crash"
