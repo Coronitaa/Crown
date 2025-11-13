@@ -1380,6 +1380,8 @@ public class MenuListener implements Listener {
             case FILTER_REQUESTER_NAME:
                 if (context.menu() instanceof ReportsMenu reportsMenu) {
                     reportsMenu.setFilterName(input, context.type() == ReportInputType.FILTER_REQUESTER_NAME);
+                    // Re-open the menu to show the loading state, the async task will populate it.
+                    Bukkit.getScheduler().runTask(plugin, () -> reportsMenu.open(player));
                 }
                 break;
             case ASSIGN_MODERATOR:
