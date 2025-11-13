@@ -51,6 +51,12 @@ public class MainConfigManager {
     private final Map<Integer, WarnLevel> warnLevels = new HashMap<>();
     private String warnExpirationMode;
 
+    private int reportCooldown;
+    private boolean rateLimitEnabled;
+    private int rateLimitAmount;
+    private int rateLimitPeriod;
+    private boolean reportRequiresPermission;
+
     public record ReportOption(String text, String hover, String action) {}
     public record ReportPage(String title, List<ReportOption> options) {}
 
@@ -116,6 +122,12 @@ public class MainConfigManager {
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
+        this.reportCooldown = pluginConfig.getConfig().getInt("report-system.cooldown", 60);
+        this.rateLimitEnabled = pluginConfig.getConfig().getBoolean("report-system.rate-limit.enabled", true);
+        this.rateLimitAmount = pluginConfig.getConfig().getInt("report-system.rate-limit.amount", 5);
+        this.rateLimitPeriod = pluginConfig.getConfig().getInt("report-system.rate-limit.period", 300);
+        this.reportRequiresPermission = pluginConfig.getConfig().getBoolean("report-system.require-permission", false);
+
         if (isDebugEnabled()) {
             plugin.getLogger().log(Level.INFO, "[MainConfigManager] Configurations reloaded and debug mode is " + (isDebugEnabled() ? "enabled" : "disabled"));
         }
@@ -128,6 +140,25 @@ public class MainConfigManager {
             }
             placeholders.register();
         }
+    }
+
+    public int getReportCooldown() {
+        return reportCooldown;
+    }
+
+    public boolean isReportRateLimitEnabled() {
+        return rateLimitEnabled;
+    }
+
+    public boolean isReportPermissionRequired() {
+        return reportRequiresPermission;
+    }
+    public int getReportRateLimitAmount() {
+        return rateLimitAmount;
+    }
+
+    public int getReportRateLimitPeriod() {
+        return rateLimitPeriod;
     }
 
     public String getReportBookTitle() {

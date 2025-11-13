@@ -14,6 +14,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +34,7 @@ public final class Crown extends JavaPlugin {
     private final Map<UUID, Long> mutedPlayersCache = new ConcurrentHashMap<>();
     private final Map<UUID, Long> softBannedPlayersCache = new ConcurrentHashMap<>();
     private final Map<UUID, List<String>> softbannedCommandsCache = new ConcurrentHashMap<>();
+    private final Map<UUID, List<Long>> playerReportTimestamps = new ConcurrentHashMap<>();
 
 
     private MenuListener menuListener;
@@ -187,5 +189,9 @@ public final class Crown extends JavaPlugin {
     }
     public Set<String> getRegisteredCommands() {
         return registeredCommands;
+    }
+
+    public Map<UUID, List<Long>> getPlayerReportTimestamps() {
+        return playerReportTimestamps;
     }
 }

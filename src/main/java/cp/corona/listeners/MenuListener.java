@@ -101,6 +101,8 @@ public class MenuListener implements Listener {
     private static final String PUNISH_WARN_PERMISSION = "crown.punish.warn";
     private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze";
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
+    private static final String REPORT_ASSIGN_PERMISSION = "crown.report.assign";
+
 
     public MenuListener(Crown plugin) {
         this.plugin = plugin;
@@ -1182,6 +1184,17 @@ public class MenuListener implements Listener {
         }
     }
 
+    private void openProfileIfOnline(Player viewer, UUID targetUUID) {
+        if (targetUUID == null) return;
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+        if (target.isOnline()) {
+            new ProfileMenu(targetUUID, plugin).open(viewer);
+        } else {
+            sendConfigMessage(viewer, "messages.profile_offline_error", "{input}", target.getName() != null ? target.getName() : "Unknown");
+            playSound(viewer, "punish_error");
+        }
+    }
+
     private boolean handleReportDetailsMenuActions(Player player, ReportDetailsMenu menu, ClickAction action, String[] actionData, InventoryClickEvent event) {
         DatabaseManager.ReportEntry report = menu.getReportEntry();
         if (report == null) return true;
@@ -1207,6 +1220,11 @@ public class MenuListener implements Listener {
                 handleReportStateChangeConfirmation(player, menu, action, event.getCurrentItem(), event.getSlot());
                 return true;
             case ASSIGN_MODERATOR:
+                if (!player.hasPermission(REPORT_ASSIGN_PERMISSION)) {
+                    sendConfigMessage(player, "messages.no_permission_menu_action", "{action}", "assign reports");
+                    playSound(player, "punish_error");
+                    return true;
+                }
                 requestModeratorAssignmentInput(player, menu);
                 return true;
             case OPEN_REPORTS_MENU:
@@ -1222,16 +1240,14 @@ public class MenuListener implements Listener {
                 }
                 return true;
             case OPEN_PROFILE_TARGET:
-                if (report.getTargetUUID() != null) {
-                    new ProfileMenu(report.getTargetUUID(), plugin).open(player);
-                }
+                openProfileIfOnline(player, report.getTargetUUID());
                 return true;
             case OPEN_PROFILE_REQUESTER:
-                new ProfileMenu(report.getRequesterUUID(), plugin).open(player);
+                openProfileIfOnline(player, report.getRequesterUUID());
                 return true;
             case OPEN_PROFILE_MODERATOR:
                 if (report.getModeratorUUID() != null) {
-                    new ProfileMenu(report.getModeratorUUID(), plugin).open(player);
+                    openProfileIfOnline(player, report.getModeratorUUID());
                 }
                 return true;
             case REPORTS_FILTER_TARGET:

@@ -54,9 +54,9 @@
       invalid_player: '{prefix}&cInvalid player specified. Usage: {usage}'
       never_played: '{prefix}&cPlayer &b{input}&c has never played on this server.'
       player_not_online: '{prefix}&cPlayer &b{input}&c is not currently online.'
-      profile_self_check_error: '{prefix}&cNo puedes ver tu propio perfil.' # ADDED
+      profile_offline_error: '{prefix}&cCannot open profile for &b{input}&c because they are offline.'
+      profile_self_check_error: '{prefix}&cNo puedes ver tu propio perfil.'
       player_not_online_for_ip_punishment: '{prefix}&cPlayer &b{target}&c is not online.'
-      player_ip_not_found: '{prefix}&cCould not find a last known IP address for &b{target}&c.'
 
 
       help_header: '&6&lCrownPunishments Commands:'
@@ -219,6 +219,9 @@
       report_not_found: '{prefix}&cReport with ID ''{id}'' could not be found.' # ADDED
       report_no_permission_view: '{prefix}&cYou do not have permission to view reports.'
       report_no_permission_create: '{prefix}&cYou do not have permission to create reports.'
+      report_cooldown: '{prefix}&cYou must wait &e{time} seconds&c before sending another report.'
+      report_rate_limit: '{prefix}&cYou are sending reports too quickly. Please wait a moment.'
+      report_self_error: '{prefix}&cYou cannot report yourself.'
 
       bypass_error_softban: '{prefix}&cCannot softban &b{target}&c (has bypass permission).'
       bypass_error_freeze: '{prefix}&cCannot freeze &b{target}&c (has bypass permission).'

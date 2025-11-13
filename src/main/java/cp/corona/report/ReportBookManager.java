@@ -16,6 +16,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -110,6 +112,11 @@ public class ReportBookManager {
         switch (state) {
             case "PLAYER":
                 OfflinePlayer target = Bukkit.getOfflinePlayer(input);
+                if (player.getUniqueId().equals(target.getUniqueId())) {
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.report_self_error");
+                    reportSessions.remove(player.getUniqueId());
+                    return;
+                }
                 if (!target.hasPlayedBefore() && !target.isOnline()) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.never_played", "{input}", input);
                     reportSessions.remove(player.getUniqueId());
@@ -225,6 +232,7 @@ public class ReportBookManager {
                 "PLAYER", "Direct", reason, "N/A", collectedData
         ).thenAccept(reportId -> {
             if (reportId != null) {
+                recordReportTimestamp(player.getUniqueId());
                 MessageUtils.sendConfigMessage(plugin, player, "messages.report_submitted", "{report_id}", reportId);
                 String notifyMessage = plugin.getConfigManager().getMessage("messages.report_staff_notification",
                         "{requester}", player.getName(), "{target}", target.getName(), "{reason}", reason);
@@ -264,6 +272,7 @@ public class ReportBookManager {
                 builder.reportType, builder.category, builder.reason, builder.details, collectedData
         ).thenAccept(reportId -> {
             if (reportId != null) {
+                recordReportTimestamp(player.getUniqueId());
                 MessageUtils.sendConfigMessage(plugin, player, "messages.report_submitted", "{report_id}", reportId);
                 String notifyMessage = plugin.getConfigManager().getMessage("messages.report_staff_notification",
                         "{requester}", player.getName(), "{target}", builder.targetName, "{reason}", builder.reason);
@@ -279,6 +288,54 @@ public class ReportBookManager {
     public boolean isAwaitingInput(Player player) {
         ReportBuilder builder = reportSessions.get(player.getUniqueId());
         return builder != null && builder.inputState != null;
+    }
+
+    public boolean checkReportCooldown(Player player) {
+        if (player.hasPermission("crown.report.bypasscooldown")) {
+            return true;
+        }
+
+        UUID playerUUID = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+        List<Long> timestamps = plugin.getPlayerReportTimestamps().getOrDefault(playerUUID, new ArrayList<>());
+
+        int cooldownSeconds = plugin.getConfigManager().getReportCooldown();
+        if (cooldownSeconds > 0 && !timestamps.isEmpty()) {
+            long lastReportTime = timestamps.get(timestamps.size() - 1);
+            long timeSinceLast = (currentTime - lastReportTime) / 1000;
+            if (timeSinceLast < cooldownSeconds) {
+                long timeLeft = cooldownSeconds - timeSinceLast;
+                MessageUtils.sendConfigMessage(plugin, player, "messages.report_cooldown", "{time}", String.valueOf(timeLeft));
+                return false;
+            }
+        }
+
+        if (plugin.getConfigManager().isReportRateLimitEnabled()) {
+            int limitAmount = plugin.getConfigManager().getReportRateLimitAmount();
+            int limitPeriod = plugin.getConfigManager().getReportRateLimitPeriod();
+            long periodMillis = limitPeriod * 1000L;
+
+            long recentReports = timestamps.stream()
+                    .filter(timestamp -> (currentTime - timestamp) < periodMillis)
+                    .count();
+
+            if (recentReports >= limitAmount) {
+                MessageUtils.sendConfigMessage(plugin, player, "messages.report_rate_limit");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public void recordReportTimestamp(UUID playerUUID) {
+        long currentTime = System.currentTimeMillis();
+        List<Long> timestamps = plugin.getPlayerReportTimestamps().computeIfAbsent(playerUUID, k -> new ArrayList<>());
+
+        long periodMillis = plugin.getConfigManager().getReportRateLimitPeriod() * 1000L;
+        timestamps.removeIf(timestamp -> (currentTime - timestamp) > periodMillis);
+
+        timestamps.add(currentTime);
     }
 
     private static class ReportBuilder {

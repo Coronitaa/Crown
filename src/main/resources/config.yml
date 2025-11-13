@@ -45,3 +45,17 @@ on-join-alert:
 # Logging configurations.
 logging:
   debug: false # Set to true for detailed console output for troubleshooting.
+
+# Report system anti-abuse settings.
+report-system:
+  # If true, players will need the 'crown.report.create' permission to use /report.
+  require-permission: false
+  # Cooldown in seconds between each report. Set to 0 to disable.
+  cooldown: 10
+  # Rate limit for sending multiple reports in a short period.
+  rate-limit:
+    enabled: true
+    # Maximum number of reports allowed within the specified period.
+    amount: 5
+    # The time period in seconds.
+    period: 60 # (5 minutes)

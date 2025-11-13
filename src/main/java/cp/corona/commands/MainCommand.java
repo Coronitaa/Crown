@@ -107,12 +107,18 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
-        if (!sender.hasPermission(USE_PERMISSION)) {
-            sendConfigMessage(sender, "messages.no_permission_command");
-            return true;
-        }
-
         String commandLabel = command.getName().toLowerCase();
+
+        boolean isReportCommand = commandLabel.equals(REPORT_COMMAND);
+        boolean isReportsCommand = commandLabel.equals(REPORTS_COMMAND);
+        boolean isInternalReportSubcommand = commandLabel.equals("crown") && args.length > 0 && args[0].equalsIgnoreCase(REPORT_INTERNAL_SUBCOMMAND);
+
+        if (!isReportCommand && !isReportsCommand && !isInternalReportSubcommand) {
+            if (!sender.hasPermission(USE_PERMISSION)) {
+                sendConfigMessage(sender, "messages.no_permission_command");
+                return true;
+            }
+        }
 
         switch (commandLabel) {
             case "crown":
@@ -286,8 +292,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // MODIFIED: Use a more specific error message for offline players
         if (!target.isOnline()) {
-            sendConfigMessage(sender, "messages.player_not_online", "{input}", args[0]);
+            sendConfigMessage(sender, "messages.profile_offline_error", "{input}", args[0]);
             return true;
         }
 
@@ -1163,7 +1170,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (!sender.hasPermission(USE_PERMISSION)) {
+        // Allow tab complete for /report even without crown.use
+        if (!command.getName().equalsIgnoreCase("report") && !sender.hasPermission(USE_PERMISSION)) {
             return Collections.emptyList();
         }
 
@@ -1383,15 +1391,26 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             sendConfigMessage(sender, "messages.player_only");
             return true;
         }
-        if (!player.hasPermission(REPORT_CREATE_PERMISSION)) {
-            sendConfigMessage(player, "messages.no_permission");
+
+        if (plugin.getConfigManager().isReportPermissionRequired() && !player.hasPermission(REPORT_CREATE_PERMISSION)) {
+            sendConfigMessage(player, "messages.report_no_permission_create");
             return true;
         }
 
         ReportBookManager reportManager = plugin.getReportBookManager();
 
+        if (!reportManager.checkReportCooldown(player)) {
+            return true;
+        }
+
         if (args.length >= 2) { // Direct report: /report <player> <reason...>
             OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
+
+            if (player.getUniqueId().equals(target.getUniqueId())) {
+                sendConfigMessage(player, "messages.report_self_error");
+                return true;
+            }
+
             if (!target.hasPlayedBefore() && !target.isOnline()) {
                 sendConfigMessage(player, "messages.never_played", "{input}", args[0]);
                 return true;
@@ -1401,6 +1420,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         } else if (args.length == 1) { // Open book pre-filled with target
             OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
+
+            if (player.getUniqueId().equals(target.getUniqueId())) {
+                sendConfigMessage(player, "messages.report_self_error");
+                return true;
+            }
+
             if (!target.hasPlayedBefore() && !target.isOnline()) {
                 sendConfigMessage(player, "messages.never_played", "{input}", args[0]);
                 return true;
@@ -1418,7 +1443,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (!player.hasPermission(REPORT_VIEW_PERMISSION)) {
-            sendConfigMessage(player, "messages.no_permission");
+            sendConfigMessage(player, "messages.report_no_permission_view");
             return true;
         }
 

@@ -78,11 +78,17 @@ permissions:
   crown.use:
     description: Allows player to use basic crown commands and punish menu
     default: op
-  crown.report.create: # ADDED
-    description: Allows player to use the /report command.
-    default: true # Usually all players can report
-  crown.report.view: # ADDED
+  crown.report.create: # MODIFIED
+    description: Allows player to use the /report command (if require-permission is true in config).
+    default: op
+  crown.report.view:
     description: Allows player to use the /reports command to manage reports.
+    default: op
+  crown.report.assign: # ADDED
+    description: Allows a moderator to assign a report to another moderator.
+    default: op
+  crown.report.bypasscooldown:
+    description: Allows player to bypass report cooldowns and rate limits.
     default: op
   crown.profile:
     description: Allows player to use the profile command
