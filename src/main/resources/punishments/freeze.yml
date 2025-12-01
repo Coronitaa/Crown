@@ -5,6 +5,13 @@ unpunish-command: 'unfreeze {target}'
 default-reason: "Frozen by a moderator."
 default-unpunish-reason: "Unfrozen by a moderator."
 
+# Commands allowed while frozen (no slash needed).
+allowed_commands:
+  - helpop
+  - msg
+  - r
+  - tell
+
 disconnect_commands:
   - 'crown punish {target} ban 365d &cDisconnected while frozen!'
   - 'tellraw @a "&e&lᴄʀᴏᴡɴ &6🜲&r &ePlayer &b{target} &edisconnected while frozen! &cApplying actions&e."'

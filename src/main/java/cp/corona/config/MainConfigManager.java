@@ -76,7 +76,7 @@ public class MainConfigManager {
         auditLogConfig = new CustomConfig("audit_log.yml", "menus", plugin, false);
         reportsMenuConfig = new CustomConfig("reports_menu.yml", "menus", plugin, false);
         reportDetailsMenuConfig = new CustomConfig("report_details_menu.yml", "menus", plugin, false);
-        reportsConfig = new CustomConfig("reports.yml", "menus", plugin, false); // MODIFIED
+        reportsConfig = new CustomConfig("reports.yml", "menus", plugin, false);
         modModeConfig = new CustomConfig("mod_mode.yml", null, plugin, false);
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
@@ -309,6 +309,13 @@ public class MainConfigManager {
         CustomConfig config = punishmentConfigs.get("mute");
         if (config == null) return Collections.emptyList();
         return config.getConfig().getStringList("blocked_commands");
+    }
+
+    // ADDED: Getter for freeze allowed commands
+    public List<String> getFreezeAllowedCommands() {
+        CustomConfig config = punishmentConfigs.get("freeze");
+        if (config == null) return Collections.emptyList();
+        return config.getConfig().getStringList("allowed_commands");
     }
 
     public List<String> getFreezeDisconnectCommands() {

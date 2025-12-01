@@ -30,6 +30,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,15 +64,11 @@ public class ModeratorModeListener implements Listener {
         Player player = event.getPlayer();
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
-        // MODIFIED: Removed transition check and spectator exit check.
-        // If in Temporary Spectator, we essentially ignore inputs or let vanilla handle spectator flying.
-        // But to avoid tool usage resetting the timer or causing issues:
         if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
             event.setCancelled(true);
             return;
         }
 
-        // Global interaction blocking logic
         if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
             if (event.getAction() == Action.PHYSICAL) {
                 event.setCancelled(true);
@@ -86,7 +83,6 @@ public class ModeratorModeListener implements Listener {
     public void onEntityInteract(PlayerInteractEntityEvent event) {
         Player player = event.getPlayer();
         if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
-            // Block interaction in temporary spectator
             if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
                 event.setCancelled(true);
                 return;
@@ -127,7 +123,6 @@ public class ModeratorModeListener implements Listener {
 
         if (!(event.getRightClicked() instanceof Player)) return;
 
-        // Debounce check
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
         event.setCancelled(true);
@@ -163,7 +158,6 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
-        // Debounce
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
         Player target = (Player) event.getEntity();
@@ -185,7 +179,6 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
-        // Debounce
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) {
             event.setCancelled(true);
             return;
@@ -221,8 +214,12 @@ public class ModeratorModeListener implements Listener {
         switch (toolId) {
             case "vanish_spectator_tool":
                 if (isRight) {
-                    if (player.isSneaking()) toggleVanish(player);
-                    else plugin.getModeratorModeManager().enterSpectatorMode(player);
+                    if (player.isSneaking()) {
+                        toggleVanish(player);
+                    } else {
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_spectator_on");
+                        plugin.getModeratorModeManager().enterSpectatorMode(player);
+                    }
                 }
                 break;
             case "player_selector_tool":
@@ -256,8 +253,8 @@ public class ModeratorModeListener implements Listener {
                 }
                 break;
             case "teleport_tool":
-                if (isRight) handleAscendTeleport(player);
-                else if (isLeft) handlePhaseTeleport(player);
+                if (isRight) handleBoostTeleport(player);
+                else if (isLeft) handleSurfaceTeleport(player);
                 break;
             case "freeze_player_tool":
                 handleFreezeToolLogic(player, isRight, isLeft);
@@ -374,46 +371,25 @@ public class ModeratorModeListener implements Listener {
         MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_selection_cleared");
     }
 
-    private void handleAscendTeleport(Player player) {
-        RayTraceResult result = player.getWorld().rayTraceBlocks(player.getEyeLocation(), player.getEyeLocation().getDirection(), 100);
+    private void handleBoostTeleport(Player player) {
+        Vector direction = player.getLocation().getDirection();
+        player.setVelocity(direction.multiply(3.0));
+        player.playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1.0f, 1.0f);
+    }
+
+    private void handleSurfaceTeleport(Player player) {
+        RayTraceResult result = player.rayTraceBlocks(100);
         if (result != null && result.getHitBlock() != null) {
-            Location tpLoc = result.getHitBlock().getLocation().add(0.5, 1.0, 0.5);
+            Block block = result.getHitBlock();
+            Location tpLoc = block.getLocation().add(0.5, 1.0, 0.5);
             tpLoc.setYaw(player.getLocation().getYaw());
             tpLoc.setPitch(player.getLocation().getPitch());
             player.teleport(tpLoc);
-            player.playSound(tpLoc, Sound.ITEM_CHORUS_FRUIT_TELEPORT, 0.8f, 1.2f);
+            player.playSound(tpLoc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.2f);
             sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_surface_tp"));
         } else {
             sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_no_target"));
         }
-    }
-
-    private void handlePhaseTeleport(Player player) {
-        RayTraceResult result = player.rayTraceBlocks(100);
-        if (result == null || result.getHitBlock() == null || result.getHitBlockFace() == null) {
-            sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_no_target"));
-            return;
-        }
-
-        Block targetBlock = result.getHitBlock();
-        Block destinationBlock = targetBlock.getRelative(result.getHitBlockFace());
-        Location tpLoc = destinationBlock.getLocation().add(0.5, 0, 0.5);
-
-        if (isSafeLocation(tpLoc)) {
-            tpLoc.setYaw(player.getLocation().getYaw());
-            tpLoc.setPitch(player.getLocation().getPitch());
-            player.teleport(tpLoc);
-            player.playSound(tpLoc, Sound.BLOCK_PORTAL_TRAVEL, 0.5f, 1.5f);
-            sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_phase_tp"));
-        } else {
-            sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_no_target"));
-        }
-    }
-
-    private boolean isSafeLocation(Location location) {
-        Block feet = location.getBlock();
-        Block head = location.clone().add(0, 1, 0).getBlock();
-        return feet.isPassable() && !feet.isLiquid() && head.isPassable() && !head.isLiquid();
     }
 
     private void handleRandomTeleport(Player player) {

@@ -88,11 +88,7 @@ public class ToolSelectorMenu implements InventoryHolder {
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                 lore.add(MessageUtils.getColorMessage("&a&lSELECTED"));
             } else {
-                if (toolId.equals("vanish_spectator_tool")) {
-                    lore.add(MessageUtils.getColorMessage("&8(Cannot be deselected)"));
-                } else {
-                    lore.add(MessageUtils.getColorMessage("&eClick to select"));
-                }
+                lore.add(MessageUtils.getColorMessage("&eClick to select"));
             }
             meta.setLore(lore);
 

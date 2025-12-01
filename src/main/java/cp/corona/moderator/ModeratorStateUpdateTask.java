@@ -28,7 +28,7 @@ public class ModeratorStateUpdateTask extends BukkitRunnable {
                     long remainingTime = plugin.getModeratorModeManager().getRemainingSpectatorTime(player.getUniqueId());
 
                     baseMessage = plugin.getConfigManager().getMessage("messages.mod_mode_actionbar_spectator_timer")
-                            .replace("{time}", String.valueOf(remainingTime));
+                            .replace("{time}", String.valueOf(remainingTime+1));
                 }
                 // Normal Mod Mode
                 else {
