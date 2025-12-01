@@ -35,15 +35,6 @@ moderator-inventory:
     lore:
       - '&7Right-Click to toggle world interactions.'
       - '&7(Breaking, placing, chest access, pvp)'
-  container-inspector:
-    tool-id: 'container_inspector'
-    slot: 3
-    material: 'SPYGLASS'
-    name: '&6Container Inspector'
-    lore:
-      - '&7Right-Click a container to'
-      - '&7inspect it silently.'
-      - '&8(Chests, Barrels, Shulkers)'
   tool-selector:
     tool-id: 'tool_selector'
     slot: 8
@@ -116,12 +107,3 @@ tool-selector-menu:
         - '&eR-Click: &fTeleport to selected player.'
         - '&8(If none, teleports to a random player)'
         - '&eShift+R-Click: &fTeleport to random player.'
-
-    container-inspector:
-      tool-id: 'container_inspector'
-      slot: 17
-      material: 'SPYGLASS'
-      name: '&6Container Inspector'
-      lore:
-        - '&7Silently inspect containers'
-        - '&7without block updates.'

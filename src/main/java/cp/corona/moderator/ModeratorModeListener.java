@@ -86,7 +86,7 @@ public class ModeratorModeListener implements Listener {
         plugin.getModeratorModeManager().updateVanishedPlayerVisibility(event.getPlayer());
     }
 
-    // --- INTERACTION BLOCKING ---
+    // --- INTERACTION BLOCKING & CONTAINER INSPECTION ---
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onModInteract(PlayerInteractEvent event) {
@@ -98,17 +98,24 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
-        // Special check: If using container inspector on a valid block, do not cancel early in LOWEST
-        // We handle the cancellation specifically in HIGH to open the virtual inventory.
-        ItemStack item = player.getInventory().getItemInMainHand();
-        String toolId = getToolId(item);
-        if ("container_inspector".equals(toolId) && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            Block b = event.getClickedBlock();
-            if (b != null && inspectableContainers.contains(b.getType())) {
-                return; // Let it pass to onPlayerInteractTool
+        // Silent Container Inspection Logic
+        // Intercepts Right-Clicks on containers to force silent inspection via virtual inventory.
+        // This takes precedence over "Interactions Allowed" to prevent noise/animations.
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            Block clickedBlock = event.getClickedBlock();
+            if (clickedBlock != null && inspectableContainers.contains(clickedBlock.getType())) {
+                // If it's a tool that needs to interact (e.g., debug stick or specific tool), handled later.
+                // But for standard behavior, we override.
+                ItemStack item = player.getInventory().getItemInMainHand();
+                if (item.getType() == Material.AIR || !item.getType().isBlock()) {
+                    event.setCancelled(true); // Stop physical open
+                    handleContainerInspection(player, clickedBlock);
+                    return;
+                }
             }
         }
 
+        // Standard Interaction Blocking
         if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
             if (event.getAction() == Action.PHYSICAL) {
                 event.setCancelled(true);
@@ -116,6 +123,29 @@ public class ModeratorModeListener implements Listener {
             }
             event.setUseInteractedBlock(Event.Result.DENY);
             event.setUseItemInHand(Event.Result.ALLOW);
+        }
+    }
+
+    private void handleContainerInspection(Player player, Block block) {
+        BlockState state = block.getState();
+        if (state instanceof Container container) {
+            Inventory realInventory = container.getInventory();
+            int size = realInventory.getSize();
+            // Create a virtual inventory to prevent modification and physical animation
+            String title = MessageUtils.getColorMessage("&8Inspect: " + block.getType().name());
+            Inventory inspectionInv = Bukkit.createInventory(new InspectionHolder(), size, title);
+
+            // Copy items safely
+            ItemStack[] contents = realInventory.getContents();
+            ItemStack[] safeContents = new ItemStack[contents.length];
+            for(int i=0; i<contents.length; i++) {
+                if(contents[i] != null) safeContents[i] = contents[i].clone();
+            }
+            inspectionInv.setContents(safeContents);
+
+            player.openInventory(inspectionInv);
+            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f); // Sound only for mod
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_inspecting_container", "{container}", block.getType().name().replace("_", " "));
         }
     }
 
@@ -229,21 +259,23 @@ public class ModeratorModeListener implements Listener {
 
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
-            // Allow container inspector logic to proceed (we will cancel event in handleToolAction implicitly/explicitly)
-            if ("container_inspector".equals(toolId) && clickedBlock != null && inspectableContainers.contains(clickedBlock.getType())) {
-                // Pass through to handleToolAction
-            } else if (clickedBlock != null && clickedBlock.getState() instanceof InventoryHolder) {
-                if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
-                    event.setUseInteractedBlock(Event.Result.DENY);
-                    event.setCancelled(true);
+            if (clickedBlock != null && clickedBlock.getState() instanceof InventoryHolder) {
+                // Allow our container inspection logic from onModInteract to run if empty hand or not block item
+                // If it is a tool, handle logic below.
+                // We check interaction allowed here for non-container blocks or other interactions
+                if (!inspectableContainers.contains(clickedBlock.getType())) {
+                    if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
+                        event.setUseInteractedBlock(Event.Result.DENY);
+                        event.setCancelled(true);
+                    }
                 }
             }
         }
 
         if (toolId == null) return;
 
-        event.setCancelled(true); // Cancel all tool interactions by default (prevents physical chest open)
-        handleToolAction(player, toolId, event.getAction(), event.getClickedBlock());
+        event.setCancelled(true);
+        handleToolAction(player, toolId, event.getAction());
     }
 
     private String getToolId(ItemStack item) {
@@ -251,7 +283,7 @@ public class ModeratorModeListener implements Listener {
         return item.getItemMeta().getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
     }
 
-    private void handleToolAction(Player player, String toolId, Action action, Block clickedBlock) {
+    private void handleToolAction(Player player, String toolId, Action action) {
         boolean isRight = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
         boolean isLeft = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
 
@@ -310,37 +342,6 @@ public class ModeratorModeListener implements Listener {
             case "invsee_tool":
                 if (isRight) openSelectedPlayerProfile(player);
                 break;
-            case "container_inspector":
-                if (isRight && clickedBlock != null) {
-                    handleContainerInspection(player, clickedBlock);
-                }
-                break;
-        }
-    }
-
-    private void handleContainerInspection(Player player, Block block) {
-        if (!inspectableContainers.contains(block.getType())) {
-            return;
-        }
-
-        BlockState state = block.getState();
-        if (state instanceof Container container) {
-            Inventory realInventory = container.getInventory();
-            int size = realInventory.getSize();
-            // Create a virtual inventory to prevent modification and physical animation
-            Inventory inspectionInv = Bukkit.createInventory(new InspectionHolder(), size, MessageUtils.getColorMessage("&8Inspect: " + block.getType().name()));
-
-            // Deep copy items if possible, but standard array copy is sufficient for blocking interactions
-            ItemStack[] contents = realInventory.getContents();
-            ItemStack[] safeContents = new ItemStack[contents.length];
-            for(int i=0; i<contents.length; i++) {
-                if(contents[i] != null) safeContents[i] = contents[i].clone();
-            }
-            inspectionInv.setContents(safeContents);
-
-            player.openInventory(inspectionInv);
-            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f); // Sound for the moderator only
-            sendActionBar(player, "&6Inspecting " + block.getType().name().replace("_", " "));
         }
     }
 

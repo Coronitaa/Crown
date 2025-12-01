@@ -187,6 +187,7 @@ messages:
       mod_mode_vanish_off: '{prefix}&eYou are now visible.'
       mod_mode_spectator_on: '{prefix}&bEntering spectator mode for 3 seconds...'
       mod_mode_hotbar_full: '{prefix}&cYour hotbar is full.'
+      mod_mode_inspecting_container: '{prefix}&eInspecting &f{container}&e.'
 
       # Action Bar Status
       mod_mode_actionbar_vanished: '&a&lVANISHED &8| &7Right-click tool to appear'
