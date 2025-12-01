@@ -40,7 +40,7 @@ public class MainConfigManager {
     private final CustomConfig reportDetailsMenuConfig;
     private final CustomConfig reportsConfig;
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
-
+    private final CustomConfig modModeConfig;
     private final Crown plugin;
     private final String defaultTimeUnit;
 
@@ -77,7 +77,7 @@ public class MainConfigManager {
         reportsMenuConfig = new CustomConfig("reports_menu.yml", "menus", plugin, false);
         reportDetailsMenuConfig = new CustomConfig("report_details_menu.yml", "menus", plugin, false);
         reportsConfig = new CustomConfig("reports.yml", "menus", plugin, false); // MODIFIED
-
+        modModeConfig = new CustomConfig("mod_mode.yml", null, plugin, false);
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
                 punishmentConfigs.put(punishment, new CustomConfig(punishment + ".yml", "punishments", plugin, false))
@@ -93,6 +93,7 @@ public class MainConfigManager {
         fullInventoryMenuConfig.registerConfig();
         enderChestMenuConfig.registerConfig();
         auditLogConfig.registerConfig();
+        modModeConfig.registerConfig();
         reportsMenuConfig.registerConfig();
         reportDetailsMenuConfig.registerConfig();
         reportsConfig.registerConfig();
@@ -116,6 +117,7 @@ public class MainConfigManager {
         fullInventoryMenuConfig.reloadConfig();
         enderChestMenuConfig.reloadConfig();
         auditLogConfig.reloadConfig();
+        modModeConfig.reloadConfig();
         reportsMenuConfig.reloadConfig();
         reportDetailsMenuConfig.reloadConfig();
         reportsConfig.reloadConfig();
@@ -251,7 +253,9 @@ public class MainConfigManager {
     public String getJoinAlertSound() {
         return pluginConfig.getConfig().getString("on-join-alert.sound", "BLOCK_NOTE_BLOCK_PLING");
     }
-
+    public CustomConfig getModModeConfig() {
+        return modModeConfig;
+    }
     public List<String> getBanScreen() {
         CustomConfig config = punishmentConfigs.get("ban");
         if (config == null) return Collections.emptyList();

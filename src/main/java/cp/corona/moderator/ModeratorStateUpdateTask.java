@@ -1,0 +1,33 @@
+package cp.corona.moderator;
+
+import cp.corona.crown.Crown;
+import cp.corona.utils.MessageUtils;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+
+public class ModeratorStateUpdateTask extends BukkitRunnable {
+
+    private final Crown plugin;
+
+    public ModeratorStateUpdateTask(Crown plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public void run() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+                String message;
+                if (plugin.getModeratorModeManager().isVanished(player.getUniqueId())) {
+                    message = plugin.getConfigManager().getMessage("messages.mod_mode_actionbar_vanished");
+                } else {
+                    message = plugin.getConfigManager().getMessage("messages.mod_mode_actionbar_visible");
+                }
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(MessageUtils.getColorMessage(message)));
+            }
+        }
+    }
+}

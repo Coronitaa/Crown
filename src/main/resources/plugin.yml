@@ -71,7 +71,9 @@ commands:
   unsoftban:
     description: Command to directly unsoftban players.
     usage: /<command> <player> [reason]
-
+  mod:
+    description: Toggles moderator mode.
+    usage: /<command>
 
 
 permissions:
@@ -155,4 +157,10 @@ permissions:
     default: op
   crown.bypass.kick:
     description: Allows player to bypass kick punishment
+    default: op
+  crown.mod.use:
+    description: Allows player to use the /mod command and enter moderator mode.
+    default: op
+  crown.mod.seevanish:
+    description: Allows player to see other moderators who are in vanish mode.
     default: op

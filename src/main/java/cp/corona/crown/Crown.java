@@ -5,6 +5,7 @@ import cp.corona.Metrics;
 import cp.corona.commands.MainCommand;
 import cp.corona.config.MainConfigManager;
 import cp.corona.database.DatabaseManager;
+import cp.corona.moderator.ModeratorStateUpdateTask;
 import cp.corona.report.ReportBookManager;
 import cp.corona.listeners.*;
 import org.bukkit.Bukkit;
@@ -13,6 +14,10 @@ import org.bukkit.Sound;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import cp.corona.commands.ModeratorCommand; // ADDED
+import cp.corona.moderator.ModeratorModeListener; // ADDED
+import cp.corona.moderator.ModeratorModeManager;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +34,8 @@ public final class Crown extends JavaPlugin {
     private MainConfigManager configManager;
     private DatabaseManager databaseManager;
     private boolean placeholderAPIEnabled;
+    private ModeratorModeManager moderatorModeManager;
+    private BukkitTask moderatorStateUpdateTask;
     private ReportBookManager reportBookManager;
     private final Map<UUID, Boolean> pluginFrozenPlayers = new ConcurrentHashMap<>();
     private final Map<UUID, Long> mutedPlayersCache = new ConcurrentHashMap<>();
@@ -56,6 +63,8 @@ public final class Crown extends JavaPlugin {
         this.menuListener = new MenuListener(this);
         this.freezeListener = new FreezeListener(this);
         this.punishmentListener = new PunishmentListener(this);
+        this.moderatorModeManager = new ModeratorModeManager(this);
+        this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimerAsynchronously(this, 0L, 40L);
 
 
         registerCommands();
@@ -78,7 +87,11 @@ public final class Crown extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // ADDED: Null check to prevent errors on disable if onEnable fails
+        // ADDED: Stop the task
+        if (this.moderatorStateUpdateTask != null && !this.moderatorStateUpdateTask.isCancelled()) {
+            this.moderatorStateUpdateTask.cancel();
+        }
+
         if (configManager != null) {
             Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
                     configManager.getMessage("messages.plugin_disabled")));
@@ -107,6 +120,11 @@ public final class Crown extends JavaPlugin {
         registerCommand("unmute", mainCommand);
         registerCommand("unfreeze", mainCommand);
         registerCommand("unsoftban", mainCommand);
+        PluginCommand modCommand = getCommand("mod");
+        if (modCommand != null) {
+            ModeratorCommand moderatorExecutor = new ModeratorCommand(this);
+            modCommand.setExecutor(moderatorExecutor);
+        }
     }
 
     private void registerCommand(String commandName, MainCommand executor) {
@@ -131,6 +149,7 @@ public final class Crown extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MuteListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerChatListener(this), this);
         getServer().getPluginManager().registerEvents(this.punishmentListener, this);
+        getServer().getPluginManager().registerEvents(new ModeratorModeListener(this), this);
     }
 
     public void playSound(Player player, String soundKey) {
@@ -172,7 +191,9 @@ public final class Crown extends JavaPlugin {
     public Map<UUID, Boolean> getPluginFrozenPlayers() {
         return pluginFrozenPlayers;
     }
-
+    public ModeratorModeManager getModeratorModeManager() {
+        return moderatorModeManager;
+    }
     public Map<UUID, Long> getMutedPlayersCache() {
         return mutedPlayersCache;
     }

@@ -1,0 +1,124 @@
+# Configuration for the /mod mode.
+## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+
+# Items given to the moderator when they enter /mod mode.
+# The slot numbers are standard inventory slots (0-8 for hotbar).
+moderator-inventory:
+  player-selector:
+    tool-id: 'player_selector_tool'
+    slot: 0
+    material: 'PLAYER_HEAD'
+    name: '&ePlayer Selector'
+    lore:
+      - '&7Target: &fNone'
+      - ''
+      - '&eL-Click: &fOpen selected player''s profile.'
+      - '&eR-Click: &fSelect player by name.'
+      - '&eShift+R-Click: &fClear selection.'
+      - ''
+      - '&cThis item cannot be removed.'
+  vanish-tool:
+    tool-id: 'vanish_spectator_tool'
+    slot: 1
+    material: 'ENDER_EYE'
+    name: '&aVanish &7(Shift+Click) / &bSpectator &7(R-Click)'
+    lore:
+      - '&eShift+R-Click: &fToggle Vanish/Visible'
+      - '&eR-Click: &fEnter Spectator Mode'
+      - '&8While in spectator, R-Click to exit.'
+  interaction-tool:
+    tool-id: 'interaction_tool'
+    slot: 2
+    material: 'BARRIER'
+    name: '&cInteractions: &4BLOCKED'
+    lore:
+      - '&7Right-Click to toggle world interactions.'
+      - '&7(Breaking, placing, chest access, pvp)'
+  freeze-tool:
+    tool-id: 'freeze_player_tool'
+    slot: 4
+    material: 'ICE'
+    name: '&bFreeze Tool'
+    lore:
+      - '&eR-Click: &fFreeze Target/Selection'
+      - '&eL-Click: &fUnfreeze Target/Selection'
+      - '&eShift+Click: &fForce Target (Ignore Selection)'
+  invsee-tool:
+    tool-id: 'invsee_tool'
+    slot: 5
+    material: 'ENDER_CHEST'
+    name: '&dInspect Player'
+    lore:
+      - '&eR-Click: &fOpen Target/Selection Profile'
+  tool-selector:
+    tool-id: 'tool_selector'
+    slot: 8
+    material: 'CHEST'
+    name: '&6Tool Selector'
+    lore:
+      - '&7Right-click to open the'
+      - '&7tool selection menu.'
+
+# Configuration for the tool selection GUI.
+tool-selector-menu:
+  title: '&8Moderation Tools'
+  size: 27
+  items:
+    player-selector:
+      tool-id: 'player_selector_tool'
+      slot: 10
+      name: '&ePlayer Selector'
+      lore:
+        - '&7The essential tool for targeting.'
+        - '&8(Cannot be deselected)'
+
+    vanish-tool:
+      tool-id: 'vanish_spectator_tool'
+      slot: 11
+      material: 'ENDER_EYE'
+      name: '&aVanish / Spectator Tool'
+      lore:
+        - '&7Tool for managing your visibility.'
+
+    interaction-tool:
+      tool-id: 'interaction_tool'
+      slot: 12
+      material: 'BARRIER'
+      name: '&cInteraction Toggler'
+      lore:
+        - '&7Allow/Deny physical interactions.'
+
+    freeze-tool:
+      tool-id: 'freeze_player_tool'
+      slot: 13
+      material: 'ICE'
+      name: '&bFreeze Player'
+      lore:
+        - '&7Freeze/Unfreeze players.'
+
+    invsee-tool:
+      tool-id: 'invsee_tool'
+      slot: 14
+      material: 'ENDER_CHEST'
+      name: '&dInspect Player'
+      lore:
+        - '&7View profiles and inventories.'
+
+    teleport-tool:
+      tool-id: 'teleport_tool'
+      slot: 15
+      material: 'ENDER_PEARL'
+      name: '&5Teleport Tool'
+      lore:
+        - '&eL-Click: &fPhase through block.'
+        - '&eR-Click: &fAscend to top of block.'
+
+    random-tp-tool:
+      tool-id: 'random_tp_tool'
+      slot: 16
+      material: 'FEATHER'
+      name: '&fPlayer Teleport'
+      lore:
+        - '&eR-Click: &fTeleport to selected player.'
+        - '&8(If none, teleports to a random player)'
+        - '&eShift+R-Click: &fTeleport to random player.'
