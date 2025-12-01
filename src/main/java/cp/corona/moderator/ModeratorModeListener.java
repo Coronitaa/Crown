@@ -25,8 +25,10 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -97,7 +99,7 @@ public class ModeratorModeListener implements Listener {
         }
 
         // Special check: If using container inspector on a valid block, do not cancel early in LOWEST
-        // We handle the cancellation specifically in HIGH to open the inv.
+        // We handle the cancellation specifically in HIGH to open the virtual inventory.
         ItemStack item = player.getInventory().getItemInMainHand();
         String toolId = getToolId(item);
         if ("container_inspector".equals(toolId) && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -227,9 +229,9 @@ public class ModeratorModeListener implements Listener {
 
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
-            // Allow container inspector to pass through
+            // Allow container inspector logic to proceed (we will cancel event in handleToolAction implicitly/explicitly)
             if ("container_inspector".equals(toolId) && clickedBlock != null && inspectableContainers.contains(clickedBlock.getType())) {
-                // Do nothing here, handled in handleToolAction
+                // Pass through to handleToolAction
             } else if (clickedBlock != null && clickedBlock.getState() instanceof InventoryHolder) {
                 if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
                     event.setUseInteractedBlock(Event.Result.DENY);
@@ -240,7 +242,7 @@ public class ModeratorModeListener implements Listener {
 
         if (toolId == null) return;
 
-        event.setCancelled(true); // Cancel all tool interactions by default
+        event.setCancelled(true); // Cancel all tool interactions by default (prevents physical chest open)
         handleToolAction(player, toolId, event.getAction(), event.getClickedBlock());
     }
 
@@ -323,9 +325,22 @@ public class ModeratorModeListener implements Listener {
 
         BlockState state = block.getState();
         if (state instanceof Container container) {
+            Inventory realInventory = container.getInventory();
+            int size = realInventory.getSize();
+            // Create a virtual inventory to prevent modification and physical animation
+            Inventory inspectionInv = Bukkit.createInventory(new InspectionHolder(), size, MessageUtils.getColorMessage("&8Inspect: " + block.getType().name()));
+
+            // Deep copy items if possible, but standard array copy is sufficient for blocking interactions
+            ItemStack[] contents = realInventory.getContents();
+            ItemStack[] safeContents = new ItemStack[contents.length];
+            for(int i=0; i<contents.length; i++) {
+                if(contents[i] != null) safeContents[i] = contents[i].clone();
+            }
+            inspectionInv.setContents(safeContents);
+
+            player.openInventory(inspectionInv);
+            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f); // Sound for the moderator only
             sendActionBar(player, "&6Inspecting " + block.getType().name().replace("_", " "));
-            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f);
-            player.openInventory(container.getInventory());
         }
     }
 
@@ -537,10 +552,24 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
+        // Prevent modification of the virtual inspection inventory
+        if (event.getInventory().getHolder() instanceof InspectionHolder) {
+            event.setCancelled(true);
+            return;
+        }
+
         if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
             if (event.getClickedInventory() != null && event.getClickedInventory().getType() == InventoryType.PLAYER) {
                 event.setCancelled(true);
             }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryDrag(InventoryDragEvent event) {
+        // Prevent modification via drag in the virtual inspection inventory
+        if (event.getInventory().getHolder() instanceof InspectionHolder) {
+            event.setCancelled(true);
         }
     }
 
@@ -656,5 +685,10 @@ public class ModeratorModeListener implements Listener {
 
     private void sendActionBar(Player player, String message) {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(MessageUtils.getColorMessage(message)));
+    }
+
+    private static class InspectionHolder implements InventoryHolder {
+        @Override
+        public Inventory getInventory() { return null; }
     }
 }
