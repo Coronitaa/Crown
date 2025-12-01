@@ -33,7 +33,6 @@ public class ModeratorModeManager {
     private final Map<UUID, BukkitTask> spectatorTasks = new ConcurrentHashMap<>();
     private final Map<UUID, String> awaitingInput = new ConcurrentHashMap<>();
 
-    // New state maps
     private final Map<UUID, Long> lastInteraction = new ConcurrentHashMap<>();
     private final Set<UUID> interactionsAllowed = new HashSet<>();
     private final Set<UUID> spectatorTransitioning = new HashSet<>();
@@ -82,14 +81,17 @@ public class ModeratorModeManager {
 
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
-        player.setGameMode(GameMode.SURVIVAL);
+
+        // MODIFIED: Base GameMode is now ADVENTURE
+        player.setGameMode(GameMode.ADVENTURE);
+
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20f);
         player.setAllowFlight(true);
         player.setFlying(true);
         player.setSilent(true);
-        player.setCollidable(false); // Disable collision
+        player.setCollidable(false);
 
         ConfigurationSection inventorySection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory");
         if (inventorySection != null) {
@@ -102,7 +104,7 @@ public class ModeratorModeManager {
             });
         }
 
-        interactionsAllowed.remove(player.getUniqueId()); // Block interactions by default
+        interactionsAllowed.remove(player.getUniqueId());
         vanishPlayer(player);
         MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_enabled");
     }
@@ -183,30 +185,25 @@ public class ModeratorModeManager {
                     Player target = Bukkit.getPlayer(targetUUID);
                     String targetName = target != null ? target.getName() : "Unknown";
 
-                    // Update Name
                     meta.setDisplayName(MessageUtils.getColorMessage("&eSelector: &f" + targetName));
-
-                    // Update Lore
                     if (!lore.isEmpty()) lore.set(0, MessageUtils.getColorMessage("&7Target: &a" + targetName));
 
-                    // Update Texture
                     if (meta instanceof SkullMeta && target != null) {
                         ((SkullMeta) meta).setOwningPlayer(target);
                     }
                 } else {
-                    // Reset
                     ConfigurationSection original = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory.player-selector");
                     if (original != null) {
                         meta.setDisplayName(MessageUtils.getColorMessage(original.getString("name")));
                         lore = original.getStringList("lore").stream().map(MessageUtils::getColorMessage).collect(Collectors.toList());
                     }
                     if (meta instanceof SkullMeta) {
-                        ((SkullMeta) meta).setOwningPlayer(null); // Reset head
+                        ((SkullMeta) meta).setOwningPlayer(null);
                     }
                 }
                 meta.setLore(lore);
                 item.setItemMeta(meta);
-                return; // Only update first instance
+                return;
             }
         }
     }
@@ -215,13 +212,19 @@ public class ModeratorModeManager {
         UUID uuid = player.getUniqueId();
         if (interactionsAllowed.contains(uuid)) {
             interactionsAllowed.remove(uuid);
-            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_interactions_disabled"); // Add message to messages.yml if needed
+            // MODIFIED: Block interactions -> ADVENTURE
+            player.setGameMode(GameMode.ADVENTURE);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_interactions_disabled");
             updateInteractionTool(player, false);
         } else {
             interactionsAllowed.add(uuid);
+            // MODIFIED: Allow interactions -> SURVIVAL
+            player.setGameMode(GameMode.SURVIVAL);
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_interactions_enabled");
             updateInteractionTool(player, true);
         }
+        player.setAllowFlight(true);
+        player.setFlying(true);
     }
 
     private void updateInteractionTool(Player player, boolean allowed) {
@@ -243,7 +246,6 @@ public class ModeratorModeManager {
     }
 
     public boolean canInteract(UUID uuid) {
-        // Enforce cooldown: 500ms
         long now = System.currentTimeMillis();
         long last = lastInteraction.getOrDefault(uuid, 0L);
         if (now - last < 250) return false;
@@ -251,7 +253,6 @@ public class ModeratorModeManager {
         return true;
     }
 
-    // Getters & Utils
     public boolean isInModeratorMode(UUID uuid) { return savedStates.containsKey(uuid); }
     public boolean isVanished(UUID uuid) { return vanishedPlayers.contains(uuid); }
     public Player getSelectedPlayer(UUID moderator) {

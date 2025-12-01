@@ -1,7 +1,6 @@
 # messages.yml
 # Configuration file for plugin messages.
-# This file contains all text messages used by the Crown plugin,
-# allowing for easy customization of the plugin's text output.
+# This file contains all text messages used by the Crown plugin.
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
 # --- Available Placeholders ---
@@ -9,36 +8,10 @@
 # - {prefix}: Plugin prefix (defined in config.yml).
 # - {player}: Player who executed the command/action.
 # - {target}: Target player's name.
-# Command Specific:
-# - {usage}: Command usage instructions.
-# - {input}: User input (e.g., player name, time).
-# - {types}: List of available punishment types.
-# Punishment Specific:
-# - {time}: Punishment time duration (e.g., "1d", "Permanent").
-# - {reason}: Punishment reason.
-# - {punishment_id}: The unique ID of the punishment record.
-# - {punishment_type}: (DEPRECATED in punishment_confirmed, use {punishment_action_verb} or specific type names)
-# - {punishment_action_verb}: The verb form of the punishment (e.g., "banned", "muted").
-# - {date}: The date of the punishment.
-# - {date_until}: The date the punishment expires.
-# - {time_left}: The time remaining for the punishment.
-# - {support_link}: The support link from config.yml.
-# Menu Specific:
-# - {action}: Action name (e.g., 'ban details').
-# - {time_status}: Status of time setting ('Set'/'Not Set').
-# - {reason_status}: Status of reason setting ('Set'/'Not Set').
-# Target Info Specific (usable in menus and some messages):
-# - {target_online}: Indicates if the target player is online (uses display_yes/display_no).
-# - {target_ip}: Target player's IP address.
-# - {target_coords}: Target player's coordinates (X, Y, Z).
-# - {target_world}: Target player's world name.
-# - {target_softban_status}: Status of target player's softban (uses display_yes/display_no).
-# - {target_softban_remaining_time}: Remaining time of target player's softban.
-# - {ban_count}, {mute_count}, {kick_count}, {softban_count}, {warn_count}, {freeze_count}: Punishment counts for the target.
-# - {punish_count}: Total punishment count for the target.
-# PlaceholderAPI placeholders are also supported if PAPI is installed.
+# - {time}: Duration string.
+# - {reason}: Reason string.
 
-    messages:
+messages:
       plugin_enabled: '{prefix}&dPlugin enabled.'
       plugin_disabled: '{prefix}&dPlugin disabled.'
       player_only: '{prefix}&cOnly players can use this command.'
@@ -49,22 +22,21 @@
       no_permission_unpunish_command_type: '{prefix}&cYou do not have permission to unpunish &b{punishment_type}&c.'
       no_permission_details_menu: '{prefix}&cYou do not have permission to open the &b{punishment_type}&c details menu.'
       no_permission_punish_menu: '{prefix}&cYou do not have permission to use the punish menu.'
-      no_permission_command: '{prefix}&cYou do not have permission to use this command.' # Generic for /crown, /punish etc. level
+      no_permission_command: '{prefix}&cYou do not have permission to use this command.'
       reload_success: '{prefix}&aConfiguration reloaded successfully.'
       invalid_player: '{prefix}&cInvalid player specified. Usage: {usage}'
       never_played: '{prefix}&cPlayer &b{input}&c has never played on this server.'
       player_not_online: '{prefix}&cPlayer &b{input}&c is not currently online.'
       profile_offline_error: '{prefix}&cCannot open profile for &b{input}&c because they are offline.'
-      profile_self_check_error: '{prefix}&cNo puedes ver tu propio perfil.'
+      profile_self_check_error: '{prefix}&cYou cannot view your own profile.'
       player_not_online_for_ip_punishment: '{prefix}&cPlayer &b{target}&c is not online.'
-
 
       help_header: '&6&lCrownPunishments Commands:'
       help_punish: '&b/crown punish <player> &7- Open punishment menu.'
-      help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Direct punish (ban, mute, softban, kick, warn, freeze).'
-      help_punish_alias: '&b/punish <player> <type> [time] [reason] &7- Quick punish (ban, mute, softban, kick, warn, freeze).'
-      help_unpunish: '&b/crown unpunish <player|#id> <type|reason> &7- Remove punishment by player or ID.'
-      help_unpunish_alias: '&b/unpunish <player|#id> <type|reason> &7- Quick unpunish by player or ID.'
+      help_punish_extended: '&b/crown punish <player> <type> [time] [reason] &7- Direct punish.'
+      help_punish_alias: '&b/punish <player> <type> [time] [reason] &7- Quick punish.'
+      help_unpunish: '&b/crown unpunish <player|#id> <type|reason> &7- Remove punishment.'
+      help_unpunish_alias: '&b/unpunish <player|#id> <type|reason> &7- Quick unpunish.'
       help_softban_command: '&b/softban <player> [time] [reason] &7- Quick softban.'
       help_freeze_command: '&b/freeze <player> [reason] &7- Quick freeze.'
       help_check_command: '&b/check <id> [info|repunish|unpunish] &7- Check a punishment by ID.'
@@ -79,6 +51,7 @@
       help_unfreeze_command: '&b/unfreeze <player> [reason] &7- Quick unfreeze.'
       help_history_command: '&b/history <player> &7- View punishment history.'
       help_reload: '&b/crown reload &7- Reload configuration.'
+      help_profile_command: '&b/profile <player> &7- View player profile.'
 
       active_punishments_header: '&c&lYou have active punishments:'
       active_punishment_entry: '&c- &7({id}) &e{type} &7- Expires in: &f{time_left}'
@@ -121,18 +94,19 @@
       no_active_mute: '{prefix}&cPlayer &b{target}&c does not have an active mute.'
       no_active_warn: '{prefix}&cPlayer &b{target}&c does not have an active warn.'
       unsoftban_success: '{prefix}&aSuccessfully removed softban from &b{target}&a.'
+
       you_are_softbanned: |
-        &c&lYou have been SoftBanned!
-        &cID: &e{punishment_id}
-        &cDuration: &e{time}
-        &cReason: &e{reason}
-        &7Certain commands are blocked during this time.
+            &c&lYou have been SoftBanned!
+            &cID: &e{punishment_id}
+            &cDuration: &e{time}
+            &cReason: &e{reason}
+            &7Certain commands are blocked during this time.
       you_are_muted: |
-        &c&lYou have been muted!
-        &cID: &e{punishment_id}
-        &cDuration: &e{time}
-        &cReason: &e{reason}
-        &7You cannot send messages during this time.
+            &c&lYou have been muted!
+            &cID: &e{punishment_id}
+            &cDuration: &e{time}
+            &cReason: &e{reason}
+            &7You cannot send messages during this time.
 
       chat_while_muted: '{prefix}&cYou are currently muted and cannot send messages.'
       clear_inventory_success: '{prefix}&aSuccessfully cleared &b{target}''s {inventory_type}.'
@@ -147,6 +121,7 @@
       punishment_not_active: '{prefix}&cThe punishment with ID ''{id}'' is already inactive.'
       history_usage: '{prefix}&cUsage: /history <player>'
       profile_usage: '{prefix}&cUsage: /profile <player>'
+
       check_info_header: '&6&lPunishment Information for ID: &e{id}'
       check_info_player: '&7Player: &b{player} &7({uuid})'
       check_info_type: '&7Type: &b{type} &7({method})'
@@ -174,10 +149,12 @@
       check_info_removed: '&7Removed by: &b{remover} &7at &b{remove_date} &7Reason: &f{remove_reason}'
       check_info_repunish_button: '&a&l[Repunish]'
       check_info_unpunish_button: '&c&l[Unpunish]'
+
       ban_usage: '{prefix}&cUsage: /ban <player> [time] [reason]'
       mute_usage: '{prefix}&cUsage: /mute <player> [time] [reason]'
       kick_usage: '{prefix}&cUsage: /kick <player> [reason]'
       warn_usage: '{prefix}&cUsage: /warn <player> [reason]'
+
       direct_unpunishment_confirmed: '{prefix}&aRemoved {punishment_type} from &b{target}&a.'
       direct_unsoftban_confirmed: '{prefix}&aRemoved softban from &b{target}&a.'
       direct_kick_confirmed: '{prefix}&aPlayer &b{target}&a kicked. Reason: &f{reason}'
@@ -187,9 +164,9 @@
       softban_usage: '{prefix}&cUsage: /softban <player> [time] [reason]'
 
       you_are_frozen: |
-        &c&lYou are FROZEN!
-        &cDo not disconnect. Wait for a moderator.
-        &7Admins can see your chat messages.
+            &c&lYou are FROZEN!
+            &cDo not disconnect. Wait for a moderator.
+            &7Admins can see your chat messages.
       direct_unfreeze_confirmed: '{prefix}&aRemoved freeze from &b{target}&a.'
       direct_freeze_confirmed: '{prefix}&aFroze &b{target}&a. Reason: &f{reason}'
       freeze_usage: '{prefix}&cUsage: /freeze <player> [reason]'
@@ -203,45 +180,56 @@
       frozen_player_chat_self: '&7[&dFrozen&7] &b{player}&7: &f{message}'
       already_frozen: '{prefix}&cPlayer &b{target}&c is already frozen.'
 
+      # --- Moderator Mode Messages ---
       mod_mode_enabled: '{prefix}&aMod mode enabled. You are now vanished.'
       mod_mode_disabled: '{prefix}&cMod mode disabled. Your inventory has been restored.'
-      mod_mode_vanish_enabled: '{prefix}&aYou are now vanished.'
-      mod_mode_vanish_disabled: '{prefix}&eYou are now visible.'
-      mod_mode_spectator_enter: '{prefix}&bEntering spectator mode for 3 seconds...'
-      mod_mode_hotbar_full: '{prefix}&cYour hotbar is full.'
-      mod_mode_actionbar_vanished: '&a&lVANISHED &8| &7Right-click tool to appear'
-      mod_mode_actionbar_visible: '&c&lVISIBLE &8| &7Right-click tool to vanish'
       mod_mode_vanish_on: '{prefix}&aYou are now vanished.'
       mod_mode_vanish_off: '{prefix}&eYou are now visible.'
       mod_mode_spectator_on: '{prefix}&bEntering spectator mode for 3 seconds...'
+      mod_mode_hotbar_full: '{prefix}&cYour hotbar is full.'
+
+      # Action Bar Status
+      mod_mode_actionbar_vanished: '&a&lVANISHED &8| &7Right-click tool to appear'
+      mod_mode_actionbar_visible: '&c&lVISIBLE &8| &7Right-click tool to vanish'
+      mod_mode_actionbar_selected: ' &8| &eSelected: &f{target}'
+
+      # Tool Feedback
       mod_mode_random_tp: '{prefix}&dTeleported to a random player: &f{target}'
       mod_mode_no_players_tp: '{prefix}&cNo other non-staff players available to teleport to.'
       mod_mode_freeze_success: '{prefix}&bFroze player: &f{target}'
       mod_mode_invsee_success: '{prefix}&dOpening profile for: &f{target}'
+
+      # Selection Tool
       mod_mode_player_selected: '{prefix}&aPlayer selected: &f{target}'
       mod_mode_selection_cleared: '{prefix}&ePlayer selection cleared.'
       mod_mode_no_player_selected: '{prefix}&cNo player is selected.'
       mod_mode_prompt_player_name: '{prefix}&eType the name of the player to select in chat (or "cancel"):'
       mod_mode_player_not_found: '{prefix}&cPlayer ''{target}'' not found.'
-      mod_mode_actionbar_selected: ' &8| &eSelected: &f{target}'
-      mod_mode_feedback_surface_tp: '&bTeleported to surface.' #Saca feedback dsp
+
+      # Interaction Tool (New)
+      mod_mode_interactions_enabled: '{prefix}&aInteractions enabled. You are now in Survival mode.'
+      mod_mode_interactions_disabled: '{prefix}&cInteractions disabled. You are now in Adventure mode.'
+
+      # Teleport Tool (New Feedback)
+      mod_mode_feedback_surface_tp: '&bTeleported to surface.'
       mod_mode_feedback_phase_tp: '&dPhased through wall.'
       mod_mode_feedback_no_target: '&cNo target in sight.'
 
+      # --- Report System ---
       report_prompt_player_name: '&aEnter the name of the player you want to report (or type ''cancel''):'
       report_prompt_clan_name: '&aEnter the name of the clan you want to report (or type ''cancel''):'
       report_prompt_custom_reason: '&aDescribe the reason for your report in chat (or type ''cancel''):'
-      report_prompt_additional_details: '&aPlease provide additional details about your report (or type ''cancel''):' # ADDED
-      report_prompt_filter_target: '&aEnter a target name to filter reports by (or type ''cancel''):' # ADDED
-      report_prompt_filter_requester: '&aEnter a requester name to filter reports by (or type ''cancel''):' # ADDED
-      report_prompt_assign_moderator: '&aEnter the name of the moderator to assign this report to (or type ''cancel''):' # ADDED
+      report_prompt_additional_details: '&aPlease provide additional details about your report (or type ''cancel''):'
+      report_prompt_filter_target: '&aEnter a target name to filter reports by (or type ''cancel''):'
+      report_prompt_filter_requester: '&aEnter a requester name to filter reports by (or type ''cancel''):'
+      report_prompt_assign_moderator: '&aEnter the name of the moderator to assign this report to (or type ''cancel''):'
       report_submitted: '{prefix}&aYour report has been submitted successfully. (ID: &e#{report_id}&a)'
       report_submit_failed: '{prefix}&cThere was an error submitting your report. Please try again later.'
       report_staff_notification: '{prefix}&eNew report from &b{requester}&e against &c{target}&e for &f{reason}&e.'
       reports_menu_loading: '{prefix}&7Loading reports...'
       report_status_changed: '{prefix}&aReport &e{report_id}&a status changed to {status_color}{status}&a.'
-      report_assigned: '{prefix}&aReport &e{report_id}&a has been assigned to &b{moderator}&a.' # ADDED
-      report_not_found: '{prefix}&cReport with ID ''{id}'' could not be found.' # ADDED
+      report_assigned: '{prefix}&aReport &e{report_id}&a has been assigned to &b{moderator}&a.'
+      report_not_found: '{prefix}&cReport with ID ''{id}'' could not be found.'
       report_no_permission_view: '{prefix}&cYou do not have permission to view reports.'
       report_no_permission_create: '{prefix}&cYou do not have permission to create reports.'
       report_cooldown: '{prefix}&cYou must wait &e{time} seconds&c before sending another report.'
@@ -275,21 +263,21 @@
       support_link_hover: '&bClick to open the support link.'
 
       default_reasons:
-        no_reason: "No reason specified."
-        ban: "Banned by a moderator."
-        mute: "Muted by a moderator."
-        kick: "Kicked by a moderator."
-        warn: "Warned by a moderator."
-        softban: "Softbanned by a moderator."
-        freeze: "Frozen by a moderator."
-        unban: "Ban punishment removed."
-        unmute: "Mute removed."
-        unwarn: "Warn removed."
-        unsoftban: "Softban removed."
-        unfreeze: "Freeze removed."
+            no_reason: "No reason specified."
+            ban: "Banned by a moderator."
+            mute: "Muted by a moderator."
+            kick: "Kicked by a moderator."
+            warn: "Warned by a moderator."
+            softban: "Softbanned by a moderator."
+            freeze: "Frozen by a moderator."
+            unban: "Ban punishment removed."
+            unmute: "Mute removed."
+            unwarn: "Warn removed."
+            unsoftban: "Softban removed."
+            unfreeze: "Freeze removed."
 
 # Section for reusable placeholder display values.
-    placeholders:
+placeholders:
       display_yes: "&a✔"
       display_no: "&c❌"
       set: '&a✔ Set'
@@ -305,22 +293,22 @@
       status_removed: '&7(Removed)'
 
       punishment_type_names:
-        ban: "Ban"
-        mute: "Mute"
-        kick: "Kick"
-        warn: "Warning"
-        softban: "Softban"
-        freeze: "Freeze"
-        unban: "Unban"
-        unmute: "Unmute"
-        unwarn: "Unwarn Removal"
-        unsoftban: "Softban Removal"
-        unfreeze: "Unfreeze"
+            ban: "Ban"
+            mute: "Mute"
+            kick: "Kick"
+            warn: "Warning"
+            softban: "Softban"
+            freeze: "Freeze"
+            unban: "Unban"
+            unmute: "Unmute"
+            unwarn: "Unwarn Removal"
+            unsoftban: "Softban Removal"
+            unfreeze: "Unfreeze"
 
       punishment_action_verbs:
-        ban: "banned"
-        mute: "muted"
-        kick: "kicked"
-        warn: "warned"
-        softban: "softbanned"
-        freeze: "frozen"
+            ban: "banned"
+            mute: "muted"
+            kick: "kicked"
+            warn: "warned"
+            softban: "softbanned"
+            freeze: "frozen"

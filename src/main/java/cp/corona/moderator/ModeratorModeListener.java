@@ -9,7 +9,6 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -73,8 +72,7 @@ public class ModeratorModeListener implements Listener {
 
         // Global interaction blocking logic (Physical world interactions)
         if (!plugin.getModeratorModeManager().isInteractionsAllowed(event.getPlayer().getUniqueId())) {
-            // Cancel generic interactions, but allow tool logic (handled in HIGH priority)
-            // Note: We cancel immediately, but tool logic manually checks clicked blocks/air
+            // Cancel generic interactions
             if (event.getAction() == Action.PHYSICAL) {
                 event.setCancelled(true);
                 return;
@@ -86,8 +84,16 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onEntityInteract(PlayerInteractEntityEvent event) {
-        if (plugin.getModeratorModeManager().isInModeratorMode(event.getPlayer().getUniqueId())) {
-            if (!plugin.getModeratorModeManager().isInteractionsAllowed(event.getPlayer().getUniqueId())) {
+        Player player = event.getPlayer();
+        if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+            // Spectator Exit on Entity Right Click
+            if (player.getGameMode() == GameMode.SPECTATOR) {
+                exitSpectatorMode(player);
+                event.setCancelled(true);
+                return;
+            }
+
+            if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
                 event.setCancelled(true);
             }
         }
@@ -112,6 +118,13 @@ public class ModeratorModeListener implements Listener {
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
         if (!(event.getRightClicked() instanceof Player)) return;
 
+        // Spectator Exit
+        if (player.getGameMode() == GameMode.SPECTATOR) {
+            exitSpectatorMode(player);
+            event.setCancelled(true);
+            return;
+        }
+
         // Debounce check
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
@@ -123,7 +136,6 @@ public class ModeratorModeListener implements Listener {
         String toolId = getToolId(item);
 
         if (toolId == null && item.getType() == Material.AIR) {
-            // Empty hand behavior
             if (player.isSneaking()) {
                 plugin.getModeratorModeManager().setSelectedPlayer(player.getUniqueId(), target.getUniqueId());
                 MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_player_selected", "{target}", target.getName());
@@ -140,7 +152,6 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageTool(EntityDamageByEntityEvent event) {
-        // Handle Left-Click on entity with tool
         if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player)) return;
         Player player = (Player) event.getDamager();
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
@@ -162,7 +173,6 @@ public class ModeratorModeListener implements Listener {
         Player player = event.getPlayer();
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
-        // If transitioning, block everything
         if (plugin.getModeratorModeManager().isTransitioning(player.getUniqueId())) {
             event.setCancelled(true);
             return;
@@ -170,12 +180,11 @@ public class ModeratorModeListener implements Listener {
 
         // Debounce check for air/block clicks
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) {
-            // If interaction blocked globally, ensure event is cancelled even if debounce skipped logic
             if(!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) event.setCancelled(true);
             return;
         }
 
-        // Exit Spectator handling
+        // Exit Spectator handling (Right Click Air/Block)
         if (player.getGameMode() == GameMode.SPECTATOR) {
             if (event.getAction() == Action.RIGHT_CLICK_AIR || (event.getAction() == Action.RIGHT_CLICK_BLOCK)) {
                 exitSpectatorMode(player);
@@ -184,17 +193,12 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
-        // Handle inventory clicks in world (e.g. chest) if allowed
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
             if (clickedBlock != null && clickedBlock.getState() instanceof InventoryHolder) {
                 if (plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
-                    // Let vanilla handle it or open manually? Let vanilla handle if allowed.
-                    // But if we have a tool, we might want tool logic instead.
-                    // Priority: Tool > Block Interaction
+                    // Allowed
                 } else {
-                    // Blocked interaction, but maybe we want to silent-open?
-                    // Requirement: "anula las interacciones... lo mismo con bloques"
                     event.setUseInteractedBlock(Event.Result.DENY);
                     event.setCancelled(true);
                 }
@@ -205,7 +209,7 @@ public class ModeratorModeListener implements Listener {
         String toolId = getToolId(item);
         if (toolId == null) return;
 
-        event.setCancelled(true); // Tools don't do vanilla actions
+        event.setCancelled(true);
         handleToolAction(player, toolId, event.getAction());
     }
 
@@ -259,7 +263,7 @@ public class ModeratorModeListener implements Listener {
                 else if (isLeft) handlePhaseTeleport(player);
                 break;
             case "freeze_player_tool":
-                // Logic handled in specific entity interact event or here for RayTrace/Selected
+                // Handles raytracing or selected player if not clicked directly
                 handleFreezeToolLogic(player, isRight, isLeft);
                 break;
             case "invsee_tool":
@@ -269,14 +273,19 @@ public class ModeratorModeListener implements Listener {
     }
 
     private void handleEntityToolAction(Player player, Player target, String toolId, boolean isRightClick) {
-        // Direct click on entity overrides selection/raytrace
         switch (toolId) {
             case "freeze_player_tool":
+                // If direct entity click, ignore selection/raytrace logic and apply directly
                 boolean shift = player.isSneaking();
-                if (shift && isRightClick) executeFreeze(player, target); // Shift+R: Freeze target
-                else if (isRightClick) executeFreeze(player, target); // R-Click: Freeze target
-                else if (shift && !isRightClick) executeUnfreeze(player, target); // Shift+L: Unfreeze target
-                else executeUnfreeze(player, target); // L-Click: Unfreeze target
+                if (isRightClick) {
+                    // Right Click (Freeze)
+                    if (shift) executeFreeze(player, target); // Shift+R: Freeze Cursor (Target)
+                    else executeFreeze(player, target);       // R: Freeze Cursor (Target) overrides logic for direct click
+                } else {
+                    // Left Click (Unfreeze)
+                    if (shift) executeUnfreeze(player, target); // Shift+L: Unfreeze Cursor (Target)
+                    else executeUnfreeze(player, target);       // L: Unfreeze Cursor (Target) overrides logic for direct click
+                }
                 break;
             case "invsee_tool":
                 new ProfileMenu(target.getUniqueId(), plugin).open(player);
@@ -289,30 +298,27 @@ public class ModeratorModeListener implements Listener {
         boolean shift = player.isSneaking();
         Player target = null;
 
-        // Priority 1: Shift + Click (RayTrace/Target) - Ignores Selection
+        // Logic Requirement:
+        // 1. Shift + Click (L/R) -> Always acts on Cursor Target (Ignores Selection).
+        // 2. Click (L/R) -> Acts on Selection if exists, otherwise Cursor Target.
+
         if (shift) {
+            // Case 1: Shift held
             target = rayTracePlayer(player);
             if (target == null) {
-                // If no target in sight, check selection as fallback? Request says "ignore selection" for shift
-                // But if purely air, do nothing or show error?
-                // Request: "shift+click derecho a pesar de tener a un jugador seleccionado, permitiendo así congelar a alguien más"
-                // Implies: Shift uses Cursor Target.
-                if (target == null) {
-                    sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_no_target"));
-                    return;
-                }
+                sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_no_target"));
+                return;
             }
-        }
-        // Priority 2: Standard Click - Use Selection, Fallback to Cursor
-        else {
+        } else {
+            // Case 2: No Shift
             target = plugin.getModeratorModeManager().getSelectedPlayer(player.getUniqueId());
             if (target == null) {
+                // Fallback to cursor
                 target = rayTracePlayer(player);
             }
         }
 
         if (target == null) {
-            // "si no hay ningún jugador seleccionado debe poder funcionar sólo si está apuntando aun jugador"
             sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_no_target"));
             return;
         }
@@ -334,7 +340,6 @@ public class ModeratorModeListener implements Listener {
             MessageUtils.sendConfigMessage(plugin, moderator, "messages.already_frozen", "{target}", target.getName());
             return;
         }
-        // Use console dispatcher to ensure DB consistency and use configured reasons
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "crown punish " + target.getName() + " freeze Staff Tool");
         MessageUtils.sendConfigMessage(plugin, moderator, "messages.mod_mode_freeze_success", "{target}", target.getName());
     }
@@ -353,7 +358,7 @@ public class ModeratorModeListener implements Listener {
         boolean wasVanished = plugin.getModeratorModeManager().isVanished(player.getUniqueId());
         plugin.getModeratorModeManager().savePreSpectatorVanishState(player.getUniqueId(), wasVanished);
 
-        if(wasVanished) plugin.getModeratorModeManager().unvanishPlayer(player); // Unvanish to ensure clean spectator state if needed by plugins, or just logic consistency
+        if(wasVanished) plugin.getModeratorModeManager().unvanishPlayer(player);
 
         player.setGameMode(GameMode.SPECTATOR);
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);
@@ -363,15 +368,6 @@ public class ModeratorModeListener implements Listener {
             @Override
             public void run() {
                 plugin.getModeratorModeManager().setTransitioning(player.getUniqueId(), false);
-                // Auto-exit handled? Request says: "durante esos 3 segundos debe bloquearse... luego debe volver al estado anterior"
-                // This implies temporary spectator? OR just blocking interaction for 3s?
-                // "si se cambia al modo espectador, durante esos 3 segundos debe bloquearse... además, luego debe volver al estado anterior"
-                // Assuming it means: "Transition animation/lock for 3s, then STAY in spectator until exit, OR it's a 3s peek?"
-                // Given standard mod tools, usually it's a toggle. But the wording "luego debe volver al estado anterior" suggests a temporary peek or just restoring vanish state ON EXIT.
-                // Let's assume it means "After the transition/blocking period ends (or when switching BACK), restore state".
-                // Re-reading: "durante esos 3 segundos debe bloquearse... además, luego debe volver al estado anterior (visible o invisible)"
-                // This phrasing usually implies the ACTION of switching involves a 3s block.
-                // I will implement: 3s block. User manually exits. On exit, restore state.
             }
         }.runTaskLater(plugin, 60L); // 3 seconds lock
         plugin.getModeratorModeManager().addSpectatorTask(player.getUniqueId(), task);
@@ -379,10 +375,11 @@ public class ModeratorModeListener implements Listener {
 
     private void exitSpectatorMode(Player player) {
         plugin.getModeratorModeManager().cancelAndRemoveSpectatorTask(player.getUniqueId());
-        plugin.getModeratorModeManager().setTransitioning(player.getUniqueId(), false); // Ensure lock removed
+        plugin.getModeratorModeManager().setTransitioning(player.getUniqueId(), false);
         if (player.getGameMode() != GameMode.SPECTATOR) return;
 
-        player.setGameMode(GameMode.SURVIVAL);
+        // MODIFIED: Return to ADVENTURE
+        player.setGameMode(GameMode.ADVENTURE);
         player.setAllowFlight(true);
         player.setFlying(true);
 
@@ -417,10 +414,7 @@ public class ModeratorModeListener implements Listener {
 
     private void openSelectedPlayerProfile(Player player) {
         Player selected = plugin.getModeratorModeManager().getSelectedPlayer(player.getUniqueId());
-        if (selected == null) {
-            // Attempt RayTrace if no selection
-            selected = rayTracePlayer(player);
-        }
+        if (selected == null) selected = rayTracePlayer(player);
 
         if (selected != null) {
             new ProfileMenu(selected.getUniqueId(), plugin).open(player);
@@ -570,7 +564,6 @@ public class ModeratorModeListener implements Listener {
         ItemStack tool = plugin.getModeratorModeManager().getModeratorTools().get(toolId);
         if (tool == null) return;
 
-        // Logic to swap/set item in hotbar
         for (int i = 0; i <= 8; i++) {
             ItemStack hotbarItem = player.getInventory().getItem(i);
             if (hotbarItem != null && hotbarItem.hasItemMeta()) {
@@ -584,7 +577,7 @@ public class ModeratorModeListener implements Listener {
             }
         }
 
-        for (int i = 1; i <= 8; i++) { // Skip slot 0 (Selector)
+        for (int i = 1; i <= 8; i++) {
             if (player.getInventory().getItem(i) == null) {
                 player.getInventory().setItem(i, tool);
                 player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.2f);
