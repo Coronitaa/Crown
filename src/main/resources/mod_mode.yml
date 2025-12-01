@@ -12,7 +12,8 @@ moderator-inventory:
     lore:
       - '&7Target: &fNone'
       - ''
-      - '&eL-Click: &fOpen selected player''s profile.'
+      - '&eL-Click: &fOpen profile.'
+      - '&eShift+L-Click: &fOpen punish menu.'
       - '&eR-Click: &fSelect player by name.'
       - '&eShift+R-Click: &fClear selection.'
       - ''
@@ -34,22 +35,15 @@ moderator-inventory:
     lore:
       - '&7Right-Click to toggle world interactions.'
       - '&7(Breaking, placing, chest access, pvp)'
-  freeze-tool:
-    tool-id: 'freeze_player_tool'
-    slot: 4
-    material: 'ICE'
-    name: '&bFreeze Tool'
+  container-inspector:
+    tool-id: 'container_inspector'
+    slot: 3
+    material: 'SPYGLASS'
+    name: '&6Container Inspector'
     lore:
-      - '&eR-Click: &fFreeze Target/Selection'
-      - '&eL-Click: &fUnfreeze Target/Selection'
-      - '&eShift+Click: &fForce Target (Ignore Selection)'
-  invsee-tool:
-    tool-id: 'invsee_tool'
-    slot: 5
-    material: 'ENDER_CHEST'
-    name: '&dInspect Player'
-    lore:
-      - '&eR-Click: &fOpen Target/Selection Profile'
+      - '&7Right-Click a container to'
+      - '&7inspect it silently.'
+      - '&8(Chests, Barrels, Shulkers)'
   tool-selector:
     tool-id: 'tool_selector'
     slot: 8
@@ -122,3 +116,12 @@ tool-selector-menu:
         - '&eR-Click: &fTeleport to selected player.'
         - '&8(If none, teleports to a random player)'
         - '&eShift+R-Click: &fTeleport to random player.'
+
+    container-inspector:
+      tool-id: 'container_inspector'
+      slot: 17
+      material: 'SPYGLASS'
+      name: '&6Container Inspector'
+      lore:
+        - '&7Silently inspect containers'
+        - '&7without block updates.'

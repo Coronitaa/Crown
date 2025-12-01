@@ -2,6 +2,7 @@ package cp.corona.moderator;
 
 import cp.corona.crown.Crown;
 import cp.corona.menus.ProfileMenu;
+import cp.corona.menus.PunishMenu;
 import cp.corona.menus.ReportsMenu;
 import cp.corona.menus.ToolSelectorMenu;
 import cp.corona.utils.MessageUtils;
@@ -9,6 +10,8 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -34,6 +37,7 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -41,10 +45,33 @@ public class ModeratorModeListener implements Listener {
 
     private final Crown plugin;
     private final NamespacedKey toolIdKey;
+    private final Set<Material> inspectableContainers;
 
     public ModeratorModeListener(Crown plugin) {
         this.plugin = plugin;
         this.toolIdKey = new NamespacedKey(plugin, "tool-id");
+        this.inspectableContainers = Set.of(
+                Material.CHEST,
+                Material.TRAPPED_CHEST,
+                Material.BARREL,
+                Material.SHULKER_BOX,
+                Material.WHITE_SHULKER_BOX,
+                Material.ORANGE_SHULKER_BOX,
+                Material.MAGENTA_SHULKER_BOX,
+                Material.LIGHT_BLUE_SHULKER_BOX,
+                Material.YELLOW_SHULKER_BOX,
+                Material.LIME_SHULKER_BOX,
+                Material.PINK_SHULKER_BOX,
+                Material.GRAY_SHULKER_BOX,
+                Material.LIGHT_GRAY_SHULKER_BOX,
+                Material.CYAN_SHULKER_BOX,
+                Material.PURPLE_SHULKER_BOX,
+                Material.BLUE_SHULKER_BOX,
+                Material.BROWN_SHULKER_BOX,
+                Material.GREEN_SHULKER_BOX,
+                Material.RED_SHULKER_BOX,
+                Material.BLACK_SHULKER_BOX
+        );
     }
 
     @EventHandler
@@ -67,6 +94,17 @@ public class ModeratorModeListener implements Listener {
         if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
             event.setCancelled(true);
             return;
+        }
+
+        // Special check: If using container inspector on a valid block, do not cancel early in LOWEST
+        // We handle the cancellation specifically in HIGH to open the inv.
+        ItemStack item = player.getInventory().getItemInMainHand();
+        String toolId = getToolId(item);
+        if ("container_inspector".equals(toolId) && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            Block b = event.getClickedBlock();
+            if (b != null && inspectableContainers.contains(b.getType())) {
+                return; // Let it pass to onPlayerInteractTool
+            }
         }
 
         if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
@@ -184,9 +222,15 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
+        ItemStack item = event.getItem();
+        String toolId = getToolId(item);
+
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
-            if (clickedBlock != null && clickedBlock.getState() instanceof InventoryHolder) {
+            // Allow container inspector to pass through
+            if ("container_inspector".equals(toolId) && clickedBlock != null && inspectableContainers.contains(clickedBlock.getType())) {
+                // Do nothing here, handled in handleToolAction
+            } else if (clickedBlock != null && clickedBlock.getState() instanceof InventoryHolder) {
                 if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
                     event.setUseInteractedBlock(Event.Result.DENY);
                     event.setCancelled(true);
@@ -194,12 +238,10 @@ public class ModeratorModeListener implements Listener {
             }
         }
 
-        ItemStack item = event.getItem();
-        String toolId = getToolId(item);
         if (toolId == null) return;
 
-        event.setCancelled(true);
-        handleToolAction(player, toolId, event.getAction());
+        event.setCancelled(true); // Cancel all tool interactions by default
+        handleToolAction(player, toolId, event.getAction(), event.getClickedBlock());
     }
 
     private String getToolId(ItemStack item) {
@@ -207,7 +249,7 @@ public class ModeratorModeListener implements Listener {
         return item.getItemMeta().getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
     }
 
-    private void handleToolAction(Player player, String toolId, Action action) {
+    private void handleToolAction(Player player, String toolId, Action action, Block clickedBlock) {
         boolean isRight = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
         boolean isLeft = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
 
@@ -226,7 +268,11 @@ public class ModeratorModeListener implements Listener {
                 if (isRight) {
                     if (player.isSneaking()) clearSelection(player); else requestPlayerSelection(player);
                 } else if (isLeft) {
-                    openSelectedPlayerProfile(player);
+                    if (player.isSneaking()) {
+                        openSelectedPlayerPunishMenu(player);
+                    } else {
+                        openSelectedPlayerProfile(player);
+                    }
                 }
                 break;
             case "tool_selector":
@@ -262,6 +308,24 @@ public class ModeratorModeListener implements Listener {
             case "invsee_tool":
                 if (isRight) openSelectedPlayerProfile(player);
                 break;
+            case "container_inspector":
+                if (isRight && clickedBlock != null) {
+                    handleContainerInspection(player, clickedBlock);
+                }
+                break;
+        }
+    }
+
+    private void handleContainerInspection(Player player, Block block) {
+        if (!inspectableContainers.contains(block.getType())) {
+            return;
+        }
+
+        BlockState state = block.getState();
+        if (state instanceof Container container) {
+            sendActionBar(player, "&6Inspecting " + block.getType().name().replace("_", " "));
+            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f);
+            player.openInventory(container.getInventory());
         }
     }
 
@@ -361,6 +425,17 @@ public class ModeratorModeListener implements Listener {
 
         if (selected != null) {
             new ProfileMenu(selected.getUniqueId(), plugin).open(player);
+        } else {
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_no_player_selected");
+        }
+    }
+
+    private void openSelectedPlayerPunishMenu(Player player) {
+        Player selected = plugin.getModeratorModeManager().getSelectedPlayer(player.getUniqueId());
+        if (selected == null) selected = rayTracePlayer(player);
+
+        if (selected != null) {
+            new PunishMenu(selected.getUniqueId(), plugin).open(player);
         } else {
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_no_player_selected");
         }
