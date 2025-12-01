@@ -82,7 +82,7 @@ public class ModeratorModeManager {
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
 
-        // MODIFIED: Base GameMode is now ADVENTURE
+        // Base GameMode is ADVENTURE
         player.setGameMode(GameMode.ADVENTURE);
 
         player.setHealth(20.0);
@@ -91,7 +91,7 @@ public class ModeratorModeManager {
         player.setAllowFlight(true);
         player.setFlying(true);
         player.setSilent(true);
-        player.setCollidable(false);
+        // Collisions handled in vanishPlayer/unvanishPlayer
 
         ConfigurationSection inventorySection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory");
         if (inventorySection != null) {
@@ -134,6 +134,8 @@ public class ModeratorModeManager {
         vanishedPlayers.add(player.getUniqueId());
         player.setMetadata("vanished", new FixedMetadataValue(plugin, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
+        player.setCollidable(false); // Disable collisions when vanished
+
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             if (!onlinePlayer.hasPermission("crown.mod.seevanish")) onlinePlayer.hidePlayer(plugin, player);
         }
@@ -143,6 +145,8 @@ public class ModeratorModeManager {
         vanishedPlayers.remove(player.getUniqueId());
         player.removeMetadata("vanished", plugin);
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        player.setCollidable(true); // Enable collisions when visible
+
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             onlinePlayer.showPlayer(plugin, player);
         }
@@ -212,13 +216,11 @@ public class ModeratorModeManager {
         UUID uuid = player.getUniqueId();
         if (interactionsAllowed.contains(uuid)) {
             interactionsAllowed.remove(uuid);
-            // MODIFIED: Block interactions -> ADVENTURE
             player.setGameMode(GameMode.ADVENTURE);
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_interactions_disabled");
             updateInteractionTool(player, false);
         } else {
             interactionsAllowed.add(uuid);
-            // MODIFIED: Allow interactions -> SURVIVAL
             player.setGameMode(GameMode.SURVIVAL);
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_interactions_enabled");
             updateInteractionTool(player, true);
@@ -248,9 +250,18 @@ public class ModeratorModeManager {
     public boolean canInteract(UUID uuid) {
         long now = System.currentTimeMillis();
         long last = lastInteraction.getOrDefault(uuid, 0L);
+        // "now - last" can be negative if we set last into the future (blocking)
+        // If last is future (e.g., now + 500), then (now - last) is negative, which is < 250.
+        // So checking < 250 handles both normal cooldown and future blocking.
         if (now - last < 250) return false;
+
         lastInteraction.put(uuid, now);
         return true;
+    }
+
+    // Force block interactions for a specific duration (ms)
+    public void blockInteractions(UUID uuid, long durationMs) {
+        lastInteraction.put(uuid, System.currentTimeMillis() + durationMs);
     }
 
     public boolean isInModeratorMode(UUID uuid) { return savedStates.containsKey(uuid); }
@@ -279,6 +290,63 @@ public class ModeratorModeManager {
     public boolean isTransitioning(UUID uuid) { return spectatorTransitioning.contains(uuid); }
     public void savePreSpectatorVanishState(UUID uuid, boolean vanished) { preSpectatorVanishState.put(uuid, vanished); }
     public Boolean getPreSpectatorVanishState(UUID uuid) { return preSpectatorVanishState.get(uuid); }
+
+    public void enterSpectatorMode(Player player) {
+        setTransitioning(player.getUniqueId(), true);
+        boolean wasVanished = isVanished(player.getUniqueId());
+        savePreSpectatorVanishState(player.getUniqueId(), wasVanished);
+
+        // We do NOT unvanish here because Spectator is implicitly invisible.
+        // Keeping them in the "vanished" set helps logic stability,
+        // but we might need to remove metadata/effects if they conflict.
+        // Actually, let's keep them conceptually "vanished" in the manager,
+        // but physically in Spectator mode.
+
+        player.setGameMode(GameMode.SPECTATOR);
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);
+        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_spectator_on");
+
+        BukkitTask task = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                setTransitioning(player.getUniqueId(), false);
+            }
+        }.runTaskLater(plugin, 60L); // 3 seconds lock
+        addSpectatorTask(player.getUniqueId(), task);
+    }
+
+    public void exitSpectatorMode(Player player) {
+        cancelAndRemoveSpectatorTask(player.getUniqueId());
+        setTransitioning(player.getUniqueId(), false);
+        if (player.getGameMode() != GameMode.SPECTATOR) return;
+
+        // Restore GameMode based on Interaction Tool State
+        if (interactionsAllowed.contains(player.getUniqueId())) {
+            player.setGameMode(GameMode.SURVIVAL);
+        } else {
+            player.setGameMode(GameMode.ADVENTURE);
+        }
+
+        player.setAllowFlight(true);
+        player.setFlying(true);
+
+        // Restore Vanish State
+        Boolean wasVanished = getPreSpectatorVanishState(player.getUniqueId());
+        // Default to TRUE (Vanish) if null/unknown for safety
+        if (wasVanished == null || wasVanished) {
+            vanishPlayer(player);
+        } else {
+            unvanishPlayer(player);
+        }
+
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.5f);
+
+        // BLOCK INTERACTIONS FOR 0.5s TO PREVENT DOUBLE-TRIGGER
+        // When clicking a block to exit spectator, the client sends the packet.
+        // The server switches mode. The client then sends "Use Item" packet in the new mode.
+        // We must ignore that second packet.
+        blockInteractions(player.getUniqueId(), 500);
+    }
 
     private static class PlayerState {
         private final ItemStack[] inventoryContents;
