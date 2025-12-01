@@ -42,6 +42,10 @@ on-join-alert:
   freeze-chat-duration: 10 # in seconds
   sound: 'BLOCK_NOTE_BLOCK_BASS' # Sound to play when the alert is shown. Set to '' to disable.
 
+mod-mode:
+  # Duration in seconds for the temporary spectator mode (Vanish tool).
+  spectator-duration: 3
+
 # Logging configurations.
 logging:
   debug: false # Set to true for detailed console output for troubleshooting.

@@ -24,13 +24,11 @@ import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 
 import java.util.ArrayList;
@@ -62,23 +60,25 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onModInteract(PlayerInteractEvent event) {
-        if (!plugin.getModeratorModeManager().isInModeratorMode(event.getPlayer().getUniqueId())) return;
+        Player player = event.getPlayer();
+        if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
-        // Prevent clicking during transition
-        if (plugin.getModeratorModeManager().isTransitioning(event.getPlayer().getUniqueId())) {
+        // MODIFIED: Removed transition check and spectator exit check.
+        // If in Temporary Spectator, we essentially ignore inputs or let vanilla handle spectator flying.
+        // But to avoid tool usage resetting the timer or causing issues:
+        if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
             event.setCancelled(true);
             return;
         }
 
-        // Global interaction blocking logic (Physical world interactions)
-        if (!plugin.getModeratorModeManager().isInteractionsAllowed(event.getPlayer().getUniqueId())) {
-            // Cancel generic interactions
+        // Global interaction blocking logic
+        if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
             if (event.getAction() == Action.PHYSICAL) {
                 event.setCancelled(true);
                 return;
             }
-            // For click actions, we will cancel in the handler if it's not a tool use
-            event.setCancelled(true);
+            event.setUseInteractedBlock(Event.Result.DENY);
+            event.setUseItemInHand(Event.Result.ALLOW);
         }
     }
 
@@ -86,9 +86,8 @@ public class ModeratorModeListener implements Listener {
     public void onEntityInteract(PlayerInteractEntityEvent event) {
         Player player = event.getPlayer();
         if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
-            // Spectator Exit on Entity Right Click
-            if (player.getGameMode() == GameMode.SPECTATOR) {
-                exitSpectatorMode(player);
+            // Block interaction in temporary spectator
+            if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
                 event.setCancelled(true);
                 return;
             }
@@ -103,6 +102,10 @@ public class ModeratorModeListener implements Listener {
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player player) {
             if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+                if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
+                    event.setCancelled(true);
+                    return;
+                }
                 if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
                     event.setCancelled(true);
                 }
@@ -116,19 +119,18 @@ public class ModeratorModeListener implements Listener {
     public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
         Player player = event.getPlayer();
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
-        if (!(event.getRightClicked() instanceof Player)) return;
 
-        // Spectator Exit
-        if (player.getGameMode() == GameMode.SPECTATOR) {
-            exitSpectatorMode(player);
+        if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
             event.setCancelled(true);
             return;
         }
 
+        if (!(event.getRightClicked() instanceof Player)) return;
+
         // Debounce check
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
-        event.setCancelled(true); // Always cancel vanilla interaction
+        event.setCancelled(true);
         Player target = (Player) event.getRightClicked();
         if (player.getUniqueId().equals(target.getUniqueId())) return;
 
@@ -156,6 +158,11 @@ public class ModeratorModeListener implements Listener {
         Player player = (Player) event.getDamager();
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
+        if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
+            event.setCancelled(true);
+            return;
+        }
+
         // Debounce
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
@@ -164,7 +171,7 @@ public class ModeratorModeListener implements Listener {
         String toolId = getToolId(item);
 
         if (toolId != null) {
-            handleEntityToolAction(player, target, toolId, false); // False = Left Click
+            handleEntityToolAction(player, target, toolId, false);
         }
     }
 
@@ -173,22 +180,13 @@ public class ModeratorModeListener implements Listener {
         Player player = event.getPlayer();
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
-        if (plugin.getModeratorModeManager().isTransitioning(player.getUniqueId())) {
+        if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
             event.setCancelled(true);
             return;
         }
 
-        // Debounce check for air/block clicks
+        // Debounce
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) {
-            if(!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) event.setCancelled(true);
-            return;
-        }
-
-        // Exit Spectator handling (Right Click Air/Block)
-        if (player.getGameMode() == GameMode.SPECTATOR) {
-            if (event.getAction() == Action.RIGHT_CLICK_AIR || (event.getAction() == Action.RIGHT_CLICK_BLOCK)) {
-                exitSpectatorMode(player);
-            }
             event.setCancelled(true);
             return;
         }
@@ -196,9 +194,7 @@ public class ModeratorModeListener implements Listener {
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
             if (clickedBlock != null && clickedBlock.getState() instanceof InventoryHolder) {
-                if (plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
-                    // Allowed
-                } else {
+                if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
                     event.setUseInteractedBlock(Event.Result.DENY);
                     event.setCancelled(true);
                 }
@@ -225,7 +221,8 @@ public class ModeratorModeListener implements Listener {
         switch (toolId) {
             case "vanish_spectator_tool":
                 if (isRight) {
-                    if (player.isSneaking()) toggleVanish(player); else enterSpectatorMode(player);
+                    if (player.isSneaking()) toggleVanish(player);
+                    else plugin.getModeratorModeManager().enterSpectatorMode(player);
                 }
                 break;
             case "player_selector_tool":
@@ -263,7 +260,6 @@ public class ModeratorModeListener implements Listener {
                 else if (isLeft) handlePhaseTeleport(player);
                 break;
             case "freeze_player_tool":
-                // Handles raytracing or selected player if not clicked directly
                 handleFreezeToolLogic(player, isRight, isLeft);
                 break;
             case "invsee_tool":
@@ -275,16 +271,13 @@ public class ModeratorModeListener implements Listener {
     private void handleEntityToolAction(Player player, Player target, String toolId, boolean isRightClick) {
         switch (toolId) {
             case "freeze_player_tool":
-                // If direct entity click, ignore selection/raytrace logic and apply directly
                 boolean shift = player.isSneaking();
                 if (isRightClick) {
-                    // Right Click (Freeze)
-                    if (shift) executeFreeze(player, target); // Shift+R: Freeze Cursor (Target)
-                    else executeFreeze(player, target);       // R: Freeze Cursor (Target) overrides logic for direct click
+                    if (shift) executeFreeze(player, target);
+                    else executeFreeze(player, target);
                 } else {
-                    // Left Click (Unfreeze)
-                    if (shift) executeUnfreeze(player, target); // Shift+L: Unfreeze Cursor (Target)
-                    else executeUnfreeze(player, target);       // L: Unfreeze Cursor (Target) overrides logic for direct click
+                    if (shift) executeUnfreeze(player, target);
+                    else executeUnfreeze(player, target);
                 }
                 break;
             case "invsee_tool":
@@ -298,22 +291,15 @@ public class ModeratorModeListener implements Listener {
         boolean shift = player.isSneaking();
         Player target = null;
 
-        // Logic Requirement:
-        // 1. Shift + Click (L/R) -> Always acts on Cursor Target (Ignores Selection).
-        // 2. Click (L/R) -> Acts on Selection if exists, otherwise Cursor Target.
-
         if (shift) {
-            // Case 1: Shift held
             target = rayTracePlayer(player);
             if (target == null) {
                 sendActionBar(player, plugin.getConfigManager().getMessage("messages.mod_mode_feedback_no_target"));
                 return;
             }
         } else {
-            // Case 2: No Shift
             target = plugin.getModeratorModeManager().getSelectedPlayer(player.getUniqueId());
             if (target == null) {
-                // Fallback to cursor
                 target = rayTracePlayer(player);
             }
         }
@@ -351,46 +337,6 @@ public class ModeratorModeListener implements Listener {
         }
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "crown unpunish " + target.getName() + " freeze Staff Tool");
         MessageUtils.sendConfigMessage(plugin, moderator, "messages.unfreeze_success", "{target}", target.getName());
-    }
-
-    private void enterSpectatorMode(Player player) {
-        plugin.getModeratorModeManager().setTransitioning(player.getUniqueId(), true);
-        boolean wasVanished = plugin.getModeratorModeManager().isVanished(player.getUniqueId());
-        plugin.getModeratorModeManager().savePreSpectatorVanishState(player.getUniqueId(), wasVanished);
-
-        if(wasVanished) plugin.getModeratorModeManager().unvanishPlayer(player);
-
-        player.setGameMode(GameMode.SPECTATOR);
-        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);
-        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_spectator_on");
-
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                plugin.getModeratorModeManager().setTransitioning(player.getUniqueId(), false);
-            }
-        }.runTaskLater(plugin, 60L); // 3 seconds lock
-        plugin.getModeratorModeManager().addSpectatorTask(player.getUniqueId(), task);
-    }
-
-    private void exitSpectatorMode(Player player) {
-        plugin.getModeratorModeManager().cancelAndRemoveSpectatorTask(player.getUniqueId());
-        plugin.getModeratorModeManager().setTransitioning(player.getUniqueId(), false);
-        if (player.getGameMode() != GameMode.SPECTATOR) return;
-
-        // MODIFIED: Return to ADVENTURE
-        player.setGameMode(GameMode.ADVENTURE);
-        player.setAllowFlight(true);
-        player.setFlying(true);
-
-        Boolean wasVanished = plugin.getModeratorModeManager().getPreSpectatorVanishState(player.getUniqueId());
-        if (wasVanished != null && wasVanished) {
-            plugin.getModeratorModeManager().vanishPlayer(player);
-        } else {
-            plugin.getModeratorModeManager().unvanishPlayer(player);
-        }
-
-        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.5f);
     }
 
     private void toggleVanish(Player player) {

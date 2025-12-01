@@ -1,4 +1,3 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\crown\Crown.java
 package cp.corona.crown;
 
 import cp.corona.Metrics;
@@ -14,15 +13,12 @@ import org.bukkit.Sound;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import cp.corona.commands.ModeratorCommand; // ADDED
-import cp.corona.moderator.ModeratorModeListener; // ADDED
+import cp.corona.commands.ModeratorCommand;
+import cp.corona.moderator.ModeratorModeListener;
 import cp.corona.moderator.ModeratorModeManager;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -40,8 +36,8 @@ public final class Crown extends JavaPlugin {
     private final Map<UUID, Boolean> pluginFrozenPlayers = new ConcurrentHashMap<>();
     private final Map<UUID, Long> mutedPlayersCache = new ConcurrentHashMap<>();
     private final Map<UUID, Long> softBannedPlayersCache = new ConcurrentHashMap<>();
-    private final Map<UUID, List<String>> softbannedCommandsCache = new ConcurrentHashMap<>();
-    private final Map<UUID, List<Long>> playerReportTimestamps = new ConcurrentHashMap<>();
+    private final Map<UUID, java.util.List<String>> softbannedCommandsCache = new ConcurrentHashMap<>();
+    private final Map<UUID, java.util.List<Long>> playerReportTimestamps = new ConcurrentHashMap<>();
 
 
     private MenuListener menuListener;
@@ -64,8 +60,9 @@ public final class Crown extends JavaPlugin {
         this.freezeListener = new FreezeListener(this);
         this.punishmentListener = new PunishmentListener(this);
         this.moderatorModeManager = new ModeratorModeManager(this);
-        this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimerAsynchronously(this, 0L, 40L);
 
+        // MODIFIED: Changed from 40L (2s) to 10L (0.5s) for smooth countdown
+        this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimerAsynchronously(this, 0L, 10L);
 
         registerCommands();
         registerEvents();
@@ -87,7 +84,6 @@ public final class Crown extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // ADDED: Stop the task
         if (this.moderatorStateUpdateTask != null && !this.moderatorStateUpdateTask.isCancelled()) {
             this.moderatorStateUpdateTask.cancel();
         }
@@ -100,7 +96,6 @@ public final class Crown extends JavaPlugin {
 
     public void registerCommands() {
         MainCommand mainCommand = new MainCommand(this);
-        // Register all commands and their aliases
         registerCommand("crown", mainCommand);
         registerCommand("punish", mainCommand);
         registerCommand("unpunish", mainCommand);
@@ -141,7 +136,6 @@ public final class Crown extends JavaPlugin {
         }
     }
 
-
     public void registerEvents() {
         getServer().getPluginManager().registerEvents(this.menuListener, this);
         getServer().getPluginManager().registerEvents(new CommandBlockerListener(this), this);
@@ -164,55 +158,18 @@ public final class Crown extends JavaPlugin {
         }
     }
 
-    public MenuListener getMenuListener() {
-        return menuListener;
-    }
-
-    public FreezeListener getFreezeListener() {
-        return freezeListener;
-    }
-
-    public PunishmentListener getPunishmentListener() {
-        return punishmentListener;
-    }
-
-    public MainConfigManager getConfigManager() {
-        return configManager;
-    }
-
-    public DatabaseManager getSoftBanDatabaseManager() {
-        return databaseManager;
-    }
-
-    public boolean isPlaceholderAPIEnabled() {
-        return placeholderAPIEnabled;
-    }
-
-    public Map<UUID, Boolean> getPluginFrozenPlayers() {
-        return pluginFrozenPlayers;
-    }
-    public ModeratorModeManager getModeratorModeManager() {
-        return moderatorModeManager;
-    }
-    public Map<UUID, Long> getMutedPlayersCache() {
-        return mutedPlayersCache;
-    }
-
-    public Map<UUID, Long> getSoftBannedPlayersCache() {
-        return softBannedPlayersCache;
-    }
-
-    public Map<UUID, List<String>> getSoftbannedCommandsCache() {
-        return softbannedCommandsCache;
-    }
-    public ReportBookManager getReportBookManager() { // ADDED
-        return reportBookManager;
-    }
-    public Set<String> getRegisteredCommands() {
-        return registeredCommands;
-    }
-
-    public Map<UUID, List<Long>> getPlayerReportTimestamps() {
-        return playerReportTimestamps;
-    }
+    public MenuListener getMenuListener() { return menuListener; }
+    public FreezeListener getFreezeListener() { return freezeListener; }
+    public PunishmentListener getPunishmentListener() { return punishmentListener; }
+    public MainConfigManager getConfigManager() { return configManager; }
+    public DatabaseManager getSoftBanDatabaseManager() { return databaseManager; }
+    public boolean isPlaceholderAPIEnabled() { return placeholderAPIEnabled; }
+    public Map<UUID, Boolean> getPluginFrozenPlayers() { return pluginFrozenPlayers; }
+    public ModeratorModeManager getModeratorModeManager() { return moderatorModeManager; }
+    public Map<UUID, Long> getMutedPlayersCache() { return mutedPlayersCache; }
+    public Map<UUID, Long> getSoftBannedPlayersCache() { return softBannedPlayersCache; }
+    public Map<UUID, java.util.List<String>> getSoftbannedCommandsCache() { return softbannedCommandsCache; }
+    public ReportBookManager getReportBookManager() { return reportBookManager; }
+    public Set<String> getRegisteredCommands() { return registeredCommands; }
+    public Map<UUID, java.util.List<Long>> getPlayerReportTimestamps() { return playerReportTimestamps; }
 }

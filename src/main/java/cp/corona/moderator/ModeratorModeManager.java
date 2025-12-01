@@ -35,7 +35,8 @@ public class ModeratorModeManager {
 
     private final Map<UUID, Long> lastInteraction = new ConcurrentHashMap<>();
     private final Set<UUID> interactionsAllowed = new HashSet<>();
-    private final Set<UUID> spectatorTransitioning = new HashSet<>();
+    // MODIFIED: Replaced spectatorTransitioning with spectatorExpirations for timer logic
+    private final Map<UUID, Long> spectatorExpirations = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> preSpectatorVanishState = new ConcurrentHashMap<>();
 
     public ModeratorModeManager(Crown plugin) {
@@ -120,7 +121,7 @@ public class ModeratorModeManager {
         awaitingInput.remove(player.getUniqueId());
         lastInteraction.remove(player.getUniqueId());
         interactionsAllowed.remove(player.getUniqueId());
-        spectatorTransitioning.remove(player.getUniqueId());
+        spectatorExpirations.remove(player.getUniqueId());
         preSpectatorVanishState.remove(player.getUniqueId());
 
         MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_disabled");
@@ -134,7 +135,7 @@ public class ModeratorModeManager {
         vanishedPlayers.add(player.getUniqueId());
         player.setMetadata("vanished", new FixedMetadataValue(plugin, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
-        player.setCollidable(false); // Disable collisions when vanished
+        player.setCollidable(false);
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             if (!onlinePlayer.hasPermission("crown.mod.seevanish")) onlinePlayer.hidePlayer(plugin, player);
@@ -145,7 +146,7 @@ public class ModeratorModeManager {
         vanishedPlayers.remove(player.getUniqueId());
         player.removeMetadata("vanished", plugin);
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
-        player.setCollidable(true); // Enable collisions when visible
+        player.setCollidable(true);
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             onlinePlayer.showPlayer(plugin, player);
@@ -250,20 +251,12 @@ public class ModeratorModeManager {
     public boolean canInteract(UUID uuid) {
         long now = System.currentTimeMillis();
         long last = lastInteraction.getOrDefault(uuid, 0L);
-        // "now - last" can be negative if we set last into the future (blocking)
-        // If last is future (e.g., now + 500), then (now - last) is negative, which is < 250.
-        // So checking < 250 handles both normal cooldown and future blocking.
         if (now - last < 250) return false;
-
         lastInteraction.put(uuid, now);
         return true;
     }
 
-    // Force block interactions for a specific duration (ms)
-    public void blockInteractions(UUID uuid, long durationMs) {
-        lastInteraction.put(uuid, System.currentTimeMillis() + durationMs);
-    }
-
+    // Getters & Utils
     public boolean isInModeratorMode(UUID uuid) { return savedStates.containsKey(uuid); }
     public boolean isVanished(UUID uuid) { return vanishedPlayers.contains(uuid); }
     public Player getSelectedPlayer(UUID moderator) {
@@ -283,42 +276,51 @@ public class ModeratorModeManager {
     public void clearAwaitingInput(Player player) { awaitingInput.remove(player.getUniqueId()); }
     public Map<String, ItemStack> getModeratorTools() { return Collections.unmodifiableMap(moderatorTools); }
     public boolean isInteractionsAllowed(UUID uuid) { return interactionsAllowed.contains(uuid); }
-    public void setTransitioning(UUID uuid, boolean transitioning) {
-        if (transitioning) spectatorTransitioning.add(uuid);
-        else spectatorTransitioning.remove(uuid);
-    }
-    public boolean isTransitioning(UUID uuid) { return spectatorTransitioning.contains(uuid); }
     public void savePreSpectatorVanishState(UUID uuid, boolean vanished) { preSpectatorVanishState.put(uuid, vanished); }
     public Boolean getPreSpectatorVanishState(UUID uuid) { return preSpectatorVanishState.get(uuid); }
 
+    // MODIFIED: Timer based Spectator Mode
+    public boolean isTemporarySpectator(UUID uuid) {
+        return spectatorExpirations.containsKey(uuid);
+    }
+
+    public long getRemainingSpectatorTime(UUID uuid) {
+        if (!spectatorExpirations.containsKey(uuid)) return 0;
+        return (spectatorExpirations.get(uuid) - System.currentTimeMillis()) / 1000;
+    }
+
     public void enterSpectatorMode(Player player) {
-        setTransitioning(player.getUniqueId(), true);
+        // Prevent re-entry if already inside
+        if (isTemporarySpectator(player.getUniqueId())) return;
+
         boolean wasVanished = isVanished(player.getUniqueId());
         savePreSpectatorVanishState(player.getUniqueId(), wasVanished);
 
-        // We do NOT unvanish here because Spectator is implicitly invisible.
-        // Keeping them in the "vanished" set helps logic stability,
-        // but we might need to remove metadata/effects if they conflict.
-        // Actually, let's keep them conceptually "vanished" in the manager,
-        // but physically in Spectator mode.
+        if(wasVanished) unvanishPlayer(player);
 
         player.setGameMode(GameMode.SPECTATOR);
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);
-        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_spectator_on");
 
+        int durationSeconds = plugin.getConfigManager().getPluginConfig().getConfig().getInt("mod-mode.spectator-duration", 3);
+        long endTime = System.currentTimeMillis() + (durationSeconds * 1000L);
+        spectatorExpirations.put(player.getUniqueId(), endTime);
+
+        // Schedule exit
         BukkitTask task = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
-                setTransitioning(player.getUniqueId(), false);
+                exitSpectatorMode(player);
             }
-        }.runTaskLater(plugin, 60L); // 3 seconds lock
+        }.runTaskLater(plugin, durationSeconds * 20L);
+
         addSpectatorTask(player.getUniqueId(), task);
     }
 
     public void exitSpectatorMode(Player player) {
         cancelAndRemoveSpectatorTask(player.getUniqueId());
-        setTransitioning(player.getUniqueId(), false);
-        if (player.getGameMode() != GameMode.SPECTATOR) return;
+        spectatorExpirations.remove(player.getUniqueId());
+
+        if (player.getGameMode() != GameMode.SPECTATOR) return; // Basic safety
 
         // Restore GameMode based on Interaction Tool State
         if (interactionsAllowed.contains(player.getUniqueId())) {
@@ -332,7 +334,6 @@ public class ModeratorModeManager {
 
         // Restore Vanish State
         Boolean wasVanished = getPreSpectatorVanishState(player.getUniqueId());
-        // Default to TRUE (Vanish) if null/unknown for safety
         if (wasVanished == null || wasVanished) {
             vanishPlayer(player);
         } else {
@@ -340,12 +341,6 @@ public class ModeratorModeManager {
         }
 
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.5f);
-
-        // BLOCK INTERACTIONS FOR 0.5s TO PREVENT DOUBLE-TRIGGER
-        // When clicking a block to exit spectator, the client sends the packet.
-        // The server switches mode. The client then sends "Use Item" packet in the new mode.
-        // We must ignore that second packet.
-        blockInteractions(player.getUniqueId(), 500);
     }
 
     private static class PlayerState {
