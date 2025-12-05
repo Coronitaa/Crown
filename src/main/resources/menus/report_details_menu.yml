@@ -17,11 +17,6 @@ menu:
       name: ' '
       slot: '0-1,3,5-10,12-14,16-19,21,23,25-29,31,33-44,46,52,53'
 
-    background_fill_2:
-      material: 'WHITE_STAINED_GLASS_PANE'
-      name: ' '
-      slot: '47-51'
-
     target_summary:
       material: 'WRITABLE_BOOK'
       slot: 20
