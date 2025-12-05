@@ -271,6 +271,13 @@ public class DatabaseManager {
             }
             statement.execute(createReportsTableSQL);
 
+            // NEW: Moderator Preferences Table
+            String createModPrefsTableSQL = "CREATE TABLE IF NOT EXISTS moderator_preferences (" +
+                    "uuid VARCHAR(36) PRIMARY KEY," +
+                    "interactions BOOLEAN DEFAULT 0," +
+                    "container_spy BOOLEAN DEFAULT 1)";
+            statement.execute(createModPrefsTableSQL);
+
             updateTableStructure(connection);
 
         } catch (SQLException e) {
@@ -321,6 +328,60 @@ public class DatabaseManager {
         try (ResultSet rs = md.getColumns(null, null, tableName, columnName)) {
             return rs.next();
         }
+    }
+
+    // NEW: Methods for Moderator Preferences
+
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy) {
+        return CompletableFuture.runAsync(() -> {
+            String sql = "mysql".equalsIgnoreCase(dbType) ?
+                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy)" :
+                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy) VALUES (?, ?, ?)";
+
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, uuid.toString());
+                ps.setBoolean(2, interactions);
+                ps.setBoolean(3, containerSpy);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not save moderator preferences for " + uuid, e);
+            }
+        });
+    }
+
+    public CompletableFuture<ModPreferences> getModPreferences(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT * FROM moderator_preferences WHERE uuid = ?";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, uuid.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return new ModPreferences(
+                                rs.getBoolean("interactions"),
+                                rs.getBoolean("container_spy")
+                        );
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Could not retrieve moderator preferences for " + uuid, e);
+            }
+            // Default values: Interactions OFF, Container Spy ON
+            return new ModPreferences(false, true);
+        });
+    }
+
+    // Helper class for data transport
+    public static class ModPreferences {
+        private final boolean interactions;
+        private final boolean containerSpy;
+
+        public ModPreferences(boolean interactions, boolean containerSpy) {
+            this.interactions = interactions;
+            this.containerSpy = containerSpy;
+        }
+
+        public boolean isInteractions() { return interactions; }
+        public boolean isContainerSpy() { return containerSpy; }
     }
 
     // NEW: Methods for Operator Audit Log

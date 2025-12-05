@@ -1,10 +1,7 @@
 package cp.corona.moderator;
 
 import cp.corona.crown.Crown;
-import cp.corona.menus.ProfileMenu;
-import cp.corona.menus.PunishMenu;
-import cp.corona.menus.ReportsMenu;
-import cp.corona.menus.ToolSelectorMenu;
+import cp.corona.menus.*;
 import cp.corona.utils.MessageUtils;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -33,7 +30,6 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -99,23 +95,25 @@ public class ModeratorModeListener implements Listener {
         }
 
         // Silent Container Inspection Logic
-        // Intercepts Right-Clicks on containers to force silent inspection via virtual inventory.
-        // This takes precedence over "Interactions Allowed" to prevent noise/animations.
+        // Checks preference now instead of always forcing
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
             if (clickedBlock != null && inspectableContainers.contains(clickedBlock.getType())) {
-                // If it's a tool that needs to interact (e.g., debug stick or specific tool), handled later.
-                // But for standard behavior, we override.
-                ItemStack item = player.getInventory().getItemInMainHand();
-                if (item.getType() == Material.AIR || !item.getType().isBlock()) {
-                    event.setCancelled(true); // Stop physical open
-                    handleContainerInspection(player, clickedBlock);
-                    return;
+
+                // Only hijack if Container Spy is enabled
+                if (plugin.getModeratorModeManager().isContainerSpyEnabled(player.getUniqueId())) {
+                    ItemStack item = player.getInventory().getItemInMainHand();
+                    // Don't interfere if they are using a specific tool (handled later)
+                    if (item.getType() == Material.AIR || !item.getType().isBlock()) {
+                        event.setCancelled(true); // Stop physical open
+                        handleContainerInspection(player, clickedBlock);
+                        return;
+                    }
                 }
             }
         }
 
-        // Standard Interaction Blocking
+        // Standard Interaction Blocking based on Persistence Preference
         if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
             if (event.getAction() == Action.PHYSICAL) {
                 event.setCancelled(true);
@@ -131,11 +129,9 @@ public class ModeratorModeListener implements Listener {
         if (state instanceof Container container) {
             Inventory realInventory = container.getInventory();
             int size = realInventory.getSize();
-            // Create a virtual inventory to prevent modification and physical animation
             String title = MessageUtils.getColorMessage("&8Inspect: " + block.getType().name());
             Inventory inspectionInv = Bukkit.createInventory(new InspectionHolder(), size, title);
 
-            // Copy items safely
             ItemStack[] contents = realInventory.getContents();
             ItemStack[] safeContents = new ItemStack[contents.length];
             for(int i=0; i<contents.length; i++) {
@@ -144,7 +140,7 @@ public class ModeratorModeListener implements Listener {
             inspectionInv.setContents(safeContents);
 
             player.openInventory(inspectionInv);
-            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f); // Sound only for mod
+            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f);
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_inspecting_container", "{container}", block.getType().name().replace("_", " "));
         }
     }
@@ -193,6 +189,7 @@ public class ModeratorModeListener implements Listener {
 
         if (!(event.getRightClicked() instanceof Player)) return;
 
+        // Force check permissions only for tools, interactions logic is separate
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
         event.setCancelled(true);
@@ -260,9 +257,6 @@ public class ModeratorModeListener implements Listener {
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
             if (clickedBlock != null && clickedBlock.getState() instanceof InventoryHolder) {
-                // Allow our container inspection logic from onModInteract to run if empty hand or not block item
-                // If it is a tool, handle logic below.
-                // We check interaction allowed here for non-container blocks or other interactions
                 if (!inspectableContainers.contains(clickedBlock.getType())) {
                     if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
                         event.setUseInteractedBlock(Event.Result.DENY);
@@ -315,8 +309,12 @@ public class ModeratorModeListener implements Listener {
                     player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.7f, 1.2f);
                 }
                 break;
-            case "interaction_tool":
-                if (isRight) plugin.getModeratorModeManager().toggleInteractions(player);
+            // NEW: Settings Tool Logic
+            case "settings_tool":
+                if (isRight) {
+                    new ModSettingsMenu(plugin, player).open();
+                    player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+                }
                 break;
             case "reports_viewer":
                 if (isRight) new ReportsMenu(plugin, player).open(player);
@@ -553,6 +551,12 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
+        // NEW: Handle Settings Menu clicks
+        if (event.getClickedInventory() != null && event.getClickedInventory().getHolder() instanceof ModSettingsMenu) {
+            handleSettingsMenuClick(event, player);
+            return;
+        }
+
         // Prevent modification of the virtual inspection inventory
         if (event.getInventory().getHolder() instanceof InspectionHolder) {
             event.setCancelled(true);
@@ -563,6 +567,24 @@ public class ModeratorModeListener implements Listener {
             if (event.getClickedInventory() != null && event.getClickedInventory().getType() == InventoryType.PLAYER) {
                 event.setCancelled(true);
             }
+        }
+    }
+
+    private void handleSettingsMenuClick(InventoryClickEvent event, Player player) {
+        event.setCancelled(true);
+        // Map slot indices to actions based on default config structure or check names/meta
+        int slot = event.getSlot();
+        int interactionsSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.interactions.slot");
+        int containerSpySlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.container-spy.slot");
+
+        if (slot == interactionsSlot) {
+            plugin.getModeratorModeManager().toggleInteractions(player);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open(); // Refresh menu
+        } else if (slot == containerSpySlot) {
+            plugin.getModeratorModeManager().toggleContainerSpy(player);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open(); // Refresh menu
         }
     }
 
