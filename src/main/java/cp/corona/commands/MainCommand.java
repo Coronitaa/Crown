@@ -11,6 +11,7 @@ import cp.corona.menus.PunishDetailsMenu;
 import cp.corona.menus.PunishMenu;
 import cp.corona.utils.MessageUtils;
 import cp.corona.utils.TimeUtils;
+import cp.corona.menus.ReportDetailsMenu;
 import cp.corona.menus.ReportsMenu;
 import cp.corona.report.ReportBookManager;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -1218,8 +1219,24 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 StringUtil.copyPartialMatches(args[0], playerNames, completions);
             }
         } else if (commandLabel.equals(REPORTS_COMMAND)) {
-            // No arguments, so no completions needed.
-            return Collections.emptyList();
+            if (args.length == 1) {
+                String currentArg = args[0];
+                if (currentArg.startsWith("!")) {
+                    String partialName = currentArg.substring(1);
+                    playerNames.stream()
+                        .filter(name -> name.toLowerCase().startsWith(partialName.toLowerCase()))
+                        .map(name -> "!" + name)
+                        .forEach(completions::add);
+                } else if (!currentArg.startsWith("#")) {
+                    StringUtil.copyPartialMatches(currentArg, playerNames, completions);
+                    if ("!".startsWith(currentArg.toLowerCase())) {
+                        completions.add("!");
+                    }
+                    if ("#".startsWith(currentArg.toLowerCase())) {
+                        completions.add("#");
+                    }
+                }
+            }
         }
 
         Collections.sort(completions);
@@ -1445,6 +1462,31 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (!player.hasPermission(REPORT_VIEW_PERMISSION)) {
             sendConfigMessage(player, "messages.report_no_permission_view");
             return true;
+        }
+
+        if (args.length > 0) {
+            String argument = args[0];
+            if (argument.startsWith("#")) {
+                if (argument.length() > 1) {
+                    String reportId = argument.substring(1);
+                    new ReportDetailsMenu(plugin, player, reportId).open(player);
+                } else {
+                    new ReportsMenu(plugin, player).open(player);
+                }
+                return true;
+            } else if (argument.startsWith("!")) {
+                if (argument.length() > 1) {
+                    String playerName = argument.substring(1);
+                    new ReportsMenu(plugin, player, 1, null, playerName, true, false, null).open(player);
+                } else {
+                    new ReportsMenu(plugin, player).open(player);
+                }
+                return true;
+            } else {
+                String playerName = argument;
+                new ReportsMenu(plugin, player, 1, null, playerName, false, false, null).open(player);
+                return true;
+            }
         }
 
         new ReportsMenu(plugin, player).open(player);
