@@ -36,7 +36,7 @@ public class ModeratorModeManager {
 
     private final Map<UUID, Long> lastInteraction = new ConcurrentHashMap<>();
 
-    // MODIFIED: Replaced simple Set with Map storing full preferences
+    // Stores active preferences for online moderators
     private final Map<UUID, ModPreferenceData> activePreferences = new ConcurrentHashMap<>();
 
     private final Map<UUID, Long> spectatorExpirations = new ConcurrentHashMap<>();
@@ -80,17 +80,30 @@ public class ModeratorModeManager {
         else enableModeratorMode(player);
     }
 
-    private void enableModeratorMode(Player player) {
+    public void enableModeratorMode(Player player) {
+        if (savedStates.containsKey(player.getUniqueId())) return; // Already enabled
+
         savedStates.put(player.getUniqueId(), new PlayerState(player));
 
-        // Load preferences from DB
+        // Load preferences from DB (or use defaults if new)
         plugin.getSoftBanDatabaseManager().getModPreferences(player.getUniqueId()).thenAccept(dbPrefs -> {
-            activePreferences.put(player.getUniqueId(), new ModPreferenceData(dbPrefs.isInteractions(), dbPrefs.isContainerSpy()));
+            ModPreferenceData prefs = new ModPreferenceData(
+                    dbPrefs.isInteractions(),
+                    dbPrefs.isContainerSpy(),
+                    dbPrefs.isFlyEnabled(),
+                    dbPrefs.isModOnJoin()
+            );
+            activePreferences.put(player.getUniqueId(), prefs);
 
-            // Sync GameMode based on loaded preference
+            // Apply preferences on main thread
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (player.isOnline() && isInModeratorMode(player.getUniqueId())) {
-                    player.setGameMode(dbPrefs.isInteractions() ? GameMode.SURVIVAL : GameMode.ADVENTURE);
+                    // Apply GameMode based on Interactions
+                    player.setGameMode(prefs.isInteractions() ? GameMode.SURVIVAL : GameMode.ADVENTURE);
+
+                    // Apply Flight based on Fly Enabled
+                    player.setAllowFlight(prefs.isFlyEnabled());
+                    player.setFlying(prefs.isFlyEnabled());
                 }
             });
         });
@@ -98,14 +111,14 @@ public class ModeratorModeManager {
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
 
-        // Default to ADVENTURE until prefs load
+        // Default state before prefs load
         player.setGameMode(GameMode.ADVENTURE);
+        player.setAllowFlight(true);
+        player.setFlying(true);
 
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20f);
-        player.setAllowFlight(true);
-        player.setFlying(true);
         player.setSilent(true);
 
         ConfigurationSection inventorySection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory");
@@ -133,7 +146,7 @@ public class ModeratorModeManager {
         cancelAndRemoveSpectatorTask(player.getUniqueId());
         awaitingInput.remove(player.getUniqueId());
         lastInteraction.remove(player.getUniqueId());
-        activePreferences.remove(player.getUniqueId()); // Clear cache
+        activePreferences.remove(player.getUniqueId());
         spectatorExpirations.remove(player.getUniqueId());
         preSpectatorVanishState.remove(player.getUniqueId());
 
@@ -144,18 +157,26 @@ public class ModeratorModeManager {
         if (isInModeratorMode(player.getUniqueId())) disableModeratorMode(player);
     }
 
-    // ... (Vanish and Selection logic remains same)
+    // --- Preference Toggles & Logic ---
+
+    private void updateAndSavePreferences(UUID uuid, ModPreferenceData prefs) {
+        activePreferences.put(uuid, prefs);
+        plugin.getSoftBanDatabaseManager().saveModPreferences(
+                uuid,
+                prefs.isInteractions(),
+                prefs.isContainerSpy(),
+                prefs.isFlyEnabled(),
+                prefs.isModOnJoin()
+        );
+    }
 
     public void toggleInteractions(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false));
         boolean newState = !prefs.isInteractions();
-
         prefs.setInteractions(newState);
-        activePreferences.put(uuid, prefs);
 
-        // Save to DB
-        plugin.getSoftBanDatabaseManager().saveModPreferences(uuid, newState, prefs.isContainerSpy());
+        updateAndSavePreferences(uuid, prefs);
 
         if (newState) {
             player.setGameMode(GameMode.SURVIVAL);
@@ -164,25 +185,47 @@ public class ModeratorModeManager {
             player.setGameMode(GameMode.ADVENTURE);
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_interactions_disabled");
         }
-        player.setAllowFlight(true);
-        player.setFlying(true);
+
+        // Re-apply fly state because changing gamemode might reset it
+        player.setAllowFlight(prefs.isFlyEnabled());
+        player.setFlying(prefs.isFlyEnabled());
     }
 
     public void toggleContainerSpy(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true));
-        boolean newState = !prefs.isContainerSpy();
-
-        prefs.setContainerSpy(newState);
-        activePreferences.put(uuid, prefs);
-
-        // Save to DB
-        plugin.getSoftBanDatabaseManager().saveModPreferences(uuid, prefs.isInteractions(), newState);
-
-        // No message needed here usually as the GUI updates, but can add feedback if desired
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false));
+        prefs.setContainerSpy(!prefs.isContainerSpy());
+        updateAndSavePreferences(uuid, prefs);
     }
 
-    // ... (canInteract and getters)
+    public void toggleFly(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false));
+        boolean newState = !prefs.isFlyEnabled();
+        prefs.setFlyEnabled(newState);
+
+        updateAndSavePreferences(uuid, prefs);
+
+        player.setAllowFlight(newState);
+        player.setFlying(newState);
+
+        if(newState) MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_fly_enabled");
+        else MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_fly_disabled");
+    }
+
+    public void toggleModOnJoin(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false));
+        boolean newState = !prefs.isModOnJoin();
+        prefs.setModOnJoin(newState);
+
+        updateAndSavePreferences(uuid, prefs);
+
+        if(newState) MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_join_enabled");
+        else MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_join_disabled");
+    }
+
+    // --- State Getters ---
 
     public boolean isInteractionsAllowed(UUID uuid) {
         return activePreferences.containsKey(uuid) && activePreferences.get(uuid).isInteractions();
@@ -192,7 +235,174 @@ public class ModeratorModeManager {
         return activePreferences.containsKey(uuid) && activePreferences.get(uuid).isContainerSpy();
     }
 
-    // ... (Spectator logic)
+    public boolean isFlyEnabled(UUID uuid) {
+        return activePreferences.containsKey(uuid) && activePreferences.get(uuid).isFlyEnabled();
+    }
+
+    public boolean isModOnJoinEnabled(UUID uuid) {
+        // If player is online and in cache, return cached value.
+        // For offline checking logic, see DatabaseManager calls in Listener.
+        if (activePreferences.containsKey(uuid)) {
+            return activePreferences.get(uuid).isModOnJoin();
+        }
+        return false;
+    }
+
+    // --- General Mod Mode Logic ---
+
+    public boolean isInModeratorMode(UUID uuid) { return savedStates.containsKey(uuid); }
+    public boolean isVanished(UUID uuid) { return vanishedPlayers.contains(uuid); }
+
+    public Player getSelectedPlayer(UUID moderator) {
+        UUID targetId = selectedPlayers.get(moderator);
+        return targetId != null ? Bukkit.getPlayer(targetId) : null;
+    }
+
+    public void setSelectedPlayer(UUID moderatorUUID, UUID targetUUID) {
+        selectedPlayers.put(moderatorUUID, targetUUID);
+        Player moderator = Bukkit.getPlayer(moderatorUUID);
+        if (moderator != null) updateSelectorItem(moderator, targetUUID);
+    }
+
+    public void clearSelectedPlayer(UUID moderatorUUID) {
+        selectedPlayers.remove(moderatorUUID);
+        Player moderator = Bukkit.getPlayer(moderatorUUID);
+        if (moderator != null) updateSelectorItem(moderator, null);
+    }
+
+    private void updateSelectorItem(Player moderator, UUID targetUUID) {
+        for (int i = 0; i < moderator.getInventory().getSize(); i++) {
+            ItemStack item = moderator.getInventory().getItem(i);
+            if (item == null || !item.hasItemMeta()) continue;
+
+            String toolId = item.getItemMeta().getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
+            if ("player_selector_tool".equals(toolId)) {
+                ItemMeta meta = item.getItemMeta();
+                List<String> lore = meta.getLore();
+                if (lore == null) lore = new ArrayList<>();
+
+                if (targetUUID != null) {
+                    Player target = Bukkit.getPlayer(targetUUID);
+                    String targetName = target != null ? target.getName() : "Unknown";
+
+                    meta.setDisplayName(MessageUtils.getColorMessage("&eSelector: &f" + targetName));
+                    if (!lore.isEmpty()) lore.set(0, MessageUtils.getColorMessage("&7Target: &a" + targetName));
+
+                    if (meta instanceof SkullMeta && target != null) {
+                        ((SkullMeta) meta).setOwningPlayer(target);
+                    }
+                } else {
+                    ConfigurationSection original = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory.player-selector");
+                    if (original != null) {
+                        meta.setDisplayName(MessageUtils.getColorMessage(original.getString("name")));
+                        lore = original.getStringList("lore").stream().map(MessageUtils::getColorMessage).collect(Collectors.toList());
+                    }
+                    if (meta instanceof SkullMeta) {
+                        ((SkullMeta) meta).setOwningPlayer(null);
+                    }
+                }
+                meta.setLore(lore);
+                item.setItemMeta(meta);
+                return;
+            }
+        }
+    }
+
+    public boolean isSpectatorTaskActive(UUID uuid) { return spectatorTasks.containsKey(uuid); }
+    public void addSpectatorTask(UUID uuid, BukkitTask task) { spectatorTasks.put(uuid, task); }
+    public void cancelAndRemoveSpectatorTask(UUID uuid) {
+        if (spectatorTasks.containsKey(uuid)) {
+            spectatorTasks.get(uuid).cancel();
+            spectatorTasks.remove(uuid);
+        }
+    }
+
+    public void setAwaitingInput(Player player, String type) { awaitingInput.put(player.getUniqueId(), type); }
+    public String getInputType(Player player) { return awaitingInput.get(player.getUniqueId()); }
+    public void clearAwaitingInput(Player player) { awaitingInput.remove(player.getUniqueId()); }
+
+    public Map<String, ItemStack> getModeratorTools() { return Collections.unmodifiableMap(moderatorTools); }
+
+    public boolean canInteract(UUID uuid) {
+        long now = System.currentTimeMillis();
+        long last = lastInteraction.getOrDefault(uuid, 0L);
+        if (now - last < 250) return false;
+        lastInteraction.put(uuid, now);
+        return true;
+    }
+
+    public void vanishPlayer(Player player) {
+        vanishedPlayers.add(player.getUniqueId());
+        player.setMetadata("vanished", new FixedMetadataValue(plugin, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
+        player.setCollidable(false);
+
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            if (!onlinePlayer.hasPermission("crown.mod.seevanish")) onlinePlayer.hidePlayer(plugin, player);
+        }
+    }
+
+    public void unvanishPlayer(Player player) {
+        vanishedPlayers.remove(player.getUniqueId());
+        player.removeMetadata("vanished", plugin);
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        player.setCollidable(true);
+
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            onlinePlayer.showPlayer(plugin, player);
+        }
+    }
+
+    public void updateVanishedPlayerVisibility(Player observer) {
+        for (UUID vanishedUUID : vanishedPlayers) {
+            Player vanishedPlayer = Bukkit.getPlayer(vanishedUUID);
+            if (vanishedPlayer != null && !observer.getUniqueId().equals(vanishedUUID)) {
+                if (!observer.hasPermission("crown.mod.seevanish")) observer.hidePlayer(plugin, vanishedPlayer);
+                else observer.showPlayer(plugin, vanishedPlayer);
+            }
+        }
+    }
+
+    // --- Spectator Logic ---
+
+    public void savePreSpectatorVanishState(UUID uuid, boolean vanished) { preSpectatorVanishState.put(uuid, vanished); }
+    public Boolean getPreSpectatorVanishState(UUID uuid) { return preSpectatorVanishState.get(uuid); }
+
+    public boolean isTemporarySpectator(UUID uuid) {
+        return spectatorExpirations.containsKey(uuid);
+    }
+
+    public long getRemainingSpectatorTime(UUID uuid) {
+        if (!spectatorExpirations.containsKey(uuid)) return 0;
+        return (spectatorExpirations.get(uuid) - System.currentTimeMillis()) / 1000;
+    }
+
+    public void enterSpectatorMode(Player player) {
+        // Prevent re-entry if already inside
+        if (isTemporarySpectator(player.getUniqueId())) return;
+
+        boolean wasVanished = isVanished(player.getUniqueId());
+        savePreSpectatorVanishState(player.getUniqueId(), wasVanished);
+
+        if(wasVanished) unvanishPlayer(player);
+
+        player.setGameMode(GameMode.SPECTATOR);
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);
+
+        int durationSeconds = plugin.getConfigManager().getPluginConfig().getConfig().getInt("mod-mode.spectator-duration", 3);
+        long endTime = System.currentTimeMillis() + (durationSeconds * 1000L);
+        spectatorExpirations.put(player.getUniqueId(), endTime);
+
+        // Schedule exit
+        BukkitTask task = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                exitSpectatorMode(player);
+            }
+        }.runTaskLater(plugin, durationSeconds * 20L);
+
+        addSpectatorTask(player.getUniqueId(), task);
+    }
 
     public void exitSpectatorMode(Player player) {
         cancelAndRemoveSpectatorTask(player.getUniqueId());
@@ -207,8 +417,10 @@ public class ModeratorModeManager {
             player.setGameMode(GameMode.ADVENTURE);
         }
 
-        player.setAllowFlight(true);
-        player.setFlying(true);
+        // Restore Fly based on Preferences
+        boolean fly = isFlyEnabled(player.getUniqueId());
+        player.setAllowFlight(fly);
+        player.setFlying(fly);
 
         Boolean wasVanished = getPreSpectatorVanishState(player.getUniqueId());
         if (wasVanished == null || wasVanished) {
@@ -220,143 +432,31 @@ public class ModeratorModeManager {
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.5f);
     }
 
-    // Helper class for caching prefs
+    // Helper class for caching preferences
     private static class ModPreferenceData {
         private boolean interactions;
         private boolean containerSpy;
+        private boolean flyEnabled;
+        private boolean modOnJoin;
 
-        public ModPreferenceData(boolean interactions, boolean containerSpy) {
+        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
+            this.flyEnabled = flyEnabled;
+            this.modOnJoin = modOnJoin;
         }
 
         public boolean isInteractions() { return interactions; }
         public void setInteractions(boolean interactions) { this.interactions = interactions; }
         public boolean isContainerSpy() { return containerSpy; }
         public void setContainerSpy(boolean containerSpy) { this.containerSpy = containerSpy; }
-    }
-
-    // ... (PlayerState inner class and methods to get/set tools remain the same)
-    // Make sure updateSelectorItem etc. are present from previous version
-
-    // Re-adding omitted methods for completeness context
-    public boolean isInModeratorMode(UUID uuid) { return savedStates.containsKey(uuid); }
-    public boolean isVanished(UUID uuid) { return vanishedPlayers.contains(uuid); }
-    public Player getSelectedPlayer(UUID moderator) {
-        UUID targetId = selectedPlayers.get(moderator);
-        return targetId != null ? Bukkit.getPlayer(targetId) : null;
-    }
-    public void setSelectedPlayer(UUID moderatorUUID, UUID targetUUID) {
-        selectedPlayers.put(moderatorUUID, targetUUID);
-        Player moderator = Bukkit.getPlayer(moderatorUUID);
-        if (moderator != null) updateSelectorItem(moderator, targetUUID);
-    }
-    public void clearSelectedPlayer(UUID moderatorUUID) {
-        selectedPlayers.remove(moderatorUUID);
-        Player moderator = Bukkit.getPlayer(moderatorUUID);
-        if (moderator != null) updateSelectorItem(moderator, null);
-    }
-    private void updateSelectorItem(Player moderator, UUID targetUUID) {
-        for (int i = 0; i < moderator.getInventory().getSize(); i++) {
-            ItemStack item = moderator.getInventory().getItem(i);
-            if (item == null || !item.hasItemMeta()) continue;
-            String toolId = item.getItemMeta().getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
-            if ("player_selector_tool".equals(toolId)) {
-                ItemMeta meta = item.getItemMeta();
-                List<String> lore = meta.getLore();
-                if (lore == null) lore = new ArrayList<>();
-                if (targetUUID != null) {
-                    Player target = Bukkit.getPlayer(targetUUID);
-                    String targetName = target != null ? target.getName() : "Unknown";
-                    meta.setDisplayName(MessageUtils.getColorMessage("&eSelector: &f" + targetName));
-                    if (!lore.isEmpty()) lore.set(0, MessageUtils.getColorMessage("&7Target: &a" + targetName));
-                    if (meta instanceof SkullMeta && target != null) ((SkullMeta) meta).setOwningPlayer(target);
-                } else {
-                    ConfigurationSection original = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory.player-selector");
-                    if (original != null) {
-                        meta.setDisplayName(MessageUtils.getColorMessage(original.getString("name")));
-                        lore = original.getStringList("lore").stream().map(MessageUtils::getColorMessage).collect(Collectors.toList());
-                    }
-                    if (meta instanceof SkullMeta) ((SkullMeta) meta).setOwningPlayer(null);
-                }
-                meta.setLore(lore);
-                item.setItemMeta(meta);
-                return;
-            }
-        }
-    }
-    public boolean isSpectatorTaskActive(UUID uuid) { return spectatorTasks.containsKey(uuid); }
-    public void addSpectatorTask(UUID uuid, BukkitTask task) { spectatorTasks.put(uuid, task); }
-    public void cancelAndRemoveSpectatorTask(UUID uuid) {
-        if (spectatorTasks.containsKey(uuid)) {
-            spectatorTasks.get(uuid).cancel();
-            spectatorTasks.remove(uuid);
-        }
-    }
-    public void setAwaitingInput(Player player, String type) { awaitingInput.put(player.getUniqueId(), type); }
-    public String getInputType(Player player) { return awaitingInput.get(player.getUniqueId()); }
-    public void clearAwaitingInput(Player player) { awaitingInput.remove(player.getUniqueId()); }
-    public Map<String, ItemStack> getModeratorTools() { return Collections.unmodifiableMap(moderatorTools); }
-    public void savePreSpectatorVanishState(UUID uuid, boolean vanished) { preSpectatorVanishState.put(uuid, vanished); }
-    public Boolean getPreSpectatorVanishState(UUID uuid) { return preSpectatorVanishState.get(uuid); }
-    public boolean isTemporarySpectator(UUID uuid) { return spectatorExpirations.containsKey(uuid); }
-    public long getRemainingSpectatorTime(UUID uuid) {
-        if (!spectatorExpirations.containsKey(uuid)) return 0;
-        return (spectatorExpirations.get(uuid) - System.currentTimeMillis()) / 1000;
-    }
-    public void enterSpectatorMode(Player player) {
-        if (isTemporarySpectator(player.getUniqueId())) return;
-        boolean wasVanished = isVanished(player.getUniqueId());
-        savePreSpectatorVanishState(player.getUniqueId(), wasVanished);
-        if(wasVanished) unvanishPlayer(player);
-        player.setGameMode(GameMode.SPECTATOR);
-        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);
-        int durationSeconds = plugin.getConfigManager().getPluginConfig().getConfig().getInt("mod-mode.spectator-duration", 3);
-        long endTime = System.currentTimeMillis() + (durationSeconds * 1000L);
-        spectatorExpirations.put(player.getUniqueId(), endTime);
-        BukkitTask task = new org.bukkit.scheduler.BukkitRunnable() {
-            @Override
-            public void run() { exitSpectatorMode(player); }
-        }.runTaskLater(plugin, durationSeconds * 20L);
-        addSpectatorTask(player.getUniqueId(), task);
-    }
-    public boolean canInteract(UUID uuid) {
-        long now = System.currentTimeMillis();
-        long last = lastInteraction.getOrDefault(uuid, 0L);
-        if (now - last < 250) return false;
-        lastInteraction.put(uuid, now);
-        return true;
-    }
-    public void vanishPlayer(Player player) {
-        vanishedPlayers.add(player.getUniqueId());
-        player.setMetadata("vanished", new FixedMetadataValue(plugin, true));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
-        player.setCollidable(false);
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            if (!onlinePlayer.hasPermission("crown.mod.seevanish")) onlinePlayer.hidePlayer(plugin, player);
-        }
-    }
-    public void unvanishPlayer(Player player) {
-        vanishedPlayers.remove(player.getUniqueId());
-        player.removeMetadata("vanished", plugin);
-        player.removePotionEffect(PotionEffectType.INVISIBILITY);
-        player.setCollidable(true);
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            onlinePlayer.showPlayer(plugin, player);
-        }
-    }
-    public void updateVanishedPlayerVisibility(Player observer) {
-        for (UUID vanishedUUID : vanishedPlayers) {
-            Player vanishedPlayer = Bukkit.getPlayer(vanishedUUID);
-            if (vanishedPlayer != null && !observer.getUniqueId().equals(vanishedUUID)) {
-                if (!observer.hasPermission("crown.mod.seevanish")) observer.hidePlayer(plugin, vanishedPlayer);
-                else observer.showPlayer(plugin, vanishedPlayer);
-            }
-        }
+        public boolean isFlyEnabled() { return flyEnabled; }
+        public void setFlyEnabled(boolean flyEnabled) { this.flyEnabled = flyEnabled; }
+        public boolean isModOnJoin() { return modOnJoin; }
+        public void setModOnJoin(boolean modOnJoin) { this.modOnJoin = modOnJoin; }
     }
 
     private static class PlayerState {
-        // ... (PlayerState fields and constructor match previous version)
         private final ItemStack[] inventoryContents;
         private final ItemStack[] armorContents;
         private final GameMode gameMode;

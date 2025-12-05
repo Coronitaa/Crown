@@ -79,7 +79,22 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        plugin.getModeratorModeManager().updateVanishedPlayerVisibility(event.getPlayer());
+        Player player = event.getPlayer();
+        plugin.getModeratorModeManager().updateVanishedPlayerVisibility(player);
+
+        // Check Mod-On-Join Preference
+        if (player.hasPermission("crown.mod.use")) {
+            plugin.getSoftBanDatabaseManager().getModPreferences(player.getUniqueId()).thenAccept(prefs -> {
+                if (prefs.isModOnJoin()) {
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (player.isOnline()) {
+                            plugin.getModeratorModeManager().enableModeratorMode(player);
+                            // Message is already sent in enableModeratorMode
+                        }
+                    });
+                }
+            });
+        }
     }
 
     // --- INTERACTION BLOCKING & CONTAINER INSPECTION ---
@@ -95,7 +110,6 @@ public class ModeratorModeListener implements Listener {
         }
 
         // Silent Container Inspection Logic
-        // Checks preference now instead of always forcing
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
             if (clickedBlock != null && inspectableContainers.contains(clickedBlock.getType())) {
@@ -189,7 +203,6 @@ public class ModeratorModeListener implements Listener {
 
         if (!(event.getRightClicked() instanceof Player)) return;
 
-        // Force check permissions only for tools, interactions logic is separate
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
         event.setCancelled(true);
@@ -309,7 +322,6 @@ public class ModeratorModeListener implements Listener {
                     player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.7f, 1.2f);
                 }
                 break;
-            // NEW: Settings Tool Logic
             case "settings_tool":
                 if (isRight) {
                     new ModSettingsMenu(plugin, player).open();
@@ -551,7 +563,7 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
-        // NEW: Handle Settings Menu clicks
+        // Handle Settings Menu clicks
         if (event.getClickedInventory() != null && event.getClickedInventory().getHolder() instanceof ModSettingsMenu) {
             handleSettingsMenuClick(event, player);
             return;
@@ -572,19 +584,29 @@ public class ModeratorModeListener implements Listener {
 
     private void handleSettingsMenuClick(InventoryClickEvent event, Player player) {
         event.setCancelled(true);
-        // Map slot indices to actions based on default config structure or check names/meta
         int slot = event.getSlot();
+
         int interactionsSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.interactions.slot");
         int containerSpySlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.container-spy.slot");
+        int flySlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.fly.slot");
+        int modOnJoinSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.mod-on-join.slot");
 
         if (slot == interactionsSlot) {
             plugin.getModeratorModeManager().toggleInteractions(player);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open(); // Refresh menu
+            new ModSettingsMenu(plugin, player).open();
         } else if (slot == containerSpySlot) {
             plugin.getModeratorModeManager().toggleContainerSpy(player);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open(); // Refresh menu
+            new ModSettingsMenu(plugin, player).open();
+        } else if (slot == flySlot) {
+            plugin.getModeratorModeManager().toggleFly(player);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open();
+        } else if (slot == modOnJoinSlot) {
+            plugin.getModeratorModeManager().toggleModOnJoin(player);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open();
         }
     }
 

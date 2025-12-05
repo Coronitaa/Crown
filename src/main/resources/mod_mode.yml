@@ -116,7 +116,7 @@ mod-settings-menu:
   size: 27
   items:
     interactions:
-      slot: 11
+      slot: 10
       material_on: 'LIME_DYE'
       material_off: 'GRAY_DYE'
       name: '&6World Interactions'
@@ -128,14 +128,40 @@ mod-settings-menu:
         - ''
         - '&eClick to toggle.'
 
+    fly:
+      slot: 12
+      material_on: 'FEATHER'
+      material_off: 'CHARCOAL'
+      name: '&fFly Mode'
+      lore:
+        - '&7Toggle flight ability'
+        - '&7while in Mod Mode.'
+        - ''
+        - '&7Status: {status}'
+        - ''
+        - '&eClick to toggle.'
+
     container-spy:
-      slot: 15
+      slot: 14
       material_on: 'ENDER_EYE'
       material_off: 'ENDER_PEARL'
       name: '&bContainer Spy'
       lore:
         - '&7Control if right-clicking containers'
         - '&7opens them silently.'
+        - ''
+        - '&7Status: {status}'
+        - ''
+        - '&eClick to toggle.'
+
+    mod-on-join:
+      slot: 16
+      material_on: 'DIAMOND_BOOTS'
+      material_off: 'LEATHER_BOOTS'
+      name: '&aMod Mode on Join'
+      lore:
+        - '&7Automatically enter Mod Mode'
+        - '&7when joining the server.'
         - ''
         - '&7Status: {status}'
         - ''

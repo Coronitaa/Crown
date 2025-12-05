@@ -271,11 +271,13 @@ public class DatabaseManager {
             }
             statement.execute(createReportsTableSQL);
 
-            // NEW: Moderator Preferences Table
+            // MODIFIED: Added fly_enabled and mod_on_join
             String createModPrefsTableSQL = "CREATE TABLE IF NOT EXISTS moderator_preferences (" +
                     "uuid VARCHAR(36) PRIMARY KEY," +
                     "interactions BOOLEAN DEFAULT 0," +
-                    "container_spy BOOLEAN DEFAULT 1)";
+                    "container_spy BOOLEAN DEFAULT 1," +
+                    "fly_enabled BOOLEAN DEFAULT 1," +
+                    "mod_on_join BOOLEAN DEFAULT 0)";
             statement.execute(createModPrefsTableSQL);
 
             updateTableStructure(connection);
@@ -320,6 +322,14 @@ public class DatabaseManager {
             if (!columnExists(connection, "reports", "resolver_uuid")) {
                 statement.execute("ALTER TABLE reports ADD COLUMN resolver_uuid VARCHAR(36)");
             }
+
+            // NEW COLUMNS for moderator_preferences
+            if (!columnExists(connection, "moderator_preferences", "fly_enabled")) {
+                statement.execute("ALTER TABLE moderator_preferences ADD COLUMN fly_enabled BOOLEAN DEFAULT 1");
+            }
+            if (!columnExists(connection, "moderator_preferences", "mod_on_join")) {
+                statement.execute("ALTER TABLE moderator_preferences ADD COLUMN mod_on_join BOOLEAN DEFAULT 0");
+            }
         }
     }
 
@@ -332,16 +342,19 @@ public class DatabaseManager {
 
     // NEW: Methods for Moderator Preferences
 
-    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy) {
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin) {
         return CompletableFuture.runAsync(() -> {
             String sql = "mysql".equalsIgnoreCase(dbType) ?
-                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy)" :
-                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy) VALUES (?, ?, ?)";
+                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join) VALUES (?, ?, ?, ?, ?) " +
+                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join)" :
+                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join) VALUES (?, ?, ?, ?, ?)";
 
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, uuid.toString());
                 ps.setBoolean(2, interactions);
                 ps.setBoolean(3, containerSpy);
+                ps.setBoolean(4, flyEnabled);
+                ps.setBoolean(5, modOnJoin);
                 ps.executeUpdate();
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not save moderator preferences for " + uuid, e);
@@ -358,15 +371,17 @@ public class DatabaseManager {
                     if (rs.next()) {
                         return new ModPreferences(
                                 rs.getBoolean("interactions"),
-                                rs.getBoolean("container_spy")
+                                rs.getBoolean("container_spy"),
+                                rs.getBoolean("fly_enabled"),
+                                rs.getBoolean("mod_on_join")
                         );
                     }
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not retrieve moderator preferences for " + uuid, e);
             }
-            // Default values: Interactions OFF, Container Spy ON
-            return new ModPreferences(false, true);
+            // Default values: Interactions OFF, Spy ON, Fly ON, ModOnJoin OFF
+            return new ModPreferences(false, true, true, false);
         });
     }
 
@@ -374,14 +389,20 @@ public class DatabaseManager {
     public static class ModPreferences {
         private final boolean interactions;
         private final boolean containerSpy;
+        private final boolean flyEnabled;
+        private final boolean modOnJoin;
 
-        public ModPreferences(boolean interactions, boolean containerSpy) {
+        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
+            this.flyEnabled = flyEnabled;
+            this.modOnJoin = modOnJoin;
         }
 
         public boolean isInteractions() { return interactions; }
         public boolean isContainerSpy() { return containerSpy; }
+        public boolean isFlyEnabled() { return flyEnabled; }
+        public boolean isModOnJoin() { return modOnJoin; }
     }
 
     // NEW: Methods for Operator Audit Log
