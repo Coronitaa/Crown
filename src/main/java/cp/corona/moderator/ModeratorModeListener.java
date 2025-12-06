@@ -82,7 +82,7 @@ public class ModeratorModeListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        // Hide quit message if Silent Mode is active
+        // Hide quit message if Silent Mode is active (implies currently in Mod Mode)
         if (plugin.getModeratorModeManager().isSilent(player.getUniqueId())) {
             event.setQuitMessage(null);
         }
@@ -109,14 +109,16 @@ public class ModeratorModeListener implements Listener {
                     boolean modOnJoin = prefs.isModOnJoin();
 
                     if (modOnJoin) {
+                        // Entering Mod Mode on Join
                         plugin.getModeratorModeManager().enableModeratorMode(player, silent);
-                    }
 
-                    // CORRECTION: Logic specifically for message visibility
-                    if (silent) {
-                        // Silent is active: Keep message suppressed (null)
+                        // Only suppress message if Silent is active
+                        if (!silent && originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
+                            Bukkit.broadcastMessage(originalJoinMessage);
+                        }
                     } else {
-                        // Silent is NOT active: Broadcast original message if it existed
+                        // Normal Join (Not entering Mod Mode)
+                        // Always show message regardless of silent preference (since silent only applies to Mod Mode)
                         if (originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
                             Bukkit.broadcastMessage(originalJoinMessage);
                         }
@@ -161,7 +163,7 @@ public class ModeratorModeListener implements Listener {
             if (clickedBlock != null) {
                 boolean isSilentInspectable = silentInspectableContainers.contains(clickedBlock.getType());
 
-                // CORRECTION: Check for ANY GUI block (Containers + Tables)
+                // Block ANY GUI block (Containers + Tables)
                 boolean isGuiBlock = isSilentInspectable
                         || clickedBlock.getState() instanceof InventoryHolder
                         || clickedBlock.getType() == Material.ENDER_CHEST
@@ -188,7 +190,7 @@ public class ModeratorModeListener implements Listener {
                     }
                 }
 
-                // 2. CORRECTION: Block ALL containers/GUIs if Spy is DISABLED (even if interactions allowed)
+                // 2. Block ALL containers/GUIs if Spy is DISABLED (even if interactions allowed)
                 if (isGuiBlock && !spyEnabled) {
                     event.setCancelled(true);
                     MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_container_spy_disabled");
