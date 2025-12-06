@@ -9,6 +9,7 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -34,11 +35,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ModeratorModeListener implements Listener {
@@ -46,33 +43,40 @@ public class ModeratorModeListener implements Listener {
     private final Crown plugin;
     private final NamespacedKey toolIdKey;
 
-    // Containers supported by the "Silent Inspect" feature (virtual inventory copy)
+    // Containers supported for Silent Inspect (Copy contents to virtual inventory)
     private final Set<Material> silentInspectableContainers;
+
+    // GUI blocks that should be strictly blocked in Mod Mode (No silent inspect support or no storage)
+    private final Set<Material> blockedGuiBlocks;
 
     public ModeratorModeListener(Crown plugin) {
         this.plugin = plugin;
         this.toolIdKey = new NamespacedKey(plugin, "tool-id");
+
         this.silentInspectableContainers = Set.of(
-                Material.CHEST,
-                Material.TRAPPED_CHEST,
-                Material.BARREL,
-                Material.SHULKER_BOX,
-                Material.WHITE_SHULKER_BOX,
-                Material.ORANGE_SHULKER_BOX,
-                Material.MAGENTA_SHULKER_BOX,
-                Material.LIGHT_BLUE_SHULKER_BOX,
-                Material.YELLOW_SHULKER_BOX,
-                Material.LIME_SHULKER_BOX,
-                Material.PINK_SHULKER_BOX,
-                Material.GRAY_SHULKER_BOX,
-                Material.LIGHT_GRAY_SHULKER_BOX,
-                Material.CYAN_SHULKER_BOX,
-                Material.PURPLE_SHULKER_BOX,
-                Material.BLUE_SHULKER_BOX,
-                Material.BROWN_SHULKER_BOX,
-                Material.GREEN_SHULKER_BOX,
-                Material.RED_SHULKER_BOX,
-                Material.BLACK_SHULKER_BOX
+                Material.CHEST, Material.TRAPPED_CHEST, Material.BARREL,
+                Material.SHULKER_BOX, Material.WHITE_SHULKER_BOX, Material.ORANGE_SHULKER_BOX,
+                Material.MAGENTA_SHULKER_BOX, Material.LIGHT_BLUE_SHULKER_BOX, Material.YELLOW_SHULKER_BOX,
+                Material.LIME_SHULKER_BOX, Material.PINK_SHULKER_BOX, Material.GRAY_SHULKER_BOX,
+                Material.LIGHT_GRAY_SHULKER_BOX, Material.CYAN_SHULKER_BOX, Material.PURPLE_SHULKER_BOX,
+                Material.BLUE_SHULKER_BOX, Material.BROWN_SHULKER_BOX, Material.GREEN_SHULKER_BOX,
+                Material.RED_SHULKER_BOX, Material.BLACK_SHULKER_BOX,
+                Material.DISPENSER, Material.DROPPER, Material.HOPPER,
+                Material.FURNACE, Material.BLAST_FURNACE, Material.SMOKER,
+                Material.BREWING_STAND
+        );
+
+        this.blockedGuiBlocks = Set.of(
+                Material.ENDER_CHEST,
+                Material.CRAFTING_TABLE,
+                Material.ENCHANTING_TABLE,
+                Material.ANVIL, Material.CHIPPED_ANVIL, Material.DAMAGED_ANVIL,
+                Material.BEACON,
+                Material.LOOM,
+                Material.CARTOGRAPHY_TABLE,
+                Material.GRINDSTONE,
+                Material.STONECUTTER,
+                Material.SMITHING_TABLE
         );
     }
 
@@ -81,12 +85,9 @@ public class ModeratorModeListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-
-        // Hide quit message if Silent Mode is active (implies currently in Mod Mode)
         if (plugin.getModeratorModeManager().isSilent(player.getUniqueId())) {
             event.setQuitMessage(null);
         }
-
         plugin.getModeratorModeManager().handleDisconnect(player);
     }
 
@@ -96,8 +97,6 @@ public class ModeratorModeListener implements Listener {
         plugin.getModeratorModeManager().updateVanishedPlayerVisibility(player);
 
         String originalJoinMessage = event.getJoinMessage();
-
-        // Suppress initially to allow async check
         event.setJoinMessage(null);
 
         if (player.hasPermission("crown.mod.use")) {
@@ -109,16 +108,11 @@ public class ModeratorModeListener implements Listener {
                     boolean modOnJoin = prefs.isModOnJoin();
 
                     if (modOnJoin) {
-                        // Entering Mod Mode on Join
                         plugin.getModeratorModeManager().enableModeratorMode(player, silent);
-
-                        // Only suppress message if Silent is active
                         if (!silent && originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
                             Bukkit.broadcastMessage(originalJoinMessage);
                         }
                     } else {
-                        // Normal Join (Not entering Mod Mode)
-                        // Always show message regardless of silent preference (since silent only applies to Mod Mode)
                         if (originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
                             Bukkit.broadcastMessage(originalJoinMessage);
                         }
@@ -126,7 +120,6 @@ public class ModeratorModeListener implements Listener {
                 });
             });
         } else {
-            // Restore for normal players
             if (originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
                 event.setJoinMessage(originalJoinMessage);
             }
@@ -161,87 +154,105 @@ public class ModeratorModeListener implements Listener {
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
             if (clickedBlock != null) {
-                boolean isSilentInspectable = silentInspectableContainers.contains(clickedBlock.getType());
+                Material type = clickedBlock.getType();
 
-                // Block ANY GUI block (Containers + Tables)
-                boolean isGuiBlock = isSilentInspectable
-                        || clickedBlock.getState() instanceof InventoryHolder
-                        || clickedBlock.getType() == Material.ENDER_CHEST
-                        || clickedBlock.getType() == Material.ENCHANTING_TABLE
-                        || clickedBlock.getType() == Material.ANVIL
-                        || clickedBlock.getType() == Material.CHIPPED_ANVIL
-                        || clickedBlock.getType() == Material.DAMAGED_ANVIL
-                        || clickedBlock.getType() == Material.BEACON
-                        || clickedBlock.getType() == Material.GRINDSTONE
-                        || clickedBlock.getType() == Material.STONECUTTER
-                        || clickedBlock.getType() == Material.CARTOGRAPHY_TABLE
-                        || clickedBlock.getType() == Material.LOOM
-                        || clickedBlock.getType() == Material.SMITHING_TABLE;
-
-                boolean spyEnabled = plugin.getModeratorModeManager().isContainerSpyEnabled(uuid);
-
-                // 1. Silent Inspection Handling (Only for supported containers)
-                if (isSilentInspectable && spyEnabled) {
-                    ItemStack item = player.getInventory().getItemInMainHand();
-                    if (item.getType() == Material.AIR || !item.getType().isBlock()) {
-                        event.setCancelled(true); // Prevent physical open
-                        handleContainerInspection(player, clickedBlock);
+                // 1. Silent Inspection for Supported Containers
+                if (silentInspectableContainers.contains(type)) {
+                    boolean spyEnabled = plugin.getModeratorModeManager().isContainerSpyEnabled(uuid);
+                    if (spyEnabled) {
+                        ItemStack item = player.getInventory().getItemInMainHand();
+                        if (item.getType() == Material.AIR || !item.getType().isBlock()) {
+                            event.setCancelled(true); // Prevent physical open
+                            if (clickedBlock.getState() instanceof InventoryHolder holder) {
+                                handleInventoryInspection(player, holder.getInventory(), type.name());
+                            }
+                            return;
+                        }
+                    } else {
+                        // Spy Disabled: Block access entirely to prevent noise
+                        event.setCancelled(true);
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_container_spy_disabled");
                         return;
                     }
                 }
 
-                // 2. Block ALL containers/GUIs if Spy is DISABLED (even if interactions allowed)
-                if (isGuiBlock && !spyEnabled) {
+                // 2. Strict Block for non-inspectable GUIs (EnderChest, CraftingTable, etc.)
+                if (blockedGuiBlocks.contains(type)) {
                     event.setCancelled(true);
-                    MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_container_spy_disabled");
-                    return;
+                    return; // Simply block, no message needed or optional "Cannot use in mod mode"
                 }
             }
         }
 
-        // 3. Standard Interaction Blocking (Physical touches, non-GUI blocks if interactions disabled)
+        // 3. Standard Interaction Blocking (Physical touches, non-GUI blocks)
         if (!plugin.getModeratorModeManager().isInteractionsAllowed(uuid)) {
             if (event.getAction() == Action.PHYSICAL) {
                 event.setCancelled(true);
                 return;
             }
-            // Deny block interaction but allow item use (e.g., tools)
+            // Deny block interaction but allow item use (e.g. tools)
             event.setUseInteractedBlock(Event.Result.DENY);
             event.setUseItemInHand(Event.Result.ALLOW);
         }
     }
 
-    private void handleContainerInspection(Player player, Block block) {
-        BlockState state = block.getState();
-        if (state instanceof Container container) {
-            Inventory realInventory = container.getInventory();
-            int size = realInventory.getSize();
-            String title = MessageUtils.getColorMessage("&8Inspect: " + block.getType().name());
-            Inventory inspectionInv = Bukkit.createInventory(new InspectionHolder(), size, title);
+    private void handleInventoryInspection(Player player, Inventory realInventory, String typeName) {
+        int size = realInventory.getSize();
+        Inventory inspectionInv;
 
-            ItemStack[] contents = realInventory.getContents();
-            ItemStack[] safeContents = new ItemStack[contents.length];
-            for(int i=0; i<contents.length; i++) {
-                if(contents[i] != null) safeContents[i] = contents[i].clone();
+        if (realInventory.getType() == InventoryType.CHEST) {
+            inspectionInv = Bukkit.createInventory(new InspectionHolder(), size, MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
+        } else {
+            try {
+                // Try to match type (Dispenser, Hopper, etc.)
+                inspectionInv = Bukkit.createInventory(new InspectionHolder(), realInventory.getType(), MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
+            } catch (IllegalArgumentException e) {
+                // Fallback for custom or weird sizes
+                int safeSize = (int) (Math.ceil(size / 9.0) * 9);
+                inspectionInv = Bukkit.createInventory(new InspectionHolder(), safeSize, MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
             }
-            inspectionInv.setContents(safeContents);
-
-            player.openInventory(inspectionInv);
-            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f);
-            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_inspecting_container", "{container}", block.getType().name().replace("_", " "));
         }
+
+        ItemStack[] contents = realInventory.getContents();
+        for(int i=0; i<contents.length; i++) {
+            if(contents[i] != null) inspectionInv.setItem(i, contents[i].clone());
+        }
+
+        player.openInventory(inspectionInv);
+        player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f);
+        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_inspecting_container", "{container}", typeName.replace("_", " "));
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onEntityInteract(PlayerInteractEntityEvent event) {
         Player player = event.getPlayer();
-        if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
-            if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+
+        if (plugin.getModeratorModeManager().isInModeratorMode(uuid)) {
+            if (plugin.getModeratorModeManager().isTemporarySpectator(uuid)) {
                 event.setCancelled(true);
                 return;
             }
 
-            if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
+            Entity entity = event.getRightClicked();
+
+            // 4. Universal Entity Inventory Inspection (Minecarts w/ Chest, Mules, etc.)
+            // EXCLUDING PLAYERS (handled by profile tool)
+            if (entity instanceof InventoryHolder holder && !(entity instanceof Player)) {
+                boolean spyEnabled = plugin.getModeratorModeManager().isContainerSpyEnabled(uuid);
+
+                if (spyEnabled) {
+                    event.setCancelled(true);
+                    handleInventoryInspection(player, holder.getInventory(), entity.getType().name());
+                    return;
+                } else {
+                    event.setCancelled(true);
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_container_spy_disabled");
+                    return;
+                }
+            }
+
+            if (!plugin.getModeratorModeManager().isInteractionsAllowed(uuid)) {
                 event.setCancelled(true);
             }
         }
@@ -255,6 +266,16 @@ public class ModeratorModeListener implements Listener {
                     event.setCancelled(true);
                     return;
                 }
+
+                // Block breaking storage entities if interactions are disabled OR spy is disabled
+                if (event.getEntity() instanceof InventoryHolder && !(event.getEntity() instanceof Player)) {
+                    if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())
+                            || !plugin.getModeratorModeManager().isContainerSpyEnabled(player.getUniqueId())) {
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+
                 if (!plugin.getModeratorModeManager().isInteractionsAllowed(player.getUniqueId())) {
                     event.setCancelled(true);
                 }
@@ -340,6 +361,24 @@ public class ModeratorModeListener implements Listener {
 
         ItemStack item = event.getItem();
         String toolId = getToolId(item);
+
+        // Prioritize blocking logic before tool logic if hitting a block
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            Block clickedBlock = event.getClickedBlock();
+            if (clickedBlock != null) {
+                // If it's a blocked GUI or an inspectable container and interactions/spy are set to block,
+                // we should prevent the tool from accidentally triggering something or bypassing strict blocks.
+                // However, tools like "Random TP" generally trigger on AIR click too.
+                // We let tool logic run, BUT `onModInteract` (LOWEST priority) will have already cancelled the event
+                // if it was a protected block interaction.
+                // Since this handler is HIGH priority, we are reacting to the event state.
+                // If onModInteract cancelled it, `event.useInteractedBlock()` is likely DENY.
+
+                // If it was a container and we blocked it in onModInteract, we don't want the tool to fire
+                // if the tool action is "RIGHT_CLICK_BLOCK".
+                // But typically tools are "Use Item".
+            }
+        }
 
         if (toolId == null) return;
 

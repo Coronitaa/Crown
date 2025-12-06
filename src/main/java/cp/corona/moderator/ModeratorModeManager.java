@@ -91,7 +91,6 @@ public class ModeratorModeManager {
     public void enableModeratorMode(Player player, boolean knownSilentState, boolean isAutoJoin) {
         if (savedStates.containsKey(player.getUniqueId())) return; // Already enabled
 
-        // Save current state (Inventory, GameMode, Location, etc.)
         savedStates.put(player.getUniqueId(), new PlayerState(player));
 
         // Load preferences from DB (or use defaults if new)
@@ -117,8 +116,6 @@ public class ModeratorModeManager {
 
                     // Handle Silent Mode Messages
                     if (prefs.isSilent()) {
-                        // If enabled via command (manual toggle), simulate leave.
-                        // If enabled via AutoJoin, the listener already suppressed the real join, so we do nothing here.
                         if (!isAutoJoin) {
                             broadcastFakeQuit(player);
                         }
@@ -127,11 +124,10 @@ public class ModeratorModeManager {
             });
         });
 
-        // Setup Moderator Inventory
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
 
-        // Default state before prefs load (safety defaults)
+        // Default state before prefs load
         player.setGameMode(GameMode.ADVENTURE);
         player.setAllowFlight(true);
         player.setFlying(true);
@@ -165,9 +161,6 @@ public class ModeratorModeManager {
         PlayerState state = savedStates.remove(player.getUniqueId());
         if (state != null) {
             unvanishPlayer(player);
-            // CRITICAL FIX: Always restore state on the player object.
-            // If disconnecting, this puts the items back in the player's inventory
-            // so Bukkit saves them to disk.
             state.restore(player);
         }
 
@@ -179,11 +172,9 @@ public class ModeratorModeManager {
         spectatorExpirations.remove(player.getUniqueId());
         preSpectatorVanishState.remove(player.getUniqueId());
 
-        // Only send chat feedback if player is still online (not disconnecting)
         if (!isDisconnecting && player.isOnline()) {
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_disabled");
 
-            // If player was silent and is manually disabling mod mode, simulate a join
             if (wasSilent) {
                 broadcastFakeJoin(player);
             }
@@ -413,8 +404,11 @@ public class ModeratorModeManager {
         player.setMetadata("vanished", new FixedMetadataValue(plugin, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
         player.setCollidable(false);
+        player.setGlowing(true); // NEW: Enable glowing for visibility to other staff
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            // Logic: Hide from everyone who doesn't have permission.
+            // Those with permission will see the player (showPlayer) and see the glow.
             if (!onlinePlayer.hasPermission("crown.mod.seevanish")) onlinePlayer.hidePlayer(plugin, player);
         }
     }
@@ -424,6 +418,7 @@ public class ModeratorModeManager {
         player.removeMetadata("vanished", plugin);
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
         player.setCollidable(true);
+        player.setGlowing(false); // NEW: Disable glowing
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             onlinePlayer.showPlayer(plugin, player);
