@@ -82,7 +82,7 @@ public class ModeratorModeListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        // CORRECTION: Hide quit message if Silent Mode is active
+        // Hide quit message if Silent Mode is active
         if (plugin.getModeratorModeManager().isSilent(player.getUniqueId())) {
             event.setQuitMessage(null);
         }
@@ -108,11 +108,15 @@ public class ModeratorModeListener implements Listener {
                     boolean silent = prefs.isSilent();
                     boolean modOnJoin = prefs.isModOnJoin();
 
-                    // If Silent is active, or Auto-Mod is active, keep message suppressed.
-                    if (silent || modOnJoin) {
+                    if (modOnJoin) {
                         plugin.getModeratorModeManager().enableModeratorMode(player, silent);
+                    }
+
+                    // CORRECTION: Logic specifically for message visibility
+                    if (silent) {
+                        // Silent is active: Keep message suppressed (null)
                     } else {
-                        // Restore message if not silent/auto
+                        // Silent is NOT active: Broadcast original message if it existed
                         if (originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
                             Bukkit.broadcastMessage(originalJoinMessage);
                         }
