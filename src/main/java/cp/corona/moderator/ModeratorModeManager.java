@@ -3,6 +3,7 @@ package cp.corona.moderator;
 import cp.corona.crown.Crown;
 import cp.corona.database.DatabaseManager;
 import cp.corona.utils.MessageUtils;
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -17,6 +18,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.Sound;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,11 +78,17 @@ public class ModeratorModeManager {
     }
 
     public void toggleModeratorMode(Player player) {
-        if (savedStates.containsKey(player.getUniqueId())) disableModeratorMode(player);
-        else enableModeratorMode(player);
+        if (savedStates.containsKey(player.getUniqueId())) disableModeratorMode(player, false); // False = Command toggle
+        else enableModeratorMode(player, false, false);
     }
 
-    public void enableModeratorMode(Player player) {
+    // Overload for automatic enabling (Listener)
+    public void enableModeratorMode(Player player, boolean isSilentPref) {
+        enableModeratorMode(player, isSilentPref, true);
+    }
+
+    // Main enable method
+    public void enableModeratorMode(Player player, boolean knownSilentState, boolean isAutoJoin) {
         if (savedStates.containsKey(player.getUniqueId())) return; // Already enabled
 
         savedStates.put(player.getUniqueId(), new PlayerState(player));
@@ -91,7 +99,8 @@ public class ModeratorModeManager {
                     dbPrefs.isInteractions(),
                     dbPrefs.isContainerSpy(),
                     dbPrefs.isFlyEnabled(),
-                    dbPrefs.isModOnJoin()
+                    dbPrefs.isModOnJoin(),
+                    dbPrefs.isSilent()
             );
             activePreferences.put(player.getUniqueId(), prefs);
 
@@ -104,6 +113,15 @@ public class ModeratorModeManager {
                     // Apply Flight based on Fly Enabled
                     player.setAllowFlight(prefs.isFlyEnabled());
                     player.setFlying(prefs.isFlyEnabled());
+
+                    // Handle Silent Mode Messages
+                    if (prefs.isSilent()) {
+                        // If enabled via command, simulate leave.
+                        // If enabled via AutoJoin, the listener already suppressed the real join, so we do nothing.
+                        if (!isAutoJoin) {
+                            broadcastFakeQuit(player);
+                        }
+                    }
                 }
             });
         });
@@ -133,15 +151,24 @@ public class ModeratorModeManager {
         }
 
         vanishPlayer(player);
-        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_enabled");
+
+        // Notify player
+        String msgKey = (isAutoJoin && knownSilentState) ? "messages.mod_mode_enabled_silent" : "messages.mod_mode_enabled";
+        MessageUtils.sendConfigMessage(plugin, player, msgKey);
     }
 
-    private void disableModeratorMode(Player player) {
+    private void disableModeratorMode(Player player, boolean isDisconnecting) {
+        boolean wasSilent = isSilent(player.getUniqueId());
+
         PlayerState state = savedStates.remove(player.getUniqueId());
         if (state != null) {
             unvanishPlayer(player);
-            state.restore(player);
+            // Only restore state if player is online and not disconnecting
+            if (!isDisconnecting && player.isOnline()) {
+                state.restore(player);
+            }
         }
+
         clearSelectedPlayer(player.getUniqueId());
         cancelAndRemoveSpectatorTask(player.getUniqueId());
         awaitingInput.remove(player.getUniqueId());
@@ -150,11 +177,39 @@ public class ModeratorModeManager {
         spectatorExpirations.remove(player.getUniqueId());
         preSpectatorVanishState.remove(player.getUniqueId());
 
-        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_disabled");
+        if (!isDisconnecting && player.isOnline()) {
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_disabled");
+
+            // If player was silent and is actively disabling mod mode (not quitting), simulate a join
+            if (wasSilent) {
+                broadcastFakeJoin(player);
+            }
+        }
     }
 
     public void handleDisconnect(Player player) {
-        if (isInModeratorMode(player.getUniqueId())) disableModeratorMode(player);
+        if (isInModeratorMode(player.getUniqueId())) {
+            disableModeratorMode(player, true); // True = Disconnecting
+        }
+    }
+
+    // --- Fake Messages ---
+    private void broadcastFakeJoin(Player player) {
+        String msg = plugin.getConfigManager().getMessage("messages.mod_mode_fake_join");
+        if (plugin.isPlaceholderAPIEnabled()) {
+            msg = PlaceholderAPI.setPlaceholders(player, msg);
+        }
+        msg = msg.replace("{player}", player.getName());
+        Bukkit.broadcastMessage(MessageUtils.getColorMessage(msg));
+    }
+
+    private void broadcastFakeQuit(Player player) {
+        String msg = plugin.getConfigManager().getMessage("messages.mod_mode_fake_quit");
+        if (plugin.isPlaceholderAPIEnabled()) {
+            msg = PlaceholderAPI.setPlaceholders(player, msg);
+        }
+        msg = msg.replace("{player}", player.getName());
+        Bukkit.broadcastMessage(MessageUtils.getColorMessage(msg));
     }
 
     // --- Preference Toggles & Logic ---
@@ -166,13 +221,14 @@ public class ModeratorModeManager {
                 prefs.isInteractions(),
                 prefs.isContainerSpy(),
                 prefs.isFlyEnabled(),
-                prefs.isModOnJoin()
+                prefs.isModOnJoin(),
+                prefs.isSilent()
         );
     }
 
     public void toggleInteractions(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
         boolean newState = !prefs.isInteractions();
         prefs.setInteractions(newState);
 
@@ -186,21 +242,20 @@ public class ModeratorModeManager {
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_interactions_disabled");
         }
 
-        // Re-apply fly state because changing gamemode might reset it
         player.setAllowFlight(prefs.isFlyEnabled());
         player.setFlying(prefs.isFlyEnabled());
     }
 
     public void toggleContainerSpy(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
         prefs.setContainerSpy(!prefs.isContainerSpy());
         updateAndSavePreferences(uuid, prefs);
     }
 
     public void toggleFly(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
         boolean newState = !prefs.isFlyEnabled();
         prefs.setFlyEnabled(newState);
 
@@ -215,7 +270,7 @@ public class ModeratorModeManager {
 
     public void toggleModOnJoin(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
         boolean newState = !prefs.isModOnJoin();
         prefs.setModOnJoin(newState);
 
@@ -223,6 +278,23 @@ public class ModeratorModeManager {
 
         if(newState) MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_join_enabled");
         else MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_join_disabled");
+    }
+
+    public void toggleSilent(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
+        boolean newState = !prefs.isSilent();
+        prefs.setSilent(newState);
+
+        updateAndSavePreferences(uuid, prefs);
+
+        if (newState) {
+            broadcastFakeQuit(player);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_silent_enabled");
+        } else {
+            broadcastFakeJoin(player);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_silent_disabled");
+        }
     }
 
     // --- State Getters ---
@@ -240,12 +312,14 @@ public class ModeratorModeManager {
     }
 
     public boolean isModOnJoinEnabled(UUID uuid) {
-        // If player is online and in cache, return cached value.
-        // For offline checking logic, see DatabaseManager calls in Listener.
         if (activePreferences.containsKey(uuid)) {
             return activePreferences.get(uuid).isModOnJoin();
         }
         return false;
+    }
+
+    public boolean isSilent(UUID uuid) {
+        return activePreferences.containsKey(uuid) && activePreferences.get(uuid).isSilent();
     }
 
     // --- General Mod Mode Logic ---
@@ -378,7 +452,6 @@ public class ModeratorModeManager {
     }
 
     public void enterSpectatorMode(Player player) {
-        // Prevent re-entry if already inside
         if (isTemporarySpectator(player.getUniqueId())) return;
 
         boolean wasVanished = isVanished(player.getUniqueId());
@@ -387,13 +460,12 @@ public class ModeratorModeManager {
         if(wasVanished) unvanishPlayer(player);
 
         player.setGameMode(GameMode.SPECTATOR);
-        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);
 
         int durationSeconds = plugin.getConfigManager().getPluginConfig().getConfig().getInt("mod-mode.spectator-duration", 3);
         long endTime = System.currentTimeMillis() + (durationSeconds * 1000L);
         spectatorExpirations.put(player.getUniqueId(), endTime);
 
-        // Schedule exit
         BukkitTask task = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
@@ -429,7 +501,9 @@ public class ModeratorModeManager {
             unvanishPlayer(player);
         }
 
-        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.5f);
+        // Task 2: Sound after spectator
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.5f);
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f);
     }
 
     // Helper class for caching preferences
@@ -438,12 +512,14 @@ public class ModeratorModeManager {
         private boolean containerSpy;
         private boolean flyEnabled;
         private boolean modOnJoin;
+        private boolean silent;
 
-        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin) {
+        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
             this.modOnJoin = modOnJoin;
+            this.silent = silent;
         }
 
         public boolean isInteractions() { return interactions; }
@@ -454,6 +530,8 @@ public class ModeratorModeManager {
         public void setFlyEnabled(boolean flyEnabled) { this.flyEnabled = flyEnabled; }
         public boolean isModOnJoin() { return modOnJoin; }
         public void setModOnJoin(boolean modOnJoin) { this.modOnJoin = modOnJoin; }
+        public boolean isSilent() { return silent; }
+        public void setSilent(boolean silent) { this.silent = silent; }
     }
 
     private static class PlayerState {

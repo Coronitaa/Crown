@@ -46,12 +46,14 @@ public class ModSettingsMenu implements InventoryHolder {
         boolean containerSpy = manager.isContainerSpyEnabled(viewer.getUniqueId());
         boolean flyEnabled = manager.isFlyEnabled(viewer.getUniqueId());
         boolean modOnJoin = manager.isModOnJoinEnabled(viewer.getUniqueId());
+        boolean silent = manager.isSilent(viewer.getUniqueId());
 
         // Create items
         createToggleItem(config.getConfigurationSection("interactions"), interactions);
         createToggleItem(config.getConfigurationSection("container-spy"), containerSpy);
         createToggleItem(config.getConfigurationSection("fly"), flyEnabled);
         createToggleItem(config.getConfigurationSection("mod-on-join"), modOnJoin);
+        createToggleItem(config.getConfigurationSection("silent"), silent);
     }
 
     private void createToggleItem(ConfigurationSection itemConfig, boolean state) {

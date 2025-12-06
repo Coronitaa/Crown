@@ -66,7 +66,7 @@ public class DatabaseManager {
                     startExpiryCheckTask();
                     startMuteExpiryCheckTask();
                     startWarningExpiryCheckTask();
-                    startBanExpiryCheckTask(); // ADDED
+                    startBanExpiryCheckTask();
                 }).exceptionally(ex -> {
                     plugin.getLogger().log(Level.SEVERE, "Failed to initialize database!", ex);
                     return null;
@@ -217,7 +217,6 @@ public class DatabaseManager {
                     "world VARCHAR(255))";
             statement.execute(createPlayerLastStateTableSQL);
 
-            // NEW: Operator Audit Log Table
             String createAuditLogTableSQL = "CREATE TABLE IF NOT EXISTS operator_audit_log (" +
                     "id INT AUTO_INCREMENT PRIMARY KEY," +
                     "target_uuid VARCHAR(36) NOT NULL," +
@@ -236,7 +235,6 @@ public class DatabaseManager {
             }
             statement.execute(createAuditLogTableSQL);
 
-            // Reports Table
             String createReportsTableSQL = "CREATE TABLE IF NOT EXISTS reports (" +
                     "report_id VARCHAR(12) PRIMARY KEY," +
                     "requester_uuid VARCHAR(36) NOT NULL," +
@@ -271,13 +269,14 @@ public class DatabaseManager {
             }
             statement.execute(createReportsTableSQL);
 
-            // MODIFIED: Added fly_enabled and mod_on_join
+            // Added 'silent' column
             String createModPrefsTableSQL = "CREATE TABLE IF NOT EXISTS moderator_preferences (" +
                     "uuid VARCHAR(36) PRIMARY KEY," +
                     "interactions BOOLEAN DEFAULT 0," +
                     "container_spy BOOLEAN DEFAULT 1," +
                     "fly_enabled BOOLEAN DEFAULT 1," +
-                    "mod_on_join BOOLEAN DEFAULT 0)";
+                    "mod_on_join BOOLEAN DEFAULT 0," +
+                    "silent BOOLEAN DEFAULT 0)";
             statement.execute(createModPrefsTableSQL);
 
             updateTableStructure(connection);
@@ -313,7 +312,7 @@ public class DatabaseManager {
             if (!columnExists(connection, "active_warnings", "associated_punishment_ids")) {
                 statement.execute("ALTER TABLE active_warnings ADD COLUMN associated_punishment_ids TEXT");
             }
-            if (!columnExists(connection, "active_warnings", "paused_associated_punishments")) { // NEW
+            if (!columnExists(connection, "active_warnings", "paused_associated_punishments")) {
                 statement.execute("ALTER TABLE active_warnings ADD COLUMN paused_associated_punishments TEXT");
             }
             if (!columnExists(connection, "reports", "resolved_at")) {
@@ -323,12 +322,14 @@ public class DatabaseManager {
                 statement.execute("ALTER TABLE reports ADD COLUMN resolver_uuid VARCHAR(36)");
             }
 
-            // NEW COLUMNS for moderator_preferences
             if (!columnExists(connection, "moderator_preferences", "fly_enabled")) {
                 statement.execute("ALTER TABLE moderator_preferences ADD COLUMN fly_enabled BOOLEAN DEFAULT 1");
             }
             if (!columnExists(connection, "moderator_preferences", "mod_on_join")) {
                 statement.execute("ALTER TABLE moderator_preferences ADD COLUMN mod_on_join BOOLEAN DEFAULT 0");
+            }
+            if (!columnExists(connection, "moderator_preferences", "silent")) {
+                statement.execute("ALTER TABLE moderator_preferences ADD COLUMN silent BOOLEAN DEFAULT 0");
             }
         }
     }
@@ -340,14 +341,14 @@ public class DatabaseManager {
         }
     }
 
-    // NEW: Methods for Moderator Preferences
+    // NEW: Methods for Moderator Preferences with 'silent' support
 
-    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin) {
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent) {
         return CompletableFuture.runAsync(() -> {
             String sql = "mysql".equalsIgnoreCase(dbType) ?
-                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join) VALUES (?, ?, ?, ?, ?) " +
-                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join)" :
-                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join) VALUES (?, ?, ?, ?, ?)";
+                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent) VALUES (?, ?, ?, ?, ?, ?) " +
+                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent)" :
+                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent) VALUES (?, ?, ?, ?, ?, ?)";
 
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, uuid.toString());
@@ -355,6 +356,7 @@ public class DatabaseManager {
                 ps.setBoolean(3, containerSpy);
                 ps.setBoolean(4, flyEnabled);
                 ps.setBoolean(5, modOnJoin);
+                ps.setBoolean(6, silent);
                 ps.executeUpdate();
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not save moderator preferences for " + uuid, e);
@@ -373,15 +375,16 @@ public class DatabaseManager {
                                 rs.getBoolean("interactions"),
                                 rs.getBoolean("container_spy"),
                                 rs.getBoolean("fly_enabled"),
-                                rs.getBoolean("mod_on_join")
+                                rs.getBoolean("mod_on_join"),
+                                rs.getBoolean("silent")
                         );
                     }
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not retrieve moderator preferences for " + uuid, e);
             }
-            // Default values: Interactions OFF, Spy ON, Fly ON, ModOnJoin OFF
-            return new ModPreferences(false, true, true, false);
+            // Default values: Interactions OFF, Spy ON, Fly ON, ModOnJoin OFF, Silent OFF
+            return new ModPreferences(false, true, true, false, false);
         });
     }
 
@@ -391,20 +394,24 @@ public class DatabaseManager {
         private final boolean containerSpy;
         private final boolean flyEnabled;
         private final boolean modOnJoin;
+        private final boolean silent;
 
-        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin) {
+        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
             this.modOnJoin = modOnJoin;
+            this.silent = silent;
         }
 
         public boolean isInteractions() { return interactions; }
         public boolean isContainerSpy() { return containerSpy; }
         public boolean isFlyEnabled() { return flyEnabled; }
         public boolean isModOnJoin() { return modOnJoin; }
+        public boolean isSilent() { return silent; }
     }
 
+    // ... (rest of the class remains identical, just ensuring all other methods are kept)
     // NEW: Methods for Operator Audit Log
     public void logOperatorAction(UUID targetUUID, UUID executorUUID, String actionType, String details) {
         CompletableFuture.runAsync(() -> {
@@ -446,8 +453,6 @@ public class DatabaseManager {
         });
     }
 
-    // ASYNC EXECUTION METHODS START HERE
-
     public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, List<String> customCommands) {
         return executePunishmentAsync(targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, customCommands, 0);
     }
@@ -455,7 +460,6 @@ public class DatabaseManager {
     public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, List<String> customCommands, int warnLevel) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection()) {
-                // Deactivate previous similar punishment if necessary, only for internal punishments
                 boolean isInternal = plugin.getConfigManager().isPunishmentInternal(punishmentType);
                 if (isInternal && !"warn".equalsIgnoreCase(punishmentType)) {
                     PunishmentEntry activePunishment = getLatestActivePunishment(connection, targetUUID, punishmentType);
@@ -466,7 +470,6 @@ public class DatabaseManager {
 
                 String punishmentId = logPunishment(connection, targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel);
 
-                // Handle specific punishment table updates for internal punishments
                 if (isInternal) {
                     switch (punishmentType.toLowerCase()) {
                         case "softban":
@@ -487,7 +490,6 @@ public class DatabaseManager {
         });
     }
 
-
     public CompletableFuture<String> executeUnpunishmentAsync(UUID targetUUID, String punishmentType, String punisherName, String reason, String punishmentIdToUpdate) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection()) {
@@ -495,20 +497,18 @@ public class DatabaseManager {
                 if (punishmentId == null) {
                     punishmentId = getLatestActivePunishmentId(connection, targetUUID, punishmentType);
                 } else {
-                    // Failsafe check: if an ID is provided, verify it's active before proceeding.
                     PunishmentEntry entry = getPunishmentById(punishmentId);
                     if (entry == null || !entry.isActive()) {
-                        return null; // The provided punishment ID is not active.
+                        return null;
                     }
                 }
 
                 if (punishmentId == null) {
-                    return null; // No active punishment to remove
+                    return null;
                 }
 
                 updatePunishmentAsRemoved(connection, punishmentId, punisherName, reason);
 
-                // Handle specific table cleanups
                 boolean isInternal = plugin.getConfigManager().isPunishmentInternal(punishmentType);
                 if (isInternal) {
                     switch (punishmentType.toLowerCase()) {
@@ -519,7 +519,6 @@ public class DatabaseManager {
                             unmutePlayer(connection, targetUUID);
                             break;
                         case "warn":
-                            // Warn removal logic is more complex and handled separately
                             break;
                     }
                 }
@@ -530,8 +529,6 @@ public class DatabaseManager {
             }
         });
     }
-
-    // ASYNC EXECUTION METHODS END
 
     private void startWarningExpiryCheckTask() {
         new BukkitRunnable() {
@@ -569,7 +566,7 @@ public class DatabaseManager {
                     }.runTask(plugin);
                 }
             }
-        }.runTaskTimerAsynchronously(plugin, 20L * 10, 20L * 30); // Check every 30 seconds
+        }.runTaskTimerAsynchronously(plugin, 20L * 10, 20L * 30);
     }
 
     private void handleWarningExpiration(ActiveWarningEntry warning) {
@@ -618,7 +615,6 @@ public class DatabaseManager {
             }
         });
     }
-
 
     public void removeActiveWarning(UUID playerUUID, String punishmentId, String removerName, String reason) {
         CompletableFuture.runAsync(() -> {
@@ -718,7 +714,6 @@ public class DatabaseManager {
             ps.executeUpdate();
         }
 
-        // Add synchronization with punishment_history
         updatePunishmentAsRemoved(connection, latest.getPunishmentId(), "System", "Paused by new warning");
     }
 
@@ -746,7 +741,6 @@ public class DatabaseManager {
                     psUpdate.executeUpdate();
                 }
 
-                // Add synchronization with punishment_history
                 reactivatePunishment(connection, warningToResume.getPunishmentId(), newEndTime, remainingMillis);
                 resumeAssociatedPunishments(connection, warningToResume);
             }
@@ -1030,8 +1024,6 @@ public class DatabaseManager {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> runExpiryTask("mutes", "mute"), 0L, 6000L);
     }
 
-
-    // New task to check for expired internal bans and update their status in punishment_history
     private void startBanExpiryCheckTask() {
         new BukkitRunnable() {
             @Override
@@ -1041,7 +1033,7 @@ public class DatabaseManager {
                     long currentTime = System.currentTimeMillis();
                     ps.setTimestamp(1, new Timestamp(currentTime));
                     ps.setLong(2, currentTime);
-                    ps.setLong(3, Long.MAX_VALUE); // Do not expire permanent bans
+                    ps.setLong(3, Long.MAX_VALUE);
 
                     int updatedRows = ps.executeUpdate();
                     if (updatedRows > 0 && plugin.getConfigManager().isDebugEnabled()) {
@@ -1051,7 +1043,7 @@ public class DatabaseManager {
                     plugin.getLogger().log(Level.SEVERE, "Error checking for expired internal bans", e);
                 }
             }
-        }.runTaskTimerAsynchronously(plugin, 20L * 60 * 5, 20L * 60 * 5); // Check every 5 minutes
+        }.runTaskTimerAsynchronously(plugin, 20L * 60 * 5, 20L * 60 * 5);
     }
 
 
@@ -1425,7 +1417,6 @@ public class DatabaseManager {
 
     public HashMap<String, Integer> getActivePunishmentCounts(UUID playerUUID) {
         HashMap<String, Integer> counts = new HashMap<>();
-        // Get counts for non-warn punishments from punishment_history
         String historySql = "SELECT punishment_type, COUNT(*) as count FROM punishment_history WHERE player_uuid = ? AND active = 1 AND punishment_type != 'warn' GROUP BY punishment_type";
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(historySql)) {
             ps.setString(1, playerUUID.toString());
@@ -1438,7 +1429,6 @@ public class DatabaseManager {
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving active punishment counts for UUID: " + playerUUID, e);
         }
 
-        // Get count for warns from active_warnings (includes paused as active)
         counts.put("warn", getActiveWarningCount(playerUUID));
         return counts;
     }
@@ -1593,7 +1583,7 @@ public class DatabaseManager {
             public void run() {
                 PunishmentEntry entry = getPunishmentById(punishmentId);
                 if (entry == null || !entry.isActive()) {
-                    return; // Punishment was manually removed or changed
+                    return;
                 }
 
                 String table = punishmentType.equals("mute") ? "mutes" : "softbans";
@@ -1640,7 +1630,6 @@ public class DatabaseManager {
 
     private void sendRemovalNotification(UUID uuid, String punishmentType, boolean isExpiry) {
         Bukkit.getScheduler().runTask(plugin, () -> {
-            // Clear caches regardless of online status
             if ("mute".equalsIgnoreCase(punishmentType)) {
                 plugin.getMutedPlayersCache().remove(uuid);
             } else if ("softban".equalsIgnoreCase(punishmentType)) {
@@ -1756,8 +1745,6 @@ public class DatabaseManager {
         return null;
     }
 
-    // ADDED START: All new methods for the report system
-
     private String generateReportId() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder idBuilder;
@@ -1780,7 +1767,7 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not check for report ID existence.", e);
-            return true; // Assume it exists to prevent collision on error
+            return true;
         }
     }
 
@@ -2150,7 +2137,6 @@ public class DatabaseManager {
         public String getWorld() { return world; }
     }
 
-    // NEW: Inner class for Audit Log entries
     public static class AuditLogEntry {
         private final int id;
         private final UUID targetUUID;
@@ -2176,7 +2162,6 @@ public class DatabaseManager {
         public String getDetails() { return details; }
     }
 
-    // ADDED START: New inner class for Report entries
     public static class ReportEntry {
         private final String reportId;
         private final UUID requesterUUID;
@@ -2228,5 +2213,4 @@ public class DatabaseManager {
         public Timestamp getResolvedAt() { return resolvedAt; }
         public UUID getResolverUUID() { return resolverUUID; }
     }
-    // ADDED END
 }

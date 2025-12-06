@@ -36,7 +36,7 @@ moderator-inventory:
     lore:
       - '&7Right-Click to configure'
       - '&7personal preferences.'
-      - '&8(Interactions, Container Spy, etc.)'
+      - '&8(Interactions, Container Spy, Silent Mode)'
   tool-selector:
     tool-id: 'tool_selector'
     slot: 8
@@ -162,6 +162,20 @@ mod-settings-menu:
       lore:
         - '&7Automatically enter Mod Mode'
         - '&7when joining the server.'
+        - ''
+        - '&7Status: {status}'
+        - ''
+        - '&eClick to toggle.'
+
+    silent:
+      slot: 22
+      material_on: 'BELL'
+      material_off: 'BARRIER'
+      name: '&cSilent Mode'
+      lore:
+        - '&7Appear completely offline.'
+        - '&7Hides join/quit messages'
+        - '&7and list presence.'
         - ''
         - '&7Status: {status}'
         - ''
