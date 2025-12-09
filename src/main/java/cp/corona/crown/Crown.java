@@ -119,6 +119,7 @@ public final class Crown extends JavaPlugin {
         if (modCommand != null) {
             ModeratorCommand moderatorExecutor = new ModeratorCommand(this);
             modCommand.setExecutor(moderatorExecutor);
+            modCommand.setTabCompleter(moderatorExecutor); // ADDED: Register TabCompleter
         }
     }
 

@@ -288,6 +288,19 @@ messages:
     unsoftban: "Softban removed."
     unfreeze: "Freeze removed."
 
+  # Locker / Confiscation Messages
+  locker_item_added: '{prefix}&aItem added to locker.'
+  locker_item_deleted: '{prefix}&cItem permanently deleted from locker.'
+  locker_drop_confirm: '{prefix}&ePress Q again to confirm deletion.'
+  locker_item_taken: '{prefix}&bItem taken from locker.'
+  locker_item_copied: '{prefix}&dItem copied from locker.'
+  locker_cleared: '{prefix}&4Locker cleared successfully.'
+  locker_read_only_in_mod: '{prefix}&cYou cannot modify the locker while in Mod Mode.'
+  
+  confiscate_confirm: '&eClick again to confiscate this item.'
+  item_confiscated: '{prefix}&aItem confiscated and sent to locker.'
+  confiscate_fail_gone: '{prefix}&cItem is no longer available.'
+
 # Section for reusable placeholder display values.
 placeholders:
   display_yes: "&a✔"

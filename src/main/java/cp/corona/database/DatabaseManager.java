@@ -279,6 +279,24 @@ public class DatabaseManager {
                     "silent BOOLEAN DEFAULT 0)";
             statement.execute(createModPrefsTableSQL);
 
+            // NEW: Confiscated Items Table
+            String createConfiscatedItemsSQL = "CREATE TABLE IF NOT EXISTS confiscated_items (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "item_data TEXT NOT NULL," +
+                    "confiscated_at BIGINT NOT NULL," +
+                    "confiscated_by VARCHAR(36)," +
+                    "original_type VARCHAR(50))";
+            
+            if ("sqlite".equalsIgnoreCase(dbType)) {
+                createConfiscatedItemsSQL = "CREATE TABLE IF NOT EXISTS confiscated_items (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                        "item_data TEXT NOT NULL," +
+                        "confiscated_at BIGINT NOT NULL," +
+                        "confiscated_by VARCHAR(36)," +
+                        "original_type VARCHAR(50))";
+            }
+            statement.execute(createConfiscatedItemsSQL);
+
             updateTableStructure(connection);
 
         } catch (SQLException e) {
@@ -339,6 +357,106 @@ public class DatabaseManager {
         try (ResultSet rs = md.getColumns(null, null, tableName, columnName)) {
             return rs.next();
         }
+    }
+
+    // --- NEW: Confiscated Items Methods ---
+
+    public CompletableFuture<Void> addConfiscatedItem(String itemData, UUID confiscator, String containerType) {
+        return CompletableFuture.runAsync(() -> {
+            String sql = "INSERT INTO confiscated_items (item_data, confiscated_at, confiscated_by, original_type) VALUES (?, ?, ?, ?)";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, itemData);
+                ps.setLong(2, System.currentTimeMillis());
+                ps.setString(3, confiscator != null ? confiscator.toString() : "Console");
+                ps.setString(4, containerType);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error adding confiscated item", e);
+            }
+        });
+    }
+
+    public CompletableFuture<Boolean> removeConfiscatedItem(int id) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "DELETE FROM confiscated_items WHERE id = ?";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                return ps.executeUpdate() > 0;
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error removing confiscated item " + id, e);
+                return false;
+            }
+        });
+    }
+
+    public CompletableFuture<Void> clearConfiscatedItems() {
+        return CompletableFuture.runAsync(() -> {
+            String sql = "DELETE FROM confiscated_items";
+            try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate(sql);
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error clearing confiscated items", e);
+            }
+        });
+    }
+
+    public CompletableFuture<List<ConfiscatedItemEntry>> getConfiscatedItems(int page, int itemsPerPage) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<ConfiscatedItemEntry> items = new ArrayList<>();
+            int offset = (page - 1) * itemsPerPage;
+            String sql = "SELECT * FROM confiscated_items ORDER BY confiscated_at DESC LIMIT ? OFFSET ?";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, itemsPerPage);
+                ps.setInt(2, offset);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    items.add(new ConfiscatedItemEntry(
+                            rs.getInt("id"),
+                            rs.getString("item_data"),
+                            rs.getLong("confiscated_at"),
+                            rs.getString("confiscated_by"),
+                            rs.getString("original_type")
+                    ));
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error fetching confiscated items", e);
+            }
+            return items;
+        });
+    }
+
+    public CompletableFuture<Integer> countConfiscatedItems() {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT COUNT(*) FROM confiscated_items";
+            try (Connection connection = getConnection(); Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+                if (rs.next()) return rs.getInt(1);
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error counting confiscated items", e);
+            }
+            return 0;
+        });
+    }
+
+    public static class ConfiscatedItemEntry {
+        private final int id;
+        private final String itemData;
+        private final long confiscatedAt;
+        private final String confiscatedBy;
+        private final String originalType;
+
+        public ConfiscatedItemEntry(int id, String itemData, long confiscatedAt, String confiscatedBy, String originalType) {
+            this.id = id;
+            this.itemData = itemData;
+            this.confiscatedAt = confiscatedAt;
+            this.confiscatedBy = confiscatedBy;
+            this.originalType = originalType;
+        }
+
+        public int getId() { return id; }
+        public String getItemData() { return itemData; }
+        public long getConfiscatedAt() { return confiscatedAt; }
+        public String getConfiscatedBy() { return confiscatedBy; }
+        public String getOriginalType() { return originalType; }
     }
 
     // NEW: Methods for Moderator Preferences with 'silent' support

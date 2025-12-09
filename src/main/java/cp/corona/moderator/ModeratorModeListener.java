@@ -22,6 +22,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -48,6 +49,9 @@ public class ModeratorModeListener implements Listener {
 
     // GUI blocks that should be strictly blocked in Mod Mode (No silent inspect support or no storage)
     private final Set<Material> blockedGuiBlocks;
+
+    private final Map<UUID, ClickData> inspectionDoubleClicks = new HashMap<>();
+    private record ClickData(int slot, long timestamp) {}
 
     public ModeratorModeListener(Crown plugin) {
         this.plugin = plugin;
@@ -198,18 +202,21 @@ public class ModeratorModeListener implements Listener {
 
     private void handleInventoryInspection(Player player, Inventory realInventory, String typeName) {
         int size = realInventory.getSize();
-        Inventory inspectionInv;
+        Location loc = null;
+        if (realInventory.getHolder() instanceof BlockState bs) loc = bs.getLocation();
+        else if (realInventory.getHolder() instanceof Entity e) loc = e.getLocation();
 
+        Inventory inspectionInv;
+        
+        // Pass location to constructor
         if (realInventory.getType() == InventoryType.CHEST) {
-            inspectionInv = Bukkit.createInventory(new InspectionHolder(), size, MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
+            inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), size, MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
         } else {
             try {
-                // Try to match type (Dispenser, Hopper, etc.)
-                inspectionInv = Bukkit.createInventory(new InspectionHolder(), realInventory.getType(), MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
+                inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), realInventory.getType(), MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
             } catch (IllegalArgumentException e) {
-                // Fallback for custom or weird sizes
                 int safeSize = (int) (Math.ceil(size / 9.0) * 9);
-                inspectionInv = Bukkit.createInventory(new InspectionHolder(), safeSize, MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
+                inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), safeSize, MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
             }
         }
 
@@ -672,7 +679,7 @@ public class ModeratorModeListener implements Listener {
 
         // Prevent modification of the virtual inspection inventory
         if (event.getInventory().getHolder() instanceof InspectionHolder) {
-            event.setCancelled(true);
+            onInspectionClick(event);
             return;
         }
 
@@ -837,8 +844,75 @@ public class ModeratorModeListener implements Listener {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(MessageUtils.getColorMessage(message)));
     }
 
-    private static class InspectionHolder implements InventoryHolder {
-        @Override
-        public Inventory getInventory() { return null; }
+    public static class InspectionHolder implements InventoryHolder {
+        private final Inventory original;
+        private final Location location; // Added location field
+
+        public InspectionHolder(Inventory original, Location location) { 
+            this.original = original; 
+            this.location = location;
+        }
+        @Override public Inventory getInventory() { return original; }
+        public Location getLocation() { return location; }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onInspectionClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (event.getClickedInventory() == null || event.getClickedInventory() != event.getView().getTopInventory()) return;
+        
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (!(holder instanceof InspectionHolder inspectionHolder)) return;
+
+        event.setCancelled(true);
+
+        if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
+
+        if (event.getClick() == org.bukkit.event.inventory.ClickType.LEFT) {
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType() == Material.AIR) return;
+
+            ClickData lastClick = inspectionDoubleClicks.get(player.getUniqueId());
+            long now = System.currentTimeMillis();
+
+            if (lastClick != null && lastClick.slot() == event.getSlot() && (now - lastClick.timestamp() < 1000)) { // Increased buffer slightly
+                // Confirmed
+                inspectionDoubleClicks.remove(player.getUniqueId());
+                
+                Inventory original = inspectionHolder.getInventory();
+                ItemStack realItem = original.getItem(event.getSlot());
+                
+                if (realItem == null || realItem.getType() == Material.AIR) {
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_fail_gone");
+                    return;
+                }
+
+                String serialized = AuditLogBook.serialize(realItem);
+                
+                // ADDED: Include Coordinates in Source String
+                String containerType = event.getView().getTitle().replace("Inspect: ", "");
+                Location loc = inspectionHolder.getLocation();
+                if (loc != null) {
+                    containerType += " (" + loc.getWorld().getName() + ", " + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
+                }
+                
+                plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), containerType)
+                        .thenRun(() -> {
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                original.setItem(event.getSlot(), null);
+                                event.getInventory().setItem(event.getSlot(), null);
+                                MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
+                                player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
+                            });
+                        });
+
+            } else {
+                // First Click
+                inspectionDoubleClicks.put(player.getUniqueId(), new ClickData(event.getSlot(), now));
+                // ADDED: Confirmation Message
+                MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
+            }
+        }
     }
 }

@@ -103,6 +103,9 @@ public class MenuListener implements Listener {
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
     private static final String REPORT_ASSIGN_PERMISSION = "crown.report.assign";
 
+    private final Map<UUID, DropConfirmData> dropConfirmations = new HashMap<>();
+    private record DropConfirmData(int slot, long timestamp) {}
+
 
     public MenuListener(Crown plugin) {
         this.plugin = plugin;
@@ -159,6 +162,13 @@ public class MenuListener implements Listener {
                 topHolder instanceof ProfileMenu || topHolder instanceof FullInventoryMenu ||
                 topHolder instanceof EnderChestMenu || topHolder instanceof ReportsMenu || topHolder instanceof ReportDetailsMenu;
 
+        if (isPluginMenu) {
+            // ... existing ...
+        } else if (topHolder instanceof LockerMenu lockerMenu) {
+             handleLockerMenuClick(event, player, lockerMenu);
+             return;
+        }
+
         if (!isPluginMenu) {
             return;
         }
@@ -183,6 +193,138 @@ public class MenuListener implements Listener {
                 }
             } else {
                 event.setCancelled(true);
+            }
+        }
+    }
+
+    private void handleLockerMenuClick(InventoryClickEvent event, Player player, LockerMenu menu) {
+        event.setCancelled(true);
+
+        // Bottom Inventory (Player Inv) - Add Item
+        if (event.getClickedInventory() == event.getView().getBottomInventory()) {
+            if (event.isLeftClick()) {
+                if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+                    sendConfigMessage(player, "messages.locker_read_only_in_mod");
+                    return;
+                }
+
+                ItemStack clicked = event.getCurrentItem();
+                if (clicked == null || clicked.getType() == Material.AIR) return;
+
+                String serialized = AuditLogBook.serialize(clicked);
+                plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), "Manual Upload")
+                        .thenRun(() -> {
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                event.getClickedInventory().setItem(event.getSlot(), null);
+                                menu.loadPageAsync();
+                                sendConfigMessage(player, "messages.locker_item_added");
+                            });
+                        });
+            }
+            return;
+        }
+
+        // Top Inventory (Locker)
+        if (event.getClickedInventory() == event.getView().getTopInventory()) {
+            int slot = event.getSlot();
+            ItemStack clicked = event.getCurrentItem();
+
+            // Controls
+            MenuItem itemConfig = getMenuItemClicked(slot, menu);
+            if (itemConfig != null && itemConfig.getLeftClickActions() != null) {
+                for (MenuItem.ClickActionData action : itemConfig.getLeftClickActions()) {
+                    if (action.getAction() == ClickAction.ADJUST_PAGE) {
+                        if ("next_page".equals(action.getActionData()[0])) menu.nextPage();
+                        if ("previous_page".equals(action.getActionData()[0])) menu.prevPage();
+                    } else if (action.getAction() == ClickAction.REQUEST_CLEAR_FULL_INVENTORY) {
+                        // Reusing clear confirm logic, assuming 'locker' type handling added
+                        handleClearConfirmation(player, null, "locker", itemConfig, event);
+                    }
+                }
+                return;
+            }
+
+            if (clicked == null || clicked.getType() == Material.AIR) return;
+
+            NamespacedKey idKey = new NamespacedKey(plugin, "locker_item_id");
+            if (!clicked.hasItemMeta() || !clicked.getItemMeta().getPersistentDataContainer().has(idKey, PersistentDataType.INTEGER)) return;
+            int dbId = clicked.getItemMeta().getPersistentDataContainer().get(idKey, PersistentDataType.INTEGER);
+
+            // Interactions
+            if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
+                // Delete Logic
+                if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+                    sendConfigMessage(player, "messages.locker_read_only_in_mod");
+                    return;
+                }
+
+                DropConfirmData last = dropConfirmations.get(player.getUniqueId());
+                long now = System.currentTimeMillis();
+                if (last != null && last.slot() == slot && (now - last.timestamp() < 2000)) {
+                    plugin.getSoftBanDatabaseManager().removeConfiscatedItem(dbId).thenAccept(success -> {
+                        if (success) {
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                menu.loadPageAsync();
+                                sendConfigMessage(player, "messages.locker_item_deleted");
+                                playSound(player, "punish_confirm");
+                            });
+                        }
+                    });
+                    dropConfirmations.remove(player.getUniqueId());
+                } else {
+                    dropConfirmations.put(player.getUniqueId(), new DropConfirmData(slot, now));
+                    sendConfigMessage(player, "messages.locker_drop_confirm");
+                    playSound(player, "confirm_again");
+                }
+            } else if (event.isRightClick()) {
+                // Take or Copy
+                boolean isShift = event.isShiftClick();
+                if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId()) && !isShift) {
+                    sendConfigMessage(player, "messages.locker_read_only_in_mod");
+                    return;
+                }
+
+                // FIXED: Restore Original NBT by cleaning Lore/PDC
+                ItemStack itemToGive = clicked.clone();
+                ItemMeta meta = itemToGive.getItemMeta();
+                
+                // 1. Remove Locker Specific PDC
+                meta.getPersistentDataContainer().remove(idKey);
+                
+                // 2. Clean Lore intelligently (Remove everything after separator)
+                List<String> lore = meta.getLore();
+                if (lore != null) {
+                    List<String> originalLore = new ArrayList<>();
+                    String separator = MessageUtils.getColorMessage("&8&m----------------");
+                    
+                    for (String line : lore) {
+                        if (line.equals(separator)) {
+                            break; // Stop when separator is reached
+                        }
+                        originalLore.add(line);
+                    }
+                    
+                    // If original item had no lore, this list is empty, which is correct
+                    meta.setLore(originalLore);
+                }
+                
+                itemToGive.setItemMeta(meta);
+
+                HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(itemToGive);
+                if (!overflow.isEmpty()) {
+                    sendConfigMessage(player, "messages.mod_mode_hotbar_full");
+                    return;
+                }
+
+                if (!isShift) {
+                    // Move = Take = Remove from DB
+                    plugin.getSoftBanDatabaseManager().removeConfiscatedItem(dbId).thenRun(() -> {
+                        Bukkit.getScheduler().runTask(plugin, menu::loadPageAsync);
+                    });
+                    sendConfigMessage(player, "messages.locker_item_taken");
+                } else {
+                    sendConfigMessage(player, "messages.locker_item_copied");
+                }
             }
         }
     }
@@ -275,6 +417,45 @@ public class MenuListener implements Listener {
     }
 
     private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
+        if ("locker".equals(type)) {
+            if (plugin.getModeratorModeManager().isInModeratorMode(moderator.getUniqueId())) {
+                 sendConfigMessage(moderator, "messages.locker_read_only_in_mod");
+                 return;
+            }
+            
+            UUID modId = moderator.getUniqueId();
+            String confirmationKey = "CLEAR_LOCKER";
+            ConfirmationContext context = pendingConfirmations.get(modId);
+    
+            if (context != null && context.confirmationKey.equals(confirmationKey)) {
+                cancelExistingConfirmation(moderator);
+                plugin.getSoftBanDatabaseManager().clearConfiscatedItems().thenRun(() -> {
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (moderator.getOpenInventory().getTopInventory().getHolder() instanceof LockerMenu menu) {
+                            menu.loadPageAsync();
+                        }
+                        sendConfigMessage(moderator, "messages.locker_cleared");
+                        playSound(moderator, "punish_confirm");
+                    });
+                });
+            } else {
+                 cancelExistingConfirmation(moderator);
+                 MenuItem confirmState = clickedItem.getConfirmState();
+                 if (confirmState != null) {
+                     event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(null, plugin.getConfigManager())); // Target null
+                     playSound(moderator, "confirm_again");
+                 }
+                 BukkitTask task = new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        cancelExistingConfirmation(moderator);
+                    }
+                }.runTaskLater(plugin, 100L);
+                 ConfirmationContext newContext = new ConfirmationContext(event.getInventory(), event.getSlot(), clickedItem.toItemStack(null, plugin.getConfigManager()), task, confirmationKey);
+                 pendingConfirmations.put(modId, newContext);
+            }
+            return;
+        }
         UUID moderatorId = moderator.getUniqueId();
         UUID targetId = target.getUniqueId();
         String confirmationKey = "CLEAR_" + type.toUpperCase() + ":" + targetId;
@@ -2212,6 +2393,13 @@ public class MenuListener implements Listener {
         if (holder instanceof EnderChestMenu) return getEnderChestMenuItem(slot);
         if (holder instanceof ReportsMenu) return getReportsMenuItem(slot); // ADDED
         if (holder instanceof ReportDetailsMenu) return getReportDetailsMenuItem(slot); // ADDED
+        if (holder instanceof LockerMenu) {
+            // Check static slots from config
+            for (String key : List.of("next_page", "previous_page", "clear_locker")) {
+                MenuItem item = plugin.getConfigManager().getLockerMenuItemConfig(key);
+                if (item != null && item.getSlots().contains(slot)) return item;
+            }
+        }
         return null;
     }
 

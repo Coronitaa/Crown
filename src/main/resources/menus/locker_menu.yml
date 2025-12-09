@@ -1,0 +1,31 @@
+menu:
+  items:
+    background_fill:
+      material: 'GRAY_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '45-53'
+    previous_page:
+      material: 'ARROW'
+      name: '&cPrevious Page'
+      slot: 45
+      left_click_actions:
+        - 'ADJUST_PAGE:previous_page'
+    next_page:
+      material: 'ARROW'
+      name: '&aNext Page'
+      slot: 53
+      left_click_actions:
+        - 'ADJUST_PAGE:next_page'
+    clear_locker:
+      material: 'TNT'
+      name: '&c&lClear Locker'
+      slot: 49
+      lore:
+        - '&7Permanently delete all items.'
+      left_click_actions:
+        - 'REQUEST_CLEAR_FULL_INVENTORY' # Mapped to logic in code
+      confirm_state:
+        material: 'REDSTONE_BLOCK'
+        name: '&4&lCONFIRM CLEAR'
+        lore:
+          - '&cClick again to delete all.'

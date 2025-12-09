@@ -41,6 +41,7 @@ public class MainConfigManager {
     private final CustomConfig reportsConfig;
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
     private final CustomConfig modModeConfig;
+    private final CustomConfig lockerMenuConfig;
     private final Crown plugin;
     private final String defaultTimeUnit;
 
@@ -78,6 +79,7 @@ public class MainConfigManager {
         reportDetailsMenuConfig = new CustomConfig("report_details_menu.yml", "menus", plugin, false);
         reportsConfig = new CustomConfig("reports.yml", "menus", plugin, false);
         modModeConfig = new CustomConfig("mod_mode.yml", null, plugin, false);
+        lockerMenuConfig = new CustomConfig("locker_menu.yml", "menus", plugin, false);
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
                 punishmentConfigs.put(punishment, new CustomConfig(punishment + ".yml", "punishments", plugin, false))
@@ -98,6 +100,7 @@ public class MainConfigManager {
         reportDetailsMenuConfig.registerConfig();
         reportsConfig.registerConfig();
         punishmentConfigs.values().forEach(CustomConfig::registerConfig);
+        lockerMenuConfig.registerConfig();
 
         loadConfig();
         this.defaultTimeUnit = getTimeUnit("default");
@@ -122,6 +125,7 @@ public class MainConfigManager {
         reportDetailsMenuConfig.reloadConfig();
         reportsConfig.reloadConfig();
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
+        lockerMenuConfig.reloadConfig();
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
         this.reportCooldown = pluginConfig.getConfig().getInt("report-system.cooldown", 60);
@@ -142,6 +146,14 @@ public class MainConfigManager {
             }
             placeholders.register();
         }
+    }
+
+    public CustomConfig getLockerMenuConfig() {
+        return lockerMenuConfig;
+    }
+
+    public MenuItem getLockerMenuItemConfig(String itemKey) {
+        return loadMenuItemFromConfig(lockerMenuConfig.getConfig(), "menu.items." + itemKey);
     }
 
     public int getReportCooldown() {
