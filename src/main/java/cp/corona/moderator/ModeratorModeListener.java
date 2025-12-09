@@ -864,8 +864,8 @@ public class ModeratorModeListener implements Listener {
 
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
-        // Confiscate on Drop Key (Q)
-        if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
+        // VOLVEMOS A CLICK IZQUIERDO (LEFT)
+        if (event.getClick() == ClickType.LEFT) {
             ItemStack clicked = event.getCurrentItem();
             if (clicked == null || clicked.getType() == Material.AIR) return;
 
@@ -875,16 +875,14 @@ public class ModeratorModeListener implements Listener {
             if (lastClick != null && lastClick.slot() == event.getSlot()) {
                 long diff = now - lastClick.timestamp();
 
-                // BUG FIX: Debounce check.
-                // If less than 500ms passed since first Q, ignore this event.
-                // This prevents holding Q or accidental double-presses from triggering immediately.
+                // DEBOUNCE: Ignorar si el segundo click es en menos de 500ms
                 if (diff < 500) {
                     return; 
                 }
 
-                // Valid window (between 0.5s and 3s)
-                if (diff < 3000) { 
-                    // --- SECOND DROP: EXECUTE CONFISCATION ---
+                // Ventana de tiempo válida (entre 0.5s y 3s)
+                if (diff < 3000) {
+                    // --- SEGUNDO CLICK: EJECUTAR CONFISCACIÓN ---
                     inspectionDoubleClicks.remove(player.getUniqueId());
                     
                     Inventory original = inspectionHolder.getInventory();
@@ -905,8 +903,8 @@ public class ModeratorModeListener implements Listener {
                     plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), containerType)
                             .thenRun(() -> {
                                 Bukkit.getScheduler().runTask(plugin, () -> {
-                                    original.setItem(event.getSlot(), null); // Delete from real
-                                    event.getInventory().setItem(event.getSlot(), null); // Delete from view
+                                    original.setItem(event.getSlot(), null); // Borrar del inventario real
+                                    event.getInventory().setItem(event.getSlot(), null); // Borrar de la vista
                                     MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
                                     player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
                                 });
@@ -915,10 +913,11 @@ public class ModeratorModeListener implements Listener {
                 }
             }
 
-            // --- FIRST DROP: WARNING (Or Reset if > 3000ms) ---
+            // --- PRIMER CLICK: ADVERTENCIA ---
+            // Reiniciamos el timer si pasó mucho tiempo o es la primera vez
             inspectionDoubleClicks.put(player.getUniqueId(), new ClickData(event.getSlot(), now));
             
-            // Visual Feedback (Sound + Message only, No Title)
+            // Feedback Visual (Sonido y Mensaje, SIN Title)
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
             MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
         }

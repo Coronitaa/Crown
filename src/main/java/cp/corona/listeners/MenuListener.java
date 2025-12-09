@@ -187,15 +187,11 @@ public class MenuListener implements Listener {
         // --- Bottom Inventory (Player Inv) - Add Item to Locker ---
         if (event.getClickedInventory() == event.getView().getBottomInventory()) {
             if (event.isLeftClick()) {
-                // Check if viewer can modify this locker
                 if (!menu.isEditable()) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
                     return;
                 }
                 
-                // Standard Mod Mode Restriction (Players shouldn't modify locker while in mod mode usually, 
-                // but if they are admins viewing another locker, maybe they can? 
-                // The prompt said: "only modifiable if ... NO in mod mode".
                 if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only_in_mod");
                     return;
@@ -205,7 +201,6 @@ public class MenuListener implements Listener {
                 if (clicked == null || clicked.getType() == Material.AIR) return;
 
                 String serialized = AuditLogBook.serialize(clicked);
-                // Add to the LOCKER OWNER'S database entries
                 plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, menu.getOwnerUUID(), "Manual Upload")
                         .thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
                             event.getClickedInventory().setItem(event.getSlot(), null);
@@ -255,28 +250,41 @@ public class MenuListener implements Listener {
 
                 DropConfirmData last = dropConfirmations.get(player.getUniqueId());
                 long now = System.currentTimeMillis();
-                if (last != null && last.slot() == slot && (now - last.timestamp() < 2000)) {
-                    plugin.getSoftBanDatabaseManager().removeConfiscatedItem(dbId).thenAccept(success -> {
-                        if (success) {
-                            Bukkit.getScheduler().runTask(plugin, () -> {
-                                menu.loadPageAsync();
-                                MessageUtils.sendConfigMessage(plugin, player, "messages.locker_item_deleted");
-                                playSound(player, "punish_confirm");
-                            });
-                        }
-                    });
-                    dropConfirmations.remove(player.getUniqueId());
-                } else {
-                    dropConfirmations.put(player.getUniqueId(), new DropConfirmData(slot, now));
-                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_drop_confirm");
-                    playSound(player, "confirm_again");
-                }
+
+                if (last != null && last.slot() == slot) {
+                    long diff = now - last.timestamp();
+
+                    // DEBOUNCE PARA LA Q EN EL LOCKER
+                    if (diff < 500) {
+                        return; // Ignorar si es demasiado rápido (anti-spam / tecla apretada)
+                    }
+
+                    if (diff < 3000) {
+                        // Confirmado
+                        plugin.getSoftBanDatabaseManager().removeConfiscatedItem(dbId).thenAccept(success -> {
+                            if (success) {
+                                Bukkit.getScheduler().runTask(plugin, () -> {
+                                    menu.loadPageAsync();
+                                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_item_deleted");
+                                    playSound(player, "punish_confirm");
+                                });
+                            }
+                        });
+                        dropConfirmations.remove(player.getUniqueId());
+                        return;
+                    }
+                } 
+                
+                // Primer Drop o tiempo expirado
+                dropConfirmations.put(player.getUniqueId(), new DropConfirmData(slot, now));
+                MessageUtils.sendConfigMessage(plugin, player, "messages.locker_drop_confirm");
+                playSound(player, "confirm_again");
+                
             } 
             // --- TAKE / COPY (Right Click) ---
             else if (event.isRightClick()) {
                 boolean isShift = event.isShiftClick();
                 
-                // If Trying to Take (No Shift), check Modify Perms
                 if (!isShift) {
                     if (!menu.isEditable()) {
                         MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
@@ -287,7 +295,6 @@ public class MenuListener implements Listener {
                         return;
                     }
                 }
-                // Shift+Right (Copy) is allowed even in read-only mode (usually standard practice)
 
                 ItemStack itemToGive = clicked.clone();
                 ItemMeta meta = itemToGive.getItemMeta();
