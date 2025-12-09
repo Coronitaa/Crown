@@ -50,7 +50,6 @@ import org.jetbrains.annotations.NotNull;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,7 +86,6 @@ public class MenuListener implements Listener {
     private static final String FREEZE_PUNISHMENT_TYPE = "freeze";
 
     private static final String MOD_PERMISSION = "crown.mod";
-    private static final String ADMIN_PERMISSION = "crown.admin";
     private static final String USE_PERMISSION = "crown.use";
     private static final String EDIT_INVENTORY_PERMISSION = "crown.profile.editinventory";
     private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban";
@@ -114,20 +112,8 @@ public class MenuListener implements Listener {
     /**
      * Holds the context of a pending confirmation action to allow for proper cancellation and state reversion.
      */
-    private static class ConfirmationContext {
-        final Inventory inventory;
-        final int slot;
-        final ItemStack originalItem;
-        final BukkitTask timeoutTask;
-        final String confirmationKey;
-
-        ConfirmationContext(Inventory inventory, int slot, ItemStack originalItem, BukkitTask timeoutTask, String confirmationKey) {
-            this.inventory = inventory;
-            this.slot = slot;
-            this.originalItem = originalItem;
-            this.timeoutTask = timeoutTask;
-            this.confirmationKey = confirmationKey;
-        }
+    private record ConfirmationContext(Inventory inventory, int slot, ItemStack originalItem,
+                                       BukkitTask timeoutTask, String confirmationKey) {
     }
 
     /**
@@ -162,9 +148,7 @@ public class MenuListener implements Listener {
                 topHolder instanceof ProfileMenu || topHolder instanceof FullInventoryMenu ||
                 topHolder instanceof EnderChestMenu || topHolder instanceof ReportsMenu || topHolder instanceof ReportDetailsMenu;
 
-        if (isPluginMenu) {
-            // ... existing ...
-        } else if (topHolder instanceof LockerMenu lockerMenu) {
+        if (topHolder instanceof LockerMenu lockerMenu) {
              handleLockerMenuClick(event, player, lockerMenu);
              return;
         }
@@ -200,11 +184,20 @@ public class MenuListener implements Listener {
     private void handleLockerMenuClick(InventoryClickEvent event, Player player, LockerMenu menu) {
         event.setCancelled(true);
 
-        // Bottom Inventory (Player Inv) - Add Item
+        // --- Bottom Inventory (Player Inv) - Add Item to Locker ---
         if (event.getClickedInventory() == event.getView().getBottomInventory()) {
             if (event.isLeftClick()) {
+                // Check if viewer can modify this locker
+                if (!menu.isEditable()) {
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
+                    return;
+                }
+                
+                // Standard Mod Mode Restriction (Players shouldn't modify locker while in mod mode usually, 
+                // but if they are admins viewing another locker, maybe they can? 
+                // The prompt said: "only modifiable if ... NO in mod mode".
                 if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
-                    sendConfigMessage(player, "messages.locker_read_only_in_mod");
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only_in_mod");
                     return;
                 }
 
@@ -212,24 +205,23 @@ public class MenuListener implements Listener {
                 if (clicked == null || clicked.getType() == Material.AIR) return;
 
                 String serialized = AuditLogBook.serialize(clicked);
-                plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), "Manual Upload")
-                        .thenRun(() -> {
-                            Bukkit.getScheduler().runTask(plugin, () -> {
-                                event.getClickedInventory().setItem(event.getSlot(), null);
-                                menu.loadPageAsync();
-                                sendConfigMessage(player, "messages.locker_item_added");
-                            });
-                        });
+                // Add to the LOCKER OWNER'S database entries
+                plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, menu.getOwnerUUID(), "Manual Upload")
+                        .thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+                            event.getClickedInventory().setItem(event.getSlot(), null);
+                            menu.loadPageAsync();
+                            MessageUtils.sendConfigMessage(plugin, player, "messages.locker_item_added");
+                        }));
             }
             return;
         }
 
-        // Top Inventory (Locker)
+        // --- Top Inventory (Locker) ---
         if (event.getClickedInventory() == event.getView().getTopInventory()) {
             int slot = event.getSlot();
             ItemStack clicked = event.getCurrentItem();
 
-            // Controls
+            // Controls logic (Pagination / Clear)
             MenuItem itemConfig = getMenuItemClicked(slot, menu);
             if (itemConfig != null && itemConfig.getLeftClickActions() != null) {
                 for (MenuItem.ClickActionData action : itemConfig.getLeftClickActions()) {
@@ -237,7 +229,6 @@ public class MenuListener implements Listener {
                         if ("next_page".equals(action.getActionData()[0])) menu.nextPage();
                         if ("previous_page".equals(action.getActionData()[0])) menu.prevPage();
                     } else if (action.getAction() == ClickAction.REQUEST_CLEAR_FULL_INVENTORY) {
-                        // Reusing clear confirm logic, assuming 'locker' type handling added
                         handleClearConfirmation(player, null, "locker", itemConfig, event);
                     }
                 }
@@ -247,14 +238,18 @@ public class MenuListener implements Listener {
             if (clicked == null || clicked.getType() == Material.AIR) return;
 
             NamespacedKey idKey = new NamespacedKey(plugin, "locker_item_id");
-            if (!clicked.hasItemMeta() || !clicked.getItemMeta().getPersistentDataContainer().has(idKey, PersistentDataType.INTEGER)) return;
-            int dbId = clicked.getItemMeta().getPersistentDataContainer().get(idKey, PersistentDataType.INTEGER);
+            ItemMeta clickedMeta = clicked.getItemMeta();
+            if (clickedMeta == null || !clickedMeta.getPersistentDataContainer().has(idKey, PersistentDataType.INTEGER)) return;
+            int dbId = clickedMeta.getPersistentDataContainer().get(idKey, PersistentDataType.INTEGER);
 
-            // Interactions
+            // --- DELETE (Drop Key) ---
             if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
-                // Delete Logic
+                if (!menu.isEditable()) {
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
+                    return;
+                }
                 if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
-                    sendConfigMessage(player, "messages.locker_read_only_in_mod");
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only_in_mod");
                     return;
                 }
 
@@ -265,7 +260,7 @@ public class MenuListener implements Listener {
                         if (success) {
                             Bukkit.getScheduler().runTask(plugin, () -> {
                                 menu.loadPageAsync();
-                                sendConfigMessage(player, "messages.locker_item_deleted");
+                                MessageUtils.sendConfigMessage(plugin, player, "messages.locker_item_deleted");
                                 playSound(player, "punish_confirm");
                             });
                         }
@@ -273,57 +268,56 @@ public class MenuListener implements Listener {
                     dropConfirmations.remove(player.getUniqueId());
                 } else {
                     dropConfirmations.put(player.getUniqueId(), new DropConfirmData(slot, now));
-                    sendConfigMessage(player, "messages.locker_drop_confirm");
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_drop_confirm");
                     playSound(player, "confirm_again");
                 }
-            } else if (event.isRightClick()) {
-                // Take or Copy
+            } 
+            // --- TAKE / COPY (Right Click) ---
+            else if (event.isRightClick()) {
                 boolean isShift = event.isShiftClick();
-                if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId()) && !isShift) {
-                    sendConfigMessage(player, "messages.locker_read_only_in_mod");
-                    return;
+                
+                // If Trying to Take (No Shift), check Modify Perms
+                if (!isShift) {
+                    if (!menu.isEditable()) {
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
+                        return;
+                    }
+                    if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only_in_mod");
+                        return;
+                    }
                 }
+                // Shift+Right (Copy) is allowed even in read-only mode (usually standard practice)
 
-                // FIXED: Restore Original NBT by cleaning Lore/PDC
                 ItemStack itemToGive = clicked.clone();
                 ItemMeta meta = itemToGive.getItemMeta();
-                
-                // 1. Remove Locker Specific PDC
-                meta.getPersistentDataContainer().remove(idKey);
-                
-                // 2. Clean Lore intelligently (Remove everything after separator)
-                List<String> lore = meta.getLore();
-                if (lore != null) {
-                    List<String> originalLore = new ArrayList<>();
-                    String separator = MessageUtils.getColorMessage("&8&m----------------");
-                    
-                    for (String line : lore) {
-                        if (line.equals(separator)) {
-                            break; // Stop when separator is reached
+                if (meta != null) {
+                    meta.getPersistentDataContainer().remove(idKey);
+                    List<String> lore = meta.getLore();
+                    if (lore != null) {
+                        List<String> originalLore = new ArrayList<>();
+                        String separator = MessageUtils.getColorMessage("&8&m----------------");
+                        for (String line : lore) {
+                            if (line.equals(separator)) break;
+                            originalLore.add(line);
                         }
-                        originalLore.add(line);
+                        meta.setLore(originalLore);
                     }
-                    
-                    // If original item had no lore, this list is empty, which is correct
-                    meta.setLore(originalLore);
+                    itemToGive.setItemMeta(meta);
                 }
-                
-                itemToGive.setItemMeta(meta);
 
                 HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(itemToGive);
                 if (!overflow.isEmpty()) {
-                    sendConfigMessage(player, "messages.mod_mode_hotbar_full");
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_hotbar_full");
                     return;
                 }
 
                 if (!isShift) {
-                    // Move = Take = Remove from DB
-                    plugin.getSoftBanDatabaseManager().removeConfiscatedItem(dbId).thenRun(() -> {
-                        Bukkit.getScheduler().runTask(plugin, menu::loadPageAsync);
-                    });
-                    sendConfigMessage(player, "messages.locker_item_taken");
+                    // Remove from DB
+                    plugin.getSoftBanDatabaseManager().removeConfiscatedItem(dbId).thenRun(menu::loadPageAsync);
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_item_taken");
                 } else {
-                    sendConfigMessage(player, "messages.locker_item_copied");
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_item_copied");
                 }
             }
         }
@@ -368,7 +362,7 @@ public class MenuListener implements Listener {
                     event.getClickedInventory().setItem(clickedSlot, cursorItem);
                     logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), cursorItem, currentItem, holder);
                 } else if (click.isShiftClick() && currentItem != null && currentItem.getType() != Material.AIR) {
-                    handleShiftClick(player.getInventory(), event.getView().getTopInventory(), currentItem, true);
+                    handleShiftClick(player.getInventory(), event.getView().getTopInventory(), currentItem);
                     event.getClickedInventory().setItem(clickedSlot, null);
                     logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), null, currentItem, holder);
                 }
@@ -393,12 +387,12 @@ public class MenuListener implements Listener {
         } else if (cursorEmpty && !currentEmpty) {
             action = "ITEM_REMOVE";
             involvedItem = currentItem;
-        } else if (!cursorEmpty && !currentEmpty) {
+        } else if (!cursorEmpty) {
             action = "ITEM_MOVE";
             involvedItem = cursorItem;
         }
 
-        if (action != null && involvedItem != null) {
+        if (action != null) {
             String inventoryType;
             if (holder instanceof FullInventoryMenu) {
                 inventoryType = "_INVENTORY";
@@ -418,8 +412,15 @@ public class MenuListener implements Listener {
 
     private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
         if ("locker".equals(type)) {
+            // Get the menu instance to check ownership
+            if (!(moderator.getOpenInventory().getTopInventory().getHolder() instanceof LockerMenu menu)) return;
+
+            if (!menu.isEditable()) {
+                MessageUtils.sendConfigMessage(plugin, moderator, "messages.locker_read_only");
+                return;
+            }
             if (plugin.getModeratorModeManager().isInModeratorMode(moderator.getUniqueId())) {
-                 sendConfigMessage(moderator, "messages.locker_read_only_in_mod");
+                 MessageUtils.sendConfigMessage(plugin, moderator, "messages.locker_read_only_in_mod");
                  return;
             }
             
@@ -429,28 +430,24 @@ public class MenuListener implements Listener {
     
             if (context != null && context.confirmationKey.equals(confirmationKey)) {
                 cancelExistingConfirmation(moderator);
-                plugin.getSoftBanDatabaseManager().clearConfiscatedItems().thenRun(() -> {
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        if (moderator.getOpenInventory().getTopInventory().getHolder() instanceof LockerMenu menu) {
-                            menu.loadPageAsync();
-                        }
-                        sendConfigMessage(moderator, "messages.locker_cleared");
-                        playSound(moderator, "punish_confirm");
-                    });
-                });
+                // Clear items for the LOCKER OWNER
+                plugin.getSoftBanDatabaseManager().clearConfiscatedItems(menu.getOwnerUUID()).thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+                    menu.loadPageAsync();
+                    MessageUtils.sendConfigMessage(plugin, moderator, "messages.locker_cleared");
+                    playSound(moderator, "punish_confirm");
+                }));
             } else {
                  cancelExistingConfirmation(moderator);
                  MenuItem confirmState = clickedItem.getConfirmState();
                  if (confirmState != null) {
-                     event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(null, plugin.getConfigManager())); // Target null
+                     event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(null, plugin.getConfigManager()));
                      playSound(moderator, "confirm_again");
                  }
+                 
                  BukkitTask task = new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        cancelExistingConfirmation(moderator);
-                    }
-                }.runTaskLater(plugin, 100L);
+                    @Override public void run() { cancelExistingConfirmation(moderator); }
+                 }.runTaskLater(plugin, 100L);
+
                  ConfirmationContext newContext = new ConfirmationContext(event.getInventory(), event.getSlot(), clickedItem.toItemStack(null, plugin.getConfigManager()), task, confirmationKey);
                  pendingConfirmations.put(modId, newContext);
             }
@@ -471,8 +468,8 @@ public class MenuListener implements Listener {
                 return;
             }
 
-            int clearedCount = 0;
-            String actionType = "";
+            int clearedCount;
+            String actionType;
 
             if (type.equals("full")) {
                 PlayerInventory inv = targetPlayer.getInventory();
@@ -525,12 +522,9 @@ public class MenuListener implements Listener {
     }
 
 
-    private void handleShiftClick(PlayerInventory playerInv, Inventory guiInv, ItemStack itemToMove, boolean fromTop) {
+    private void handleShiftClick(PlayerInventory playerInv, Inventory guiInv, ItemStack itemToMove) {
         if (itemToMove == null || itemToMove.getType() == Material.AIR) return;
-
-        if (fromTop) {
-            playerInv.addItem(itemToMove.clone());
-        }
+        playerInv.addItem(itemToMove.clone());
     }
 
     private void handleStaticMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
@@ -904,7 +898,7 @@ public class MenuListener implements Listener {
             float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
             float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
             player.playSound(player.getLocation(), sound, volume, pitch);
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND played '" + sound.name() + "' for " + player.getName());
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND played '" + sound + "' for " + player.getName());
         } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND: " + Arrays.toString(parts));
         } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND: " + parts[0]); }
     }
@@ -972,7 +966,7 @@ public class MenuListener implements Listener {
             float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
             float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
             targetPlayer.playSound(targetPlayer.getLocation(), sound, volume, pitch);
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET played '" + sound.name() + "' for " + targetPlayer.getName());
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET played '" + sound + "' for " + targetPlayer.getName());
         } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_TARGET: " + Arrays.toString(parts));
         } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_TARGET: " + parts[0]); }
     }
@@ -1051,8 +1045,7 @@ public class MenuListener implements Listener {
             if (effectType == null) { plugin.getLogger().warning("Invalid PotionEffectType configured: " + parts[0] + " for GIVE_EFFECT_TARGET action."); return; }
             int durationSeconds = Integer.parseInt(parts[1]); int amplifier = Integer.parseInt(parts[2]);
             boolean particles = parts.length <= 3 || Boolean.parseBoolean(parts[3]);
-            boolean icon = particles; boolean ambient = false;
-            PotionEffect effect = new PotionEffect(effectType, durationSeconds * 20, amplifier, ambient, particles, icon);
+            PotionEffect effect = new PotionEffect(effectType, durationSeconds * 20, amplifier, false, particles, particles);
             targetPlayer.addPotionEffect(effect);
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] GIVE_EFFECT_TARGET action executed for player: " + targetPlayer.getName() + ", effect: " + effectType.getKey() + ", duration: " + durationSeconds + "s, amplifier: " + amplifier);
         } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid duration or amplifier format for GIVE_EFFECT_TARGET action: " + Arrays.toString(parts));
@@ -1075,7 +1068,7 @@ public class MenuListener implements Listener {
             float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
             float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
             mods.forEach(mod -> mod.playSound(mod.getLocation(), sound, volume, pitch));
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_MODS played sound '" + sound.name() + "' for " + mods.size() + " mods.");
+            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_MODS played sound '" + sound + "' for " + mods.size() + " mods.");
         } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_MODS: " + Arrays.toString(parts));
         } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_MODS: " + parts[0]); }
     }
@@ -1604,7 +1597,7 @@ public class MenuListener implements Listener {
     private BukkitTask setupChatInputTimeout(Player player, PunishDetailsMenu menu, String inputType) {
         cancelExistingTimeout(player);
 
-        BukkitTask timeoutTask = new BukkitRunnable() {
+        return new BukkitRunnable() {
             @Override
             public void run() {
                 if (inputTypes.getOrDefault(player.getUniqueId(), "").equals(inputType) || pendingReportInputs.containsKey(player.getUniqueId())) {
@@ -1612,8 +1605,6 @@ public class MenuListener implements Listener {
                 }
             }
         }.runTaskLater(plugin, 400L);
-
-        return timeoutTask;
     }
 
     private void storeInputData(Player player, BukkitTask task, PunishDetailsMenu menu, String inputType, String origin) {
