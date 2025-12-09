@@ -868,8 +868,8 @@ public class ModeratorModeListener implements Listener {
 
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
-        // Confiscate on Double Left Click
-        if (event.getClick() == org.bukkit.event.inventory.ClickType.LEFT) {
+        // Confiscate on Drop Key (Q)
+        if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
             ItemStack clicked = event.getCurrentItem();
             if (clicked == null || clicked.getType() == Material.AIR) return;
 
@@ -877,7 +877,7 @@ public class ModeratorModeListener implements Listener {
             long now = System.currentTimeMillis();
 
             if (lastClick != null && lastClick.slot() == event.getSlot() && (now - lastClick.timestamp() < 2000)) { // 2 seconds window
-                // --- SECOND CLICK: EXECUTE CONFISCATION ---
+                // --- SECOND DROP: EXECUTE CONFISCATION ---
                 inspectionDoubleClicks.remove(player.getUniqueId());
                 
                 Inventory original = inspectionHolder.getInventory();
@@ -907,16 +907,12 @@ public class ModeratorModeListener implements Listener {
                         });
 
             } else {
-                // --- FIRST CLICK: WARNING ---
+                // --- FIRST DROP: WARNING ---
                 inspectionDoubleClicks.put(player.getUniqueId(), new ClickData(event.getSlot(), now));
                 
-                // Visual Feedback
+                // Visual Feedback (Sound + Message only, No Title)
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
-                
-                // Send Title or Message
-                String title = plugin.getConfigManager().getMessage("messages.confiscate_confirm_title");
-                String subtitle = plugin.getConfigManager().getMessage("messages.confiscate_confirm_subtitle");
-                player.sendTitle(MessageUtils.getColorMessage(title), MessageUtils.getColorMessage(subtitle), 0, 20, 10);
+                MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
             }
         }
     }

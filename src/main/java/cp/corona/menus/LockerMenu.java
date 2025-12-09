@@ -6,7 +6,6 @@ import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -20,14 +19,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class LockerMenu implements InventoryHolder {
 
     private final Inventory inventory;
     private final Crown plugin;
     private final Player viewer;
-    private final UUID ownerUUID; // Whose locker is this?
-    private final boolean isEditable; // Can the viewer modify it?
+    private final UUID ownerUUID; // Null represents Global Locker
+    private final boolean isEditable;
     private int page;
     private final int entriesPerPage = 45;
     private int totalPages = 1;
@@ -38,18 +38,24 @@ public class LockerMenu implements InventoryHolder {
         this.ownerUUID = ownerUUID;
         this.page = page;
 
-        // Calculate permissions
-        boolean isOwner = viewer.getUniqueId().equals(ownerUUID);
+        // Global Locker is always read-only/admin only logic handled in command/listener
+        // If ownerUUID is null, we treat it as Global.
+        boolean isGlobal = (ownerUUID == null);
+        
+        boolean isOwner = !isGlobal && viewer.getUniqueId().equals(ownerUUID);
         boolean hasAdminPerm = viewer.hasPermission("crown.mod.locker.admin");
         
-        // Editable if it's your locker OR you have admin perm. 
-        // Note: MenuListener also checks if viewer is in ModMode for certain restrictions.
         this.isEditable = isOwner || hasAdminPerm;
 
-        String ownerName = Bukkit.getOfflinePlayer(ownerUUID).getName();
-        String title = plugin.getConfigManager().getMessage("messages.locker_title")
-                .replace("{owner}", ownerName != null ? ownerName : "Unknown")
-                .replace("{page}", String.valueOf(page));
+        String title;
+        if (isGlobal) {
+            title = "&8Global Locker (Pg " + page + ")";
+        } else {
+            String ownerName = Bukkit.getOfflinePlayer(ownerUUID).getName();
+            title = plugin.getConfigManager().getMessage("messages.locker_title")
+                    .replace("{owner}", ownerName != null ? ownerName : "Unknown")
+                    .replace("{page}", String.valueOf(page));
+        }
 
         this.inventory = Bukkit.createInventory(this, 54, MessageUtils.getColorMessage(title));
         loadPageAsync();
@@ -59,60 +65,69 @@ public class LockerMenu implements InventoryHolder {
         inventory.clear();
         placeControlItems();
 
-        plugin.getSoftBanDatabaseManager().countConfiscatedItems(ownerUUID).thenAcceptBothAsync(
-                plugin.getSoftBanDatabaseManager().getConfiscatedItems(ownerUUID, page, entriesPerPage),
-                (totalCount, items) -> Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (viewer == null || !viewer.isOnline() || viewer.getOpenInventory().getTopInventory().getHolder() != this) return;
+        CompletableFuture<Integer> countFuture;
+        CompletableFuture<List<DatabaseManager.ConfiscatedItemEntry>> itemsFuture;
 
-                    this.totalPages = (int) Math.ceil((double) totalCount / (double) entriesPerPage);
-                    if (this.totalPages == 0) this.totalPages = 1;
+        if (ownerUUID == null) {
+            // Global Locker
+            countFuture = plugin.getSoftBanDatabaseManager().countAllConfiscatedItems();
+            itemsFuture = plugin.getSoftBanDatabaseManager().getAllConfiscatedItems(page, entriesPerPage);
+        } else {
+            // Personal Locker
+            countFuture = plugin.getSoftBanDatabaseManager().countConfiscatedItems(ownerUUID);
+            itemsFuture = plugin.getSoftBanDatabaseManager().getConfiscatedItems(ownerUUID, page, entriesPerPage);
+        }
 
-                    if (page > totalPages) {
-                        new LockerMenu(plugin, viewer, ownerUUID, totalPages).open();
-                        return;
-                    }
+        countFuture.thenAcceptBothAsync(itemsFuture, (totalCount, items) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (viewer == null || !viewer.isOnline() || viewer.getOpenInventory().getTopInventory().getHolder() != this) return;
 
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                    NamespacedKey idKey = new NamespacedKey(plugin, "locker_item_id");
+            this.totalPages = (int) Math.ceil((double) totalCount / (double) entriesPerPage);
+            if (this.totalPages == 0) this.totalPages = 1;
 
-                    for (int i = 0; i < items.size(); i++) {
-                        DatabaseManager.ConfiscatedItemEntry entry = items.get(i);
-                        ItemStack item = AuditLogBook.deserialize(entry.getItemData());
+            if (page > totalPages) {
+                new LockerMenu(plugin, viewer, ownerUUID, totalPages).open();
+                return;
+            }
 
-                        if (item != null) {
-                            ItemMeta meta = item.getItemMeta();
-                            if (meta != null) {
-                                List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-                                
-                                // Separator used for stripping in MenuListener
-                                lore.add(MessageUtils.getColorMessage("&8&m----------------")); 
-                                
-                                lore.add(MessageUtils.getColorMessage("&7Confiscated: &f" + sdf.format(new Date(entry.getConfiscatedAt()))));
-                                lore.add(MessageUtils.getColorMessage("&7By: &e" + (entry.getConfiscatedBy().equals("Console") ? "Console" : Bukkit.getOfflinePlayer(java.util.UUID.fromString(entry.getConfiscatedBy())).getName())));
-                                
-                                // Display Source/Coordinates
-                                lore.add(MessageUtils.getColorMessage("&7Source:"));
-                                lore.add(MessageUtils.getColorMessage("&b" + entry.getOriginalType()));
-                                
-                                if (isEditable) {
-                                    lore.add(" ");
-                                    lore.add(MessageUtils.getColorMessage("&eDouble Q &7to &cDelete"));
-                                    lore.add(MessageUtils.getColorMessage("&eRight-Click &7to &bTake"));
-                                }
-                                lore.add(MessageUtils.getColorMessage("&eShift+R-Click &7to &dCopy")); // Copy always allowed
-                                
-                                meta.setLore(lore);
-                                meta.getPersistentDataContainer().set(idKey, PersistentDataType.INTEGER, entry.getId());
-                                item.setItemMeta(meta);
-                            }
-                            inventory.setItem(i, item);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            NamespacedKey idKey = new NamespacedKey(plugin, "locker_item_id");
+
+            for (int i = 0; i < items.size(); i++) {
+                DatabaseManager.ConfiscatedItemEntry entry = items.get(i);
+                ItemStack item = AuditLogBook.deserialize(entry.getItemData());
+
+                if (item != null) {
+                    ItemMeta meta = item.getItemMeta();
+                    if (meta != null) {
+                        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                        
+                        lore.add(MessageUtils.getColorMessage("&8&m----------------")); 
+                        lore.add(MessageUtils.getColorMessage("&7Confiscated: &f" + sdf.format(new Date(entry.getConfiscatedAt()))));
+                        
+                        String confiscatorName = entry.getConfiscatedBy().equals("Console") ? "Console" : Bukkit.getOfflinePlayer(UUID.fromString(entry.getConfiscatedBy())).getName();
+                        lore.add(MessageUtils.getColorMessage("&7By: &e" + (confiscatorName != null ? confiscatorName : "Unknown")));
+                        
+                        lore.add(MessageUtils.getColorMessage("&7Source:"));
+                        lore.add(MessageUtils.getColorMessage("&b" + entry.getOriginalType()));
+                        
+                        if (isEditable) {
+                            lore.add(" ");
+                            lore.add(MessageUtils.getColorMessage("&eDouble Q &7to &cDelete"));
+                            lore.add(MessageUtils.getColorMessage("&eRight-Click &7to &bTake"));
                         }
+                        lore.add(MessageUtils.getColorMessage("&eShift+R-Click &7to &dCopy"));
+                        
+                        meta.setLore(lore);
+                        meta.getPersistentDataContainer().set(idKey, PersistentDataType.INTEGER, entry.getId());
+                        item.setItemMeta(meta);
                     }
-                    
-                    placeControlItems();
-                    viewer.updateInventory();
-                })
-        );
+                    inventory.setItem(i, item);
+                }
+            }
+            
+            placeControlItems();
+            viewer.updateInventory();
+        }));
     }
 
     private void placeControlItems() {
@@ -131,8 +146,8 @@ public class LockerMenu implements InventoryHolder {
             if (next != null) setItem(next);
         }
 
-        // Only show Clear button if editable
-        if (isEditable) {
+        // Only show Clear button if editable AND not global (prevent clearing global accidentally/massively)
+        if (isEditable && ownerUUID != null) {
             MenuItem clearBtn = plugin.getConfigManager().getLockerMenuItemConfig("clear_locker");
             if (clearBtn != null) setItem(clearBtn);
         }

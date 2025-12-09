@@ -443,6 +443,47 @@ public class DatabaseManager {
         });
     }
 
+    // NEW: Get all items (Global Locker)
+    public CompletableFuture<List<ConfiscatedItemEntry>> getAllConfiscatedItems(int page, int itemsPerPage) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<ConfiscatedItemEntry> items = new ArrayList<>();
+            int offset = (page - 1) * itemsPerPage;
+            String sql = "SELECT * FROM confiscated_items ORDER BY confiscated_at DESC LIMIT ? OFFSET ?";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, itemsPerPage);
+                ps.setInt(2, offset);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    items.add(new ConfiscatedItemEntry(
+                            rs.getInt("id"),
+                            rs.getString("item_data"),
+                            rs.getLong("confiscated_at"),
+                            rs.getString("confiscated_by"),
+                            rs.getString("original_type")
+                    ));
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error fetching all confiscated items", e);
+            }
+            return items;
+        });
+    }
+
+    // NEW: Count all items (Global Locker)
+    public CompletableFuture<Integer> countAllConfiscatedItems() {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT COUNT(*) FROM confiscated_items";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return rs.getInt(1);
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error counting all confiscated items", e);
+            }
+            return 0;
+        });
+    }
+
     public static class ConfiscatedItemEntry {
         private final int id;
         private final String itemData;

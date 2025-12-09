@@ -37,27 +37,31 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // /mod locker [player]
+        // /mod locker [player|all]
         if (args.length > 0 && args[0].equalsIgnoreCase("locker")) {
-            OfflinePlayer target;
             if (args.length > 1) {
                 if (!player.hasPermission("crown.mod.locker.admin")) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.no_permission");
                     return true;
                 }
-                target = Bukkit.getOfflinePlayer(args[1]);
-                // Check if target has played before to avoid creating phantom lockers? 
-                // Database query filters by UUID, so if UUID invalid/no items, it shows empty.
+
+                if (args[1].equalsIgnoreCase("all")) {
+                    // Global Locker
+                    new LockerMenu(plugin, player, null, 1).open();
+                    return true;
+                }
+
+                OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
                 if (!target.hasPlayedBefore() && !target.isOnline()) {
                      MessageUtils.sendConfigMessage(plugin, player, "messages.never_played", "{input}", args[1]);
                      return true;
                 }
                 MessageUtils.sendConfigMessage(plugin, player, "messages.locker_opened_other", "{target}", target.getName());
+                new LockerMenu(plugin, player, target.getUniqueId(), 1).open();
             } else {
-                target = player;
+                // Self Locker
+                new LockerMenu(plugin, player, player.getUniqueId(), 1).open();
             }
-
-            new LockerMenu(plugin, player, target.getUniqueId(), 1).open();
             return true;
         }
 
@@ -72,8 +76,13 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
             StringUtil.copyPartialMatches(args[0], Collections.singletonList("locker"), completions);
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("locker") && sender.hasPermission("crown.mod.locker.admin")) {
-            return null; // Return null to suggest player names
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("locker")) {
+            if (sender.hasPermission("crown.mod.locker.admin")) {
+                if ("all".startsWith(args[1].toLowerCase())) {
+                    completions.add("all");
+                }
+                return null; // Return null to suggest player names as well
+            }
         }
         return completions;
     }

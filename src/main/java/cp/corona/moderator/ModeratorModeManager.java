@@ -501,7 +501,6 @@ public class ModeratorModeManager {
 
         // Task 2: Sound after spectator
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.5f);
-        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 2.0f);
     }
 
     // Helper class for caching preferences
