@@ -8,7 +8,6 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.Container;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -44,10 +43,7 @@ public class ModeratorModeListener implements Listener {
     private final Crown plugin;
     private final NamespacedKey toolIdKey;
 
-    // Containers supported for Silent Inspect (Copy contents to virtual inventory)
     private final Set<Material> silentInspectableContainers;
-
-    // GUI blocks that should be strictly blocked in Mod Mode (No silent inspect support or no storage)
     private final Set<Material> blockedGuiBlocks;
 
     private final Map<UUID, ClickData> inspectionDoubleClicks = new HashMap<>();
@@ -846,7 +842,7 @@ public class ModeratorModeListener implements Listener {
 
     public static class InspectionHolder implements InventoryHolder {
         private final Inventory original;
-        private final Location location; // Added location field
+        private final Location location;
 
         public InspectionHolder(Inventory original, Location location) { 
             this.original = original; 
@@ -855,7 +851,7 @@ public class ModeratorModeListener implements Listener {
         @Override public Inventory getInventory() { return original; }
         public Location getLocation() { return location; }
     }
-
+    
     @EventHandler(priority = EventPriority.HIGH)
     public void onInspectionClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
@@ -876,44 +872,55 @@ public class ModeratorModeListener implements Listener {
             ClickData lastClick = inspectionDoubleClicks.get(player.getUniqueId());
             long now = System.currentTimeMillis();
 
-            if (lastClick != null && lastClick.slot() == event.getSlot() && (now - lastClick.timestamp() < 2000)) { // 2 seconds window
-                // --- SECOND DROP: EXECUTE CONFISCATION ---
-                inspectionDoubleClicks.remove(player.getUniqueId());
-                
-                Inventory original = inspectionHolder.getInventory();
-                ItemStack realItem = original.getItem(event.getSlot());
-                
-                if (realItem == null || realItem.getType() == Material.AIR) {
-                    MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_fail_gone");
+            if (lastClick != null && lastClick.slot() == event.getSlot()) {
+                long diff = now - lastClick.timestamp();
+
+                // BUG FIX: Debounce check.
+                // If less than 500ms passed since first Q, ignore this event.
+                // This prevents holding Q or accidental double-presses from triggering immediately.
+                if (diff < 500) {
+                    return; 
+                }
+
+                // Valid window (between 0.5s and 3s)
+                if (diff < 3000) { 
+                    // --- SECOND DROP: EXECUTE CONFISCATION ---
+                    inspectionDoubleClicks.remove(player.getUniqueId());
+                    
+                    Inventory original = inspectionHolder.getInventory();
+                    ItemStack realItem = original.getItem(event.getSlot());
+                    
+                    if (realItem == null || realItem.getType() == Material.AIR) {
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_fail_gone");
+                        return;
+                    }
+
+                    String serialized = AuditLogBook.serialize(realItem);
+                    String containerType = event.getView().getTitle().replace("Inspect: ", "");
+                    Location loc = inspectionHolder.getLocation();
+                    if (loc != null) {
+                        containerType += " (" + loc.getWorld().getName() + " " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ")";
+                    }
+                    
+                    plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), containerType)
+                            .thenRun(() -> {
+                                Bukkit.getScheduler().runTask(plugin, () -> {
+                                    original.setItem(event.getSlot(), null); // Delete from real
+                                    event.getInventory().setItem(event.getSlot(), null); // Delete from view
+                                    MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
+                                    player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
+                                });
+                            });
                     return;
                 }
-
-                String serialized = AuditLogBook.serialize(realItem);
-                String containerType = event.getView().getTitle().replace("Inspect: ", "");
-                Location loc = inspectionHolder.getLocation();
-                if (loc != null) {
-                    containerType += " (" + loc.getWorld().getName() + " " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ")";
-                }
-                
-                // Add to THIS moderator's locker (player.getUniqueId())
-                plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), containerType)
-                        .thenRun(() -> {
-                            Bukkit.getScheduler().runTask(plugin, () -> {
-                                original.setItem(event.getSlot(), null); // Delete from real
-                                event.getInventory().setItem(event.getSlot(), null); // Delete from view
-                                MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
-                                player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
-                            });
-                        });
-
-            } else {
-                // --- FIRST DROP: WARNING ---
-                inspectionDoubleClicks.put(player.getUniqueId(), new ClickData(event.getSlot(), now));
-                
-                // Visual Feedback (Sound + Message only, No Title)
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
-                MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
             }
+
+            // --- FIRST DROP: WARNING (Or Reset if > 3000ms) ---
+            inspectionDoubleClicks.put(player.getUniqueId(), new ClickData(event.getSlot(), now));
+            
+            // Visual Feedback (Sound + Message only, No Title)
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
         }
     }
 }
