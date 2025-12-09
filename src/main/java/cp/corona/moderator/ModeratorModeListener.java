@@ -864,10 +864,11 @@ public class ModeratorModeListener implements Listener {
         InventoryHolder holder = event.getInventory().getHolder();
         if (!(holder instanceof InspectionHolder inspectionHolder)) return;
 
-        event.setCancelled(true);
+        event.setCancelled(true); // Ensure Read-Only
 
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
+        // Confiscate on Double Left Click
         if (event.getClick() == org.bukkit.event.inventory.ClickType.LEFT) {
             ItemStack clicked = event.getCurrentItem();
             if (clicked == null || clicked.getType() == Material.AIR) return;
@@ -875,8 +876,8 @@ public class ModeratorModeListener implements Listener {
             ClickData lastClick = inspectionDoubleClicks.get(player.getUniqueId());
             long now = System.currentTimeMillis();
 
-            if (lastClick != null && lastClick.slot() == event.getSlot() && (now - lastClick.timestamp() < 1000)) { // Increased buffer slightly
-                // Confirmed
+            if (lastClick != null && lastClick.slot() == event.getSlot() && (now - lastClick.timestamp() < 2000)) { // 2 seconds window
+                // --- SECOND CLICK: EXECUTE CONFISCATION ---
                 inspectionDoubleClicks.remove(player.getUniqueId());
                 
                 Inventory original = inspectionHolder.getInventory();
@@ -888,30 +889,34 @@ public class ModeratorModeListener implements Listener {
                 }
 
                 String serialized = AuditLogBook.serialize(realItem);
-                
-                // ADDED: Include Coordinates in Source String
                 String containerType = event.getView().getTitle().replace("Inspect: ", "");
                 Location loc = inspectionHolder.getLocation();
                 if (loc != null) {
-                    containerType += " (" + loc.getWorld().getName() + ", " + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
+                    containerType += " (" + loc.getWorld().getName() + " " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ")";
                 }
                 
+                // Add to THIS moderator's locker (player.getUniqueId())
                 plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), containerType)
                         .thenRun(() -> {
                             Bukkit.getScheduler().runTask(plugin, () -> {
-                                original.setItem(event.getSlot(), null);
-                                event.getInventory().setItem(event.getSlot(), null);
+                                original.setItem(event.getSlot(), null); // Delete from real
+                                event.getInventory().setItem(event.getSlot(), null); // Delete from view
                                 MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
                                 player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
                             });
                         });
 
             } else {
-                // First Click
+                // --- FIRST CLICK: WARNING ---
                 inspectionDoubleClicks.put(player.getUniqueId(), new ClickData(event.getSlot(), now));
-                // ADDED: Confirmation Message
-                MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
+                
+                // Visual Feedback
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
+                
+                // Send Title or Message
+                String title = plugin.getConfigManager().getMessage("messages.confiscate_confirm_title");
+                String subtitle = plugin.getConfigManager().getMessage("messages.confiscate_confirm_subtitle");
+                player.sendTitle(MessageUtils.getColorMessage(title), MessageUtils.getColorMessage(subtitle), 0, 20, 10);
             }
         }
     }

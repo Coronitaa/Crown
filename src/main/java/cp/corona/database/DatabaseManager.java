@@ -389,25 +389,28 @@ public class DatabaseManager {
         });
     }
 
-    public CompletableFuture<Void> clearConfiscatedItems() {
+    public CompletableFuture<Void> clearConfiscatedItems(UUID ownerUUID) {
         return CompletableFuture.runAsync(() -> {
-            String sql = "DELETE FROM confiscated_items";
-            try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
-                stmt.executeUpdate(sql);
+            String sql = "DELETE FROM confiscated_items WHERE confiscated_by = ?";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, ownerUUID.toString());
+                ps.executeUpdate();
             } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Error clearing confiscated items", e);
+                plugin.getLogger().log(Level.SEVERE, "Error clearing confiscated items for " + ownerUUID, e);
             }
         });
     }
 
-    public CompletableFuture<List<ConfiscatedItemEntry>> getConfiscatedItems(int page, int itemsPerPage) {
+    public CompletableFuture<List<ConfiscatedItemEntry>> getConfiscatedItems(UUID ownerUUID, int page, int itemsPerPage) {
         return CompletableFuture.supplyAsync(() -> {
             List<ConfiscatedItemEntry> items = new ArrayList<>();
             int offset = (page - 1) * itemsPerPage;
-            String sql = "SELECT * FROM confiscated_items ORDER BY confiscated_at DESC LIMIT ? OFFSET ?";
+            // Filter by confiscated_by (which acts as the locker owner)
+            String sql = "SELECT * FROM confiscated_items WHERE confiscated_by = ? ORDER BY confiscated_at DESC LIMIT ? OFFSET ?";
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
-                ps.setInt(1, itemsPerPage);
-                ps.setInt(2, offset);
+                ps.setString(1, ownerUUID.toString());
+                ps.setInt(2, itemsPerPage);
+                ps.setInt(3, offset);
                 ResultSet rs = ps.executeQuery();
                 while (rs.next()) {
                     items.add(new ConfiscatedItemEntry(
@@ -419,19 +422,22 @@ public class DatabaseManager {
                     ));
                 }
             } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Error fetching confiscated items", e);
+                plugin.getLogger().log(Level.SEVERE, "Error fetching confiscated items for " + ownerUUID, e);
             }
             return items;
         });
     }
 
-    public CompletableFuture<Integer> countConfiscatedItems() {
+    public CompletableFuture<Integer> countConfiscatedItems(UUID ownerUUID) {
         return CompletableFuture.supplyAsync(() -> {
-            String sql = "SELECT COUNT(*) FROM confiscated_items";
-            try (Connection connection = getConnection(); Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
-                if (rs.next()) return rs.getInt(1);
+            String sql = "SELECT COUNT(*) FROM confiscated_items WHERE confiscated_by = ?";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, ownerUUID.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return rs.getInt(1);
+                }
             } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Error counting confiscated items", e);
+                plugin.getLogger().log(Level.SEVERE, "Error counting confiscated items for " + ownerUUID, e);
             }
             return 0;
         });

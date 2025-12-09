@@ -164,3 +164,6 @@ permissions:
   crown.mod.seevanish:
     description: Allows player to see other moderators who are in vanish mode.
     default: op
+  crown.mod.locker.admin:
+    description: Allows modifying other moderators' lockers.
+    default: op

@@ -3,6 +3,8 @@ package cp.corona.commands;
 import cp.corona.crown.Crown;
 import cp.corona.menus.LockerMenu;
 import cp.corona.utils.MessageUtils;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -35,8 +37,27 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // /mod locker [player]
         if (args.length > 0 && args[0].equalsIgnoreCase("locker")) {
-            new LockerMenu(plugin, player, 1).open();
+            OfflinePlayer target;
+            if (args.length > 1) {
+                if (!player.hasPermission("crown.mod.locker.admin")) {
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.no_permission");
+                    return true;
+                }
+                target = Bukkit.getOfflinePlayer(args[1]);
+                // Check if target has played before to avoid creating phantom lockers? 
+                // Database query filters by UUID, so if UUID invalid/no items, it shows empty.
+                if (!target.hasPlayedBefore() && !target.isOnline()) {
+                     MessageUtils.sendConfigMessage(plugin, player, "messages.never_played", "{input}", args[1]);
+                     return true;
+                }
+                MessageUtils.sendConfigMessage(plugin, player, "messages.locker_opened_other", "{target}", target.getName());
+            } else {
+                target = player;
+            }
+
+            new LockerMenu(plugin, player, target.getUniqueId(), 1).open();
             return true;
         }
 
@@ -44,7 +65,6 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    // ADDED: Tab Completion
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!sender.hasPermission("crown.mod.use")) return Collections.emptyList();
@@ -52,6 +72,8 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
             StringUtil.copyPartialMatches(args[0], Collections.singletonList("locker"), completions);
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("locker") && sender.hasPermission("crown.mod.locker.admin")) {
+            return null; // Return null to suggest player names
         }
         return completions;
     }
