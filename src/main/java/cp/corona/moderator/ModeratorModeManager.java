@@ -1,7 +1,6 @@
 package cp.corona.moderator;
 
 import cp.corona.crown.Crown;
-import cp.corona.database.DatabaseManager;
 import cp.corona.utils.MessageUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
@@ -69,7 +68,18 @@ public class ModeratorModeManager {
 
             if (meta != null) {
                 meta.setDisplayName(MessageUtils.getColorMessage(section.getString(key + ".name")));
-                meta.setLore(section.getStringList(key + ".lore").stream().map(MessageUtils::getColorMessage).collect(Collectors.toList()));
+                List<String> lore = section.getStringList(key + ".lore").stream()
+                        .map(MessageUtils::getColorMessage)
+                        .collect(Collectors.toList());
+
+                // Add usage instructions to the lore
+                List<String> usage = section.getStringList(key + ".usage");
+                if (!usage.isEmpty()) {
+                    if (!lore.isEmpty()) lore.add(""); // Add a spacer
+                    lore.addAll(usage.stream().map(MessageUtils::getColorMessage).toList());
+                }
+
+                meta.setLore(lore);
                 meta.getPersistentDataContainer().set(toolIdKey, PersistentDataType.STRING, toolId);
                 item.setItemMeta(meta);
                 moderatorTools.put(toolId, item);
@@ -95,18 +105,43 @@ public class ModeratorModeManager {
 
         // Load preferences from DB (or use defaults if new)
         plugin.getSoftBanDatabaseManager().getModPreferences(player.getUniqueId()).thenAccept(dbPrefs -> {
+            List<String> favoriteTools = dbPrefs.getFavoriteTools();
+            // If the player has never set favorites (list is null), load the default ones.
+            // If they have set them, even to be empty, respect that.
+            if (favoriteTools == null) {
+                favoriteTools = new ArrayList<>(plugin.getConfigManager().getModModeConfig().getConfig().getStringList("default-favorites"));
+            }
+
             ModPreferenceData prefs = new ModPreferenceData(
                     dbPrefs.isInteractions(),
                     dbPrefs.isContainerSpy(),
                     dbPrefs.isFlyEnabled(),
                     dbPrefs.isModOnJoin(),
-                    dbPrefs.isSilent()
+                    dbPrefs.isSilent(),
+                    new ArrayList<>(favoriteTools) // Make a mutable copy
             );
             activePreferences.put(player.getUniqueId(), prefs);
 
             // Apply preferences on main thread
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (player.isOnline() && isInModeratorMode(player.getUniqueId())) {
+                    player.getInventory().clear(); // Clear inventory before applying items
+
+                    // Apply fixed items first
+                    ConfigurationSection inventorySection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory");
+                    if (inventorySection != null) {
+                        inventorySection.getKeys(false).forEach(key -> {
+                            String toolId = inventorySection.getString(key + ".tool-id");
+                            int slot = inventorySection.getInt(key + ".slot");
+                            if (moderatorTools.containsKey(toolId)) {
+                                player.getInventory().setItem(slot, moderatorTools.get(toolId));
+                            }
+                        });
+                    }
+
+                    // Load favorite tools into hotbar
+                    loadFavoriteTools(player);
+
                     // Apply GameMode based on Interactions
                     player.setGameMode(prefs.isInteractions() ? GameMode.SURVIVAL : GameMode.ADVENTURE);
 
@@ -136,17 +171,6 @@ public class ModeratorModeManager {
         player.setFoodLevel(20);
         player.setSaturation(20f);
         player.setSilent(true);
-
-        ConfigurationSection inventorySection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory");
-        if (inventorySection != null) {
-            inventorySection.getKeys(false).forEach(key -> {
-                String toolId = inventorySection.getString(key + ".tool-id");
-                int slot = inventorySection.getInt(key + ".slot");
-                if (moderatorTools.containsKey(toolId)) {
-                    player.getInventory().setItem(slot, moderatorTools.get(toolId));
-                }
-            });
-        }
 
         vanishPlayer(player);
 
@@ -216,13 +240,14 @@ public class ModeratorModeManager {
                 prefs.isContainerSpy(),
                 prefs.isFlyEnabled(),
                 prefs.isModOnJoin(),
-                prefs.isSilent()
+                prefs.isSilent(),
+                prefs.getFavoriteTools()
         );
     }
 
     public void toggleInteractions(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
         boolean newState = !prefs.isInteractions();
         prefs.setInteractions(newState);
 
@@ -242,14 +267,14 @@ public class ModeratorModeManager {
 
     public void toggleContainerSpy(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
         prefs.setContainerSpy(!prefs.isContainerSpy());
         updateAndSavePreferences(uuid, prefs);
     }
 
     public void toggleFly(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
         boolean newState = !prefs.isFlyEnabled();
         prefs.setFlyEnabled(newState);
 
@@ -264,7 +289,7 @@ public class ModeratorModeManager {
 
     public void toggleModOnJoin(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
         boolean newState = !prefs.isModOnJoin();
         prefs.setModOnJoin(newState);
 
@@ -276,7 +301,7 @@ public class ModeratorModeManager {
 
     public void toggleSilent(Player player) {
         UUID uuid = player.getUniqueId();
-        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, new ModPreferenceData(false, true, true, false, false));
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
         boolean newState = !prefs.isSilent();
         prefs.setSilent(newState);
 
@@ -289,6 +314,100 @@ public class ModeratorModeManager {
             broadcastFakeJoin(player);
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_silent_disabled");
         }
+    }
+
+    public void toggleFavoriteTool(Player player, String toolId) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.get(uuid);
+        if (prefs == null) return;
+
+        List<String> favorites = prefs.getFavoriteTools();
+        if (favorites.contains(toolId)) {
+            favorites.remove(toolId);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_favorite_removed");
+        } else {
+            // Max 7 favorites (hotbar slots 1-7, as 0 and 8 are fixed)
+            if (favorites.size() >= 7) {
+                MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_favorites_full");
+                return;
+            }
+            favorites.add(toolId);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_favorite_added");
+        }
+
+        updateAndSavePreferences(uuid, prefs);
+        loadFavoriteTools(player); // Refresh hotbar
+    }
+
+    private void loadFavoriteTools(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.get(uuid);
+        if (prefs == null) return;
+
+        // Create a set of tool IDs currently in fixed slots to avoid duplication
+        Set<String> fixedToolIds = new HashSet<>();
+        for (int i = 0; i < 9; i++) {
+            ItemStack item = player.getInventory().getItem(i);
+            if (item != null && item.hasItemMeta()) {
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null) {
+                    String toolId = meta.getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
+                    if (toolId != null && isFixedTool(toolId)) {
+                        fixedToolIds.add(toolId);
+                    }
+                }
+            }
+        }
+
+        // Clear existing non-fixed tools from slots 1-7
+        for (int i = 1; i <= 7; i++) {
+            ItemStack item = player.getInventory().getItem(i);
+            if (item != null && item.hasItemMeta()) {
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null) {
+                    String toolId = meta.getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
+                    if (toolId != null && !isFixedTool(toolId)) {
+                        player.getInventory().setItem(i, null);
+                    }
+                }
+            }
+        }
+
+        // Add favorite tools, avoiding duplicates of fixed tools
+        int currentSlot = 1;
+        for (String toolId : prefs.getFavoriteTools()) {
+            if (fixedToolIds.contains(toolId)) continue; // Skip if it's already in a fixed slot
+
+            if (currentSlot > 7) break;
+            ItemStack tool = moderatorTools.get(toolId);
+            if (tool != null) {
+                // Find next available slot from 1-7
+                while(currentSlot <= 7 && player.getInventory().getItem(currentSlot) != null) {
+                    currentSlot++;
+                }
+                if(currentSlot <= 7) {
+                    player.getInventory().setItem(currentSlot, tool.clone());
+                    currentSlot++;
+                }
+            }
+        }
+    }
+
+    private boolean isFixedTool(String toolId) {
+        ConfigurationSection inventorySection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory");
+        if (inventorySection == null) return false;
+
+        for (String key : inventorySection.getKeys(false)) {
+            if (toolId.equals(inventorySection.getString(key + ".tool-id"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ModPreferenceData createDefaultPrefs() {
+        List<String> defaultFavorites = plugin.getConfigManager().getModModeConfig().getConfig().getStringList("default-favorites");
+        return new ModPreferenceData(false, true, true, false, false, new ArrayList<>(defaultFavorites));
     }
 
     // --- State Getters ---
@@ -314,6 +433,13 @@ public class ModeratorModeManager {
 
     public boolean isSilent(UUID uuid) {
         return activePreferences.containsKey(uuid) && activePreferences.get(uuid).isSilent();
+    }
+
+    public List<String> getFavoriteTools(UUID uuid) {
+        if (activePreferences.containsKey(uuid)) {
+            return Collections.unmodifiableList(activePreferences.get(uuid).getFavoriteTools());
+        }
+        return Collections.emptyList();
     }
 
     // --- General Mod Mode Logic ---
@@ -343,27 +469,49 @@ public class ModeratorModeManager {
             ItemStack item = moderator.getInventory().getItem(i);
             if (item == null || !item.hasItemMeta()) continue;
 
-            String toolId = item.getItemMeta().getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
+            ItemMeta meta = item.getItemMeta();
+            if (meta == null) continue;
+
+            String toolId = meta.getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
             if ("player_selector_tool".equals(toolId)) {
-                ItemMeta meta = item.getItemMeta();
-                List<String> lore = meta.getLore();
-                if (lore == null) lore = new ArrayList<>();
+                List<String> lore;
 
                 if (targetUUID != null) {
                     Player target = Bukkit.getPlayer(targetUUID);
                     String targetName = target != null ? target.getName() : "Unknown";
 
                     meta.setDisplayName(MessageUtils.getColorMessage("&eSelector: &f" + targetName));
-                    if (!lore.isEmpty()) lore.set(0, MessageUtils.getColorMessage("&7Target: &a" + targetName));
+                    // Rebuild lore to ensure correctness
+                    lore = new ArrayList<>();
+                    lore.add(MessageUtils.getColorMessage("&7Target: &a" + targetName));
+                    // Add usage from original tool
+                    ItemStack originalTool = moderatorTools.get("player_selector_tool");
+                    if (originalTool != null && originalTool.hasItemMeta()) {
+                        ItemMeta originalMeta = originalTool.getItemMeta();
+                        if (originalMeta != null) {
+                            List<String> usageLore = originalMeta.getLore();
+                            if (usageLore != null && usageLore.size() > 1) {
+                               lore.addAll(usageLore.subList(1, usageLore.size()));
+                            }
+                        }
+                    }
 
                     if (meta instanceof SkullMeta && target != null) {
                         ((SkullMeta) meta).setOwningPlayer(target);
                     }
                 } else {
-                    ConfigurationSection original = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory.player-selector");
-                    if (original != null) {
-                        meta.setDisplayName(MessageUtils.getColorMessage(original.getString("name")));
-                        lore = original.getStringList("lore").stream().map(MessageUtils::getColorMessage).collect(Collectors.toList());
+                    // Restore from fresh tool
+                    ItemStack originalTool = moderatorTools.get("player_selector_tool");
+                    if (originalTool != null) {
+                        ItemMeta originalMeta = originalTool.getItemMeta();
+                        if (originalMeta != null) {
+                            meta.setDisplayName(originalMeta.getDisplayName());
+                            lore = originalMeta.getLore();
+                        } else {
+                            lore = new ArrayList<>();
+                        }
+                    } else {
+                        lore = new ArrayList<>();
                     }
                     if (meta instanceof SkullMeta) {
                         ((SkullMeta) meta).setOwningPlayer(null);
@@ -510,13 +658,15 @@ public class ModeratorModeManager {
         private boolean flyEnabled;
         private boolean modOnJoin;
         private boolean silent;
+        private final List<String> favoriteTools;
 
-        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent) {
+        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
             this.modOnJoin = modOnJoin;
             this.silent = silent;
+            this.favoriteTools = favoriteTools;
         }
 
         public boolean isInteractions() { return interactions; }
@@ -529,6 +679,7 @@ public class ModeratorModeManager {
         public void setModOnJoin(boolean modOnJoin) { this.modOnJoin = modOnJoin; }
         public boolean isSilent() { return silent; }
         public void setSilent(boolean silent) { this.silent = silent; }
+        public List<String> getFavoriteTools() { return favoriteTools; }
     }
 
     private static class PlayerState {

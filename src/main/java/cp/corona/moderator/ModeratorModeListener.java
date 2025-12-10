@@ -740,33 +740,46 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
-        ItemStack tool = plugin.getModeratorModeManager().getModeratorTools().get(toolId);
-        if (tool == null) return;
+        // Right-click to add/remove from favorites
+        if (event.getClick() == ClickType.RIGHT) {
+            plugin.getModeratorModeManager().toggleFavoriteTool(player, toolId);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
+            new ToolSelectorMenu(plugin, player).open(); // Re-open to show changes
+            return;
+        }
 
-        for (int i = 0; i <= 8; i++) {
-            ItemStack hotbarItem = player.getInventory().getItem(i);
-            if (hotbarItem != null && hotbarItem.hasItemMeta()) {
-                String hotbarToolId = hotbarItem.getItemMeta().getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
-                if (toolId.equals(hotbarToolId)) {
-                    player.getInventory().setItem(i, null);
-                    player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 0.8f);
+        // Left-click to add/remove from hotbar for the current session
+        if (event.getClick() == ClickType.LEFT) {
+            ItemStack tool = plugin.getModeratorModeManager().getModeratorTools().get(toolId);
+            if (tool == null) return;
+
+            // Check if tool is already in hotbar (slots 1-7) and remove it
+            for (int i = 1; i <= 7; i++) {
+                ItemStack hotbarItem = player.getInventory().getItem(i);
+                if (hotbarItem != null && hotbarItem.hasItemMeta()) {
+                    String hotbarToolId = hotbarItem.getItemMeta().getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
+                    if (toolId.equals(hotbarToolId)) {
+                        player.getInventory().setItem(i, null);
+                        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 0.8f);
+                        new ToolSelectorMenu(plugin, player).open();
+                        return;
+                    }
+                }
+            }
+
+            // Add tool to the first available slot (1-7)
+            for (int i = 1; i <= 7; i++) {
+                if (player.getInventory().getItem(i) == null) {
+                    player.getInventory().setItem(i, tool);
+                    player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.2f);
                     new ToolSelectorMenu(plugin, player).open();
                     return;
                 }
             }
-        }
 
-        for (int i = 1; i <= 8; i++) {
-            if (player.getInventory().getItem(i) == null) {
-                player.getInventory().setItem(i, tool);
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.2f);
-                new ToolSelectorMenu(plugin, player).open();
-                return;
-            }
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_hotbar_full");
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
         }
-
-        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_hotbar_full");
-        player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
     }
 
     // --- GENERIC EVENT BLOCKERS ---

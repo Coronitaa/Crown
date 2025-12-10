@@ -44,54 +44,61 @@ public class ToolSelectorMenu implements InventoryHolder {
         ConfigurationSection itemsSection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("tool-selector-menu.items");
         if (itemsSection == null) return;
 
+        List<String> favoriteTools = plugin.getModeratorModeManager().getFavoriteTools(viewer.getUniqueId());
+
         for (String key : itemsSection.getKeys(false)) {
             ConfigurationSection itemConfig = itemsSection.getConfigurationSection(key);
             if (itemConfig == null) continue;
 
             String toolId = itemConfig.getString("tool-id");
-            ItemStack item;
+            if (toolId == null) continue;
 
-            // Inherit from moderator-inventory if available
-            if (plugin.getModeratorModeManager().getModeratorTools().containsKey(toolId)) {
-                item = plugin.getModeratorModeManager().getModeratorTools().get(toolId).clone();
-            } else {
-                Material material = Material.matchMaterial(itemConfig.getString("material", "STONE"));
-                item = new ItemStack(material);
-            }
+            ItemStack item = plugin.getModeratorModeManager().getModeratorTools().get(toolId);
+            if (item == null) continue;
+            item = item.clone(); // Work with a copy
 
             ItemMeta meta = item.getItemMeta();
             if (meta == null) continue;
 
-            // Override name/lore if specified in tool-selector-menu
-            if(itemConfig.isSet("name")) meta.setDisplayName(MessageUtils.getColorMessage(itemConfig.getString("name")));
-            if(itemConfig.isSet("lore")) meta.setLore(itemConfig.getStringList("lore").stream().map(MessageUtils::getColorMessage).collect(Collectors.toList()));
+            boolean isFavorite = favoriteTools.contains(toolId);
 
-            meta.getPersistentDataContainer().set(toolIdKey, PersistentDataType.STRING, toolId);
+            // Update name and lore for favorite status
+            if (isFavorite) {
+                meta.setDisplayName("§e⭐ " + meta.getDisplayName());
+                meta.addEnchant(Enchantment.FORTUNE, 1, true);
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            }
 
-            // Check if selected
-            boolean isSelected = false;
-            for (int i = 0; i <= 8; i++) {
+            List<String> lore = meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+            lore.add(""); // Spacer
+
+            // Add hotbar status
+            boolean isInHotbar = false;
+            for (int i = 0; i < 9; i++) {
                 ItemStack hotbarItem = viewer.getInventory().getItem(i);
                 if (hotbarItem != null && hotbarItem.hasItemMeta()) {
                     String hotbarToolId = hotbarItem.getItemMeta().getPersistentDataContainer().get(toolIdKey, PersistentDataType.STRING);
                     if (toolId.equals(hotbarToolId)) {
-                        isSelected = true;
+                        isInHotbar = true;
                         break;
                     }
                 }
             }
 
-            List<String> lore = meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-            lore.add("");
-            if (isSelected) {
-                meta.addEnchant(Enchantment.FORTUNE, 1, true);
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                lore.add(MessageUtils.getColorMessage("&a&lSELECTED"));
+            if (isInHotbar) {
+                lore.add(MessageUtils.getColorMessage("&a✔ In Hotbar"));
             } else {
-                lore.add(MessageUtils.getColorMessage("&eClick to select"));
+                lore.add(MessageUtils.getColorMessage("&7✖ Not in Hotbar"));
             }
-            meta.setLore(lore);
 
+            // Add favorite instructions
+            if (isFavorite) {
+                lore.add(MessageUtils.getColorMessage("&cRight-click to remove from favorites."));
+            } else {
+                lore.add(MessageUtils.getColorMessage("&aRight-click to add to favorites."));
+            }
+
+            meta.setLore(lore);
             item.setItemMeta(meta);
             inventory.setItem(itemConfig.getInt("slot"), item);
         }

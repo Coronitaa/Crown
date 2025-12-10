@@ -30,6 +30,7 @@ public class DatabaseManager {
     private final String dbPassword;
     private final String dbType;
     private static final String COMMAND_DELIMITER = ";;";
+    private static final String FAVORITE_TOOLS_DELIMITER = ",";
 
     public DatabaseManager(Crown plugin) {
         this.plugin = plugin;
@@ -269,14 +270,15 @@ public class DatabaseManager {
             }
             statement.execute(createReportsTableSQL);
 
-            // Added 'silent' column
+            // Added 'silent' and 'favorite_tools' column
             String createModPrefsTableSQL = "CREATE TABLE IF NOT EXISTS moderator_preferences (" +
                     "uuid VARCHAR(36) PRIMARY KEY," +
                     "interactions BOOLEAN DEFAULT 0," +
                     "container_spy BOOLEAN DEFAULT 1," +
                     "fly_enabled BOOLEAN DEFAULT 1," +
                     "mod_on_join BOOLEAN DEFAULT 0," +
-                    "silent BOOLEAN DEFAULT 0)";
+                    "silent BOOLEAN DEFAULT 0," +
+                    "favorite_tools TEXT)";
             statement.execute(createModPrefsTableSQL);
 
             // NEW: Confiscated Items Table
@@ -348,6 +350,9 @@ public class DatabaseManager {
             }
             if (!columnExists(connection, "moderator_preferences", "silent")) {
                 statement.execute("ALTER TABLE moderator_preferences ADD COLUMN silent BOOLEAN DEFAULT 0");
+            }
+            if (!columnExists(connection, "moderator_preferences", "favorite_tools")) {
+                statement.execute("ALTER TABLE moderator_preferences ADD COLUMN favorite_tools TEXT");
             }
         }
     }
@@ -506,14 +511,14 @@ public class DatabaseManager {
         public String getOriginalType() { return originalType; }
     }
 
-    // NEW: Methods for Moderator Preferences with 'silent' support
+    // NEW: Methods for Moderator Preferences with 'silent' and 'favorite_tools' support
 
-    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent) {
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools) {
         return CompletableFuture.runAsync(() -> {
             String sql = "mysql".equalsIgnoreCase(dbType) ?
-                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent) VALUES (?, ?, ?, ?, ?, ?) " +
-                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent)" :
-                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent) VALUES (?, ?, ?, ?, ?, ?)";
+                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools) VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent), favorite_tools = VALUES(favorite_tools)" :
+                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, uuid.toString());
@@ -522,6 +527,7 @@ public class DatabaseManager {
                 ps.setBoolean(4, flyEnabled);
                 ps.setBoolean(5, modOnJoin);
                 ps.setBoolean(6, silent);
+                ps.setString(7, String.join(FAVORITE_TOOLS_DELIMITER, favoriteTools));
                 ps.executeUpdate();
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not save moderator preferences for " + uuid, e);
@@ -536,20 +542,32 @@ public class DatabaseManager {
                 ps.setString(1, uuid.toString());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
+                        String favToolsRaw = rs.getString("favorite_tools");
+                        List<String> favoriteTools;
+                        
+                        if (favToolsRaw == null) {
+                            favoriteTools = null; // Indicates never set (use defaults)
+                        } else if (favToolsRaw.isEmpty()) {
+                            favoriteTools = new ArrayList<>(); // Indicates explicitly empty
+                        } else {
+                            favoriteTools = new ArrayList<>(Arrays.asList(favToolsRaw.split(FAVORITE_TOOLS_DELIMITER)));
+                        }
+
                         return new ModPreferences(
                                 rs.getBoolean("interactions"),
                                 rs.getBoolean("container_spy"),
                                 rs.getBoolean("fly_enabled"),
                                 rs.getBoolean("mod_on_join"),
-                                rs.getBoolean("silent")
+                                rs.getBoolean("silent"),
+                                favoriteTools
                         );
                     }
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not retrieve moderator preferences for " + uuid, e);
             }
-            // Default values: Interactions OFF, Spy ON, Fly ON, ModOnJoin OFF, Silent OFF
-            return new ModPreferences(false, true, true, false, false);
+            // Default values - favoriteTools null means "use defaults"
+            return new ModPreferences(false, true, true, false, false, null);
         });
     }
 
@@ -560,13 +578,15 @@ public class DatabaseManager {
         private final boolean flyEnabled;
         private final boolean modOnJoin;
         private final boolean silent;
+        private final List<String> favoriteTools;
 
-        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent) {
+        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
             this.modOnJoin = modOnJoin;
             this.silent = silent;
+            this.favoriteTools = favoriteTools;
         }
 
         public boolean isInteractions() { return interactions; }
@@ -574,6 +594,7 @@ public class DatabaseManager {
         public boolean isFlyEnabled() { return flyEnabled; }
         public boolean isModOnJoin() { return modOnJoin; }
         public boolean isSilent() { return silent; }
+        public List<String> getFavoriteTools() { return favoriteTools; }
     }
 
     // ... (rest of the class remains identical, just ensuring all other methods are kept)

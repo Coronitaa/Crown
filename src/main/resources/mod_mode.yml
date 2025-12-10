@@ -1,6 +1,14 @@
 # Configuration for the /mod mode.
 ## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
+# Default favorite tools for new moderators or when preferences are reset.
+# These tool-ids will be automatically added to a moderator's favorites.
+default-favorites:
+  - 'vanish_spectator_tool'
+  - 'settings_tool'
+  - 'freeze_player_tool'
+  - 'invsee_tool'
+
 # Items given to the moderator when they enter /mod mode.
 # The slot numbers are standard inventory slots (0-8 for hotbar).
 moderator-inventory:
@@ -11,40 +19,20 @@ moderator-inventory:
     name: '&ePlayer Selector'
     lore:
       - '&7Target: &fNone'
-      - ''
+    usage:
       - '&eL-Click: &fOpen profile.'
       - '&eShift+L-Click: &fOpen punish menu.'
       - '&eR-Click: &fSelect player by name.'
       - '&eShift+R-Click: &fClear selection.'
-      - ''
-      - '&cThis item cannot be removed.'
-  vanish-tool:
-    tool-id: 'vanish_spectator_tool'
-    slot: 1
-    material: 'ENDER_EYE'
-    name: '&aVanish &7(Shift+Click) / &bSpectator &7(R-Click)'
-    lore:
-      - '&eShift+R-Click: &fToggle Vanish/Visible'
-      - '&eR-Click: &fEnter Spectator Mode'
-      - '&8While in spectator, R-Click to exit.'
-  # REPLACED interaction-tool WITH settings-tool
-  settings-tool:
-    tool-id: 'settings_tool'
-    slot: 2
-    material: 'COMPARATOR'
-    name: '&6Moderator Settings'
-    lore:
-      - '&7Right-Click to configure'
-      - '&7personal preferences.'
-      - '&8(Interactions, Container Spy, Silent Mode)'
   tool-selector:
     tool-id: 'tool_selector'
     slot: 8
     material: 'CHEST'
     name: '&6Tool Selector'
     lore:
-      - '&7Right-click to open the'
-      - '&7tool selection menu.'
+      - '&7Open the tool selection menu.'
+    usage:
+      - '&eR-Click: &fOpen Menu'
 
 # Configuration for the tool selection GUI.
 tool-selector-menu:
@@ -54,18 +42,22 @@ tool-selector-menu:
     player-selector:
       tool-id: 'player_selector_tool'
       slot: 10
-      name: '&ePlayer Selector'
+      # This item inherits its properties from the one defined in moderator-inventory
+      # but you can override them here if needed.
       lore:
         - '&7The essential tool for targeting.'
-        - '&8(Cannot be deselected)'
+        - '&8(Cannot be removed or favorited)'
 
     vanish-tool:
       tool-id: 'vanish_spectator_tool'
       slot: 11
       material: 'ENDER_EYE'
-      name: '&aVanish / Spectator Tool'
+      name: '&aVanish / Spectator'
       lore:
-        - '&7Tool for managing your visibility.'
+        - '&7Manage your visibility and enter spectator mode.'
+      usage:
+        - '&eShift+R-Click: &fToggle Vanish'
+        - '&eR-Click: &fEnter/Exit Spectator'
 
     settings-tool:
       tool-id: 'settings_tool'
@@ -74,6 +66,8 @@ tool-selector-menu:
       name: '&6Moderator Settings'
       lore:
         - '&7Access your personal configurations.'
+      usage:
+        - '&eR-Click: &fOpen Settings Menu'
 
     freeze-tool:
       tool-id: 'freeze_player_tool'
@@ -81,7 +75,11 @@ tool-selector-menu:
       material: 'ICE'
       name: '&bFreeze Player'
       lore:
-        - '&7Freeze/Unfreeze players.'
+        - '&7Freeze or unfreeze players.'
+      usage:
+        - '&eL-Click on Player: &fUnfreeze'
+        - '&eR-Click on Player: &fFreeze'
+        - '&eL/R-Click in Air: &fAct on selected/looked-at player'
 
     invsee-tool:
       tool-id: 'invsee_tool'
@@ -90,6 +88,9 @@ tool-selector-menu:
       name: '&dInspect Player'
       lore:
         - '&7View profiles and inventories.'
+      usage:
+        - '&eR-Click on Player: &fOpen Profile'
+        - '&eR-Click in Air: &fOpen profile of selected player'
 
     teleport-tool:
       tool-id: 'teleport_tool'
@@ -97,8 +98,10 @@ tool-selector-menu:
       material: 'ENDER_PEARL'
       name: '&5Teleport Tool'
       lore:
-        - '&eL-Click: &fPhase through block.'
-        - '&eR-Click: &fAscend to top of block.'
+        - '&7Advanced movement abilities.'
+      usage:
+        - '&eL-Click: &fTeleport to surface'
+        - '&eR-Click: &fBoost forward'
 
     random-tp-tool:
       tool-id: 'random_tp_tool'
@@ -106,9 +109,10 @@ tool-selector-menu:
       material: 'FEATHER'
       name: '&fPlayer Teleport'
       lore:
-        - '&eR-Click: &fTeleport to selected player.'
-        - '&8(If none, teleports to a random player)'
-        - '&eShift+R-Click: &fTeleport to random player.'
+        - '&7Teleport to other players.'
+      usage:
+        - '&eR-Click: &fTP to selected player (or random)'
+        - '&eShift+R-Click: &fTP to a random player'
 
 # NEW: Configuration for the personal settings GUI
 mod-settings-menu:

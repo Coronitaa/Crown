@@ -187,9 +187,12 @@ messages:
   mod_mode_vanish_on: '{prefix}&aYou are now vanished.'
   mod_mode_vanish_off: '{prefix}&eYou are now visible.'
   mod_mode_spectator_on: '{prefix}&bEntering spectator mode for 3 seconds...'
-  mod_mode_hotbar_full: '{prefix}&cYour hotbar is full.'
+  mod_mode_hotbar_full: '{prefix}&cYour hotbar is full. Remove a tool to add another.'
   mod_mode_inspecting_container: '{prefix}&eInspecting &f{container}&e.'
   mod_mode_container_spy_disabled: '{prefix}&cContainer Spy is disabled. You cannot open containers in Mod Mode.'
+  mod_mode_favorite_added: '{prefix}&aTool added to favorites.'
+  mod_mode_favorite_removed: '{prefix}&cTool removed from favorites.'
+  mod_mode_favorites_full: '{prefix}&cFavorites are full (max 7). Remove one to add another.'
 
   mod_mode_silent_enabled: '{prefix}&aSilent Mode enabled. You will appear offline.'
   mod_mode_silent_disabled: '{prefix}&cSilent Mode disabled. You will appear online.'
