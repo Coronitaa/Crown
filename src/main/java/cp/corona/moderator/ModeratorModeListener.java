@@ -695,6 +695,8 @@ public class ModeratorModeListener implements Listener {
         int flySlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.fly.slot");
         int modOnJoinSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.mod-on-join.slot");
         int silentSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.silent.slot");
+        int walkSpeedSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.walk-speed.slot");
+        int flySpeedSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.fly-speed.slot");
 
         if (slot == interactionsSlot) {
             plugin.getModeratorModeManager().toggleInteractions(player);
@@ -714,6 +716,26 @@ public class ModeratorModeListener implements Listener {
             new ModSettingsMenu(plugin, player).open();
         } else if (slot == silentSlot) {
             plugin.getModeratorModeManager().toggleSilent(player);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open();
+        } else if (slot == walkSpeedSlot) {
+            if (event.getClick() == ClickType.LEFT) {
+                plugin.getModeratorModeManager().modifyWalkSpeed(player, 0.25f);
+            } else if (event.getClick() == ClickType.RIGHT) {
+                plugin.getModeratorModeManager().modifyWalkSpeed(player, -0.25f);
+            } else if (event.getClick() == ClickType.SHIFT_LEFT) {
+                plugin.getModeratorModeManager().resetWalkSpeed(player);
+            }
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open();
+        } else if (slot == flySpeedSlot) {
+            if (event.getClick() == ClickType.LEFT) {
+                plugin.getModeratorModeManager().modifyFlySpeed(player, 0.25f);
+            } else if (event.getClick() == ClickType.RIGHT) {
+                plugin.getModeratorModeManager().modifyFlySpeed(player, -0.25f);
+            } else if (event.getClick() == ClickType.SHIFT_LEFT) {
+                plugin.getModeratorModeManager().resetFlySpeed(player);
+            }
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             new ModSettingsMenu(plugin, player).open();
         }

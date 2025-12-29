@@ -29,7 +29,7 @@ public class ModSettingsMenu implements InventoryHolder {
 
         ConfigurationSection menuConfig = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("mod-settings-menu");
         String title = MessageUtils.getColorMessage(menuConfig.getString("title", "&8Personal Settings"));
-        int size = menuConfig.getInt("size", 27);
+        int size = menuConfig.getInt("size", 45);
 
         this.inventory = Bukkit.createInventory(this, size, title);
         initializeItems();
@@ -47,6 +47,8 @@ public class ModSettingsMenu implements InventoryHolder {
         boolean flyEnabled = manager.isFlyEnabled(viewer.getUniqueId());
         boolean modOnJoin = manager.isModOnJoinEnabled(viewer.getUniqueId());
         boolean silent = manager.isSilent(viewer.getUniqueId());
+        float walkSpeed = manager.getWalkSpeed(viewer.getUniqueId());
+        float flySpeed = manager.getFlySpeed(viewer.getUniqueId());
 
         // Create items
         createToggleItem(config.getConfigurationSection("interactions"), interactions);
@@ -54,6 +56,8 @@ public class ModSettingsMenu implements InventoryHolder {
         createToggleItem(config.getConfigurationSection("fly"), flyEnabled);
         createToggleItem(config.getConfigurationSection("mod-on-join"), modOnJoin);
         createToggleItem(config.getConfigurationSection("silent"), silent);
+        createSpeedItem(config.getConfigurationSection("walk-speed"), walkSpeed);
+        createSpeedItem(config.getConfigurationSection("fly-speed"), flySpeed);
     }
 
     private void createToggleItem(ConfigurationSection itemConfig, boolean state) {
@@ -76,6 +80,32 @@ public class ModSettingsMenu implements InventoryHolder {
 
             for (String line : lore) {
                 processedLore.add(MessageUtils.getColorMessage(line.replace("{status}", status)));
+            }
+            meta.setLore(processedLore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+
+        inventory.setItem(itemConfig.getInt("slot"), item);
+    }
+
+    private void createSpeedItem(ConfigurationSection itemConfig, float speed) {
+        if (itemConfig == null) return;
+
+        Material mat = Material.matchMaterial(itemConfig.getString("material", "FEATHER"));
+        ItemStack item = new ItemStack(mat != null ? mat : Material.STONE);
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta != null) {
+            String name = itemConfig.getString("name", "Speed");
+            meta.setDisplayName(MessageUtils.getColorMessage(name));
+
+            List<String> lore = itemConfig.getStringList("lore");
+            List<String> processedLore = new ArrayList<>();
+            String speedStr = String.format("%.2f", speed);
+
+            for (String line : lore) {
+                processedLore.add(MessageUtils.getColorMessage(line.replace("{speed}", speedStr)));
             }
             meta.setLore(processedLore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

@@ -118,7 +118,9 @@ public class ModeratorModeManager {
                     dbPrefs.isFlyEnabled(),
                     dbPrefs.isModOnJoin(),
                     dbPrefs.isSilent(),
-                    new ArrayList<>(favoriteTools) // Make a mutable copy
+                    new ArrayList<>(favoriteTools), // Make a mutable copy
+                    dbPrefs.getWalkSpeed(),
+                    dbPrefs.getFlySpeed()
             );
             activePreferences.put(player.getUniqueId(), prefs);
 
@@ -148,6 +150,10 @@ public class ModeratorModeManager {
                     // Apply Flight based on Fly Enabled
                     player.setAllowFlight(prefs.isFlyEnabled());
                     player.setFlying(prefs.isFlyEnabled());
+
+                    // Apply Speeds
+                    player.setWalkSpeed(prefs.getWalkSpeed() * 0.2f); // Default is 0.2
+                    player.setFlySpeed(prefs.getFlySpeed() * 0.1f); // Default is 0.1
 
                     // Handle Silent Mode Messages
                     if (prefs.isSilent()) {
@@ -241,7 +247,9 @@ public class ModeratorModeManager {
                 prefs.isFlyEnabled(),
                 prefs.isModOnJoin(),
                 prefs.isSilent(),
-                prefs.getFavoriteTools()
+                prefs.getFavoriteTools(),
+                prefs.getWalkSpeed(),
+                prefs.getFlySpeed()
         );
     }
 
@@ -314,6 +322,58 @@ public class ModeratorModeManager {
             broadcastFakeJoin(player);
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_silent_disabled");
         }
+    }
+
+    public void modifyWalkSpeed(Player player, float amount) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
+        float newSpeed = Math.max(0.25f, Math.min(5.0f, prefs.getWalkSpeed() + amount));
+        
+        // Round to nearest 0.25
+        newSpeed = Math.round(newSpeed * 4) / 4.0f;
+        
+        prefs.setWalkSpeed(newSpeed);
+        updateAndSavePreferences(uuid, prefs);
+        
+        player.setWalkSpeed(newSpeed * 0.2f); // Default is 0.2
+    }
+
+    public void resetWalkSpeed(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
+        prefs.setWalkSpeed(1.0f);
+        updateAndSavePreferences(uuid, prefs);
+        player.setWalkSpeed(0.2f);
+    }
+
+    public void modifyFlySpeed(Player player, float amount) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
+        float newSpeed = Math.max(0.25f, Math.min(5.0f, prefs.getFlySpeed() + amount));
+        
+        // Round to nearest 0.25
+        newSpeed = Math.round(newSpeed * 4) / 4.0f;
+        
+        prefs.setFlySpeed(newSpeed);
+        updateAndSavePreferences(uuid, prefs);
+        
+        player.setFlySpeed(newSpeed * 0.1f); // Default is 0.1
+    }
+
+    public void resetFlySpeed(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
+        prefs.setFlySpeed(1.0f);
+        updateAndSavePreferences(uuid, prefs);
+        player.setFlySpeed(0.1f);
+    }
+
+    public float getWalkSpeed(UUID uuid) {
+        return activePreferences.containsKey(uuid) ? activePreferences.get(uuid).getWalkSpeed() : 1.0f;
+    }
+
+    public float getFlySpeed(UUID uuid) {
+        return activePreferences.containsKey(uuid) ? activePreferences.get(uuid).getFlySpeed() : 1.0f;
     }
 
     public void toggleFavoriteTool(Player player, String toolId) {
@@ -407,7 +467,7 @@ public class ModeratorModeManager {
 
     private ModPreferenceData createDefaultPrefs() {
         List<String> defaultFavorites = plugin.getConfigManager().getModModeConfig().getConfig().getStringList("default-favorites");
-        return new ModPreferenceData(false, true, true, false, false, new ArrayList<>(defaultFavorites));
+        return new ModPreferenceData(false, true, true, false, false, new ArrayList<>(defaultFavorites), 1.0f, 1.0f);
     }
 
     // --- State Getters ---
@@ -659,14 +719,18 @@ public class ModeratorModeManager {
         private boolean modOnJoin;
         private boolean silent;
         private final List<String> favoriteTools;
+        private float walkSpeed;
+        private float flySpeed;
 
-        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools) {
+        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
             this.modOnJoin = modOnJoin;
             this.silent = silent;
             this.favoriteTools = favoriteTools;
+            this.walkSpeed = walkSpeed;
+            this.flySpeed = flySpeed;
         }
 
         public boolean isInteractions() { return interactions; }
@@ -680,6 +744,10 @@ public class ModeratorModeManager {
         public boolean isSilent() { return silent; }
         public void setSilent(boolean silent) { this.silent = silent; }
         public List<String> getFavoriteTools() { return favoriteTools; }
+        public float getWalkSpeed() { return walkSpeed; }
+        public void setWalkSpeed(float walkSpeed) { this.walkSpeed = walkSpeed; }
+        public float getFlySpeed() { return flySpeed; }
+        public void setFlySpeed(float flySpeed) { this.flySpeed = flySpeed; }
     }
 
     private static class PlayerState {
@@ -695,6 +763,8 @@ public class ModeratorModeManager {
         private final int level;
         private final boolean wasSilent;
         private final boolean wasCollidable;
+        private final float walkSpeed;
+        private final float flySpeed;
 
         PlayerState(Player player) {
             this.inventoryContents = player.getInventory().getContents();
@@ -709,6 +779,8 @@ public class ModeratorModeManager {
             this.level = player.getLevel();
             this.wasSilent = player.isSilent();
             this.wasCollidable = player.isCollidable();
+            this.walkSpeed = player.getWalkSpeed();
+            this.flySpeed = player.getFlySpeed();
         }
 
         void restore(Player player) {
@@ -724,6 +796,8 @@ public class ModeratorModeManager {
             player.setLevel(level);
             player.setSilent(wasSilent);
             player.setCollidable(wasCollidable);
+            player.setWalkSpeed(walkSpeed);
+            player.setFlySpeed(flySpeed);
             player.updateInventory();
         }
     }
