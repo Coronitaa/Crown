@@ -184,7 +184,7 @@ mod-settings-menu:
         - '&eClick to toggle.'
 
     walk-speed:
-      slot: 30
+      slot: 29
       material: 'LEATHER_BOOTS'
       name: '&bWalk Speed'
       lore:
@@ -197,7 +197,7 @@ mod-settings-menu:
         - '&eShift+L-Click: &fReset'
 
     fly-speed:
-      slot: 32
+      slot: 30
       material: 'ELYTRA'
       name: '&bFly Speed'
       lore:
@@ -208,3 +208,28 @@ mod-settings-menu:
         - '&eL-Click: &a+0.25'
         - '&eR-Click: &c-0.25'
         - '&eShift+L-Click: &fReset'
+
+    jump-boost:
+      slot: 32
+      material: 'RABBIT_FOOT'
+      name: '&aJump Boost'
+      lore:
+        - '&7Adjust your jump height.'
+        - ''
+        - '&7Current: &e{multiplier}x'
+        - ''
+        - '&eL-Click: &a+0.25'
+        - '&eR-Click: &c-0.25'
+        - '&eShift+L-Click: &fReset'
+
+    night-vision:
+      slot: 33
+      material_on: 'GOLDEN_CARROT'
+      material_off: 'CARROT'
+      name: '&eNight Vision'
+      lore:
+        - '&7Toggle permanent night vision.'
+        - ''
+        - '&7Status: {status}'
+        - ''
+        - '&eClick to toggle.'

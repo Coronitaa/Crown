@@ -49,6 +49,8 @@ public class ModSettingsMenu implements InventoryHolder {
         boolean silent = manager.isSilent(viewer.getUniqueId());
         float walkSpeed = manager.getWalkSpeed(viewer.getUniqueId());
         float flySpeed = manager.getFlySpeed(viewer.getUniqueId());
+        float jumpMultiplier = manager.getJumpMultiplier(viewer.getUniqueId());
+        boolean nightVision = manager.isNightVisionEnabled(viewer.getUniqueId());
 
         // Create items
         createToggleItem(config.getConfigurationSection("interactions"), interactions);
@@ -56,8 +58,10 @@ public class ModSettingsMenu implements InventoryHolder {
         createToggleItem(config.getConfigurationSection("fly"), flyEnabled);
         createToggleItem(config.getConfigurationSection("mod-on-join"), modOnJoin);
         createToggleItem(config.getConfigurationSection("silent"), silent);
-        createSpeedItem(config.getConfigurationSection("walk-speed"), walkSpeed);
-        createSpeedItem(config.getConfigurationSection("fly-speed"), flySpeed);
+        createSpeedItem(config.getConfigurationSection("walk-speed"), walkSpeed, "speed");
+        createSpeedItem(config.getConfigurationSection("fly-speed"), flySpeed, "speed");
+        createSpeedItem(config.getConfigurationSection("jump-boost"), jumpMultiplier, "multiplier");
+        createToggleItem(config.getConfigurationSection("night-vision"), nightVision);
     }
 
     private void createToggleItem(ConfigurationSection itemConfig, boolean state) {
@@ -89,7 +93,7 @@ public class ModSettingsMenu implements InventoryHolder {
         inventory.setItem(itemConfig.getInt("slot"), item);
     }
 
-    private void createSpeedItem(ConfigurationSection itemConfig, float speed) {
+    private void createSpeedItem(ConfigurationSection itemConfig, float value, String placeholder) {
         if (itemConfig == null) return;
 
         Material mat = Material.matchMaterial(itemConfig.getString("material", "FEATHER"));
@@ -102,10 +106,10 @@ public class ModSettingsMenu implements InventoryHolder {
 
             List<String> lore = itemConfig.getStringList("lore");
             List<String> processedLore = new ArrayList<>();
-            String speedStr = String.format("%.2f", speed);
+            String valueStr = String.format("%.2f", value);
 
             for (String line : lore) {
-                processedLore.add(MessageUtils.getColorMessage(line.replace("{speed}", speedStr)));
+                processedLore.add(MessageUtils.getColorMessage(line.replace("{" + placeholder + "}", valueStr)));
             }
             meta.setLore(processedLore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

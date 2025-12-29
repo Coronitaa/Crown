@@ -280,7 +280,9 @@ public class DatabaseManager {
                     "silent BOOLEAN DEFAULT 0," +
                     "favorite_tools TEXT," +
                     "walk_speed FLOAT DEFAULT 1.0," +
-                    "fly_speed FLOAT DEFAULT 1.0)";
+                    "fly_speed FLOAT DEFAULT 1.0," +
+                    "jump_multiplier FLOAT DEFAULT 1.0," +
+                    "night_vision BOOLEAN DEFAULT 0)";
             statement.execute(createModPrefsTableSQL);
 
             // NEW: Confiscated Items Table
@@ -361,6 +363,12 @@ public class DatabaseManager {
             }
             if (!columnExists(connection, "moderator_preferences", "fly_speed")) {
                 statement.execute("ALTER TABLE moderator_preferences ADD COLUMN fly_speed FLOAT DEFAULT 1.0");
+            }
+            if (!columnExists(connection, "moderator_preferences", "jump_multiplier")) {
+                statement.execute("ALTER TABLE moderator_preferences ADD COLUMN jump_multiplier FLOAT DEFAULT 1.0");
+            }
+            if (!columnExists(connection, "moderator_preferences", "night_vision")) {
+                statement.execute("ALTER TABLE moderator_preferences ADD COLUMN night_vision BOOLEAN DEFAULT 0");
             }
         }
     }
@@ -521,12 +529,12 @@ public class DatabaseManager {
 
     // NEW: Methods for Moderator Preferences with 'silent' and 'favorite_tools' support
 
-    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed) {
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision) {
         return CompletableFuture.runAsync(() -> {
             String sql = "mysql".equalsIgnoreCase(dbType) ?
-                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent), favorite_tools = VALUES(favorite_tools), walk_speed = VALUES(walk_speed), fly_speed = VALUES(fly_speed)" :
-                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent), favorite_tools = VALUES(favorite_tools), walk_speed = VALUES(walk_speed), fly_speed = VALUES(fly_speed), jump_multiplier = VALUES(jump_multiplier), night_vision = VALUES(night_vision)" :
+                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, uuid.toString());
@@ -538,6 +546,8 @@ public class DatabaseManager {
                 ps.setString(7, String.join(FAVORITE_TOOLS_DELIMITER, favoriteTools));
                 ps.setFloat(8, walkSpeed);
                 ps.setFloat(9, flySpeed);
+                ps.setFloat(10, jumpMultiplier);
+                ps.setBoolean(11, nightVision);
                 ps.executeUpdate();
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not save moderator preferences for " + uuid, e);
@@ -563,20 +573,22 @@ public class DatabaseManager {
                             favoriteTools = new ArrayList<>(Arrays.asList(favToolsRaw.split(FAVORITE_TOOLS_DELIMITER)));
                         }
 
-                        // Check if columns exist (for backward compatibility if updateTableStructure failed or wasn't run yet in this session context, though it should have)
-                        // But ResultSet will throw if column doesn't exist. updateTableStructure is called in constructor.
                         float walkSpeed = 1.0f;
                         float flySpeed = 1.0f;
+                        float jumpMultiplier = 1.0f;
+                        boolean nightVision = false;
                         try {
                             walkSpeed = rs.getFloat("walk_speed");
                             flySpeed = rs.getFloat("fly_speed");
+                            jumpMultiplier = rs.getFloat("jump_multiplier");
+                            nightVision = rs.getBoolean("night_vision");
                         } catch (SQLException ignored) {
-                            // Columns might not exist yet if migration failed or something
+                            // Columns might not exist yet
                         }
                         
-                        // Handle 0.0 defaults if column was just added
                         if (walkSpeed == 0.0f) walkSpeed = 1.0f;
                         if (flySpeed == 0.0f) flySpeed = 1.0f;
+                        if (jumpMultiplier == 0.0f) jumpMultiplier = 1.0f;
 
                         return new ModPreferences(
                                 rs.getBoolean("interactions"),
@@ -586,15 +598,17 @@ public class DatabaseManager {
                                 rs.getBoolean("silent"),
                                 favoriteTools,
                                 walkSpeed,
-                                flySpeed
+                                flySpeed,
+                                jumpMultiplier,
+                                nightVision
                         );
                     }
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not retrieve moderator preferences for " + uuid, e);
             }
-            // Default values - favoriteTools null means "use defaults"
-            return new ModPreferences(false, true, true, false, false, null, 1.0f, 1.0f);
+            // Default values
+            return new ModPreferences(false, true, true, false, false, null, 1.0f, 1.0f, 1.0f, false);
         });
     }
 
@@ -608,12 +622,14 @@ public class DatabaseManager {
         private final List<String> favoriteTools;
         private final float walkSpeed;
         private final float flySpeed;
+        private final float jumpMultiplier;
+        private final boolean nightVision;
 
         public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools) {
-            this(interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools, 1.0f, 1.0f);
+            this(interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools, 1.0f, 1.0f, 1.0f, false);
         }
 
-        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed) {
+        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
@@ -622,6 +638,8 @@ public class DatabaseManager {
             this.favoriteTools = favoriteTools;
             this.walkSpeed = walkSpeed;
             this.flySpeed = flySpeed;
+            this.jumpMultiplier = jumpMultiplier;
+            this.nightVision = nightVision;
         }
 
         public boolean isInteractions() { return interactions; }
@@ -632,6 +650,8 @@ public class DatabaseManager {
         public List<String> getFavoriteTools() { return favoriteTools; }
         public float getWalkSpeed() { return walkSpeed; }
         public float getFlySpeed() { return flySpeed; }
+        public float getJumpMultiplier() { return jumpMultiplier; }
+        public boolean isNightVision() { return nightVision; }
     }
 
     // ... (rest of the class remains identical, just ensuring all other methods are kept)

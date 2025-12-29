@@ -697,6 +697,8 @@ public class ModeratorModeListener implements Listener {
         int silentSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.silent.slot");
         int walkSpeedSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.walk-speed.slot");
         int flySpeedSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.fly-speed.slot");
+        int jumpBoostSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.jump-boost.slot");
+        int nightVisionSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.night-vision.slot");
 
         if (slot == interactionsSlot) {
             plugin.getModeratorModeManager().toggleInteractions(player);
@@ -736,6 +738,20 @@ public class ModeratorModeListener implements Listener {
             } else if (event.getClick() == ClickType.SHIFT_LEFT) {
                 plugin.getModeratorModeManager().resetFlySpeed(player);
             }
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open();
+        } else if (slot == jumpBoostSlot) {
+            if (event.getClick() == ClickType.LEFT) {
+                plugin.getModeratorModeManager().modifyJumpMultiplier(player, 0.25f);
+            } else if (event.getClick() == ClickType.RIGHT) {
+                plugin.getModeratorModeManager().modifyJumpMultiplier(player, -0.25f);
+            } else if (event.getClick() == ClickType.SHIFT_LEFT) {
+                plugin.getModeratorModeManager().resetJumpMultiplier(player);
+            }
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open();
+        } else if (slot == nightVisionSlot) {
+            plugin.getModeratorModeManager().toggleNightVision(player);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             new ModSettingsMenu(plugin, player).open();
         }

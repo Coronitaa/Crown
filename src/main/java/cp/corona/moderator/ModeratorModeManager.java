@@ -120,7 +120,9 @@ public class ModeratorModeManager {
                     dbPrefs.isSilent(),
                     new ArrayList<>(favoriteTools), // Make a mutable copy
                     dbPrefs.getWalkSpeed(),
-                    dbPrefs.getFlySpeed()
+                    dbPrefs.getFlySpeed(),
+                    dbPrefs.getJumpMultiplier(),
+                    dbPrefs.isNightVision()
             );
             activePreferences.put(player.getUniqueId(), prefs);
 
@@ -154,6 +156,16 @@ public class ModeratorModeManager {
                     // Apply Speeds
                     player.setWalkSpeed(prefs.getWalkSpeed() * 0.2f); // Default is 0.2
                     player.setFlySpeed(prefs.getFlySpeed() * 0.1f); // Default is 0.1
+
+                    // Apply Jump Boost
+                    applyJumpBoost(player, prefs.getJumpMultiplier());
+
+                    // Apply Night Vision
+                    if (prefs.isNightVision()) {
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, Integer.MAX_VALUE, 0, false, false));
+                    } else {
+                        player.removePotionEffect(PotionEffectType.NIGHT_VISION);
+                    }
 
                     // Handle Silent Mode Messages
                     if (prefs.isSilent()) {
@@ -201,6 +213,8 @@ public class ModeratorModeManager {
         activePreferences.remove(player.getUniqueId());
         spectatorExpirations.remove(player.getUniqueId());
         preSpectatorVanishState.remove(player.getUniqueId());
+        player.removePotionEffect(PotionEffectType.JUMP_BOOST);
+        player.removePotionEffect(PotionEffectType.NIGHT_VISION);
 
         if (!isDisconnecting && player.isOnline()) {
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_disabled");
@@ -249,7 +263,9 @@ public class ModeratorModeManager {
                 prefs.isSilent(),
                 prefs.getFavoriteTools(),
                 prefs.getWalkSpeed(),
-                prefs.getFlySpeed()
+                prefs.getFlySpeed(),
+                prefs.getJumpMultiplier(),
+                prefs.isNightVision()
         );
     }
 
@@ -368,12 +384,65 @@ public class ModeratorModeManager {
         player.setFlySpeed(0.1f);
     }
 
+    public void modifyJumpMultiplier(Player player, float amount) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
+        float newMultiplier = Math.max(0.25f, Math.min(5.0f, prefs.getJumpMultiplier() + amount));
+        newMultiplier = Math.round(newMultiplier * 4) / 4.0f;
+        prefs.setJumpMultiplier(newMultiplier);
+        updateAndSavePreferences(uuid, prefs);
+        applyJumpBoost(player, newMultiplier);
+    }
+
+    public void resetJumpMultiplier(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
+        prefs.setJumpMultiplier(1.0f);
+        updateAndSavePreferences(uuid, prefs);
+        applyJumpBoost(player, 1.0f);
+    }
+
+    private void applyJumpBoost(Player player, float multiplier) {
+        player.removePotionEffect(PotionEffectType.JUMP_BOOST);
+        if (multiplier > 1.0f) {
+            // This is an approximation. The jump boost effect is not linear.
+            // Level 1 = +50% height, Level 2 = +100%
+            // We'll map our multiplier to the amplifier.
+            int amplifier = (int) Math.round(multiplier) - 1;
+            if (amplifier > 0) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, Integer.MAX_VALUE, amplifier, false, false));
+            }
+        }
+    }
+    
+    public void toggleNightVision(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
+        boolean newState = !prefs.isNightVision();
+        prefs.setNightVision(newState);
+        updateAndSavePreferences(uuid, prefs);
+
+        if (newState) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, Integer.MAX_VALUE, 0, false, false));
+        } else {
+            player.removePotionEffect(PotionEffectType.NIGHT_VISION);
+        }
+    }
+
     public float getWalkSpeed(UUID uuid) {
         return activePreferences.containsKey(uuid) ? activePreferences.get(uuid).getWalkSpeed() : 1.0f;
     }
 
     public float getFlySpeed(UUID uuid) {
         return activePreferences.containsKey(uuid) ? activePreferences.get(uuid).getFlySpeed() : 1.0f;
+    }
+    
+    public float getJumpMultiplier(UUID uuid) {
+        return activePreferences.containsKey(uuid) ? activePreferences.get(uuid).getJumpMultiplier() : 1.0f;
+    }
+
+    public boolean isNightVisionEnabled(UUID uuid) {
+        return activePreferences.containsKey(uuid) && activePreferences.get(uuid).isNightVision();
     }
 
     public void toggleFavoriteTool(Player player, String toolId) {
@@ -467,7 +536,7 @@ public class ModeratorModeManager {
 
     private ModPreferenceData createDefaultPrefs() {
         List<String> defaultFavorites = plugin.getConfigManager().getModModeConfig().getConfig().getStringList("default-favorites");
-        return new ModPreferenceData(false, true, true, false, false, new ArrayList<>(defaultFavorites), 1.0f, 1.0f);
+        return new ModPreferenceData(false, true, true, false, false, new ArrayList<>(defaultFavorites), 1.0f, 1.0f, 1.0f, false);
     }
 
     // --- State Getters ---
@@ -721,8 +790,10 @@ public class ModeratorModeManager {
         private final List<String> favoriteTools;
         private float walkSpeed;
         private float flySpeed;
+        private float jumpMultiplier;
+        private boolean nightVision;
 
-        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed) {
+        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
@@ -731,6 +802,8 @@ public class ModeratorModeManager {
             this.favoriteTools = favoriteTools;
             this.walkSpeed = walkSpeed;
             this.flySpeed = flySpeed;
+            this.jumpMultiplier = jumpMultiplier;
+            this.nightVision = nightVision;
         }
 
         public boolean isInteractions() { return interactions; }
@@ -748,6 +821,10 @@ public class ModeratorModeManager {
         public void setWalkSpeed(float walkSpeed) { this.walkSpeed = walkSpeed; }
         public float getFlySpeed() { return flySpeed; }
         public void setFlySpeed(float flySpeed) { this.flySpeed = flySpeed; }
+        public float getJumpMultiplier() { return jumpMultiplier; }
+        public void setJumpMultiplier(float jumpMultiplier) { this.jumpMultiplier = jumpMultiplier; }
+        public boolean isNightVision() { return nightVision; }
+        public void setNightVision(boolean nightVision) { this.nightVision = nightVision; }
     }
 
     private static class PlayerState {
@@ -765,6 +842,7 @@ public class ModeratorModeManager {
         private final boolean wasCollidable;
         private final float walkSpeed;
         private final float flySpeed;
+        private final Collection<PotionEffect> potionEffects;
 
         PlayerState(Player player) {
             this.inventoryContents = player.getInventory().getContents();
@@ -781,6 +859,7 @@ public class ModeratorModeManager {
             this.wasCollidable = player.isCollidable();
             this.walkSpeed = player.getWalkSpeed();
             this.flySpeed = player.getFlySpeed();
+            this.potionEffects = new ArrayList<>(player.getActivePotionEffects());
         }
 
         void restore(Player player) {
@@ -798,6 +877,16 @@ public class ModeratorModeManager {
             player.setCollidable(wasCollidable);
             player.setWalkSpeed(walkSpeed);
             player.setFlySpeed(flySpeed);
+            
+            // Clear mod-mode effects before restoring
+            for (PotionEffectType type : List.of(PotionEffectType.JUMP_BOOST, PotionEffectType.NIGHT_VISION, PotionEffectType.INVISIBILITY)) {
+                player.removePotionEffect(type);
+            }
+            
+            for (PotionEffect effect : potionEffects) {
+                player.addPotionEffect(effect);
+            }
+            
             player.updateInventory();
         }
     }
