@@ -742,9 +742,9 @@ public class ModeratorModeListener implements Listener {
             new ModSettingsMenu(plugin, player).open();
         } else if (slot == jumpBoostSlot) {
             if (event.getClick() == ClickType.LEFT) {
-                plugin.getModeratorModeManager().modifyJumpMultiplier(player, 0.25f);
+                plugin.getModeratorModeManager().modifyJumpMultiplier(player, 0.5f);
             } else if (event.getClick() == ClickType.RIGHT) {
-                plugin.getModeratorModeManager().modifyJumpMultiplier(player, -0.25f);
+                plugin.getModeratorModeManager().modifyJumpMultiplier(player, -0.5f);
             } else if (event.getClick() == ClickType.SHIFT_LEFT) {
                 plugin.getModeratorModeManager().resetJumpMultiplier(player);
             }

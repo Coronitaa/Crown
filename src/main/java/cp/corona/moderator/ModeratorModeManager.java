@@ -387,8 +387,8 @@ public class ModeratorModeManager {
     public void modifyJumpMultiplier(Player player, float amount) {
         UUID uuid = player.getUniqueId();
         ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
-        float newMultiplier = Math.max(0.25f, Math.min(5.0f, prefs.getJumpMultiplier() + amount));
-        newMultiplier = Math.round(newMultiplier * 4) / 4.0f;
+        float newMultiplier = Math.max(0.5f, Math.min(10.0f, prefs.getJumpMultiplier() + amount));
+        newMultiplier = Math.round(newMultiplier * 2) / 2.0f; // Round to nearest 0.5
         prefs.setJumpMultiplier(newMultiplier);
         updateAndSavePreferences(uuid, prefs);
         applyJumpBoost(player, newMultiplier);
@@ -409,7 +409,7 @@ public class ModeratorModeManager {
             // Level 1 = +50% height, Level 2 = +100%
             // We'll map our multiplier to the amplifier.
             int amplifier = (int) Math.round(multiplier) - 1;
-            if (amplifier > 0) {
+            if (amplifier >= 0) { // Amplifier can be 0 for small boosts
                 player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, Integer.MAX_VALUE, amplifier, false, false));
             }
         }

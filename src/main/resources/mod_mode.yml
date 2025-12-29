@@ -218,8 +218,8 @@ mod-settings-menu:
         - ''
         - '&7Current: &e{multiplier}x'
         - ''
-        - '&eL-Click: &a+0.25'
-        - '&eR-Click: &c-0.25'
+        - '&eL-Click: &a+0.50'
+        - '&eR-Click: &c-0.50'
         - '&eShift+L-Click: &fReset'
 
     night-vision:
