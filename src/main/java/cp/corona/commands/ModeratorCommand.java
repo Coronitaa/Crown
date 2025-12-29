@@ -15,6 +15,7 @@ import org.bukkit.util.StringUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ModeratorCommand implements CommandExecutor, TabCompleter {
 
@@ -78,10 +79,18 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
             StringUtil.copyPartialMatches(args[0], Collections.singletonList("locker"), completions);
         } else if (args.length == 2 && args[0].equalsIgnoreCase("locker")) {
             if (sender.hasPermission("crown.mod.locker.admin")) {
-                if ("all".startsWith(args[1].toLowerCase())) {
-                    completions.add("all");
+                List<String> suggestions = new ArrayList<>();
+                suggestions.add("all");
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    suggestions.add(p.getName());
                 }
-                return null; // Return null to suggest player names as well
+                StringUtil.copyPartialMatches(args[1], suggestions, completions);
+            } else {
+                // For non-admins, only suggest online players
+                List<String> playerNames = Bukkit.getOnlinePlayers().stream()
+                                                 .map(Player::getName)
+                                                 .collect(Collectors.toList());
+                StringUtil.copyPartialMatches(args[1], playerNames, completions);
             }
         }
         return completions;

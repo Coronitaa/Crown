@@ -6,9 +6,7 @@
 default-favorites:
   - 'vanish_spectator_tool'
   - 'settings_tool'
-  - 'freeze_player_tool'
-  - 'invsee_tool'
-
+  - 'teleport-tool'
 # Items given to the moderator when they enter /mod mode.
 # The slot numbers are standard inventory slots (0-8 for hotbar).
 moderator-inventory:
