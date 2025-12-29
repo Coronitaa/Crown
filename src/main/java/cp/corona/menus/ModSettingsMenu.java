@@ -51,6 +51,7 @@ public class ModSettingsMenu implements InventoryHolder {
         float flySpeed = manager.getFlySpeed(viewer.getUniqueId());
         float jumpMultiplier = manager.getJumpMultiplier(viewer.getUniqueId());
         boolean nightVision = manager.isNightVisionEnabled(viewer.getUniqueId());
+        boolean glowingEnabled = manager.isGlowingEnabled(viewer.getUniqueId());
 
         // Create items
         createToggleItem(config.getConfigurationSection("interactions"), interactions);
@@ -58,6 +59,7 @@ public class ModSettingsMenu implements InventoryHolder {
         createToggleItem(config.getConfigurationSection("fly"), flyEnabled);
         createToggleItem(config.getConfigurationSection("mod-on-join"), modOnJoin);
         createToggleItem(config.getConfigurationSection("silent"), silent);
+        createToggleItem(config.getConfigurationSection("glowing"), glowingEnabled);
         createSpeedItem(config.getConfigurationSection("walk-speed"), walkSpeed, "speed");
         createSpeedItem(config.getConfigurationSection("fly-speed"), flySpeed, "speed");
         createSpeedItem(config.getConfigurationSection("jump-boost"), jumpMultiplier, "multiplier");

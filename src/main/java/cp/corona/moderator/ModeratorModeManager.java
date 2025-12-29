@@ -122,7 +122,8 @@ public class ModeratorModeManager {
                     dbPrefs.getWalkSpeed(),
                     dbPrefs.getFlySpeed(),
                     dbPrefs.getJumpMultiplier(),
-                    dbPrefs.isNightVision()
+                    dbPrefs.isNightVision(),
+                    dbPrefs.isGlowingEnabled()
             );
             activePreferences.put(player.getUniqueId(), prefs);
 
@@ -206,6 +207,11 @@ public class ModeratorModeManager {
             state.restore(player);
         }
 
+        // Reset scoreboard to main to clear any custom teams
+        if (player.getScoreboard() != Bukkit.getScoreboardManager().getMainScoreboard()) {
+            player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+        }
+
         clearSelectedPlayer(player.getUniqueId());
         cancelAndRemoveSpectatorTask(player.getUniqueId());
         awaitingInput.remove(player.getUniqueId());
@@ -265,7 +271,8 @@ public class ModeratorModeManager {
                 prefs.getWalkSpeed(),
                 prefs.getFlySpeed(),
                 prefs.getJumpMultiplier(),
-                prefs.isNightVision()
+                prefs.isNightVision(),
+                prefs.isGlowingEnabled()
         );
     }
 
@@ -337,6 +344,21 @@ public class ModeratorModeManager {
         } else {
             broadcastFakeJoin(player);
             MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_silent_disabled");
+        }
+    }
+
+    public void toggleGlowing(Player player) {
+        UUID uuid = player.getUniqueId();
+        ModPreferenceData prefs = activePreferences.getOrDefault(uuid, createDefaultPrefs());
+        boolean newState = !prefs.isGlowingEnabled();
+        prefs.setGlowingEnabled(newState);
+
+        updateAndSavePreferences(uuid, prefs);
+
+        if (newState) {
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_glowing_enabled");
+        } else {
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_glowing_disabled");
         }
     }
 
@@ -445,6 +467,10 @@ public class ModeratorModeManager {
         return activePreferences.containsKey(uuid) && activePreferences.get(uuid).isNightVision();
     }
 
+    public boolean isGlowingEnabled(UUID uuid) {
+        return activePreferences.containsKey(uuid) && activePreferences.get(uuid).isGlowingEnabled();
+    }
+
     public void toggleFavoriteTool(Player player, String toolId) {
         UUID uuid = player.getUniqueId();
         ModPreferenceData prefs = activePreferences.get(uuid);
@@ -536,7 +562,7 @@ public class ModeratorModeManager {
 
     private ModPreferenceData createDefaultPrefs() {
         List<String> defaultFavorites = plugin.getConfigManager().getModModeConfig().getConfig().getStringList("default-favorites");
-        return new ModPreferenceData(false, true, true, false, false, new ArrayList<>(defaultFavorites), 1.0f, 1.0f, 1.0f, false);
+        return new ModPreferenceData(false, true, true, false, false, new ArrayList<>(defaultFavorites), 1.0f, 1.0f, 1.0f, false, false);
     }
 
     // --- State Getters ---
@@ -792,8 +818,9 @@ public class ModeratorModeManager {
         private float flySpeed;
         private float jumpMultiplier;
         private boolean nightVision;
+        private boolean glowingEnabled;
 
-        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision) {
+        public ModPreferenceData(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision, boolean glowingEnabled) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
@@ -804,6 +831,7 @@ public class ModeratorModeManager {
             this.flySpeed = flySpeed;
             this.jumpMultiplier = jumpMultiplier;
             this.nightVision = nightVision;
+            this.glowingEnabled = glowingEnabled;
         }
 
         public boolean isInteractions() { return interactions; }
@@ -825,6 +853,8 @@ public class ModeratorModeManager {
         public void setJumpMultiplier(float jumpMultiplier) { this.jumpMultiplier = jumpMultiplier; }
         public boolean isNightVision() { return nightVision; }
         public void setNightVision(boolean nightVision) { this.nightVision = nightVision; }
+        public boolean isGlowingEnabled() { return glowingEnabled; }
+        public void setGlowingEnabled(boolean glowingEnabled) { this.glowingEnabled = glowingEnabled; }
     }
 
     private static class PlayerState {

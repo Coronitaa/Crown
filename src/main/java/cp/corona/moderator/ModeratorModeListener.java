@@ -699,6 +699,7 @@ public class ModeratorModeListener implements Listener {
         int flySpeedSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.fly-speed.slot");
         int jumpBoostSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.jump-boost.slot");
         int nightVisionSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.night-vision.slot");
+        int glowingSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.glowing.slot");
 
         if (slot == interactionsSlot) {
             plugin.getModeratorModeManager().toggleInteractions(player);
@@ -718,6 +719,10 @@ public class ModeratorModeListener implements Listener {
             new ModSettingsMenu(plugin, player).open();
         } else if (slot == silentSlot) {
             plugin.getModeratorModeManager().toggleSilent(player);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            new ModSettingsMenu(plugin, player).open();
+        } else if (slot == glowingSlot) {
+            plugin.getModeratorModeManager().toggleGlowing(player);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             new ModSettingsMenu(plugin, player).open();
         } else if (slot == walkSpeedSlot) {

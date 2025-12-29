@@ -183,6 +183,19 @@ mod-settings-menu:
         - ''
         - '&eClick to toggle.'
 
+    glowing:
+      slot: 24
+      material_on: 'GLOW_INK_SAC'
+      material_off: 'INK_SAC'
+      name: '&bPlayer Glowing'
+      lore:
+        - '&7Toggle glowing effect on'
+        - '&7nearby players.'
+        - ''
+        - '&7Status: {status}'
+        - ''
+        - '&eClick to toggle.'
+
     walk-speed:
       slot: 29
       material: 'LEATHER_BOOTS'
@@ -233,3 +246,9 @@ mod-settings-menu:
         - '&7Status: {status}'
         - ''
         - '&eClick to toggle.'
+
+# Settings for the glowing effect
+glowing-settings:
+  range: 50 # Range in blocks. Set to -1 for unlimited (render distance).
+  color: 'AQUA' # Color of the glowing effect (Bukkit ChatColor name).
+  selected-color: 'YELLOW' # Color for the selected player.

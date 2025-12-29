@@ -197,6 +197,8 @@ messages:
   mod_mode_fly_disabled: '{prefix}&cFly mode disabled.'
   mod_mode_join_enabled: '{prefix}&aMod mode on join enabled.'
   mod_mode_join_disabled: '{prefix}&cMod mode on join disabled.'
+  mod_mode_glowing_enabled: '{prefix}&aGlowing effect enabled.'
+  mod_mode_glowing_disabled: '{prefix}&cGlowing effect disabled.'
 
   mod_mode_silent_enabled: '{prefix}&aSilent Mode enabled. You will appear offline.'
   mod_mode_silent_disabled: '{prefix}&cSilent Mode disabled. You will appear online.'

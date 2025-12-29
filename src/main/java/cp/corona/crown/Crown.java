@@ -61,8 +61,8 @@ public final class Crown extends JavaPlugin {
         this.punishmentListener = new PunishmentListener(this);
         this.moderatorModeManager = new ModeratorModeManager(this);
 
-        // MODIFIED: Changed from 40L (2s) to 10L (0.5s) for smooth countdown
-        this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimerAsynchronously(this, 0L, 10L);
+        // Run synchronously to prevent async API access errors
+        this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimer(this, 0L, 10L);
 
         registerCommands();
         registerEvents();

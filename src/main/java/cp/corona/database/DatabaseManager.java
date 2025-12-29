@@ -282,7 +282,8 @@ public class DatabaseManager {
                     "walk_speed FLOAT DEFAULT 1.0," +
                     "fly_speed FLOAT DEFAULT 1.0," +
                     "jump_multiplier FLOAT DEFAULT 1.0," +
-                    "night_vision BOOLEAN DEFAULT 0)";
+                    "night_vision BOOLEAN DEFAULT 0," +
+                    "glowing_enabled BOOLEAN DEFAULT 0)";
             statement.execute(createModPrefsTableSQL);
 
             // NEW: Confiscated Items Table
@@ -369,6 +370,9 @@ public class DatabaseManager {
             }
             if (!columnExists(connection, "moderator_preferences", "night_vision")) {
                 statement.execute("ALTER TABLE moderator_preferences ADD COLUMN night_vision BOOLEAN DEFAULT 0");
+            }
+            if (!columnExists(connection, "moderator_preferences", "glowing_enabled")) {
+                statement.execute("ALTER TABLE moderator_preferences ADD COLUMN glowing_enabled BOOLEAN DEFAULT 0");
             }
         }
     }
@@ -529,12 +533,12 @@ public class DatabaseManager {
 
     // NEW: Methods for Moderator Preferences with 'silent' and 'favorite_tools' support
 
-    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision) {
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision, boolean glowingEnabled) {
         return CompletableFuture.runAsync(() -> {
             String sql = "mysql".equalsIgnoreCase(dbType) ?
-                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent), favorite_tools = VALUES(favorite_tools), walk_speed = VALUES(walk_speed), fly_speed = VALUES(fly_speed), jump_multiplier = VALUES(jump_multiplier), night_vision = VALUES(night_vision)" :
-                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision, glowing_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent), favorite_tools = VALUES(favorite_tools), walk_speed = VALUES(walk_speed), fly_speed = VALUES(fly_speed), jump_multiplier = VALUES(jump_multiplier), night_vision = VALUES(night_vision), glowing_enabled = VALUES(glowing_enabled)" :
+                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision, glowing_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, uuid.toString());
@@ -548,11 +552,17 @@ public class DatabaseManager {
                 ps.setFloat(9, flySpeed);
                 ps.setFloat(10, jumpMultiplier);
                 ps.setBoolean(11, nightVision);
+                ps.setBoolean(12, glowingEnabled);
                 ps.executeUpdate();
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Could not save moderator preferences for " + uuid, e);
             }
         });
+    }
+    
+    // Overload for backward compatibility if needed, but better to update calls
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision) {
+        return saveModPreferences(uuid, interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools, walkSpeed, flySpeed, jumpMultiplier, nightVision, false);
     }
 
     public CompletableFuture<ModPreferences> getModPreferences(UUID uuid) {
@@ -577,11 +587,13 @@ public class DatabaseManager {
                         float flySpeed = 1.0f;
                         float jumpMultiplier = 1.0f;
                         boolean nightVision = false;
+                        boolean glowingEnabled = false;
                         try {
                             walkSpeed = rs.getFloat("walk_speed");
                             flySpeed = rs.getFloat("fly_speed");
                             jumpMultiplier = rs.getFloat("jump_multiplier");
                             nightVision = rs.getBoolean("night_vision");
+                            glowingEnabled = rs.getBoolean("glowing_enabled");
                         } catch (SQLException ignored) {
                             // Columns might not exist yet
                         }
@@ -600,7 +612,8 @@ public class DatabaseManager {
                                 walkSpeed,
                                 flySpeed,
                                 jumpMultiplier,
-                                nightVision
+                                nightVision,
+                                glowingEnabled
                         );
                     }
                 }
@@ -608,7 +621,7 @@ public class DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Could not retrieve moderator preferences for " + uuid, e);
             }
             // Default values
-            return new ModPreferences(false, true, true, false, false, null, 1.0f, 1.0f, 1.0f, false);
+            return new ModPreferences(false, true, true, false, false, null, 1.0f, 1.0f, 1.0f, false, false);
         });
     }
 
@@ -624,12 +637,13 @@ public class DatabaseManager {
         private final float flySpeed;
         private final float jumpMultiplier;
         private final boolean nightVision;
+        private final boolean glowingEnabled;
 
         public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools) {
-            this(interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools, 1.0f, 1.0f, 1.0f, false);
+            this(interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools, 1.0f, 1.0f, 1.0f, false, false);
         }
 
-        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision) {
+        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision, boolean glowingEnabled) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
@@ -640,6 +654,7 @@ public class DatabaseManager {
             this.flySpeed = flySpeed;
             this.jumpMultiplier = jumpMultiplier;
             this.nightVision = nightVision;
+            this.glowingEnabled = glowingEnabled;
         }
 
         public boolean isInteractions() { return interactions; }
@@ -652,6 +667,7 @@ public class DatabaseManager {
         public float getFlySpeed() { return flySpeed; }
         public float getJumpMultiplier() { return jumpMultiplier; }
         public boolean isNightVision() { return nightVision; }
+        public boolean isGlowingEnabled() { return glowingEnabled; }
     }
 
     // ... (rest of the class remains identical, just ensuring all other methods are kept)
