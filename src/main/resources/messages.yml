@@ -193,6 +193,10 @@ messages:
   mod_mode_favorite_added: '{prefix}&aTool added to favorites.'
   mod_mode_favorite_removed: '{prefix}&cTool removed from favorites.'
   mod_mode_favorites_full: '{prefix}&cFavorites are full (max 7). Remove one to add another.'
+  mod_mode_fly_enabled: '{prefix}&aFly mode enabled.'
+  mod_mode_fly_disabled: '{prefix}&cFly mode disabled.'
+  mod_mode_join_enabled: '{prefix}&aMod mode on join enabled.'
+  mod_mode_join_disabled: '{prefix}&cMod mode on join disabled.'
 
   mod_mode_silent_enabled: '{prefix}&aSilent Mode enabled. You will appear offline.'
   mod_mode_silent_disabled: '{prefix}&cSilent Mode disabled. You will appear online.'
