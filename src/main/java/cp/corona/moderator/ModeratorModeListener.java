@@ -39,6 +39,8 @@ import org.bukkit.util.Vector;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent;
+
 public class ModeratorModeListener implements Listener {
 
     private final Crown plugin;
@@ -905,6 +907,13 @@ public class ModeratorModeListener implements Listener {
     public void onExpChange(PlayerExpChangeEvent event) {
         if (plugin.getModeratorModeManager().isInModeratorMode(event.getPlayer().getUniqueId())) {
             event.setAmount(0);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerPickupExperience(PlayerPickupExperienceEvent event) {
+        if (plugin.getModeratorModeManager().isInModeratorMode(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
         }
     }
 
