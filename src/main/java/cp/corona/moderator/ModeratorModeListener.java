@@ -9,6 +9,7 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -19,7 +20,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -884,11 +885,26 @@ public class ModeratorModeListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onMobTarget(EntityTargetLivingEntityEvent event) {
+    public void onEntityTarget(EntityTargetEvent event) {
         if (!(event.getTarget() instanceof Player)) return;
         Player target = (Player) event.getTarget();
+        
+        if (plugin.getModeratorModeManager().isInModeratorMode(target.getUniqueId())) {
+             if (event.getEntity() instanceof ExperienceOrb) {
+                 event.setCancelled(true);
+                 event.setTarget(null);
+             }
+        }
+
         if (plugin.getModeratorModeManager().isVanished(target.getUniqueId())) {
             event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onExpChange(PlayerExpChangeEvent event) {
+        if (plugin.getModeratorModeManager().isInModeratorMode(event.getPlayer().getUniqueId())) {
+            event.setAmount(0);
         }
     }
 
