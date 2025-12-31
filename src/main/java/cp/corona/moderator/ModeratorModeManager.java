@@ -8,7 +8,6 @@ import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -20,8 +19,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.Sound;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -47,13 +45,11 @@ public class ModeratorModeManager {
     private final Map<UUID, Boolean> preSpectatorVanishState = new ConcurrentHashMap<>();
 
     private final File sessionsFile;
-    private final YamlConfiguration sessionsConfig;
 
     public ModeratorModeManager(Crown plugin) {
         this.plugin = plugin;
         this.toolIdKey = new NamespacedKey(plugin, "tool-id");
-        this.sessionsFile = new File(plugin.getDataFolder(), "mod_sessions.yml");
-        this.sessionsConfig = YamlConfiguration.loadConfiguration(sessionsFile);
+        this.sessionsFile = new File(plugin.getDataFolder(), "mod_sessions.dat");
         loadModeratorItems();
     }
 
@@ -221,7 +217,14 @@ public class ModeratorModeManager {
         PlayerState state = savedStates.remove(player.getUniqueId());
         if (state != null) {
             unvanishPlayer(player);
+
             state.restore(player);
+            
+            // CRITICAL FIX: Force save player data to disk immediately after restoration.
+            // This ensures that if the server crashes right after this line, the player.dat
+            // file will contain the restored inventory, preventing data loss.
+            player.saveData();
+            
             removeSessionFromDisk(player.getUniqueId());
         }
 
@@ -265,35 +268,57 @@ public class ModeratorModeManager {
     }
 
     public void checkAndRestoreSession(Player player) {
-        if (sessionsConfig.contains(player.getUniqueId().toString())) {
-            plugin.getLogger().warning("Detected crash session for " + player.getName() + ". Restoring inventory...");
-            PlayerState state = PlayerState.deserialize(sessionsConfig.getConfigurationSection(player.getUniqueId().toString()));
-            if (state != null) {
-                state.restore(player);
-                removeSessionFromDisk(player.getUniqueId());
-                MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_crash_restore");
+        Map<UUID, PlayerState> sessions = readSessionsFromDisk();
+        if (sessions.containsKey(player.getUniqueId())) {
+            plugin.getLogger().warning("Detected crash session for " + player.getName() + ". Restoring state...");
+            PlayerState state = sessions.get(player.getUniqueId());
+            state.restore(player);
+            
+            // Also force save here just to be safe
+            player.saveData();
+
+            sessions.remove(player.getUniqueId());
+            writeSessionsToDisk(sessions);
+
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_crash_restore");
+        }
+    }
+
+    private synchronized Map<UUID, PlayerState> readSessionsFromDisk() {
+        if (!sessionsFile.exists()) {
+            return new HashMap<>();
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(sessionsFile))) {
+            Object obj = ois.readObject();
+            if (obj instanceof Map) {
+                return new HashMap<>((Map<UUID, PlayerState>) obj);
             }
+        } catch (IOException | ClassNotFoundException e) {
+            plugin.getLogger().severe("Failed to read mod sessions file. It might be corrupted.");
+            e.printStackTrace();
+        }
+        return new HashMap<>();
+    }
+
+    private synchronized void writeSessionsToDisk(Map<UUID, PlayerState> sessions) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(sessionsFile))) {
+            oos.writeObject(sessions);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to write mod sessions file.");
+            e.printStackTrace();
         }
     }
 
     private void saveSessionToDisk(UUID uuid, PlayerState state) {
-        String path = uuid.toString();
-        state.serialize(sessionsConfig.createSection(path));
-        try {
-            sessionsConfig.save(sessionsFile);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save mod session for " + uuid);
-            e.printStackTrace();
-        }
+        Map<UUID, PlayerState> sessions = readSessionsFromDisk();
+        sessions.put(uuid, state);
+        writeSessionsToDisk(sessions);
     }
 
     private void removeSessionFromDisk(UUID uuid) {
-        sessionsConfig.set(uuid.toString(), null);
-        try {
-            sessionsConfig.save(sessionsFile);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to remove mod session for " + uuid);
-            e.printStackTrace();
+        Map<UUID, PlayerState> sessions = readSessionsFromDisk();
+        if (sessions.remove(uuid) != null) {
+            writeSessionsToDisk(sessions);
         }
     }
 
@@ -917,10 +942,12 @@ public class ModeratorModeManager {
         public void setGlowingEnabled(boolean glowingEnabled) { this.glowingEnabled = glowingEnabled; }
     }
 
-    private static class PlayerState {
-        private final ItemStack[] inventoryContents;
-        private final ItemStack[] armorContents;
-        private final GameMode gameMode;
+    private static class PlayerState implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private final Map<Integer, byte[]> inventoryContents;
+        private final Map<Integer, byte[]> armorContents;
+        private final String gameMode;
         private final boolean wasFlying;
         private final boolean allowFlight;
         private final double health;
@@ -932,12 +959,26 @@ public class ModeratorModeManager {
         private final boolean wasCollidable;
         private final float walkSpeed;
         private final float flySpeed;
-        private final Collection<PotionEffect> potionEffects;
+        private final Collection<Map<String, Object>> potionEffects;
 
         PlayerState(Player player) {
-            this.inventoryContents = player.getInventory().getContents();
-            this.armorContents = player.getInventory().getArmorContents();
-            this.gameMode = player.getGameMode();
+            this.inventoryContents = new HashMap<>();
+            for (int i = 0; i < player.getInventory().getContents().length; i++) {
+                ItemStack item = player.getInventory().getContents()[i];
+                if (item != null) {
+                    this.inventoryContents.put(i, item.serializeAsBytes());
+                }
+            }
+
+            this.armorContents = new HashMap<>();
+            for (int i = 0; i < player.getInventory().getArmorContents().length; i++) {
+                ItemStack item = player.getInventory().getArmorContents()[i];
+                if (item != null) {
+                    this.armorContents.put(i, item.serializeAsBytes());
+                }
+            }
+
+            this.gameMode = player.getGameMode().name();
             this.wasFlying = player.isFlying();
             this.allowFlight = player.getAllowFlight();
             this.health = player.getHealth();
@@ -949,32 +990,25 @@ public class ModeratorModeManager {
             this.wasCollidable = player.isCollidable();
             this.walkSpeed = player.getWalkSpeed();
             this.flySpeed = player.getFlySpeed();
-            this.potionEffects = new ArrayList<>(player.getActivePotionEffects());
-        }
-
-        // Constructor for deserialization
-        private PlayerState(ItemStack[] inventoryContents, ItemStack[] armorContents, GameMode gameMode, boolean wasFlying, boolean allowFlight, double health, int foodLevel, float saturation, float experience, int level, boolean wasSilent, boolean wasCollidable, float walkSpeed, float flySpeed, Collection<PotionEffect> potionEffects) {
-            this.inventoryContents = inventoryContents;
-            this.armorContents = armorContents;
-            this.gameMode = gameMode;
-            this.wasFlying = wasFlying;
-            this.allowFlight = allowFlight;
-            this.health = health;
-            this.foodLevel = foodLevel;
-            this.saturation = saturation;
-            this.experience = experience;
-            this.level = level;
-            this.wasSilent = wasSilent;
-            this.wasCollidable = wasCollidable;
-            this.walkSpeed = walkSpeed;
-            this.flySpeed = flySpeed;
-            this.potionEffects = potionEffects;
+            this.potionEffects = player.getActivePotionEffects().stream().map(PotionEffect::serialize).collect(Collectors.toList());
         }
 
         void restore(Player player) {
-            player.getInventory().setContents(inventoryContents);
-            player.getInventory().setArmorContents(armorContents);
-            player.setGameMode(gameMode);
+            player.getInventory().clear();
+            
+            for (Map.Entry<Integer, byte[]> entry : inventoryContents.entrySet()) {
+                player.getInventory().setItem(entry.getKey(), ItemStack.deserializeBytes(entry.getValue()));
+            }
+
+            ItemStack[] restoredArmor = new ItemStack[4];
+            for (Map.Entry<Integer, byte[]> entry : armorContents.entrySet()) {
+                if (entry.getKey() < restoredArmor.length) {
+                    restoredArmor[entry.getKey()] = ItemStack.deserializeBytes(entry.getValue());
+                }
+            }
+            player.getInventory().setArmorContents(restoredArmor);
+
+            player.setGameMode(GameMode.valueOf(gameMode));
             player.setAllowFlight(allowFlight);
             player.setFlying(wasFlying);
             player.setHealth(health);
@@ -992,59 +1026,11 @@ public class ModeratorModeManager {
                 player.removePotionEffect(type);
             }
             
-            for (PotionEffect effect : potionEffects) {
-                player.addPotionEffect(effect);
+            for (Map<String, Object> map : potionEffects) {
+                player.addPotionEffect(new PotionEffect(map));
             }
             
             player.updateInventory();
-        }
-
-        void serialize(ConfigurationSection section) {
-            section.set("inventory", inventoryContents);
-            section.set("armor", armorContents);
-            section.set("gamemode", gameMode.name());
-            section.set("wasFlying", wasFlying);
-            section.set("allowFlight", allowFlight);
-            section.set("health", health);
-            section.set("foodLevel", foodLevel);
-            section.set("saturation", saturation);
-            section.set("experience", experience);
-            section.set("level", level);
-            section.set("wasSilent", wasSilent);
-            section.set("wasCollidable", wasCollidable);
-            section.set("walkSpeed", walkSpeed);
-            section.set("flySpeed", flySpeed);
-            section.set("potionEffects", new ArrayList<>(potionEffects));
-        }
-
-        static PlayerState deserialize(ConfigurationSection section) {
-            if (section == null) return null;
-            try {
-                List<ItemStack> invList = (List<ItemStack>) section.getList("inventory");
-                ItemStack[] inventory = invList != null ? invList.toArray(new ItemStack[0]) : new ItemStack[0];
-
-                List<ItemStack> armorList = (List<ItemStack>) section.getList("armor");
-                ItemStack[] armor = armorList != null ? armorList.toArray(new ItemStack[0]) : new ItemStack[0];
-
-                GameMode gm = GameMode.valueOf(section.getString("gamemode", "SURVIVAL"));
-                boolean flying = section.getBoolean("wasFlying");
-                boolean allowFlight = section.getBoolean("allowFlight");
-                double health = section.getDouble("health");
-                int food = section.getInt("foodLevel");
-                float saturation = (float) section.getDouble("saturation");
-                float exp = (float) section.getDouble("experience");
-                int level = section.getInt("level");
-                boolean silent = section.getBoolean("wasSilent");
-                boolean collidable = section.getBoolean("wasCollidable");
-                float walkSpeed = (float) section.getDouble("walkSpeed");
-                float flySpeed = (float) section.getDouble("flySpeed");
-                List<PotionEffect> effects = (List<PotionEffect>) section.getList("potionEffects", new ArrayList<>());
-
-                return new PlayerState(inventory, armor, gm, flying, allowFlight, health, food, saturation, exp, level, silent, collidable, walkSpeed, flySpeed, effects);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            }
         }
     }
 }

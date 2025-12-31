@@ -202,6 +202,7 @@ messages:
 
   mod_mode_silent_enabled: '{prefix}&aSilent Mode enabled. You will appear offline.'
   mod_mode_silent_disabled: '{prefix}&cSilent Mode disabled. You will appear online.'
+  mod_mode_crash_restore: '&8[&4&l!&r&8] &cWe detected an error and {prefix}&chas restored your last known inventory.'
 
   # Fake Messages for Silent Mode
   # Support PlaceholderAPI if enabled.
