@@ -100,6 +100,10 @@ public class ModeratorModeListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        
+        // Check for crash recovery first
+        plugin.getModeratorModeManager().checkAndRestoreSession(player);
+        
         plugin.getModeratorModeManager().updateVanishedPlayerVisibility(player);
 
         Component originalJoinMessage = event.joinMessage();
