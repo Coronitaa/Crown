@@ -24,16 +24,14 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -53,6 +51,7 @@ public class ModeratorModeListener implements Listener {
     private final Set<Material> blockedGuiBlocks;
 
     private final Map<UUID, ClickData> inspectionDoubleClicks = new HashMap<>();
+    private final Map<UUID, BukkitTask> inspectionTasks = new HashMap<>();
     private record ClickData(int slot, long timestamp) {}
 
     public ModeratorModeListener(Crown plugin) {
@@ -207,26 +206,38 @@ public class ModeratorModeListener implements Listener {
         Inventory inspectionInv;
         Component title = LegacyComponentSerializer.legacySection().deserialize(MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
         
-        // Pass location to constructor
+        InspectionHolder holder = new InspectionHolder(realInventory, loc);
         if (realInventory.getType() == InventoryType.CHEST) {
-            inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), size, title);
+            inspectionInv = Bukkit.createInventory(holder, size, title);
         } else {
             try {
-                inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), realInventory.getType(), title);
+                inspectionInv = Bukkit.createInventory(holder, realInventory.getType(), title);
             } catch (IllegalArgumentException e) {
                 int safeSize = (int) (Math.ceil(size / 9.0) * 9);
-                inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), safeSize, title);
+                inspectionInv = Bukkit.createInventory(holder, safeSize, title);
             }
         }
-
-        ItemStack[] contents = realInventory.getContents();
-        for(int i=0; i<contents.length; i++) {
-            if(contents[i] != null) inspectionInv.setItem(i, contents[i].clone());
-        }
+        
+        holder.setInspectionInventory(inspectionInv);
 
         player.openInventory(inspectionInv);
         player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f);
         MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_inspecting_container", "{container}", typeName.replace("_", " "));
+
+        // Start real-time update task
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, holder::update, 1L, 1L);
+        inspectionTasks.put(player.getUniqueId(), task);
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (event.getInventory().getHolder() instanceof InspectionHolder) {
+            BukkitTask task = inspectionTasks.remove(event.getPlayer().getUniqueId());
+            if (task != null) {
+                task.cancel();
+            }
+            inspectionDoubleClicks.remove(event.getPlayer().getUniqueId());
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -250,11 +261,10 @@ public class ModeratorModeListener implements Listener {
                 event.setCancelled(true);
                 if (spyEnabled) {
                     handleInventoryInspection(player, holder.getInventory(), entity.getType().name());
-                    return;
                 } else {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_container_spy_disabled");
-                    return;
                 }
+                return;
             }
 
             if (!plugin.getModeratorModeManager().isInteractionsAllowed(uuid)) {
@@ -894,70 +904,105 @@ public class ModeratorModeListener implements Listener {
         player.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(MessageUtils.getColorMessage(message)));
     }
 
-    public record InspectionHolder(Inventory original, Location location) implements InventoryHolder {
-        @Override public @NotNull Inventory getInventory() { return original; }
-        public Location getLocation() { return location; }
+    public static class InspectionHolder implements InventoryHolder {
+        private final Inventory original;
+        private final Location location;
+        private Inventory inspectionInventory;
+
+        public InspectionHolder(Inventory original, Location location) {
+            this.original = original;
+            this.location = location;
+        }
+
+        @Override
+        public @NotNull Inventory getInventory() {
+            return inspectionInventory;
+        }
+
+        public Inventory getOriginalInventory() {
+            return original;
+        }
+
+        public Location getLocation() {
+            return location;
+        }
+
+        public void setInspectionInventory(Inventory inspectionInventory) {
+            this.inspectionInventory = inspectionInventory;
+        }
+
+        public void update() {
+            if (inspectionInventory != null) {
+                inspectionInventory.setContents(original.getContents());
+            }
+        }
     }
     
     @EventHandler(priority = EventPriority.HIGH)
     public void onInspectionClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (event.getClickedInventory() == null || event.getClickedInventory() != event.getView().getTopInventory()) return;
-        
-        InventoryHolder holder = event.getInventory().getHolder();
-        if (!(holder instanceof InspectionHolder inspectionHolder)) return;
 
-        event.setCancelled(true); // Ensure Read-Only
+        Inventory topInventory = event.getView().getTopInventory();
+        if (topInventory.getHolder() instanceof InspectionHolder inspectionHolder) {
+            // Prevent any modification to the inspection inventory
+            event.setCancelled(true);
 
-        if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
+            // Allow confiscation logic only for clicks inside the top inventory
+            if (Objects.equals(event.getClickedInventory(), topInventory)) {
+                handleConfiscateLogic(event, player, inspectionHolder);
+            }
+        }
+    }
 
-        if (event.getClick() == ClickType.LEFT) {
-            ItemStack clicked = event.getCurrentItem();
-            if (clicked == null || clicked.getType() == Material.AIR) return;
+    private void handleConfiscateLogic(InventoryClickEvent event, Player player, InspectionHolder inspectionHolder) {
+        if (event.getClick() != ClickType.LEFT) return;
 
-            ClickData lastClick = inspectionDoubleClicks.get(player.getUniqueId());
-            long now = System.currentTimeMillis();
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType() == Material.AIR) return;
 
-            if (lastClick != null && lastClick.slot() == event.getSlot()) {
-                long diff = now - lastClick.timestamp();
+        UUID playerUUID = player.getUniqueId();
+        ClickData lastClick = inspectionDoubleClicks.get(playerUUID);
+        long now = System.currentTimeMillis();
+        int currentSlot = event.getSlot();
 
-                // DEBOUNCE: Ignorar si el segundo click es en menos de 500ms
-                if (diff < 500) {
-                    return; 
-                }
+        // If clicking a different slot, reset the confirmation for the new slot
+        if (lastClick == null || lastClick.slot() != currentSlot) {
+            inspectionDoubleClicks.put(playerUUID, new ClickData(currentSlot, now));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
+            return;
+        }
 
-                if (diff < 3000) {
-                    inspectionDoubleClicks.remove(player.getUniqueId());
-                    
-                    Inventory original = inspectionHolder.getInventory();
-                    ItemStack realItem = original.getItem(event.getSlot());
-                    
-                    if (realItem == null || realItem.getType() == Material.AIR) {
-                        MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_fail_gone");
-                        return;
-                    }
+        // If clicking the same slot, check the time
+        long diff = now - lastClick.timestamp();
+        if (diff <= 2000) { // Confirm within 2 seconds
+            inspectionDoubleClicks.remove(playerUUID); // Clear confirmation state
 
-                    String serialized = AuditLogBook.serialize(realItem);
-                    String containerType = LegacyComponentSerializer.legacySection().serialize(event.getView().title()).replace("Inspect: ", "");
-                    Location loc = inspectionHolder.getLocation();
-                    if (loc != null) {
-                        containerType += " (" + loc.getWorld().getName() + " " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ")";
-                    }
-                    
-                    plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), containerType)
-                            .thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
-                                original.setItem(event.getSlot(), null);
-                                event.getInventory().setItem(event.getSlot(), null); // Borrar de la vista
-                                MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
-                                player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
-                            }));
-                    return;
-                }
+            Inventory original = inspectionHolder.getOriginalInventory();
+            ItemStack realItem = original.getItem(currentSlot);
+
+            if (realItem == null || realItem.getType() == Material.AIR) {
+                MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_fail_gone");
+                return;
             }
 
+            String serialized = AuditLogBook.serialize(realItem);
+            String containerType = LegacyComponentSerializer.legacySection().serialize(event.getView().title()).replace("Inspect: ", "");
+            Location loc = inspectionHolder.getLocation();
+            if (loc != null) {
+                containerType += " (" + loc.getWorld().getName() + " " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ")";
+            }
 
-            inspectionDoubleClicks.put(player.getUniqueId(), new ClickData(event.getSlot(), now));
-            
+            plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, playerUUID, containerType)
+                    .thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+                        original.setItem(currentSlot, null);
+                        // The inventory will update automatically via the BukkitTask
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
+                        player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
+                    }));
+        } else {
+            // If time is over 2 seconds, treat it as a new first click
+            inspectionDoubleClicks.put(playerUUID, new ClickData(currentSlot, now));
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
             MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
         }
