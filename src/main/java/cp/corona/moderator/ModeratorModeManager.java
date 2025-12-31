@@ -843,7 +843,7 @@ public class ModeratorModeManager {
         boolean wasVanished = isVanished(player.getUniqueId());
         savePreSpectatorVanishState(player.getUniqueId(), wasVanished);
 
-        if(wasVanished) unvanishPlayer(player);
+        // Removed unvanishPlayer(player) to keep player hidden in tab list and MOTD
 
         player.setGameMode(GameMode.SPECTATOR);
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 0.5f);

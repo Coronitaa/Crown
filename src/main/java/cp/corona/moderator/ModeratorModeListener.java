@@ -135,7 +135,7 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler
     public void onServerListPing(PaperServerListPingEvent event) {
-        event.getListedPlayers().removeIf(p -> plugin.getModeratorModeManager().isSilent(p.id()));
+        event.getListedPlayers().removeIf(p -> plugin.getModeratorModeManager().isSilent(p.id()) || plugin.getModeratorModeManager().isVanished(p.id()));
     }
 
     // --- INTERACTION BLOCKING & CONTAINER INSPECTION ---
@@ -883,6 +883,7 @@ public class ModeratorModeListener implements Listener {
 
         if (plugin.getModeratorModeManager().isVanished(target.getUniqueId())) {
             event.setCancelled(true);
+            event.setTarget(null);
         }
     }
 
@@ -975,6 +976,8 @@ public class ModeratorModeListener implements Listener {
 
         // If clicking the same slot, check the time
         long diff = now - lastClick.timestamp();
+        if (diff < 200) return; // Debounce
+
         if (diff <= 2000) { // Confirm within 2 seconds
             inspectionDoubleClicks.remove(playerUUID); // Clear confirmation state
 
