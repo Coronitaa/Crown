@@ -135,7 +135,16 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler
     public void onServerListPing(PaperServerListPingEvent event) {
-        event.getListedPlayers().removeIf(p -> plugin.getModeratorModeManager().isSilent(p.id()) || plugin.getModeratorModeManager().isVanished(p.id()));
+        event.getListedPlayers().removeIf(p -> plugin.getModeratorModeManager().isSilent(p.id()));
+        
+        // Adjust online player count for silent players
+        int silentCount = 0;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (plugin.getModeratorModeManager().isSilent(p.getUniqueId())) {
+                silentCount++;
+            }
+        }
+        event.setNumPlayers(event.getNumPlayers() - silentCount);
     }
 
     // --- INTERACTION BLOCKING & CONTAINER INSPECTION ---
