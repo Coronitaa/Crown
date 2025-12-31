@@ -3,8 +3,9 @@ package cp.corona.moderator;
 import cp.corona.crown.Crown;
 import cp.corona.menus.*;
 import cp.corona.utils.MessageUtils;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -20,6 +21,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.ClickType;
@@ -27,7 +29,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
-import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -40,6 +41,8 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent;
+import com.destroystokyo.paper.event.server.PaperServerListPingEvent;
+import org.jetbrains.annotations.NotNull;
 
 public class ModeratorModeListener implements Listener {
 
@@ -89,7 +92,7 @@ public class ModeratorModeListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         if (plugin.getModeratorModeManager().isSilent(player.getUniqueId())) {
-            event.setQuitMessage(null);
+            event.quitMessage(null);
         }
         plugin.getModeratorModeManager().handleDisconnect(player);
     }
@@ -99,45 +102,37 @@ public class ModeratorModeListener implements Listener {
         Player player = event.getPlayer();
         plugin.getModeratorModeManager().updateVanishedPlayerVisibility(player);
 
-        String originalJoinMessage = event.getJoinMessage();
-        event.setJoinMessage(null);
+        Component originalJoinMessage = event.joinMessage();
+        event.joinMessage(null);
 
         if (player.hasPermission("crown.mod.use")) {
-            plugin.getSoftBanDatabaseManager().getModPreferences(player.getUniqueId()).thenAccept(prefs -> {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (!player.isOnline()) return;
+            plugin.getSoftBanDatabaseManager().getModPreferences(player.getUniqueId()).thenAccept(prefs -> Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) return;
 
-                    boolean silent = prefs.isSilent();
-                    boolean modOnJoin = prefs.isModOnJoin();
+                boolean silent = prefs.isSilent();
+                boolean modOnJoin = prefs.isModOnJoin();
 
-                    if (modOnJoin) {
-                        plugin.getModeratorModeManager().enableModeratorMode(player, silent);
-                        if (!silent && originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
-                            Bukkit.broadcastMessage(originalJoinMessage);
-                        }
-                    } else {
-                        if (originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
-                            Bukkit.broadcastMessage(originalJoinMessage);
-                        }
+                if (modOnJoin) {
+                    plugin.getModeratorModeManager().enableModeratorMode(player, silent);
+                    if (!silent && originalJoinMessage != null) {
+                        Bukkit.broadcast(originalJoinMessage);
                     }
-                });
-            });
+                } else {
+                    if (originalJoinMessage != null) {
+                        Bukkit.broadcast(originalJoinMessage);
+                    }
+                }
+            }));
         } else {
-            if (originalJoinMessage != null && !originalJoinMessage.isEmpty()) {
-                event.setJoinMessage(originalJoinMessage);
+            if (originalJoinMessage != null) {
+                event.joinMessage(originalJoinMessage);
             }
         }
     }
 
     @EventHandler
-    public void onServerListPing(ServerListPingEvent event) {
-        Iterator<Player> iterator = event.iterator();
-        while (iterator.hasNext()) {
-            Player p = iterator.next();
-            if (plugin.getModeratorModeManager().isSilent(p.getUniqueId())) {
-                iterator.remove();
-            }
-        }
+    public void onServerListPing(PaperServerListPingEvent event) {
+        event.getListedPlayers().removeIf(p -> plugin.getModeratorModeManager().isSilent(p.id()));
     }
 
     // --- INTERACTION BLOCKING & CONTAINER INSPECTION ---
@@ -206,16 +201,17 @@ public class ModeratorModeListener implements Listener {
         else if (realInventory.getHolder() instanceof Entity e) loc = e.getLocation();
 
         Inventory inspectionInv;
+        Component title = LegacyComponentSerializer.legacySection().deserialize(MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
         
         // Pass location to constructor
         if (realInventory.getType() == InventoryType.CHEST) {
-            inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), size, MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
+            inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), size, title);
         } else {
             try {
-                inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), realInventory.getType(), MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
+                inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), realInventory.getType(), title);
             } catch (IllegalArgumentException e) {
                 int safeSize = (int) (Math.ceil(size / 9.0) * 9);
-                inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), safeSize, MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
+                inspectionInv = Bukkit.createInventory(new InspectionHolder(realInventory, loc), safeSize, title);
             }
         }
 
@@ -247,12 +243,11 @@ public class ModeratorModeListener implements Listener {
             if (entity instanceof InventoryHolder holder && !(entity instanceof Player)) {
                 boolean spyEnabled = plugin.getModeratorModeManager().isContainerSpyEnabled(uuid);
 
+                event.setCancelled(true);
                 if (spyEnabled) {
-                    event.setCancelled(true);
                     handleInventoryInspection(player, holder.getInventory(), entity.getType().name());
                     return;
                 } else {
-                    event.setCancelled(true);
                     MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_container_spy_disabled");
                     return;
                 }
@@ -301,12 +296,11 @@ public class ModeratorModeListener implements Listener {
             return;
         }
 
-        if (!(event.getRightClicked() instanceof Player)) return;
+        if (!(event.getRightClicked() instanceof Player target)) return;
 
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
         event.setCancelled(true);
-        Player target = (Player) event.getRightClicked();
         if (player.getUniqueId().equals(target.getUniqueId())) return;
 
         ItemStack item = player.getInventory().getItemInMainHand();
@@ -329,8 +323,7 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageTool(EntityDamageByEntityEvent event) {
-        if (!(event.getDamager() instanceof Player) || !(event.getEntity() instanceof Player)) return;
-        Player player = (Player) event.getDamager();
+        if (!(event.getDamager() instanceof Player player) || !(event.getEntity() instanceof Player target)) return;
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
         if (plugin.getModeratorModeManager().isTemporarySpectator(player.getUniqueId())) {
@@ -340,7 +333,6 @@ public class ModeratorModeListener implements Listener {
 
         if (!plugin.getModeratorModeManager().canInteract(player.getUniqueId())) return;
 
-        Player target = (Player) event.getEntity();
         ItemStack item = player.getInventory().getItemInMainHand();
         String toolId = getToolId(item);
 
@@ -367,24 +359,6 @@ public class ModeratorModeListener implements Listener {
 
         ItemStack item = event.getItem();
         String toolId = getToolId(item);
-
-        // Prioritize blocking logic before tool logic if hitting a block
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            Block clickedBlock = event.getClickedBlock();
-            if (clickedBlock != null) {
-                // If it's a blocked GUI or an inspectable container and interactions/spy are set to block,
-                // we should prevent the tool from accidentally triggering something or bypassing strict blocks.
-                // However, tools like "Random TP" generally trigger on AIR click too.
-                // We let tool logic run, BUT `onModInteract` (LOWEST priority) will have already cancelled the event
-                // if it was a protected block interaction.
-                // Since this handler is HIGH priority, we are reacting to the event state.
-                // If onModInteract cancelled it, `event.useInteractedBlock()` is likely DENY.
-
-                // If it was a container and we blocked it in onModInteract, we don't want the tool to fire
-                // if the tool action is "RIGHT_CLICK_BLOCK".
-                // But typically tools are "Use Item".
-            }
-        }
 
         if (toolId == null) return;
 
@@ -465,13 +439,10 @@ public class ModeratorModeListener implements Listener {
     private void handleEntityToolAction(Player player, Player target, String toolId, boolean isRightClick) {
         switch (toolId) {
             case "freeze_player_tool":
-                boolean shift = player.isSneaking();
                 if (isRightClick) {
-                    if (shift) executeFreeze(player, target);
-                    else executeFreeze(player, target);
+                    executeFreeze(player, target);
                 } else {
-                    if (shift) executeUnfreeze(player, target);
-                    else executeUnfreeze(player, target);
+                    executeUnfreeze(player, target);
                 }
                 break;
             case "invsee_tool":
@@ -483,7 +454,7 @@ public class ModeratorModeListener implements Listener {
 
     private void handleFreezeToolLogic(Player player, boolean isRight, boolean isLeft) {
         boolean shift = player.isSneaking();
-        Player target = null;
+        Player target;
 
         if (shift) {
             target = rayTracePlayer(player);
@@ -625,11 +596,11 @@ public class ModeratorModeListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
+    public void onAsyncPlayerChat(AsyncChatEvent event) {
         Player player = event.getPlayer();
         if (plugin.getModeratorModeManager().getInputType(player) != null) {
             event.setCancelled(true);
-            String input = event.getMessage();
+            String input = LegacyComponentSerializer.legacySection().serialize(event.message());
             Bukkit.getScheduler().runTask(plugin, () -> handleChatInput(player, input));
         }
     }
@@ -662,8 +633,7 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) return;
-        Player player = (Player) event.getWhoClicked();
+        if (!(event.getWhoClicked() instanceof Player player)) return;
 
         if (event.getClickedInventory() != null && event.getClickedInventory().getHolder() instanceof ToolSelectorMenu) {
             handleToolSelectorClick(event, player);
@@ -846,8 +816,7 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler
     public void onDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Player) {
-            Player player = (Player) event.getEntity();
+        if (event.getEntity() instanceof Player player) {
             if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
                 event.setCancelled(true);
             }
@@ -856,8 +825,7 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler
     public void onFoodLevelChange(FoodLevelChangeEvent event) {
-        if (event.getEntity() instanceof Player) {
-            Player player = (Player) event.getEntity();
+        if (event.getEntity() instanceof Player player) {
             if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
                 event.setCancelled(true);
                 player.setFoodLevel(20);
@@ -873,9 +841,11 @@ public class ModeratorModeListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerPickupItem(PlayerPickupItemEvent event) {
-        if (plugin.getModeratorModeManager().isInModeratorMode(event.getPlayer().getUniqueId())) {
-            event.setCancelled(true);
+    public void onPlayerPickupItem(EntityPickupItemEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+                event.setCancelled(true);
+            }
         }
     }
 
@@ -888,8 +858,7 @@ public class ModeratorModeListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityTarget(EntityTargetEvent event) {
-        if (!(event.getTarget() instanceof Player)) return;
-        Player target = (Player) event.getTarget();
+        if (!(event.getTarget() instanceof Player target)) return;
         
         if (plugin.getModeratorModeManager().isInModeratorMode(target.getUniqueId())) {
              if (event.getEntity() instanceof ExperienceOrb) {
@@ -918,18 +887,11 @@ public class ModeratorModeListener implements Listener {
     }
 
     private void sendActionBar(Player player, String message) {
-        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(MessageUtils.getColorMessage(message)));
+        player.sendActionBar(LegacyComponentSerializer.legacySection().deserialize(MessageUtils.getColorMessage(message)));
     }
 
-    public static class InspectionHolder implements InventoryHolder {
-        private final Inventory original;
-        private final Location location;
-
-        public InspectionHolder(Inventory original, Location location) { 
-            this.original = original; 
-            this.location = location;
-        }
-        @Override public Inventory getInventory() { return original; }
+    public record InspectionHolder(Inventory original, Location location) implements InventoryHolder {
+        @Override public @NotNull Inventory getInventory() { return original; }
         public Location getLocation() { return location; }
     }
     
@@ -945,7 +907,6 @@ public class ModeratorModeListener implements Listener {
 
         if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) return;
 
-        // VOLVEMOS A CLICK IZQUIERDO (LEFT)
         if (event.getClick() == ClickType.LEFT) {
             ItemStack clicked = event.getCurrentItem();
             if (clicked == null || clicked.getType() == Material.AIR) return;
@@ -961,9 +922,7 @@ public class ModeratorModeListener implements Listener {
                     return; 
                 }
 
-                // Ventana de tiempo válida (entre 0.5s y 3s)
                 if (diff < 3000) {
-                    // --- SEGUNDO CLICK: EJECUTAR CONFISCACIÓN ---
                     inspectionDoubleClicks.remove(player.getUniqueId());
                     
                     Inventory original = inspectionHolder.getInventory();
@@ -975,30 +934,26 @@ public class ModeratorModeListener implements Listener {
                     }
 
                     String serialized = AuditLogBook.serialize(realItem);
-                    String containerType = event.getView().getTitle().replace("Inspect: ", "");
+                    String containerType = LegacyComponentSerializer.legacySection().serialize(event.getView().title()).replace("Inspect: ", "");
                     Location loc = inspectionHolder.getLocation();
                     if (loc != null) {
                         containerType += " (" + loc.getWorld().getName() + " " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ")";
                     }
                     
                     plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, player.getUniqueId(), containerType)
-                            .thenRun(() -> {
-                                Bukkit.getScheduler().runTask(plugin, () -> {
-                                    original.setItem(event.getSlot(), null); // Borrar del inventario real
-                                    event.getInventory().setItem(event.getSlot(), null); // Borrar de la vista
-                                    MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
-                                    player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
-                                });
-                            });
+                            .thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+                                original.setItem(event.getSlot(), null);
+                                event.getInventory().setItem(event.getSlot(), null); // Borrar de la vista
+                                MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
+                                player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
+                            }));
                     return;
                 }
             }
 
-            // --- PRIMER CLICK: ADVERTENCIA ---
-            // Reiniciamos el timer si pasó mucho tiempo o es la primera vez
+
             inspectionDoubleClicks.put(player.getUniqueId(), new ClickData(event.getSlot(), now));
             
-            // Feedback Visual (Sonido y Mensaje, SIN Title)
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
             MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
         }
