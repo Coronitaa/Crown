@@ -88,6 +88,10 @@ public final class Crown extends JavaPlugin {
             this.moderatorStateUpdateTask.cancel();
         }
 
+        if (moderatorModeManager != null) {
+            moderatorModeManager.disableAllModerators();
+        }
+
         if (configManager != null) {
             Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
                     configManager.getMessage("messages.plugin_disabled")));

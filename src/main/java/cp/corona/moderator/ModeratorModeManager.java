@@ -203,6 +203,11 @@ public class ModeratorModeManager {
     private void disableModeratorMode(Player player, boolean isDisconnecting) {
         boolean wasSilent = isSilent(player.getUniqueId());
 
+        // Save preferences before disabling
+        if (activePreferences.containsKey(player.getUniqueId())) {
+            updateAndSavePreferences(player.getUniqueId(), activePreferences.get(player.getUniqueId()));
+        }
+
         PlayerState state = savedStates.remove(player.getUniqueId());
         if (state != null) {
             unvanishPlayer(player);
@@ -229,6 +234,15 @@ public class ModeratorModeManager {
 
             if (wasSilent) {
                 broadcastFakeJoin(player);
+            }
+        }
+    }
+
+    public void disableAllModerators() {
+        for (UUID uuid : savedStates.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null && player.isOnline()) {
+                disableModeratorMode(player, true);
             }
         }
     }

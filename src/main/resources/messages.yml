@@ -311,8 +311,6 @@ messages:
   confiscate_fail_gone: '{prefix}&cItem is no longer available.'
   locker_title: '&8Locker: &1{owner} &8(Pg {page})'
   locker_read_only: '{prefix}&cThis locker is Read-Only. You need &bcrown.mod.locker.admin&c to modify it.'
-  confiscate_confirm_title: '&6&lCONFIRM'
-  confiscate_confirm_subtitle: '&eClick again to confiscate'
   locker_opened_other: '{prefix}&eOpened locker of &b{target}&e.'
 
 # Section for reusable placeholder display values.
