@@ -243,10 +243,7 @@ public class MenuListener implements Listener {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
                     return;
                 }
-                if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
-                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only_in_mod");
-                    return;
-                }
+                // Allowed in Mod Mode (exception)
 
                 DropConfirmData last = dropConfirmations.get(player.getUniqueId());
                 long now = System.currentTimeMillis();
@@ -283,15 +280,17 @@ public class MenuListener implements Listener {
             } 
             // --- TAKE / COPY (Right Click) ---
             else if (event.isRightClick()) {
+                // Block both Take and Copy in Mod Mode
+                if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+                    MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only_in_mod");
+                    return;
+                }
+
                 boolean isShift = event.isShiftClick();
                 
                 if (!isShift) {
                     if (!menu.isEditable()) {
                         MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
-                        return;
-                    }
-                    if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
-                        MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only_in_mod");
                         return;
                     }
                 }
@@ -426,10 +425,7 @@ public class MenuListener implements Listener {
                 MessageUtils.sendConfigMessage(plugin, moderator, "messages.locker_read_only");
                 return;
             }
-            if (plugin.getModeratorModeManager().isInModeratorMode(moderator.getUniqueId())) {
-                 MessageUtils.sendConfigMessage(plugin, moderator, "messages.locker_read_only_in_mod");
-                 return;
-            }
+            // Allowed in Mod Mode (exception)
             
             UUID modId = moderator.getUniqueId();
             String confirmationKey = "CLEAR_LOCKER";

@@ -91,6 +91,7 @@ public class LockerMenu implements InventoryHolder {
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
             NamespacedKey idKey = new NamespacedKey(plugin, "locker_item_id");
+            boolean inModMode = plugin.getModeratorModeManager().isInModeratorMode(viewer.getUniqueId());
 
             for (int i = 0; i < items.size(); i++) {
                 DatabaseManager.ConfiscatedItemEntry entry = items.get(i);
@@ -113,9 +114,13 @@ public class LockerMenu implements InventoryHolder {
                         if (isEditable) {
                             lore.add(" ");
                             lore.add(MessageUtils.getColorMessage("&eDouble Q &7to &cDelete"));
-                            lore.add(MessageUtils.getColorMessage("&eRight-Click &7to &bTake"));
+                            if (!inModMode) {
+                                lore.add(MessageUtils.getColorMessage("&eRight-Click &7to &bTake"));
+                            }
                         }
-                        lore.add(MessageUtils.getColorMessage("&eShift+R-Click &7to &dCopy"));
+                        if (!inModMode) {
+                            lore.add(MessageUtils.getColorMessage("&eShift+R-Click &7to &dCopy"));
+                        }
                         
                         meta.setLore(lore);
                         meta.getPersistentDataContainer().set(idKey, PersistentDataType.INTEGER, entry.getId());
