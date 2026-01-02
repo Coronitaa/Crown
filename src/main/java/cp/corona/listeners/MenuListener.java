@@ -187,7 +187,7 @@ public class MenuListener implements Listener {
         // --- Bottom Inventory (Player Inv) - Add Item to Locker ---
         if (event.getClickedInventory() == event.getView().getBottomInventory()) {
             if (event.isLeftClick()) {
-                if (!menu.isEditable()) {
+                if (!menu.isEditable) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
                     return;
                 }
@@ -239,7 +239,7 @@ public class MenuListener implements Listener {
 
             // --- DELETE (Drop Key) ---
             if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
-                if (!menu.isEditable()) {
+                if (!menu.isEditable) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
                     return;
                 }
@@ -289,7 +289,7 @@ public class MenuListener implements Listener {
                 boolean isShift = event.isShiftClick();
                 
                 if (!isShift) {
-                    if (!menu.isEditable()) {
+                    if (!menu.isEditable) {
                         MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
                         return;
                     }
@@ -421,7 +421,7 @@ public class MenuListener implements Listener {
             // Get the menu instance to check ownership
             if (!(moderator.getOpenInventory().getTopInventory().getHolder() instanceof LockerMenu menu)) return;
 
-            if (!menu.isEditable()) {
+            if (!menu.isEditable) {
                 MessageUtils.sendConfigMessage(plugin, moderator, "messages.locker_read_only");
                 return;
             }

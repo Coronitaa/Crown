@@ -27,11 +27,12 @@ public class LockerMenu implements InventoryHolder {
     private final Crown plugin;
     private final Player viewer;
     private final UUID ownerUUID; // Null represents Global Locker
-    private final boolean isEditable;
-    private int page;
+    public final boolean isEditable;
+    private final int page;
     private final int entriesPerPage = 45;
     private int totalPages = 1;
 
+    @SuppressWarnings("deprecation")
     public LockerMenu(Crown plugin, Player viewer, UUID ownerUUID, int page) {
         this.plugin = plugin;
         this.viewer = viewer;
@@ -61,6 +62,7 @@ public class LockerMenu implements InventoryHolder {
         loadPageAsync();
     }
 
+    @SuppressWarnings("deprecation")
     public void loadPageAsync() {
         inventory.clear();
         placeControlItems();
@@ -100,7 +102,7 @@ public class LockerMenu implements InventoryHolder {
                 if (item != null) {
                     ItemMeta meta = item.getItemMeta();
                     if (meta != null) {
-                        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                        List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                         
                         lore.add(MessageUtils.getColorMessage("&8&m----------------")); 
                         lore.add(MessageUtils.getColorMessage("&7Confiscated: &f" + sdf.format(new Date(entry.getConfiscatedAt()))));
@@ -181,10 +183,6 @@ public class LockerMenu implements InventoryHolder {
         if (page > 1) {
             new LockerMenu(plugin, viewer, ownerUUID, page - 1).open();
         }
-    }
-
-    public boolean isEditable() {
-        return isEditable;
     }
 
     public UUID getOwnerUUID() {
