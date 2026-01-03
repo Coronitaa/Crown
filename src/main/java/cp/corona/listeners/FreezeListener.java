@@ -342,7 +342,7 @@ public class FreezeListener implements Listener {
                 for (MenuItem.ClickActionData actionData : actions) {
                     if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Executing action: " + actionData.getAction() + ", data: " + Arrays.toString(actionData.getActionData()));
                     if (menuListener != null) {
-                        menuListener.executeMenuItemAction(onlinePlayer, actionData.getAction(), actionData.getActionData());
+                        menuListener.executeMenuItemAction(onlinePlayer, actionData.getAction(), actionData.getActionData(), null);
                     } else {
                         plugin.getLogger().warning("[FreezeListener] MenuListener is null, cannot execute freeze action: " + actionData.getAction());
                     }

@@ -29,7 +29,7 @@ messages:
   player_not_online: '{prefix}&cPlayer &b{input}&c is not currently online.'
   profile_offline_error: '{prefix}&cCannot open profile for &b{input}&c because they are offline.'
   profile_self_check_error: '{prefix}&cYou cannot view your own profile.'
-  player_not_online_for_ip_punishment: '{prefix}&cPlayer &b{target}&c is not online.'
+  player_ip_not_found: '{prefix}&cPlayer &b{target}&c doesn''t have a known IP address. Change your punishment to a LOCAL method.'
 
   help_header: '&6&lCrownPunishments Commands:'
   help_punish: '&b/crown punish <player> &7- Open punishment menu.'
