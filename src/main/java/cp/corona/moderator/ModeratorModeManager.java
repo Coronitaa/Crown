@@ -3,6 +3,8 @@ package cp.corona.moderator;
 import cp.corona.crown.Crown;
 import cp.corona.utils.MessageUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -241,6 +243,7 @@ public class ModeratorModeManager {
         spectatorExpirations.remove(player.getUniqueId());
         preSpectatorVanishState.remove(player.getUniqueId());
         player.removePotionEffect(PotionEffectType.JUMP_BOOST);
+        player.removePotionEffect(PotionEffectType.JUMP_BOOST);
         player.removePotionEffect(PotionEffectType.NIGHT_VISION);
 
         if (!isDisconnecting && player.isOnline()) {
@@ -324,21 +327,15 @@ public class ModeratorModeManager {
 
     // --- Fake Messages ---
     private void broadcastFakeJoin(Player player) {
-        String msg = plugin.getConfigManager().getMessage("messages.mod_mode_fake_join");
-        if (plugin.isPlaceholderAPIEnabled()) {
-            msg = PlaceholderAPI.setPlaceholders(player, msg);
-        }
-        msg = msg.replace("{player}", player.getName());
-        Bukkit.broadcastMessage(MessageUtils.getColorMessage(msg));
+        // Use translatable component for multi-language support without firing dangerous events
+        Component msg = Component.translatable("multiplayer.player.joined", NamedTextColor.YELLOW, Component.text(player.getName()));
+        Bukkit.broadcast(msg);
     }
 
     private void broadcastFakeQuit(Player player) {
-        String msg = plugin.getConfigManager().getMessage("messages.mod_mode_fake_quit");
-        if (plugin.isPlaceholderAPIEnabled()) {
-            msg = PlaceholderAPI.setPlaceholders(player, msg);
-        }
-        msg = msg.replace("{player}", player.getName());
-        Bukkit.broadcastMessage(MessageUtils.getColorMessage(msg));
+        // Use translatable component for multi-language support without firing dangerous events
+        Component msg = Component.translatable("multiplayer.player.left", NamedTextColor.YELLOW, Component.text(player.getName()));
+        Bukkit.broadcast(msg);
     }
 
     // --- Preference Toggles & Logic ---
