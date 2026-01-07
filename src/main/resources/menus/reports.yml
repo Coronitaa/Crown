@@ -3,7 +3,7 @@
 
 report-menu:
   # Title of the book item itself.
-  book-title: "&c&lCreate a Report"
+  book-title: "<gradient:gold:yellow>Create a Report</gradient>"
   # The key of the first page to be displayed when the book is opened.
   initial-page: "root"
 
@@ -11,7 +11,7 @@ report-menu:
   # Each page has a unique key (e.g., "root", "player_categories").
   pages:
     root:
-      title: "#d39162&b&oCreate a Report"
+      title: "<gradient:gold:yellow>Create a Report</gradient>"
       options:
         - text: "#be3ac6Report a Player or Clan"
           hover: "&7Report a user or group of users."
