@@ -1397,13 +1397,6 @@ public class MenuListener implements Listener {
 
     private void openProfileIfOnline(Player viewer, UUID targetUUID) {
         if (targetUUID == null) return;
-        
-        if (viewer.getUniqueId().equals(targetUUID)) {
-            sendConfigMessage(viewer, "messages.profile_self_check_error");
-            playSound(viewer, "punish_error");
-            return;
-        }
-
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         if (target.isOnline()) {
             new ProfileMenu(targetUUID, plugin).open(viewer);
@@ -1762,18 +1755,6 @@ public class MenuListener implements Listener {
 
     private void handleNewTargetInput(Player player, String input, String origin) {
         OfflinePlayer newTarget = Bukkit.getOfflinePlayer(input);
-
-        if ("profile_menu".equals(origin)) {
-            if (newTarget.getUniqueId().equals(player.getUniqueId())) {
-                sendConfigMessage(player, "messages.profile_self_check_error");
-                return;
-            }
-            if (!newTarget.isOnline()) {
-                sendConfigMessage(player, "messages.profile_offline_error", "{input}", input);
-                return;
-            }
-        }
-
         if (!newTarget.hasPlayedBefore() && !newTarget.isOnline()) {
             sendConfigMessage(player, "messages.never_played", "{input}", input);
         } else {
@@ -2141,22 +2122,13 @@ public class MenuListener implements Listener {
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(KICK_PUNISHMENT_TYPE);
 
         String finalIpAddress = null;
-        if (byIp) {
-            if (target.isOnline()) {
-                Player targetPlayer = target.getPlayer();
-                if (targetPlayer != null) {
-                    InetSocketAddress address = targetPlayer.getAddress();
-                    if (address != null) {
-                        finalIpAddress = address.getAddress().getHostAddress();
-                    }
+        if (byIp && target.isOnline()) {
+            Player targetPlayer = target.getPlayer();
+            if (targetPlayer != null) {
+                InetSocketAddress address = targetPlayer.getAddress();
+                if (address != null) {
+                    finalIpAddress = address.getAddress().getHostAddress();
                 }
-            } else {
-                finalIpAddress = plugin.getSoftBanDatabaseManager().getLastKnownIp(targetUUID);
-            }
-
-            if (finalIpAddress == null) {
-                sendConfigMessage(player, "messages.player_ip_not_found", "{target}", target.getName());
-                return;
             }
         }
 
