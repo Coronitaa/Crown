@@ -4,11 +4,9 @@ package cp.corona.menus;
 import cp.corona.crown.Crown;
 import cp.corona.database.DatabaseManager;
 import cp.corona.utils.MessageUtils;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.hover.content.Text;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -31,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class AuditLogBook {
 
@@ -53,14 +50,14 @@ public class AuditLogBook {
         String title = plugin.getConfigManager().getAuditLogText("book.title", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
         loadingMeta.setTitle(MessageUtils.getColorMessage(title));
         loadingMeta.setAuthor(MessageUtils.getColorMessage(plugin.getConfigManager().getAuditLogText("book.author")));
-        loadingMeta.addPage("Loading audit log...");
+        loadingMeta.addPages(Component.text("Loading audit log..."));
         book.setItemMeta(loadingMeta);
 
         viewer.openBook(book);
 
-        plugin.getSoftBanDatabaseManager().getOperatorActions(targetUUID).thenAccept(logEntries -> {
-            Bukkit.getScheduler().runTask(plugin, () -> buildAndOpen(logEntries, book));
-        });
+        plugin.getSoftBanDatabaseManager().getOperatorActions(targetUUID).thenAccept(logEntries -> 
+            Bukkit.getScheduler().runTask(plugin, () -> buildAndOpen(logEntries, book))
+        );
     }
 
     private void buildAndOpen(List<DatabaseManager.AuditLogEntry> logEntries, ItemStack book) {
@@ -72,39 +69,40 @@ public class AuditLogBook {
 
         if (logEntries.isEmpty()) {
             String noLogsMessage = plugin.getConfigManager().getAuditLogText("book.no-logs-message");
-            bookMeta.setPages(MessageUtils.getColorMessage(noLogsMessage));
+            bookMeta.addPages(MessageUtils.getColorComponent(noLogsMessage));
         } else {
-            List<BaseComponent[]> pages = buildPages(logEntries);
-            bookMeta.spigot().setPages(pages);
+            List<Component> pages = buildPages(logEntries);
+            for (Component page : pages) {
+                bookMeta.addPages(page);
+            }
         }
 
         book.setItemMeta(bookMeta);
         viewer.openBook(book);
     }
 
-    private List<BaseComponent[]> buildPages(List<DatabaseManager.AuditLogEntry> logEntries) {
-        List<BaseComponent[]> pages = new ArrayList<>();
+    private List<Component> buildPages(List<DatabaseManager.AuditLogEntry> logEntries) {
+        List<Component> pages = new ArrayList<>();
         // Removed page count logic to fulfill the new requirement
         final int MAX_LINES_PER_PAGE = 7; // We can fit more lines now
 
         for (int i = 0; i < logEntries.size(); i += MAX_LINES_PER_PAGE) {
-            ComponentBuilder currentPageBuilder = new ComponentBuilder();
+            Component currentPage = Component.empty();
             List<DatabaseManager.AuditLogEntry> pageEntries = logEntries.subList(i, Math.min(i + MAX_LINES_PER_PAGE, logEntries.size()));
 
             for(DatabaseManager.AuditLogEntry entry : pageEntries) {
-                BaseComponent[] line = formatLogEntry(entry);
+                Component line = formatLogEntry(entry);
                 if (line != null) {
-                    currentPageBuilder.append(line);
-                    currentPageBuilder.append("\n\n");
+                    currentPage = currentPage.append(line).append(Component.newline()).append(Component.newline());
                 }
             }
-            pages.add(currentPageBuilder.create());
+            pages.add(currentPage);
         }
 
         return pages;
     }
 
-    private BaseComponent[] formatLogEntry(DatabaseManager.AuditLogEntry entry) {
+    private Component formatLogEntry(DatabaseManager.AuditLogEntry entry) {
         String actionTypeKey = entry.getActionType().toLowerCase();
         String formatKey = "book.line-formats." + actionTypeKey.replace("_", "-");
         String format = plugin.getConfigManager().getAuditLogText(formatKey);
@@ -112,61 +110,63 @@ public class AuditLogBook {
 
         OfflinePlayer executor = Bukkit.getOfflinePlayer(entry.getExecutorUUID());
         OfflinePlayer target = Bukkit.getOfflinePlayer(entry.getTargetUUID());
-        HoverEvent actionHoverEvent = createActionHoverEvent(entry, executor, target);
+        HoverEvent<Component> actionHoverEvent = createActionHoverEvent(entry, executor, target);
 
         format = format.replace("{executor}", executor.getName() != null ? executor.getName() : "Unknown");
 
-        ComponentBuilder builder = new ComponentBuilder();
+        Component builder = Component.empty();
 
         if (actionTypeKey.startsWith("item_")) {
-            String[] parts = format.split("(\\{item_name\\})");
+            String[] parts = format.split("(\\{item_name})");
             // Part before item
-            TextComponent preText = new TextComponent(MessageUtils.getColorMessage(parts[0]));
-            preText.setHoverEvent(actionHoverEvent);
-            builder.append(preText);
+            Component preText = MessageUtils.getColorComponent(parts[0]).hoverEvent(actionHoverEvent);
+            builder = builder.append(preText);
 
             // Item part
             String[] details = entry.getDetails().split(":", 2);
             int amount = Integer.parseInt(details[0]);
             ItemStack item = deserialize(details[1]);
             if (item != null) {
-                builder.append(createHoverableItemComponent(item));
+                builder = builder.append(createHoverableItemComponent(item));
             }
 
             // Part after item
             if (parts.length > 1) {
-                TextComponent postText = new TextComponent(MessageUtils.getColorMessage(parts[1].replace("{item_count}", String.valueOf(amount))));
-                postText.setHoverEvent(actionHoverEvent);
-                builder.append(postText);
+                Component postText = MessageUtils.getColorComponent(parts[1].replace("{item_count}", String.valueOf(amount))).hoverEvent(actionHoverEvent);
+                builder = builder.append(postText);
             }
         } else if (actionTypeKey.contains("clear")) {
             // For clear actions, the entire line is hoverable
             String lineText = format.replace("{cleared_count}", entry.getDetails());
-            TextComponent lineComponent = new TextComponent(MessageUtils.getColorMessage(lineText));
-            lineComponent.setHoverEvent(actionHoverEvent);
-            builder.append(lineComponent);
+            Component lineComponent = MessageUtils.getColorComponent(lineText).hoverEvent(actionHoverEvent);
+            builder = builder.append(lineComponent);
         }
 
-        return builder.create();
+        return builder;
     }
 
-    private HoverEvent createActionHoverEvent(DatabaseManager.AuditLogEntry entry, OfflinePlayer executor, OfflinePlayer target) {
+    private HoverEvent<Component> createActionHoverEvent(DatabaseManager.AuditLogEntry entry, OfflinePlayer executor, OfflinePlayer target) {
         Timestamp ts = entry.getTimestamp();
         String date = new SimpleDateFormat("yyyy-MM-dd").format(ts);
         String time = new SimpleDateFormat("HH:mm:ss z").format(ts);
         String inventoryType = getInventoryType(entry.getActionType());
 
         List<String> hoverLines = plugin.getConfigManager().getAuditLogConfig().getConfig().getStringList("book.hover-format");
-        String hoverText = hoverLines.stream()
-                .map(line -> line.replace("{executor}", executor.getName() != null ? executor.getName() : "Unknown"))
-                .map(line -> line.replace("{target}", target.getName() != null ? target.getName() : "Unknown"))
-                .map(line -> line.replace("{date}", date))
-                .map(line -> line.replace("{time}", time))
-                .map(line -> line.replace("{inventory_type}", inventoryType))
-                .map(MessageUtils::getColorMessage)
-                .collect(Collectors.joining("\n"));
+        Component hoverText = Component.empty();
+        for (int i = 0; i < hoverLines.size(); i++) {
+            String line = hoverLines.get(i);
+            line = line.replace("{executor}", executor.getName() != null ? executor.getName() : "Unknown")
+                    .replace("{target}", target.getName() != null ? target.getName() : "Unknown")
+                    .replace("{date}", date)
+                    .replace("{time}", time)
+                    .replace("{inventory_type}", inventoryType);
+            hoverText = hoverText.append(MessageUtils.getColorComponent(line));
+            if (i < hoverLines.size() - 1) {
+                hoverText = hoverText.append(Component.newline());
+            }
+        }
 
-        return new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(hoverText));
+        return HoverEvent.showText(hoverText);
     }
 
     private String getInventoryType(String actionType) {
@@ -177,36 +177,53 @@ public class AuditLogBook {
         return "Unknown";
     }
 
-    private TextComponent createHoverableItemComponent(ItemStack item) {
+    private Component createHoverableItemComponent(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
-        String itemName = (meta != null && meta.hasDisplayName()) ? meta.getDisplayName() : item.getType().name().replace("_", " ").toLowerCase();
+        Component itemNameComp;
+        if (meta != null && meta.hasDisplayName()) {
+            itemNameComp = meta.displayName();
+        } else {
+            String name = item.getType().name().replace("_", " ").toLowerCase();
+            itemNameComp = Component.text(name);
+        }
 
-        TextComponent itemComponent = new TextComponent(MessageUtils.getColorMessage(" &b[" + itemName + "]&r "));
+        // Create the item component for the book page: " [ItemName] "
+        // We make brackets Aqua. Name keeps its style or inherits Aqua.
+        Component itemComponent = Component.text(" [", NamedTextColor.AQUA)
+                .append(itemNameComp)
+                .append(Component.text("] ", NamedTextColor.AQUA));
 
-        ComponentBuilder hoverBuilder = new ComponentBuilder();
-        hoverBuilder.append(new TextComponent(itemName)).color(net.md_5.bungee.api.ChatColor.AQUA);
+        // Create the hover text
+        Component hoverBuilder = itemNameComp;
+        // Ensure it has a color if it doesn't have one (default to Aqua to match title style if plain)
+        if (hoverBuilder.color() == null) {
+            hoverBuilder = hoverBuilder.color(NamedTextColor.AQUA);
+        }
 
         if (meta != null) {
             if (meta.hasEnchants()) {
                 for (Map.Entry<Enchantment, Integer> enchant : meta.getEnchants().entrySet()) {
-                    hoverBuilder.append("\n").reset();
+                    hoverBuilder = hoverBuilder.append(Component.newline());
                     String enchantName = enchant.getKey().getKey().getKey().replace("_", " ");
                     enchantName = enchantName.substring(0, 1).toUpperCase() + enchantName.substring(1);
-                    hoverBuilder.append(new TextComponent(enchantName + " " + enchant.getValue())).color(net.md_5.bungee.api.ChatColor.GRAY);
+                    hoverBuilder = hoverBuilder.append(Component.text(enchantName + " " + enchant.getValue(), NamedTextColor.GRAY));
                 }
             }
             if (meta.hasLore()) {
-                hoverBuilder.append("\n"); // Add a space before lore
-                for (String loreLine : meta.getLore()) {
-                    hoverBuilder.append("\n").reset().append(new TextComponent(MessageUtils.getColorMessage(loreLine)));
+                List<Component> lore = meta.lore();
+                if (lore != null) {
+                    hoverBuilder = hoverBuilder.append(Component.newline());
+                    for (Component loreLine : lore) {
+                        hoverBuilder = hoverBuilder.append(Component.newline()).append(loreLine);
+                    }
                 }
             }
         }
 
-        itemComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(hoverBuilder.create())));
-        return itemComponent;
+        return itemComponent.hoverEvent(HoverEvent.showText(hoverBuilder));
     }
 
+    @SuppressWarnings("deprecation")
     public static String serialize(ItemStack item) {
         if (item == null) return "null";
         try {
@@ -220,6 +237,7 @@ public class AuditLogBook {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static ItemStack deserialize(String data) {
         if (data == null || data.equals("null")) return null;
         try {
@@ -229,7 +247,7 @@ public class AuditLogBook {
             dataInput.close();
             return item;
         } catch (IOException | ClassNotFoundException e) {
-            Bukkit.getLogger().log(Level.SEVERE, "Unable to deserialize item stack.", e);
+            Bukkit.getServer().getLogger().log(Level.SEVERE, "Unable to deserialize item stack.", e);
             return null;
         }
     }

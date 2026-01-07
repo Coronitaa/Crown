@@ -11,13 +11,13 @@ report-menu:
   # Each page has a unique key (e.g., "root", "player_categories").
   pages:
     root:
-      title: "Create a Report"
+      title: "#d39162&b&oCreate a Report"
       options:
-        - text: "&bReport a Player or Clan"
+        - text: "#be3ac6Report a Player or Clan"
           hover: "&7Report a user or group of users."
           # GOTO action navigates to another page defined in this file.
           action: "GOTO:select_target_type"
-        - text: "&bReport a Server Issue"
+        - text: "#7972d7Report a Server Issue"
           hover: "&7Report bugs, lag, or other server problems."
           # This action navigates, and also sets the report type and target name.
           action: "GOTO:server_categories;SET_TYPE:SERVER;SET_TARGET:Server"

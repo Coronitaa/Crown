@@ -1,6 +1,8 @@
 // utils/ColorUtils.java
 package cp.corona.utils;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatColor;
 
 import java.util.regex.Matcher;
@@ -48,5 +50,20 @@ public final class ColorUtils {
 
         // Translate legacy color codes and return the final colored string
         return ChatColor.translateAlternateColorCodes('&', buffer.toString());
+    }
+
+    /**
+     * Parses a string with color codes (including RGB codes) into an Adventure Component.
+     *
+     * @param message The message to be parsed.
+     * @return The parsed Component.
+     */
+    public static Component parseComponent(String message) {
+        if (message == null || message.isEmpty()) {
+            return Component.empty();
+        }
+        // Reuse the logic to get a legacy string with colors, then deserialize it to a Component
+        String legacyText = translateRGBColors(message);
+        return LegacyComponentSerializer.legacySection().deserialize(legacyText);
     }
 }

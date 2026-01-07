@@ -3,12 +3,10 @@ package cp.corona.report;
 import cp.corona.config.MainConfigManager;
 import cp.corona.crown.Crown;
 import cp.corona.utils.MessageUtils;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.hover.content.Text;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -155,19 +153,18 @@ public class ReportBookManager {
             return;
         }
 
-        ComponentBuilder pageBuilder = new ComponentBuilder();
-        pageBuilder.append(createTitle(pageConfig.title()));
+        Component pageContent = createTitle(pageConfig.title());
 
         for (MainConfigManager.ReportOption option : pageConfig.options()) {
-            pageBuilder.append(createClickableOption(option)).append("\n\n");
+            pageContent = pageContent.append(createClickableOption(option)).append(Component.newline()).append(Component.newline());
         }
 
-        openBook(player, pageConfig.title(), pageBuilder.create());
+        openBook(player, pageConfig.title(), pageContent);
     }
 
     // FIXED: Command generation logic to support multi-actions cleanly.
-    private TextComponent createClickableOption(MainConfigManager.ReportOption option) {
-        TextComponent component = new TextComponent(MessageUtils.getColorMessage(option.text()));
+    private Component createClickableOption(MainConfigManager.ReportOption option) {
+        Component component = MessageUtils.getColorComponent(option.text());
 
         StringBuilder commandBuilder = new StringBuilder("/crown report_internal ");
         String[] actions = option.action().split(";");
@@ -189,28 +186,26 @@ public class ReportBookManager {
             }
         }
 
-        component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, commandBuilder.toString().trim()));
+        component = component.clickEvent(ClickEvent.runCommand(commandBuilder.toString().trim()));
 
         if (option.hover() != null && !option.hover().isEmpty()) {
-            component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(MessageUtils.getColorMessage(option.hover()))));
+            component = component.hoverEvent(HoverEvent.showText(MessageUtils.getColorComponent(option.hover())));
         }
         return component;
     }
 
-    private void openBook(Player player, String title, BaseComponent[] page) {
+    private void openBook(Player player, String title, Component page) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta meta = (BookMeta) book.getItemMeta();
         meta.setTitle(MessageUtils.getColorMessage(plugin.getConfigManager().getReportBookTitle()));
         meta.setAuthor("Crown System");
-        meta.spigot().addPage(page);
+        meta.addPages(page);
         book.setItemMeta(meta);
         player.openBook(book);
     }
 
-    private TextComponent createTitle(String text) {
-        TextComponent title = new TextComponent(text + "\n\n");
-        title.setBold(true);
-        return title;
+    private Component createTitle(String text) {
+        return MessageUtils.getColorComponent(text + "\n\n").decorate(TextDecoration.BOLD);
     }
 
     public void createDirectReport(Player player, OfflinePlayer target, String reason) {

@@ -2,6 +2,7 @@ package cp.corona.utils;
 
 import cp.corona.config.MainConfigManager;
 import cp.corona.crown.Crown;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -27,6 +28,16 @@ public class MessageUtils {
             return message; // Return original message if null or empty
         }
         return ColorUtils.translateRGBColors(message); // Use ColorUtils to translate colors
+    }
+
+    /**
+     * Gets a color formatted component, supporting both legacy and RGB color codes.
+     *
+     * @param message The message to format with colors.
+     * @return The color formatted component.
+     */
+    public static Component getColorComponent(String message) {
+        return ColorUtils.parseComponent(message);
     }
 
     /**
