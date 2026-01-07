@@ -988,7 +988,9 @@ public class ModeratorModeListener implements Listener {
         if (diff < 200) return; // Debounce
 
         if (diff <= 2000) { // Confirm within 2 seconds
-            inspectionDoubleClicks.remove(playerUUID); // Clear confirmation state
+            // Update timestamp to prevent double-firing events from triggering "new click" logic
+            // and to debounce subsequent clicks while item is being removed.
+            inspectionDoubleClicks.put(playerUUID, new ClickData(currentSlot, now));
 
             Inventory original = inspectionHolder.getOriginalInventory();
             ItemStack realItem = original.getItem(currentSlot);
