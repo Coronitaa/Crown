@@ -239,8 +239,8 @@ public class ReportsMenu implements InventoryHolder {
     }
 
     public void cycleFilterStatus() {
-        this.filterAssignedToMe = false;
-        this.reportTypeFilter = null;
+        // this.filterAssignedToMe = false; // REMOVED: Allow simultaneous filters
+        // this.reportTypeFilter = null; // REMOVED: Allow simultaneous filters
         if (filterStatus == null) {
             filterStatus = ReportStatus.PENDING;
         } else {
@@ -251,15 +251,15 @@ public class ReportsMenu implements InventoryHolder {
                 filterStatus = ReportStatus.values()[nextOrdinal];
             }
         }
-        this.filterName = null;
+        // this.filterName = null; // REMOVED: Allow simultaneous filters
         page = 1;
         loadPageAsync();
     }
 
     public void cycleReportTypeFilter() {
-        this.filterAssignedToMe = false;
-        this.filterStatus = null;
-        this.filterName = null;
+        // this.filterAssignedToMe = false; // REMOVED: Allow simultaneous filters
+        // this.filterStatus = null; // REMOVED: Allow simultaneous filters
+        // this.filterName = null; // REMOVED: Allow simultaneous filters
 
         if (reportTypeFilter == null) {
             reportTypeFilter = "PLAYER";
@@ -277,18 +277,18 @@ public class ReportsMenu implements InventoryHolder {
     public void setFilterName(String name, boolean asRequester) {
         this.filterName = name;
         this.filterAsRequester = asRequester;
-        this.filterAssignedToMe = false;
-        this.filterStatus = null;
-        this.reportTypeFilter = null;
+        // this.filterAssignedToMe = false; // REMOVED: Allow simultaneous filters
+        // this.filterStatus = null; // REMOVED: Allow simultaneous filters
+        // this.reportTypeFilter = null; // REMOVED: Allow simultaneous filters
         this.page = 1;
         loadPageAsync();
     }
 
     public void toggleMyReportsFilter() {
         this.filterAssignedToMe = !this.filterAssignedToMe;
-        this.filterName = null;
-        this.filterStatus = null;
-        this.reportTypeFilter = null;
+        // this.filterName = null; // REMOVED: Allow simultaneous filters
+        // this.filterStatus = null; // REMOVED: Allow simultaneous filters
+        // this.reportTypeFilter = null; // REMOVED: Allow simultaneous filters
         this.page = 1;
         loadPageAsync();
     }

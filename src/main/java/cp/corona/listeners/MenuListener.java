@@ -149,8 +149,8 @@ public class MenuListener implements Listener {
                 topHolder instanceof EnderChestMenu || topHolder instanceof ReportsMenu || topHolder instanceof ReportDetailsMenu;
 
         if (topHolder instanceof LockerMenu lockerMenu) {
-             handleLockerMenuClick(event, player, lockerMenu);
-             return;
+            handleLockerMenuClick(event, player, lockerMenu);
+            return;
         }
 
         if (!isPluginMenu) {
@@ -192,7 +192,7 @@ public class MenuListener implements Listener {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
                     return;
                 }
-                
+
                 if (plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only_in_mod");
                     return;
@@ -272,14 +272,14 @@ public class MenuListener implements Listener {
                         dropConfirmations.remove(player.getUniqueId());
                         return;
                     }
-                } 
-                
+                }
+
                 // Primer Drop o tiempo expirado
                 dropConfirmations.put(player.getUniqueId(), new DropConfirmData(slot, now));
                 MessageUtils.sendConfigMessage(plugin, player, "messages.locker_drop_confirm");
                 playSound(player, "confirm_again");
-                
-            } 
+
+            }
             // --- TAKE / COPY (Right Click) ---
             else if (event.isRightClick()) {
                 // Block both Take and Copy in Mod Mode
@@ -289,7 +289,7 @@ public class MenuListener implements Listener {
                 }
 
                 boolean isShift = event.isShiftClick();
-                
+
                 if (!isShift) {
                     if (!menu.isEditable) {
                         MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
@@ -428,11 +428,11 @@ public class MenuListener implements Listener {
                 return;
             }
             // Allowed in Mod Mode (exception)
-            
+
             UUID modId = moderator.getUniqueId();
             String confirmationKey = "CLEAR_LOCKER";
             ConfirmationContext context = pendingConfirmations.get(modId);
-    
+
             if (context != null && context.confirmationKey.equals(confirmationKey)) {
                 cancelExistingConfirmation(moderator);
                 // Clear items for the LOCKER OWNER
@@ -442,19 +442,19 @@ public class MenuListener implements Listener {
                     playSound(moderator, "punish_confirm");
                 }));
             } else {
-                 cancelExistingConfirmation(moderator);
-                 MenuItem confirmState = clickedItem.getConfirmState();
-                 if (confirmState != null) {
-                     event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(null, plugin.getConfigManager()));
-                     playSound(moderator, "confirm_again");
-                 }
-                 
-                 BukkitTask task = new BukkitRunnable() {
-                    @Override public void run() { cancelExistingConfirmation(moderator); }
-                 }.runTaskLater(plugin, 100L);
+                cancelExistingConfirmation(moderator);
+                MenuItem confirmState = clickedItem.getConfirmState();
+                if (confirmState != null) {
+                    event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(null, plugin.getConfigManager()));
+                    playSound(moderator, "confirm_again");
+                }
 
-                 ConfirmationContext newContext = new ConfirmationContext(event.getInventory(), event.getSlot(), clickedItem.toItemStack(null, plugin.getConfigManager()), task, confirmationKey);
-                 pendingConfirmations.put(modId, newContext);
+                BukkitTask task = new BukkitRunnable() {
+                    @Override public void run() { cancelExistingConfirmation(moderator); }
+                }.runTaskLater(plugin, 100L);
+
+                ConfirmationContext newContext = new ConfirmationContext(event.getInventory(), event.getSlot(), clickedItem.toItemStack(null, plugin.getConfigManager()), task, confirmationKey);
+                pendingConfirmations.put(modId, newContext);
             }
             return;
         }
@@ -1397,6 +1397,13 @@ public class MenuListener implements Listener {
 
     private void openProfileIfOnline(Player viewer, UUID targetUUID) {
         if (targetUUID == null) return;
+
+        if (viewer.getUniqueId().equals(targetUUID)) {
+            sendConfigMessage(viewer, "messages.profile_self_check_error");
+            playSound(viewer, "punish_error");
+            return;
+        }
+
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         if (target.isOnline()) {
             new ProfileMenu(targetUUID, plugin).open(viewer);
@@ -1755,6 +1762,18 @@ public class MenuListener implements Listener {
 
     private void handleNewTargetInput(Player player, String input, String origin) {
         OfflinePlayer newTarget = Bukkit.getOfflinePlayer(input);
+
+        if ("profile_menu".equals(origin)) {
+            if (newTarget.getUniqueId().equals(player.getUniqueId())) {
+                sendConfigMessage(player, "messages.profile_self_check_error");
+                return;
+            }
+            if (!newTarget.isOnline()) {
+                sendConfigMessage(player, "messages.profile_offline_error", "{input}", input);
+                return;
+            }
+        }
+
         if (!newTarget.hasPlayedBefore() && !newTarget.isOnline()) {
             sendConfigMessage(player, "messages.never_played", "{input}", input);
         } else {
@@ -2122,13 +2141,22 @@ public class MenuListener implements Listener {
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(KICK_PUNISHMENT_TYPE);
 
         String finalIpAddress = null;
-        if (byIp && target.isOnline()) {
-            Player targetPlayer = target.getPlayer();
-            if (targetPlayer != null) {
-                InetSocketAddress address = targetPlayer.getAddress();
-                if (address != null) {
-                    finalIpAddress = address.getAddress().getHostAddress();
+        if (byIp) {
+            if (target.isOnline()) {
+                Player targetPlayer = target.getPlayer();
+                if (targetPlayer != null) {
+                    InetSocketAddress address = targetPlayer.getAddress();
+                    if (address != null) {
+                        finalIpAddress = address.getAddress().getHostAddress();
+                    }
                 }
+            } else {
+                finalIpAddress = plugin.getSoftBanDatabaseManager().getLastKnownIp(targetUUID);
+            }
+
+            if (finalIpAddress == null) {
+                sendConfigMessage(player, "messages.player_ip_not_found", "{target}", target.getName());
+                return;
             }
         }
 
