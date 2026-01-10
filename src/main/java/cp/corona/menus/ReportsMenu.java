@@ -187,25 +187,42 @@ public class ReportsMenu implements InventoryHolder {
             if (itemConfig != null) {
                 ItemStack item = itemConfig.toItemStack(null, plugin.getConfigManager());
                 ItemMeta meta = item.getItemMeta();
-                if (meta != null && meta.hasLore()) {
-                    List<String> newLore = new ArrayList<>();
-                    String statusDisplay = filterStatus != null ? filterStatus.getColor() + filterStatus.getDisplayName() : "&bAll";
-                    String nameDisplay = filterName != null ? (filterAsRequester ? "Requester: " : "Target: ") + filterName : "None";
+                
+                String statusDisplay = filterStatus != null ? filterStatus.getColor() + filterStatus.getDisplayName() : "&bAll";
+                String nameDisplay = filterName != null ? (filterAsRequester ? "Requester: " : "Target: ") + filterName : "None";
+                String requesterName = (filterName != null && filterAsRequester) ? filterName : "None";
+                String targetName = (filterName != null && !filterAsRequester) ? filterName : "None";
 
-                    for (String line : meta.getLore()) {
-                        newLore.add(MessageUtils.getColorMessage(line
+                if (meta != null) {
+                    if (meta.hasDisplayName()) {
+                        meta.setDisplayName(MessageUtils.getColorMessage(meta.getDisplayName()
                                 .replace("{filter_status}", statusDisplay)
                                 .replace("{filter_name}", nameDisplay)
                                 .replace("{filter_type}", reportTypeFilter != null ? reportTypeFilter : "All")
+                                .replace("{requester}", requesterName)
+                                .replace("{target}", targetName)
                         ));
                     }
 
-                    if (key.equals("filter_my_reports")) {
-                        newLore.add("");
-                        newLore.add(MessageUtils.getColorMessage(filterAssignedToMe ? "&a&lACTIVE" : "&c&lINACTIVE"));
-                    }
+                    if (meta.hasLore()) {
+                        List<String> newLore = new ArrayList<>();
+                        for (String line : meta.getLore()) {
+                            newLore.add(MessageUtils.getColorMessage(line
+                                    .replace("{filter_status}", statusDisplay)
+                                    .replace("{filter_name}", nameDisplay)
+                                    .replace("{filter_type}", reportTypeFilter != null ? reportTypeFilter : "All")
+                                    .replace("{requester}", requesterName)
+                                    .replace("{target}", targetName)
+                            ));
+                        }
 
-                    meta.setLore(newLore);
+                        if (key.equals("filter_my_reports")) {
+                            newLore.add("");
+                            newLore.add(MessageUtils.getColorMessage(filterAssignedToMe ? "&a&lACTIVE" : "&c&lINACTIVE"));
+                        }
+
+                        meta.setLore(newLore);
+                    }
                     item.setItemMeta(meta);
                 }
 

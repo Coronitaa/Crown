@@ -63,7 +63,7 @@ menu:
         - '&eLeft-Click to see reports against them.'
         - '&eRight-Click to see their history.'
       left_click_actions:
-        - 'PLAYER_COMMAND:reports {requester}' # MODIFIED
+        - 'REPORTS_FILTER_REQUESTER'
       right_click_actions:
         - 'HISTORY_REQUESTER'
 
@@ -202,4 +202,3 @@ menu:
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_REPORTS_MENU'
-
