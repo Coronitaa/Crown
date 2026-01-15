@@ -336,6 +336,12 @@ public class PunishDetailsMenu implements InventoryHolder {
         updateConfirmButtonStatus();
     }
 
+    public void setByIp(boolean byIp) {
+        this.byIp = byIp;
+        updateToggleMethodItem();
+        updateConfirmButtonStatus();
+    }
+
     public void updateToggleMethodItem() {
         ItemStack toggleItem = getToggleMethodItem();
         if (toggleItem != null) {

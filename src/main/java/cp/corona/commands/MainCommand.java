@@ -476,6 +476,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     PunishDetailsMenu detailsMenu = new PunishDetailsMenu(target.getUniqueId(), plugin, entry.getType());
                     detailsMenu.setBanReason(entry.getReason());
                     detailsMenu.setBanTime(entry.getDurationString());
+                    detailsMenu.setByIp(entry.wasByIp());
                     detailsMenu.open((Player) sender);
                 } else {
                     sendConfigMessage(sender, "messages.player_only");
