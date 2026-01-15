@@ -258,13 +258,18 @@ public class PunishDetailsMenu implements InventoryHolder {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             String methodName = byIp ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
+            String displayTime = this.banTime != null ? this.banTime : plugin.getConfigManager().getMessage("placeholders.not_set");
+            String displayReason = this.banReason != null ? this.banReason : plugin.getConfigManager().getMessage("placeholders.not_set");
+
             List<String> lore = plugin.getConfigManager().getDetailsMenuItemLore(
                     punishmentType,
                     CONFIRM_PUNISH_KEY,
                     target,
                     "{method}", methodName,
                     "{time_status}", getTimeStatusText(),
-                    "{reason_status}", getReasonStatusText()
+                    "{reason_status}", getReasonStatusText(),
+                    "{time}", displayTime,
+                    "{reason}", displayReason
             );
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -305,11 +310,13 @@ public class PunishDetailsMenu implements InventoryHolder {
     }
 
     private String getReasonStatusText() {
+        if (reasonSet) {
+            return MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.set"));
+        }
         if (!reasonRequiredForConfirmation) {
             return MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.optional_not_set"));
         }
-        return reasonSet ? MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.set"))
-                : MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.not_set"));
+        return MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("placeholders.not_set"));
     }
 
     @Override
