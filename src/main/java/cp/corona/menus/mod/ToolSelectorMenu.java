@@ -1,9 +1,8 @@
-package cp.corona.menus;
+package cp.corona.menus.mod;
 
 import cp.corona.crown.Crown;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
@@ -18,7 +17,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ToolSelectorMenu implements InventoryHolder {
 

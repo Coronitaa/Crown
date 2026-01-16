@@ -1,5 +1,5 @@
 // PunishMenu.java
-package cp.corona.menus;
+package cp.corona.menus.punish;
 
 import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;

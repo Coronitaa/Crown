@@ -1,4 +1,4 @@
-package cp.corona.menus;
+package cp.corona.menus.punish;
 
 import cp.corona.crown.Crown;
 import cp.corona.database.ActiveWarningEntry;
@@ -17,7 +17,6 @@ import org.jetbrains.annotations.NotNull;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public class HistoryMenu implements InventoryHolder {

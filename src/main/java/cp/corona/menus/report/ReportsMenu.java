@@ -1,4 +1,4 @@
-package cp.corona.menus;
+package cp.corona.menus.report;
 
 import cp.corona.crown.Crown;
 import cp.corona.database.DatabaseManager;

@@ -1,4 +1,4 @@
-package cp.corona.menus;
+package cp.corona.menus.mod;
 
 import cp.corona.crown.Crown;
 import cp.corona.moderator.ModeratorModeManager;

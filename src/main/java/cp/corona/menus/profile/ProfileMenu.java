@@ -1,11 +1,10 @@
 // C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\ProfileMenu.java
-package cp.corona.menus;
+package cp.corona.menus.profile;
 
 import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.TimeUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
 import org.bukkit.entity.Player;

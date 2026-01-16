@@ -1,7 +1,12 @@
 package cp.corona.moderator;
 
 import cp.corona.crown.Crown;
-import cp.corona.menus.*;
+import cp.corona.menus.mod.ModSettingsMenu;
+import cp.corona.menus.mod.ToolSelectorMenu;
+import cp.corona.menus.profile.AuditLogBook;
+import cp.corona.menus.profile.ProfileMenu;
+import cp.corona.menus.punish.PunishMenu;
+import cp.corona.menus.report.ReportsMenu;
 import cp.corona.utils.MessageUtils;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;

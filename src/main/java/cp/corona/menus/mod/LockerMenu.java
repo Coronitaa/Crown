@@ -1,7 +1,8 @@
-package cp.corona.menus;
+package cp.corona.menus.mod;
 
 import cp.corona.crown.Crown;
 import cp.corona.database.DatabaseManager;
+import cp.corona.menus.profile.AuditLogBook;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;

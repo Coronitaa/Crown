@@ -1,5 +1,5 @@
 // C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\FullInventoryMenu.java
-package cp.corona.menus;
+package cp.corona.menus.profile;
 
 import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;

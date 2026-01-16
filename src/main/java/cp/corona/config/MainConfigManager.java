@@ -2,7 +2,7 @@ package cp.corona.config;
 
 import cp.corona.crown.Crown;
 import cp.corona.database.DatabaseManager;
-import cp.corona.menus.PunishDetailsMenu;
+import cp.corona.menus.punish.PunishDetailsMenu;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.menus.items.MenuItem.ClickActionData;
 import cp.corona.utils.MessageUtils;
@@ -67,19 +67,28 @@ public class MainConfigManager {
 
         messagesConfig = new CustomConfig("messages.yml", null, plugin, false);
         pluginConfig = new CustomConfig("config.yml", null, plugin, false);
-        punishMenuConfig = new CustomConfig("punish_menu.yml", "menus", plugin, false);
-        punishDetailsMenuConfig = new CustomConfig("punish_details_menu.yml", "menus", plugin, false);
-        timeSelectorMenuConfig = new CustomConfig("time_selector_menu.yml", "menus", plugin, false);
-        historyMenuConfig = new CustomConfig("history_menu.yml", "menus", plugin, false);
-        profileMenuConfig = new CustomConfig("profile_menu.yml", "menus", plugin, false);
-        fullInventoryMenuConfig = new CustomConfig("full_inventory_menu.yml", "menus", plugin, false);
-        enderChestMenuConfig = new CustomConfig("enderchest_menu.yml", "menus", plugin, false);
-        auditLogConfig = new CustomConfig("audit_log.yml", "menus", plugin, false);
-        reportsMenuConfig = new CustomConfig("reports_menu.yml", "menus", plugin, false);
-        reportDetailsMenuConfig = new CustomConfig("report_details_menu.yml", "menus", plugin, false);
-        reportsConfig = new CustomConfig("reports.yml", "menus", plugin, false);
+        
+        // Punish Menus
+        punishMenuConfig = new CustomConfig("punish_menu.yml", "menus/punish", plugin, false);
+        punishDetailsMenuConfig = new CustomConfig("punish_details_menu.yml", "menus/punish", plugin, false);
+        timeSelectorMenuConfig = new CustomConfig("time_selector_menu.yml", "menus/punish", plugin, false);
+        historyMenuConfig = new CustomConfig("history_menu.yml", "menus/punish", plugin, false);
+        
+        // Profile Menus
+        profileMenuConfig = new CustomConfig("profile_menu.yml", "menus/profile", plugin, false);
+        fullInventoryMenuConfig = new CustomConfig("full_inventory_menu.yml", "menus/profile", plugin, false);
+        enderChestMenuConfig = new CustomConfig("enderchest_menu.yml", "menus/profile", plugin, false);
+        auditLogConfig = new CustomConfig("audit_log.yml", "menus/profile", plugin, false);
+        
+        // Report Menus
+        reportsMenuConfig = new CustomConfig("reports_menu.yml", "menus/report", plugin, false);
+        reportDetailsMenuConfig = new CustomConfig("report_details_menu.yml", "menus/report", plugin, false);
+        reportsConfig = new CustomConfig("reports.yml", "menus/report", plugin, false);
+        
+        // Mod Menus
+        lockerMenuConfig = new CustomConfig("locker_menu.yml", "menus/mod", plugin, false);
+        
         modModeConfig = new CustomConfig("mod_mode.yml", null, plugin, false);
-        lockerMenuConfig = new CustomConfig("locker_menu.yml", "menus", plugin, false);
 
         Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
                 punishmentConfigs.put(punishment, new CustomConfig(punishment + ".yml", "punishments", plugin, false))

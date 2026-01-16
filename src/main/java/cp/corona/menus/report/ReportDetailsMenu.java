@@ -1,6 +1,6 @@
 // --- FILE: ReportDetailsMenu.java ---
 // --- PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\ReportDetailsMenu.java ---
-package cp.corona.menus;
+package cp.corona.menus.report;
 
 import cp.corona.crown.Crown;
 import cp.corona.database.DatabaseManager;
@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.time.Duration;
 
 public class ReportDetailsMenu implements InventoryHolder {
 

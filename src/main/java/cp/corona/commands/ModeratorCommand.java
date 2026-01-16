@@ -1,7 +1,7 @@
 package cp.corona.commands;
 
 import cp.corona.crown.Crown;
-import cp.corona.menus.LockerMenu;
+import cp.corona.menus.mod.LockerMenu;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
