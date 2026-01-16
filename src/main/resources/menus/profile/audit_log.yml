@@ -1,6 +1,23 @@
-# PATH: src/main/resources/menus/audit_log.yml
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/profile/audit_log.yml
 # Configuration for the operator audit log book.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# This book displays a history of operator actions (inventory edits, clears) performed on a player.
+# Access: Via the Profile Menu ("Operator Log" button).
+
+# --- Available Placeholders ---
+# General:
+# - {target}: Target player's name.
+# Hover Format:
+# - {executor}: Name of the operator who performed the action.
+# - {target}: Name of the player affected.
+# - {date}: Date of the action.
+# - {time}: Time of the action.
+# - {inventory_type}: Type of inventory affected (Inventory, Ender Chest, Profile).
+# Line Formats:
+# - {executor}: Name of the operator.
+# - {item_name}: Name of the item involved (for item actions).
+# - {item_count}: Quantity of the item involved (for item actions).
+# - {cleared_count}: Number of items cleared (for clear actions).
 
 book:
   title: '&cAudit Log: &4{target}'
@@ -8,7 +25,6 @@ book:
   no-logs-message: "&4No operator actions have been recorded for this player yet."
 
   # Format for the hover-over tooltip on the main action text.
-  # Placeholders: {executor}, {target}, {date}, {time}, {inventory_type}
   hover-format:
     - "&eAction Details"
     - "&7Executor: &b{executor}"
@@ -17,9 +33,7 @@ book:
     - "&7Time: &f{time}"
     - "&7Inventory: &f{inventory_type}"
 
-  # Placeholders: {executor}
-  # Item Placeholders: {item_name}, {item_count}
-  # Clear Placeholders: {cleared_count}
+  # Format for each log entry line based on the action type.
   line-formats:
     clear-inventory: "&7{executor} &ccleared the inventory ({cleared_count} items)."
     clear-ender-chest: "&7{executor} &ccleared the ender chest ({cleared_count} items)."

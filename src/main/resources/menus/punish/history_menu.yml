@@ -1,7 +1,8 @@
-# PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\resources\menus\history_menu.yml
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/punish/history_menu.yml
 # Configuration file for the punishment history menu.
 # Displays a player's past punishments with pagination.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# Access: /history <player> or via other menus.
 
 # --- Available Actions ---
 # - PLAYER_COMMAND:<command>         (e.g., PLAYER_COMMAND:check {punishment_id})
@@ -24,8 +25,10 @@
 # - {duration}: Recorded duration string (e.g., "1d", "Permanent", "N/A").
 # - {punishment_id}: The unique ID of the punishment record.
 # - {method}: The method of punishment (IP/Local).
+# - {status}: The current status of the punishment (Active, Expired, Removed, Paused).
 # Summary Specific (within punishment_counts_item lore):
 # - {ban_count}, {mute_count}, {kick_count}, {softban_count}, {warn_count}, {freeze_count}
+# - {active_ban_count}, {active_mute_count}, ...
 
 menu:
   title: '&8&lHistory: &b{target}'

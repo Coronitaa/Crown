@@ -1,5 +1,18 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/report/reports.yml
 # Configuration for the dynamic /report book menu.
 # This file allows you to create a multi-page book interface for reporting.
+# Access: /report
+
+# --- Available Actions ---
+# - GOTO:<page_key>: Navigates to another page defined in this file.
+# - SET_TYPE:<type>: Sets the report type (PLAYER, CLAN, SERVER).
+# - SET_TARGET:<target>: Sets the target name (e.g., "Server").
+# - SET_CATEGORY:<category>: Sets the report category.
+# - SELECT_REASON:<reason>: Sets the specific reason and proceeds to request details.
+# - REQUEST_INPUT:<input_type>[:<next_page>]: Prompts the user for input.
+#   - Input Types: PLAYER, CLAN, CUSTOM_REASON.
+#   - If <next_page> is provided, navigates there after input.
 
 report-menu:
   # Title of the book item itself.

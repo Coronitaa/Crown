@@ -1,23 +1,49 @@
-# PATH: src/main/resources/menus/profile_menu.yml
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/profile/profile_menu.yml
 # Configuration for the player profile menu.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# This menu displays detailed information about a player and provides access to other management menus.
+# Access: /profile <player> or via other menus.
 
 # --- Available Actions ---
-# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu, OPEN_MENU:full_inventory_menu)
-# - OPEN_AUDIT_LOG:                  (Opens the new operator log book)
+# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu, OPEN_MENU:full_inventory_menu, OPEN_MENU:enderchest_menu)
+# - OPEN_AUDIT_LOG:                  (Opens the operator log book for the target)
+# - REQUEST_INPUT:<input_type>       (e.g., REQUEST_INPUT:change_target)
 # - CONSOLE_COMMAND:<command>
 # - PLAYER_COMMAND:<command>
 # - PLAYER_COMMAND_OP:<command>
 # - PLAY_SOUND:<sound>:<vol>:<pitch>
 # - CLOSE_MENU:
-# - REQUEST_INPUT:<input_type>
 # - NO_ACTION:
+# - TITLE:<title>:<subtitle>:<time>
+# - MESSAGE:<message>
+# - ACTIONBAR:<message>
+# - PLAY_SOUND_TARGET:<sound>:<vol>:<pitch>
+# - TITLE_TARGET:<title>:<subtitle>:<time>
+# - MESSAGE_TARGET:<message>
+# - ACTIONBAR_TARGET:<message>
+# - GIVE_EFFECT_TARGET:<effect>:<duration>:<amplifier>
+# - PLAY_SOUND_MODS:<sound>:<vol>:<pitch>
+# - TITLE_MODS:<title>:<subtitle>:<time>
+# - MESSAGE_MODS:<message>
 
 # --- Available Placeholders ---
-# (Refer to messages.yml for the full list)
 # - {target}: Target player's name.
 # - {player}: Player viewing the menu.
-# - {xp_level}, {play_time}, {health}, {food_level}, {player_kills}, {deaths}
+# - {xp_level}: Target's experience level.
+# - {play_time}: Target's total playtime.
+# - {health}: Target's current health.
+# - {food_level}: Target's food level.
+# - {player_kills}: Number of players killed by target.
+# - {deaths}: Number of times target has died.
+# - {target_ip}: Target's IP address.
+# - {target_coords}: Target's current coordinates.
+# - {target_world}: Target's current world.
+# - {target_online}: Online status symbol.
+# - {target_softban_status}: Softban status symbol.
+# - {target_softban_remaining_time}: Remaining softban time.
+# - {ban_count}, {mute_count}, {kick_count}, {softban_count}, {warn_count}, {freeze_count}: Total punishment counts.
+# - {active_ban_count}, {active_mute_count}, ...: Active punishment counts.
+# - {punish_count}: Total of all punishments.
 
 menu:
   title: '&8&lProfile: &b{target}'

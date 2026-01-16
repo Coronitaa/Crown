@@ -1,6 +1,8 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/punish/time_selector_menu.yml
 # Configuration file for the Time Selector Menu.
 # Used to select punishment durations (ban, mute, softban).
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# Access: Via the Punish Details Menu when setting time.
 
 # --- Available Actions ---
 # - ADJUST_TIME:<time_adjustment_key> (e.g., ADJUST_TIME:plus_1_day, ADJUST_TIME:minus_5_min)

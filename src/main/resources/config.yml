@@ -1,5 +1,12 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/config.yml
 # Main configuration file for Crown plugin.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# Defines global settings, database connection, sounds, and system parameters.
+
+# --- Available Placeholders ---
+# - {prefix}: The plugin prefix defined below.
+# - {support_link}: The support link defined below.
+
 
 prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Supports color codes (&) and RGB hex codes (#RRGGBB).
 

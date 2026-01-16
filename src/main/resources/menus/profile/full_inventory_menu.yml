@@ -1,6 +1,21 @@
-# PATH: src/main/resources/menus/full_inventory_menu.yml
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/profile/full_inventory_menu.yml
 # Configuration for the full inventory view menu.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# Allows staff to view and edit a player's inventory (main, armor, offhand).
+# Access: Via the Profile Menu.
+
+# --- Available Actions ---
+# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:profile_menu)
+# - REQUEST_CLEAR_FULL_INVENTORY:    (Initiates confirmation to clear the target's entire inventory)
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - NO_ACTION:
+
+# --- Player Interactions ---
+# - Click on slots 0-35: Edit the player's main inventory (requires permission).
+# - Click on slots 36-39 (Armor) / 40 (Offhand): Edit equipment (requires permission).
+
+# --- Available Placeholders ---
+# - {target}: Target player's name.
 
 menu:
   title: '&8&lInventory: &b{target}'

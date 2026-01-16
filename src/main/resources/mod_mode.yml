@@ -1,5 +1,14 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/mod_mode.yml
 # Configuration for the /mod mode.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# Defines tools, inventory layout, and settings for the moderator mode.
+# Access: /mod
+
+# --- Available Placeholders ---
+# - {status}: Current status of a setting (Enabled/Disabled, On/Off).
+# - {speed}: Current speed multiplier (for walk/fly speed).
+# - {multiplier}: Current jump boost multiplier.
+
 
 # Default favorite tools for new moderators or when preferences are reset.
 # These tool-ids will be automatically added to a moderator's favorites.

@@ -54,7 +54,7 @@ public class LockerMenu implements InventoryHolder {
             title = "&8Global Locker (Pg " + page + ")";
         } else {
             String ownerName = Bukkit.getOfflinePlayer(ownerUUID).getName();
-            title = plugin.getConfigManager().getMessage("messages.locker_title")
+            title = plugin.getConfigManager().getLockerMenuConfig().getConfig().getString("menu.title", "&8Locker: &1{owner} &8(Pg {page})")
                     .replace("{owner}", ownerName != null ? ownerName : "Unknown")
                     .replace("{page}", String.valueOf(page));
         }

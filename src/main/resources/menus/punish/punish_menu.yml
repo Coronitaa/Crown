@@ -1,8 +1,12 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/punish/punish_menu.yml
 # Configuration file for the main punish menu.
 # Allows selecting punishment types and viewing player info.
+# Access: /punish <player> or via other menus.
 
 # --- Available Actions ---
-# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:ban_details)
+# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:ban_details, OPEN_MENU:mute_details, OPEN_MENU:history_menu)
+# - REQUEST_INPUT:<input_type>       (e.g., REQUEST_INPUT:change_target)
 # - CONSOLE_COMMAND:<command>        (e.g., CONSOLE_COMMAND:say {target} is being punished by {player})
 # - PLAYER_COMMAND:<command>         (e.g., PLAYER_COMMAND:msg {target} Check your history!)
 # - PLAYER_COMMAND_OP:<command>      (e.g., PLAYER_COMMAND_OP:gamemode creative {target})
@@ -18,14 +22,21 @@
 # - MESSAGE_MODS:<message>           (Sends chat message to players with crown.mod permission)
 # - TITLE_MODS:<title>:<subtitle>:<stay>:<fadein>:<fadeout> (Shows title to players with crown.mod permission)
 # - PLAY_SOUND_MODS:<sound>:<vol>:<pitch> (Plays sound to players with crown.mod permission)
-# - REQUEST_INPUT:<input_type>       (e.g., REQUEST_INPUT:change_target)
+# - CLOSE_MENU:                      (Closes the menu)
 # - NO_ACTION:                       (Does nothing)
 
 # --- Available Placeholders ---
-# (Refer to messages.yml for the full list, especially target info placeholders like {target_online}, {ban_count} etc.)
 # - {target}: Target player's name.
 # - {player}: Player viewing/interacting with the menu.
 # - {prefix}: Plugin prefix.
+# - {target_online}: Online status symbol.
+# - {target_ip}: Target's IP address.
+# - {target_coords}: Target's current coordinates.
+# - {target_world}: Target's current world.
+# - {target_softban_status}: Softban status symbol.
+# - {target_softban_remaining_time}: Remaining softban time.
+# - {ban_count}, {mute_count}, {kick_count}, {softban_count}, {warn_count}, {freeze_count}: Total punishment counts.
+# - {active_ban_count}, {active_mute_count}, ...: Active punishment counts.
 
 menu:
   title: '#ea3a1a&lPUNISH MENU'

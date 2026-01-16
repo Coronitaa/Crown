@@ -1,12 +1,15 @@
-# PATH: src/main/resources/menus/reports_menu.yml
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/report/reports_menu.yml
 # Configuration for the moderator reports view menu.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# Displays a list of player reports with filtering and pagination.
+# Access: /reports or via other menus.
 
 # --- Available Actions ---
 # - OPEN_REPORT_DETAILS:             (Opens the detail view for the clicked report)
 # - FILTER_REPORTS_STATUS:           (Cycles through statuses to filter by)
 # - FILTER_REPORTS_TYPE:             (Cycles through report types to filter by)
 # - FILTER_REPORTS_NAME:             (Prompts for a name to filter by)
+# - FILTER_MY_REPORTS:               (Toggles filtering by reports assigned to the viewer)
 # - ADJUST_PAGE:<next_page|previous_page>
 # - PLAY_SOUND:<sound>:<vol>:<pitch>
 # - NO_ACTION:
@@ -16,13 +19,18 @@
 # - {requester}: Report requester's name.
 # - {report_id}: The unique ID of the report.
 # - {reason}: The main reason/category of the report.
+# - {details}: Additional details provided in the report.
+# - {moderator}: Name of the moderator assigned to the report.
 # - {date}: Date of the report.
+# - {resolution_time}: Time taken to resolve the report (if resolved).
 # - {status}: Current status of the report (Pending, Resolved, etc.).
+# - {status_color}: Color code associated with the status.
 # - {page}: Current page number.
 # - {max_pages}: Total number of pages.
 # - {filter_status}: Current status filter.
 # - {filter_name}: Current name filter.
 # - {filter_type}: Current report type filter.
+# - {player}: Player viewing the menu.
 
 menu:
   title: '&c&lReports Menu ({page}/{max_pages})'
@@ -47,7 +55,7 @@ menu:
 
     filter_by_type:
       material: 'OAK_SIGN'
-      slot: 47
+      slot: 48
       name: '&aFilter by Type'
       lore:
         - '&7Current Filter: &b{filter_type}'
@@ -61,7 +69,7 @@ menu:
     # --- Control Items ---
     filter_by_status:
       material: 'HOPPER'
-      slot: 48
+      slot: 49
       name: '&aFilter by Status'
       lore:
         - '&7Current Filter: {filter_status}'
@@ -74,7 +82,7 @@ menu:
     filter_my_reports:
       material: 'PLAYER_HEAD'
       player_head: '{player}'
-      slot: 49
+      slot: 4
       name: '&dMy Assigned Reports'
       lore:
         - '&7Click to show only reports'
@@ -126,4 +134,4 @@ menu:
     background_fill:
       material: 'BLACK_STAINED_GLASS_PANE'
       name: ' '
-      slot: '0-9,17,18,26,27,35,36,44,46,51,52'
+      slot: '0-3,5-9,17,18,26,27,35,36,44,46-47,51,52'

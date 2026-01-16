@@ -1,4 +1,36 @@
-# C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\resources\punishments\warn.yml
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/punishments/warn.yml
+# Configuration for the internal warning system.
+# Defines warning levels, expiration modes, and actions for each level.
+
+# --- Available Placeholders ---
+# - {target}: Target player's name.
+# - {player}: Player executing the punishment.
+# - {reason}: Reason for the warning.
+# - {prefix}: Plugin prefix.
+# - {associated_punishment_id:<type>}: ID of a punishment (mute/softban/ban) created by a warning level.
+
+# --- Available Hook Actions ---
+# - APPLY_MUTE:<duration>:<reason>
+# - APPLY_SOFTBAN:<duration>:<reason>
+# - APPLY_BAN:<duration>:<reason>
+# - CONSOLE_COMMAND:<command>
+# - PLAYER_COMMAND:<command>
+# - PLAYER_COMMAND_OP:<command>
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - PLAY_SOUND_TARGET:<sound>:<vol>:<pitch>
+# - TITLE:<title>:<subtitle>:<time>
+# - TITLE_TARGET:<title>:<subtitle>:<time>
+# - MESSAGE:<message>
+# - MESSAGE_TARGET:<message>
+# - ACTIONBAR:<message>
+# - ACTIONBAR_TARGET:<message>
+# - PLAY_SOUND_MODS:<sound>:<vol>:<pitch>
+# - TITLE_MODS:<title>:<subtitle>:<time>
+# - MESSAGE_MODS:<message>
+# - ACTIONBAR_MODS:<message>
+# - NO_ACTION:
+
 # Configuration for the internal warning system.
 use-internal: true
 punish-command: 'warn {target} {reason}'

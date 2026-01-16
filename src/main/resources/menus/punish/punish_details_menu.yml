@@ -1,6 +1,8 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/punish/punish_details_menu.yml
 # Configuration for punish details menus (Ban, Mute, Softban, Kick, Warn, Freeze).
 # Defines structure, items, and actions for setting punishment details.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
+# Access: Via the main Punish Menu.
 
 # --- Available Actions ---
 # - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:time_selector, OPEN_MENU:punish_menu)
@@ -11,6 +13,7 @@
 # - UN_BAN:                          (Removes ban - only applicable in ban menu)
 # - UN_MUTE:                         (Removes mute - only applicable in mute menu)
 # - UN_WARN:                         (Removes warn - only applicable in warn menu)
+# - TOGGLE_PUNISH_METHOD:            (Toggles between IP and Local punishment)
 # - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0)
 # - TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout> (Shows title to clicking player)
 # - NO_ACTION:                       (Does nothing)
@@ -23,6 +26,7 @@
 # - {prefix}: Plugin prefix.
 # - {time_status}: Text indicating if time is set (uses placeholders.set/not_set).
 # - {reason_status}: Text indicating if reason is set (uses placeholders.set/not_set).
+# - {method}: Current punishment method (IP/Local).
 # - {target_softban_status}: Target's softban status (relevant in softban menu).
 # - {target_softban_remaining_time}: Target's remaining softban time (relevant in softban menu).
 

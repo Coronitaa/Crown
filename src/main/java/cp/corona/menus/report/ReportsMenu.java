@@ -44,7 +44,10 @@ public class ReportsMenu implements InventoryHolder {
     public ReportsMenu(Crown plugin, Player viewer) {
         this.plugin = plugin;
         this.viewer = viewer;
-        this.inventory = Bukkit.createInventory(this, 54, "Loading reports...");
+        String title = plugin.getConfigManager().getReportsMenuConfig().getConfig().getString("menu.title", "&c&lReports Menu ({page}/{max_pages})")
+                .replace("{page}", String.valueOf(page))
+                .replace("{max_pages}", String.valueOf(totalPages));
+        this.inventory = Bukkit.createInventory(this, 54, MessageUtils.getColorMessage(title));
         loadPageAsync();
     }
 
@@ -56,7 +59,10 @@ public class ReportsMenu implements InventoryHolder {
         this.filterName = name;
         this.filterAsRequester = asRequester;
         this.filterAssignedToMe = assignedToMe;
-        this.inventory = Bukkit.createInventory(this, 54, "Loading reports...");
+        String title = plugin.getConfigManager().getReportsMenuConfig().getConfig().getString("menu.title", "&c&lReports Menu ({page}/{max_pages})")
+                .replace("{page}", String.valueOf(page))
+                .replace("{max_pages}", String.valueOf(totalPages));
+        this.inventory = Bukkit.createInventory(this, 54, MessageUtils.getColorMessage(title));
         loadPageAsync();
     }
 
@@ -70,7 +76,10 @@ public class ReportsMenu implements InventoryHolder {
         this.filterAsRequester = asRequester;
         this.filterAssignedToMe = assignedToMe;
         this.reportTypeFilter = reportType;
-        this.inventory = Bukkit.createInventory(this, 54, "Loading reports...");
+        String title = plugin.getConfigManager().getReportsMenuConfig().getConfig().getString("menu.title", "&c&lReports Menu ({page}/{max_pages})")
+                .replace("{page}", String.valueOf(page))
+                .replace("{max_pages}", String.valueOf(totalPages));
+        this.inventory = Bukkit.createInventory(this, 54, MessageUtils.getColorMessage(title));
         loadPageAsync();
     }
 
@@ -92,7 +101,10 @@ public class ReportsMenu implements InventoryHolder {
                     if (this.totalPages == 0) this.totalPages = 1;
                     if (this.page > this.totalPages) this.page = this.totalPages;
 
-                    String title = MessageUtils.getColorMessage("&c&lReports Menu (" + page + "/" + totalPages + ")");
+                    String title = plugin.getConfigManager().getReportsMenuConfig().getConfig().getString("menu.title", "&c&lReports Menu ({page}/{max_pages})")
+                            .replace("{page}", String.valueOf(page))
+                            .replace("{max_pages}", String.valueOf(totalPages));
+                    title = MessageUtils.getColorMessage(title);
 
                     if (!viewer.getOpenInventory().getTitle().equals(title)) {
                         Inventory newInv = Bukkit.createInventory(this, 54, title);

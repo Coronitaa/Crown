@@ -1,3 +1,40 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/report/report_details_menu.yml
+# Configuration for the detailed report view menu.
+# Displays comprehensive information about a specific report and allows staff to take action.
+# Access: Via the Reports Menu.
+
+# --- Available Actions ---
+# - OPEN_PROFILE_TARGET:             (Opens the target's profile)
+# - OPEN_PROFILE_REQUESTER:          (Opens the requester's profile)
+# - OPEN_PROFILE_MODERATOR:          (Opens the assigned moderator's profile)
+# - REPORTS_FILTER_TARGET:           (Opens reports menu filtered by this target)
+# - REPORTS_FILTER_REQUESTER:        (Opens reports menu filtered by this requester)
+# - HISTORY_TARGET:                  (Opens punishment history for the target)
+# - HISTORY_REQUESTER:               (Opens punishment history for the requester)
+# - SET_REPORT_STATUS_TAKE:          (Assigns report to self/takes over)
+# - SET_REPORT_STATUS_RESOLVED:      (Marks report as resolved)
+# - SET_REPORT_STATUS_REJECTED:      (Marks report as rejected)
+# - SET_REPORT_STATUS_PENDING:       (Marks report as pending/unassigned)
+# - ASSIGN_MODERATOR:                (Prompts to assign a specific moderator)
+# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu_target, OPEN_MENU:punish_menu_requester)
+# - OPEN_REPORTS_MENU:               (Returns to the main reports list)
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - NO_ACTION:
+
+# --- Available Placeholders ---
+# - {target}: Report target's name.
+# - {requester}: Report requester's name.
+# - {report_id}: The unique ID of the report.
+# - {category}: The category of the report.
+# - {reason}: The specific reason for the report.
+# - {details}: Additional details provided.
+# - {date}: Date of the report.
+# - {moderator}: Name of the assigned moderator (or "None").
+# - {ban_count}, {mute_count}, ...: Punishment stats for target/requester (context-dependent).
+# - {reports_received}: Number of reports received by the player.
+# - {reports_sent}: Number of reports sent by the player.
+
 menu:
   title: '&c&lReport Details: #{report_id}'
   size: 54

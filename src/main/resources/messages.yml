@@ -1,7 +1,7 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
 # messages.yml
 # Configuration file for plugin messages.
 # This file contains all text messages used by the Crown plugin.
-## THIS YAML SHOULD BE VALID so check for errors in your changes at https://jsonformatter.org/yaml-validator.
 
 # --- Available Placeholders ---
 # General:
@@ -10,6 +10,32 @@
 # - {target}: Target player's name.
 # - {time}: Duration string.
 # - {reason}: Reason string.
+# - {punishment_type}: The type of punishment (e.g., Ban, Mute).
+# - {punishment_id}: The unique ID of the punishment.
+# - {punishment_action_verb}: The action verb (e.g., banned, muted).
+# - {support_link}: The support link defined in config.yml.
+# - {usage}: Command usage string.
+# - {input}: User input string.
+# - {id}: Punishment or Report ID.
+# - {time_left}: Time remaining for a punishment.
+# - {level}: Warning level.
+# - {status}: Status string (e.g., Active, Expired).
+# - {method}: Punishment method (IP/Local).
+# - {punisher}: Name of the punisher.
+# - {date}: Date of the punishment.
+# - {duration}: Duration of the punishment.
+# - {ip}, {location}, {gamemode}, {health}, {hunger}, {exp_level}, {playtime}, {ping}, {first_joined}, {last_joined}: Player info placeholders.
+# - {message}: Chat message content.
+# - {accounts}: Associated accounts list.
+# - {remover}: Name of the person who removed the punishment.
+# - {remove_date}: Date of removal.
+# - {remove_reason}: Reason for removal.
+# - {inventory_type}: Type of inventory (e.g., inventory, ender chest).
+# - {requester}: Name of the report requester.
+# - {moderator}: Name of the assigned moderator.
+# - {status_color}: Color code for report status.
+# - {container}: Container type name.
+# - {owner}: Locker owner name.
 
 messages:
   plugin_enabled: '{prefix}&dPlugin enabled.'
@@ -301,7 +327,6 @@ messages:
   confiscate_confirm: '&eClick again to confiscate this item.'
   item_confiscated: '{prefix}&aItem confiscated and sent to locker.'
   confiscate_fail_gone: '{prefix}&cItem is no longer available.'
-  locker_title: '&8Locker: &1{owner} &8(Pg {page})'
   locker_read_only: '{prefix}&cThis locker is Read-Only. You need &bcrown.mod.locker.admin&c to modify it.'
   locker_opened_other: '{prefix}&eOpened locker of &b{target}&e.'
 

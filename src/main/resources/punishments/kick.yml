@@ -1,3 +1,34 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/punishments/kick.yml
+# Configuration for kick punishment.
+# Defines how kicks are handled, the kick screen message, and hooks.
+
+# --- Available Placeholders ---
+# - {target}: Target player's name.
+# - {player}: Player executing the punishment.
+# - {reason}: Reason for the kick.
+# - {punishment_id}: Unique ID of the punishment (for kick screen).
+# - {support_link}: Support link from config.yml.
+# - {prefix}: Plugin prefix.
+
+# --- Available Hook Actions ---
+# - CONSOLE_COMMAND:<command>
+# - PLAYER_COMMAND:<command>
+# - PLAYER_COMMAND_OP:<command>
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - PLAY_SOUND_TARGET:<sound>:<vol>:<pitch>
+# - TITLE:<title>:<subtitle>:<time>
+# - TITLE_TARGET:<title>:<subtitle>:<time>
+# - MESSAGE:<message>
+# - MESSAGE_TARGET:<message>
+# - ACTIONBAR:<message>
+# - ACTIONBAR_TARGET:<message>
+# - PLAY_SOUND_MODS:<sound>:<vol>:<pitch>
+# - TITLE_MODS:<title>:<subtitle>:<time>
+# - MESSAGE_MODS:<message>
+# - ACTIONBAR_MODS:<message>
+# - NO_ACTION:
+
 # Configuration for kick punishment.
 use-internal: true # If true, the plugin will handle the kick internally. If false, it will use the command below.
 punish-by-ip: true # If true, the internal kick will be by IP address instead of player name.

@@ -1,4 +1,28 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/mod/locker_menu.yml
+# Configuration for the confiscated items locker menu.
+# This menu displays items confiscated from players, primarily via softbans.
+# Access: Via /mod locker command.
+
+# --- Available Actions ---
+# - ADJUST_PAGE:<next_page|previous_page> (Navigates between pages)
+# - REQUEST_CLEAR_FULL_INVENTORY:    (Initiates confirmation to clear the entire locker for the target player)
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - NO_ACTION:
+
+# --- Player Interactions ---
+# - Left-Click (Bottom Inv): Add item to locker.
+# - Right-Click (Top Inv): Take item from locker (if editable).
+# - Shift + Right-Click (Top Inv): Copy item from locker.
+# - Drop Key (Q) (Top Inv): Press twice to delete an item.
+
+# --- Available Placeholders ---
+# - {owner}: The name of the player who owns the locker.
+# - {page}: Current page number.
+# - {max_pages}: Total number of pages.
+
 menu:
+  title: '&8Locker: &1{owner} &8(Pg {page})'
   items:
     background_fill:
       material: 'GRAY_STAINED_GLASS_PANE'

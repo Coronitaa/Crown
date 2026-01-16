@@ -1,3 +1,32 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/punishments/freeze.yml
+# Configuration for freeze punishment.
+# Defines how freezes are handled, allowed commands, periodic actions, and hooks.
+
+# --- Available Placeholders ---
+# - {target}: Target player's name.
+# - {player}: Player executing the punishment.
+# - {reason}: Reason for the freeze.
+# - {prefix}: Plugin prefix.
+
+# --- Available Hook Actions ---
+# - CONSOLE_COMMAND:<command>
+# - PLAYER_COMMAND:<command>
+# - PLAYER_COMMAND_OP:<command>
+# - PLAY_SOUND:<sound>:<vol>:<pitch>
+# - PLAY_SOUND_TARGET:<sound>:<vol>:<pitch>
+# - TITLE:<title>:<subtitle>:<time>
+# - TITLE_TARGET:<title>:<subtitle>:<time>
+# - MESSAGE:<message>
+# - MESSAGE_TARGET:<message>
+# - ACTIONBAR:<message>
+# - ACTIONBAR_TARGET:<message>
+# - PLAY_SOUND_MODS:<sound>:<vol>:<pitch>
+# - TITLE_MODS:<title>:<subtitle>:<time>
+# - MESSAGE_MODS:<message>
+# - ACTIONBAR_MODS:<message>
+# - NO_ACTION:
+
 # Configuration for freeze punishment.
 use-internal: true # If true, the plugin will handle the freeze internally. If false, it will use the command below.
 punish-command: 'freeze {target} {reason}'
@@ -12,12 +41,14 @@ allowed_commands:
   - r
   - tell
 
+# Commands to execute if a player disconnects while frozen.
 disconnect_commands:
   - 'crown punish {target} ban 365d &cDisconnected while frozen!'
   - 'tellraw @a "&e&lᴄʀᴏᴡɴ &6🜲&r &ePlayer &b{target} &edisconnected while frozen! &cApplying actions&e."'
 
+# Periodic actions to perform on the frozen player.
 freeze_actions:
-  interval: 40
+  interval: 40 # Interval in ticks (20 ticks = 1 second)
   actions:
     - 'MESSAGE:#ff801a&lᴄʀᴏᴡɴ &6🜲&r &c&lYou are FROZEN! &7Please remain still.'
     - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0'
