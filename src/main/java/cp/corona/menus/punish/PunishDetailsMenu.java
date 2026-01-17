@@ -60,7 +60,7 @@ public class PunishDetailsMenu implements InventoryHolder {
         this.target = Bukkit.getOfflinePlayer(targetUUID);
         String title = plugin.getConfigManager().getDetailsMenuText("title", target, this.punishmentType);
         int inventorySize = 36;
-        inventory = Bukkit.createInventory(this, inventorySize, title);
+        inventory = Bukkit.createInventory(this, inventorySize, MessageUtils.getColorMessage(title));
 
         this.byIp = plugin.getConfigManager().isPunishmentByIp(this.punishmentType);
         setTimeRequiredByType(this.punishmentType);
@@ -193,88 +193,40 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     private ItemStack getSetTimeItem() {
         if (!timeRequired) return null;
-
         MenuItem setTimeConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, SET_TIME_KEY);
         if (setTimeConfig == null) return null;
-
-        ItemStack item = setTimeConfig.toItemStack(target, plugin.getConfigManager());
-        if (item == null) return null;
-
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String displayTime = this.banTime != null ? this.banTime : plugin.getConfigManager().getMessage("placeholders.not_set");
-            List<String> lore = plugin.getConfigManager().getDetailsMenuItemLore(punishmentType, SET_TIME_KEY, target, "{time}", displayTime);
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+        String displayTime = this.banTime != null ? this.banTime : plugin.getConfigManager().getMessage("placeholders.not_set");
+        return setTimeConfig.toItemStack(target, plugin.getConfigManager(), "{time}", displayTime);
     }
 
     private ItemStack getSetReasonItem() {
         MenuItem setReasonConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, SET_REASON_KEY);
         if (setReasonConfig == null) return null;
-
-        ItemStack item = setReasonConfig.toItemStack(target, plugin.getConfigManager());
-        if (item == null) return null;
-
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String displayReason = this.banReason != null ? this.banReason : plugin.getConfigManager().getMessage("placeholders.not_set");
-            List<String> lore = plugin.getConfigManager().getDetailsMenuItemLore(punishmentType, SET_REASON_KEY, target, "{reason}", displayReason);
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+        String displayReason = this.banReason != null ? this.banReason : plugin.getConfigManager().getMessage("placeholders.not_set");
+        return setReasonConfig.toItemStack(target, plugin.getConfigManager(), "{reason}", displayReason);
     }
 
     private ItemStack getToggleMethodItem() {
         MenuItem toggleMethodConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, TOGGLE_METHOD_KEY);
         if (toggleMethodConfig == null) return null;
-
-        ItemStack item = toggleMethodConfig.toItemStack(target, plugin.getConfigManager());
-        if (item == null) return null;
-
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String methodName = byIp ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
-            if (meta.hasDisplayName()) {
-                meta.setDisplayName(meta.getDisplayName().replace("{method}", methodName));
-            }
-
-            List<String> lore = plugin.getConfigManager().getDetailsMenuItemLore(punishmentType, TOGGLE_METHOD_KEY, target);
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+        String methodName = byIp ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
+        return toggleMethodConfig.toItemStack(target, plugin.getConfigManager(), "{method}", methodName);
     }
 
     private ItemStack getConfirmPunishItem() {
         MenuItem confirmPunishConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, CONFIRM_PUNISH_KEY);
         if (confirmPunishConfig == null) return null;
+        String methodName = byIp ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
+        String displayTime = this.banTime != null ? this.banTime : plugin.getConfigManager().getMessage("placeholders.not_set");
+        String displayReason = this.banReason != null ? this.banReason : plugin.getConfigManager().getMessage("placeholders.not_set");
 
-        ItemStack item = confirmPunishConfig.toItemStack(target, plugin.getConfigManager());
-        if (item == null) return null;
-
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String methodName = byIp ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
-            String displayTime = this.banTime != null ? this.banTime : plugin.getConfigManager().getMessage("placeholders.not_set");
-            String displayReason = this.banReason != null ? this.banReason : plugin.getConfigManager().getMessage("placeholders.not_set");
-
-            List<String> lore = plugin.getConfigManager().getDetailsMenuItemLore(
-                    punishmentType,
-                    CONFIRM_PUNISH_KEY,
-                    target,
-                    "{method}", methodName,
-                    "{time_status}", getTimeStatusText(),
-                    "{reason_status}", getReasonStatusText(),
-                    "{time}", displayTime,
-                    "{reason}", displayReason
-            );
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+        return confirmPunishConfig.toItemStack(target, plugin.getConfigManager(),
+                "{method}", methodName,
+                "{time_status}", getTimeStatusText(),
+                "{reason_status}", getReasonStatusText(),
+                "{time}", displayTime,
+                "{reason}", displayReason
+        );
     }
 
     private ItemStack getBackButton() {

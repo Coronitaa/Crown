@@ -40,19 +40,19 @@ import java.util.stream.Collectors;
  * Replaced single click actions with lists of ClickActionData for left and right clicks.
  *
  * **MODIFIED:**
- * - Unified player head configuration to use single entry `player_head` for both usernames and URLs. **NEW**
+ * - Unified player head configuration to use single entry `player_head` for both usernames and URLs.
  * - Improved player head texture loading from `player_head` (username or texture URL).
  * - Added robust error handling and logging for texture loading.
  * - Refactored texture setting logic into a separate `applyPlayerHeadTexture` method.
  * - Added comments in English and improved code aesthetics.
- * - **Correction:** Removed asynchronous PlayerProfile loading and reverted to synchronous loading due to API return type.
+ * - Added support for dynamic replacements in toItemStack to ensure correct coloring order.
  */
 public class MenuItem {
 
     private String material;
     private String name;
     private List<String> lore;
-    private String playerHead; // Unified field for player head, can be username or URL - MODIFIED
+    private String playerHead; // Unified field for player head, can be username or URL
     private Integer customModelData;
     private int quantity = 1;
     private List<Integer> slots;
@@ -74,12 +74,6 @@ public class MenuItem {
         return material;
     }
 
-    /**
-     * Sets the material of the menu item.
-     * Handles material and optional texture metadata in format 'MATERIAL[:METADATA]'.
-     *
-     * @param material The material string, optionally with metadata.
-     */
     public void setMaterial(String material) {
         this.material = material;
     }
@@ -102,7 +96,7 @@ public class MenuItem {
         this.lore = lore;
     }
 
-    // Player Head - Unified to handle both username and URL - MODIFIED
+    // Player Head
     public String getPlayerHead() {
         return playerHead;
     }
@@ -115,12 +109,6 @@ public class MenuItem {
         this.confirmState = confirmState;
     }
 
-    /**
-     * Sets the player head. This can be either a player username or a direct texture URL. - MODIFIED
-     * The method will automatically detect the format and handle accordingly.
-     *
-     * @param playerHead The player username or texture URL for the player head.
-     */
     public void setPlayerHead(String playerHead) {
         this.playerHead = playerHead;
     }
@@ -179,7 +167,7 @@ public class MenuItem {
         this.clickPitch = clickPitch;
     }
 
-    // Left Click Actions - List of actions to be performed on left click
+    // Left Click Actions
     public List<ClickActionData> getLeftClickActions() {
         return leftClickActions;
     }
@@ -188,7 +176,7 @@ public class MenuItem {
         this.leftClickActions = leftClickActions;
     }
 
-    // Right Click Actions - List of actions to be performed on right click
+    // Right Click Actions
     public List<ClickActionData> getRightClickActions() {
         return rightClickActions;
     }
@@ -200,16 +188,23 @@ public class MenuItem {
 
     /**
      * Converts the MenuItem configuration to an ItemStack for display in menus.
-     * Processes placeholders in name and lore, and sets item meta properties.
+     * Overload for when no custom replacements are needed.
+     */
+    public ItemStack toItemStack(final OfflinePlayer target, final MainConfigManager configManager) {
+        return toItemStack(target, configManager, (String[]) null);
+    }
+
+    /**
+     * Converts the MenuItem configuration to an ItemStack for display in menus.
+     * Processes placeholders in name and lore, applies custom replacements, and sets item meta properties.
      * Handles player head textures from username or direct texture URL using the unified `player_head` config.
-     *
-     * **MODIFIED:** Now correctly parses and applies custom model data from material string like 'DIAMOND_SWORD:2'.
      *
      * @param target        The target player for placeholder replacement (can be null).
      * @param configManager MainConfigManager instance for placeholder processing.
+     * @param replacements  Optional key-value pairs for custom replacements (e.g. "{time}", "10m").
      * @return The ItemStack representing this MenuItem.
      */
-    public ItemStack toItemStack(final OfflinePlayer target, final MainConfigManager configManager) {
+    public ItemStack toItemStack(final OfflinePlayer target, final MainConfigManager configManager, String... replacements) {
         Material itemMaterial = Material.STONE; // Default material
         Integer metaData = null; // Default metadata
 
@@ -235,11 +230,14 @@ public class MenuItem {
 
         if (meta != null) {
             if (this.name != null) {
-                meta.setDisplayName(MessageUtils.getColorMessage(processText(this.name, target, configManager)));
+                String processedName = processText(this.name, target, configManager);
+                processedName = applyReplacements(processedName, replacements);
+                meta.setDisplayName(MessageUtils.getColorMessage(processedName));
             }
             if (this.lore != null) {
                 List<String> processedLore = this.lore.stream()
                         .map(line -> processText(line, target, configManager))
+                        .map(line -> applyReplacements(line, replacements))
                         .map(MessageUtils::getColorMessage)
                         .collect(Collectors.toList());
                 meta.setLore(processedLore);
@@ -258,6 +256,17 @@ public class MenuItem {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    private String applyReplacements(String text, String[] replacements) {
+        if (text == null || replacements == null || replacements.length == 0) return text;
+        for (int i = 0; i < replacements.length; i += 2) {
+            if (i + 1 >= replacements.length) break;
+            String key = replacements[i];
+            String value = replacements[i+1] != null ? replacements[i+1] : "";
+            text = text.replace(key, value);
+        }
+        return text;
     }
 
 

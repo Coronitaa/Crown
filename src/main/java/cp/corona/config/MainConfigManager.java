@@ -410,20 +410,20 @@ public class MainConfigManager {
     public String getMenuText(String path, OfflinePlayer target) {
         String text = punishMenuConfig.getConfig().getString("menu." + path, "");
         if (text == null) return "";
-        return processPlaceholders(text, target);
+        return MessageUtils.getColorMessage(processPlaceholders(text, target));
     }
 
     public String getDetailsMenuText(String path, OfflinePlayer target, String punishmentType) {
         String fullPath = "menu.punish_details." + punishmentType + "." + path;
         String text = punishDetailsMenuConfig.getConfig().getString(fullPath, "");
         if (text == null) return "";
-        return processPlaceholders(text, target);
+        return MessageUtils.getColorMessage(processPlaceholders(text, target));
     }
 
     public String getHistoryMenuText(String path, OfflinePlayer target) {
         String text = historyMenuConfig.getConfig().getString("menu." + path, "");
         if (text == null) return "";
-        return processPlaceholders(text, target);
+        return MessageUtils.getColorMessage(processPlaceholders(text, target));
     }
 
     public MenuItem getPunishMenuItemConfig(String itemKey) {
@@ -491,28 +491,28 @@ public class MainConfigManager {
     public String getTimeSelectorMenuTitle(OfflinePlayer target) {
         String title = timeSelectorMenuConfig.getConfig().getString("menu.time_selector_title", "&9&lSelect Punishment Time");
         if (title == null) return "";
-        return processPlaceholders(title, target);
+        return MessageUtils.getColorMessage(processPlaceholders(title, target));
     }
 
     public String getHistoryMenuTitle(OfflinePlayer target) {
         String title = historyMenuConfig.getConfig().getString("menu.title", "&7&lPunishment History");
         if (title == null) return "";
-        return processPlaceholders(title, target);
+        return MessageUtils.getColorMessage(processPlaceholders(title, target));
     }
 
     public String getProfileMenuTitle(OfflinePlayer target) {
         String title = profileMenuConfig.getConfig().getString("menu.title", "&8Profile: &b{target}");
-        return processPlaceholders(title, target);
+        return MessageUtils.getColorMessage(processPlaceholders(title, target));
     }
 
     public String getFullInventoryMenuTitle(OfflinePlayer target) {
         String title = fullInventoryMenuConfig.getConfig().getString("menu.title", "&8Inventory: &b{target}");
-        return processPlaceholders(title, target);
+        return MessageUtils.getColorMessage(processPlaceholders(title, target));
     }
 
     public String getEnderChestMenuTitle(OfflinePlayer target) {
         String title = enderChestMenuConfig.getConfig().getString("menu.title", "&8Ender Chest: &b{target}");
-        return processPlaceholders(title, target);
+        return MessageUtils.getColorMessage(processPlaceholders(title, target));
     }
 
     public CustomConfig getPunishMenuConfig() {
@@ -580,7 +580,7 @@ public class MainConfigManager {
                 String replacementValue = replacements[i + 1] != null ? replacements[i + 1] : "";
                 processedLine = processedLine.replace(placeholder, replacementValue);
             }
-            lore.add(processedLine);
+            lore.add(MessageUtils.getColorMessage(processedLine));
         }
 
         if (isDebugEnabled()) {
@@ -619,7 +619,7 @@ public class MainConfigManager {
                 }
                 processedLine = processedLine.replace(placeholder, replacementValue);
             }
-            lore.add(processedLine);
+            lore.add(MessageUtils.getColorMessage(processedLine));
         }
 
         if (isDebugEnabled()) {
@@ -658,7 +658,7 @@ public class MainConfigManager {
                 }
                 processedLine = processedLine.replace(placeholder, replacementValue);
             }
-            lore.add(processedLine);
+            lore.add(MessageUtils.getColorMessage(processedLine));
         }
 
         if (isDebugEnabled()) {
@@ -733,15 +733,12 @@ public class MainConfigManager {
 
     public String processPlaceholders(String text, OfflinePlayer target) {
         String prefix = pluginConfig.getConfig().getString("prefix", "&8[&6C&cP&8] &r");
-        text = MessageUtils.getColorMessage(text).replace("{prefix}", prefix);
+        text = text.replace("{prefix}", prefix);
 
         if (target == null) return text;
 
         String displayYes = messagesConfig.getConfig().getString("placeholders.display_yes", "&a✔");
-        displayYes = MessageUtils.getColorMessage(displayYes);
-
         String displayNo = messagesConfig.getConfig().getString("placeholders.display_no", "&c❌");
-        displayNo = MessageUtils.getColorMessage(displayNo);
 
         Player onlineTarget = target.isOnline() ? target.getPlayer() : null;
         String targetName = target.getName() != null ? target.getName() : "Unknown";

@@ -79,7 +79,7 @@ public class PunishmentListener implements Listener {
             String punishmentId = (punishmentEntry != null) ? punishmentEntry.getPunishmentId() : "N/A";
 
             String kickMessage = getKickMessage(plugin.getConfigManager().getBanScreen(), reason, timeLeft, punishmentId, expiration);
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, kickMessage);
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, MessageUtils.getColorMessage(kickMessage));
         }
     }
 
@@ -267,13 +267,13 @@ public class PunishmentListener implements Listener {
         String dateUntil = expiration != null ? dateFormat.format(expiration) : "Never";
 
         return lines.stream()
-                .map(MessageUtils::getColorMessage)
                 .map(line -> line.replace("{reason}", reason))
                 .map(line -> line.replace("{time_left}", timeLeft))
                 .map(line -> line.replace("{punishment_id}", punishmentId))
                 .map(line -> line.replace("{date}", date))
                 .map(line -> line.replace("{date_until}", dateUntil))
                 .map(line -> line.replace("{support_link}", plugin.getConfigManager().getSupportLink()))
+                .map(MessageUtils::getColorMessage)
                 .collect(Collectors.joining("\n"));
     }
 }

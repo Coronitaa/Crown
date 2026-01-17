@@ -61,7 +61,14 @@ public class MessageUtils {
      */
     public static void sendConfigMessage(Crown plugin, CommandSender sender, String path, String... replacements) {
         String message = plugin.getConfigManager().getMessage(path, replacements);
-        sender.sendMessage(MessageUtils.getColorMessage(message));
+        // The message is already colored in getMessage, but we ensure it here just in case
+        // However, getMessage calls getColorMessage at the end, so calling it again might be redundant but safe.
+        // Actually, getMessage does replacements BEFORE coloring. Wait, let's check MainConfigManager.
+        // MainConfigManager.getMessage calls processPlaceholders -> getColorMessage.
+        // Then it does replacements.
+        // Then it calls getColorMessage AGAIN at the end.
+        // So the message returned by getMessage is already colored.
+        sender.sendMessage(message);
     }
 
     /**
@@ -79,14 +86,18 @@ public class MessageUtils {
         String date = dateFormat.format(new Date());
         String dateUntil = expiration != null ? dateFormat.format(expiration) : "Never";
 
+        // We need to replace placeholders BEFORE coloring, because placeholders might contain colors or affect structure.
+        // However, the original code was coloring each line individually.
+        // To support gradients across lines or within lines properly with placeholders, we should replace first.
+        
         return lines.stream()
-                .map(MessageUtils::getColorMessage)
                 .map(line -> line.replace("{reason}", reason))
                 .map(line -> line.replace("{time_left}", timeLeft))
                 .map(line -> line.replace("{punishment_id}", punishmentId))
                 .map(line -> line.replace("{date}", date))
                 .map(line -> line.replace("{date_until}", dateUntil))
                 .map(line -> line.replace("{support_link}", configManager.getSupportLink()))
+                .map(MessageUtils::getColorMessage) // Color AFTER replacements
                 .collect(Collectors.joining("\n"));
     }
 }
