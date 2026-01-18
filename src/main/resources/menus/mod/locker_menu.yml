@@ -22,7 +22,7 @@
 # - {max_pages}: Total number of pages.
 
 menu:
-  title: '&8Locker: &1{owner} &8(Pg {page})'
+  title: '<color:#757575>Locker:</color> <color:#00c6ff>{owner}</color> <color:#b0b0b0>(Pg {page})</color>'
   items:
     background_fill:
       material: 'GRAY_STAINED_GLASS_PANE'
@@ -30,26 +30,26 @@ menu:
       slot: '45-53'
     previous_page:
       material: 'ARROW'
-      name: '&cPrevious Page'
+      name: '<color:#ff1744>Previous Page</color>'
       slot: 45
       left_click_actions:
         - 'ADJUST_PAGE:previous_page'
     next_page:
       material: 'ARROW'
-      name: '&aNext Page'
+      name: '<color:#00e676>Next Page</color>'
       slot: 53
       left_click_actions:
         - 'ADJUST_PAGE:next_page'
     clear_locker:
       material: 'TNT'
-      name: '&c&lClear Locker'
+      name: '<gradient:#ed213a:#93291e><bold>Clear Locker</bold></gradient>'
       slot: 49
       lore:
-        - '&7Permanently delete all items.'
+        - '<color:#b0b0b0>Permanently delete all items.</color>'
       left_click_actions:
         - 'REQUEST_CLEAR_FULL_INVENTORY' # Mapped to logic in code
       confirm_state:
         material: 'REDSTONE_BLOCK'
-        name: '&4&lCONFIRM CLEAR'
+        name: '<gradient:#8b0000:#ff1744><bold>CONFIRM CLEAR</bold></gradient>'
         lore:
-          - '&cClick again to delete all.'
+          - '<color:#ff1744>Click again to delete all.</color>'

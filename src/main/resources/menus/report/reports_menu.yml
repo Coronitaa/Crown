@@ -33,22 +33,22 @@
 # - {player}: Player viewing the menu.
 
 menu:
-  title: '&c&lReports Menu ({page}/{max_pages})'
+  title: '<gradient:#ff416c:#ff4b2b><bold>Reports Menu ({page}/{max_pages})</bold></gradient>'
   items:
     report_entry:
       material: 'PAPER'
-      name: '&eReport #{report_id} &7- &c{target}'
+      name: '<color:#ffea00>Report #{report_id}</color> <color:#b0b0b0>- <color:#ff5555>{target}</color></color>'
       lore:
-        - '&7Requester: &b{requester}'
-        - '&7Category: &f{category} &8» &7Reason: &f{reason}'
-        - '&7Details: &f{details}'
-        - '&7Moderator: &d{moderator}'
-        - '&7Date: &b{date}'
+        - '<color:#b0b0b0>Requester: <color:#00c6ff>{requester}</color></color>'
+        - '<color:#b0b0b0>Category: <color:#ffffff>{category}</color> <color:#757575>»</color> Reason: <color:#ffffff>{reason}</color></color>'
+        - '<color:#b0b0b0>Details: <color:#ffffff>{details}</color></color>'
+        - '<color:#b0b0b0>Moderator: <color:#d500f9>{moderator}</color></color>'
+        - '<color:#b0b0b0>Date: <color:#00c6ff>{date}</color></color>'
         - '{resolution_time}'
         - ''
-        - '&7Status: {status_color}{status}'
+        - '<color:#b0b0b0>Status: {status_color}{status}</color>'
         - ''
-        - '&aClick to view details.'
+        - '<color:#00e676>Click to view details.</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
         - 'OPEN_REPORT_DETAILS'
@@ -56,12 +56,12 @@ menu:
     filter_by_type:
       material: 'OAK_SIGN'
       slot: 48
-      name: '&aFilter by Type'
+      name: '<color:#00e676>Filter by Type</color>'
       lore:
-        - '&7Current Filter: &b{filter_type}'
+        - '<color:#b0b0b0>Current Filter: <color:#00c6ff>{filter_type}</color></color>'
         - ''
-        - '&eClick to cycle through types.'
-        - '&8(All, Player, Clan, Server)'
+        - '<color:#ffea00>Click to cycle through types.</color>'
+        - '<color:#757575>(All, Player, Clan, Server)</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'FILTER_REPORTS_TYPE'
@@ -70,11 +70,11 @@ menu:
     filter_by_status:
       material: 'HOPPER'
       slot: 49
-      name: '&aFilter by Status'
+      name: '<color:#00e676>Filter by Status</color>'
       lore:
-        - '&7Current Filter: {filter_status}'
+        - '<color:#b0b0b0>Current Filter: {filter_status}</color>'
         - ''
-        - '&eClick to cycle through statuses.'
+        - '<color:#ffea00>Click to cycle through statuses.</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'FILTER_REPORTS_STATUS'
@@ -83,12 +83,12 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: '{player}'
       slot: 4
-      name: '&dMy Assigned Reports'
+      name: '<color:#d500f9>My Assigned Reports</color>'
       lore:
-        - '&7Click to show only reports'
-        - '&7assigned to you.'
+        - '<color:#b0b0b0>Click to show only reports</color>'
+        - '<color:#b0b0b0>assigned to you.</color>'
         - ''
-        - '&8(Click again to show all)'
+        - '<color:#757575>(Click again to show all)</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'FILTER_MY_REPORTS'
@@ -96,12 +96,12 @@ menu:
     filter_by_name:
       material: 'NAME_TAG'
       slot: 50
-      name: '&aFilter by Name'
+      name: '<color:#00e676>Filter by Name</color>'
       lore:
-        - '&7Current Filter: &b{filter_name}'
+        - '<color:#b0b0b0>Current Filter: <color:#00c6ff>{filter_name}</color></color>'
         - ''
-        - '&eLeft-Click to filter by target.'
-        - '&eRight-Click to filter by requester.'
+        - '<color:#ffea00>Left-Click to filter by target.</color>'
+        - '<color:#ffea00>Right-Click to filter by requester.</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'FILTER_REPORTS_NAME'
@@ -113,9 +113,9 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/19bf3292e126a105b54eba713aa1b152d541a1d8938829c56364d178ed22bf'
       slot: 53
-      name: '&aNext Page'
+      name: '<color:#00e676>Next Page</color>'
       lore:
-        - '&7Click to view the next page.'
+        - '<color:#b0b0b0>Click to view the next page.</color>'
       left_click_actions:
         - 'ADJUST_PAGE:next_page'
         - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2'
@@ -124,9 +124,9 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
       slot: 45
-      name: '&cPrevious Page'
+      name: '<color:#ff1744>Previous Page</color>'
       lore:
-        - '&7Click to view the previous page.'
+        - '<color:#b0b0b0>Click to view the previous page.</color>'
       left_click_actions:
         - 'ADJUST_PAGE:previous_page'
         - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2'

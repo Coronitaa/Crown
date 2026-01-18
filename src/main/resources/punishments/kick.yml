@@ -36,16 +36,16 @@ punish-command: 'kick {target} {reason}'
 default-reason: "Kicked by a moderator."
 
 kick-screen:
-  - '&c&lYou have been kicked from the server.'
+  - '<gradient:#3a7bd5:#3a6073><bold>You have been kicked from the server.</bold></gradient>'
   - ''
-  - '&7Reason: &f{reason}'
-  - '&7Punishment ID: &f{punishment_id}'
+  - '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
+  - '<color:#b0b0b0>Punishment ID: <color:#ffffff>{punishment_id}</color></color>'
   - ''
-  - '&7Join back or contact us at: &b{support_link}'
+  - '<color:#b0b0b0>Join back or contact us at: <color:#00c6ff><u>{support_link}</u></color></color>'
 
 
 # Post-action hooks for kick.
 hooks:
   on-punish:
-    - 'MESSAGE_MODS:{prefix}&9{target} &7was kicked by &e{player}&7. Reason: &f{reason}'
+    - 'MESSAGE_MODS:{prefix}<color:#3a7bd5>{target}</color> <color:#b0b0b0>was kicked by <color:#ffea00>{player}</color>. Reason: <color:#ffffff>{reason}</color></color>'
     - 'PLAY_SOUND_MODS:ENTITY_GHAST_SHOOT:1.0:1.0'

@@ -34,7 +34,7 @@ menu:
   punish_details:
     # --- BAN MENU ---
     ban:
-      title: '&4&lBan Details for &c{target}'
+      title: '<gradient:#ff416c:#ff4b2b><bold>Ban Details for <color:#ffffff>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0'
       items:
@@ -53,15 +53,15 @@ menu:
         toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: '&ePunishment Method: &b{method}'
+          name: '<color:#ffea00>Punishment Method: <color:#00c6ff>{method}</color></color>'
           slot: '35'
           lore:
-            - '&7Click to toggle between'
-            - '&bIP&7 and &bLocal&7 punishment.'
+            - '<color:#b0b0b0>Click to toggle between</color>'
+            - '<color:#00c6ff>IP</color> <color:#b0b0b0>and</color> <color:#00c6ff>Local</color> <color:#b0b0b0>punishment.</color>'
             - ''
-            - '&fAction: &bBan'
-            - '&7- Prevents &b{target}'
-            - '&7  from joining the server.'
+            - '<color:#ffffff>Action: <color:#00c6ff>Ban</color></color>'
+            - '<color:#b0b0b0>- Prevents <color:#00c6ff>{target}</color></color>'
+            - '<color:#b0b0b0>  from joining the server.</color>'
           left_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
@@ -70,12 +70,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
           slot: '11'
-          name: '&eSet Ban Time'
+          name: '<color:#ffea00>Set Ban Time</color>'
           lore:
-            - '&fCurrent Time: &b{time}'
+            - '<color:#ffffff>Current Time: <color:#00c6ff>{time}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7duration of the ban.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>duration of the ban.</color>'
           left_click_actions:
             - 'OPEN_MENU:time_selector'
           right_click_actions:
@@ -84,12 +84,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '13'
-          name: '&eSet Ban Reason'
+          name: '<color:#ffea00>Set Ban Reason</color>'
           lore:
-            - '&fCurrent Reason: &b{reason}'
+            - '<color:#ffffff>Current Reason: <color:#00c6ff>{reason}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7reason for the ban.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>reason for the ban.</color>'
           left_click_actions:
             - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
             - 'REQUEST_INPUT:reason_input'
@@ -102,15 +102,15 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15'
-          name: '&a&lConfirm Ban'
+          name: '<gradient:#56ab2f:#a8e063><bold>Confirm Ban</bold></gradient>'
           lore:
-            - '&7Click to confirm and'
-            - '&7apply the ban to &b{target}&7.'
+            - '<color:#b0b0b0>Click to confirm and</color>'
+            - '<color:#b0b0b0>apply the ban to <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&fMethod: &b{method}'
-            - '&fRequires:'
-            - '&7- Time: {time_status}'
-            - '&7- Reason: {reason_status}'
+            - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
+            - '<color:#ffffff>Requires:</color>'
+            - '<color:#b0b0b0>- Time: {time_status}</color>'
+            - '<color:#b0b0b0>- Reason: {reason_status}</color>'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:'
           right_click_actions:
@@ -119,10 +119,10 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
           slot: '27'
-          name: '&cBack'
+          name: '<color:#ff1744>Back</color>'
           lore:
-            - '&7Return to main'
-            - '&7Punishment Menu.'
+            - '<color:#b0b0b0>Return to main</color>'
+            - '<color:#b0b0b0>Punishment Menu.</color>'
           left_click_actions:
             - 'OPEN_MENU:punish_menu'
           right_click_actions:
@@ -131,12 +131,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
           slot: '31'
-          name: '&4&lUnban Player'
+          name: '<gradient:#ff416c:#ff4b2b><bold>Unban Player</bold></gradient>'
           lore:
-            - '&7Removes the current'
-            - '&7ban from &b{target}&7.'
+            - '<color:#b0b0b0>Removes the current</color>'
+            - '<color:#b0b0b0>ban from <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&7Click to unban.'
+            - '<color:#b0b0b0>Click to unban.</color>'
           left_click_actions:
             - 'UN_BAN:'
           right_click_actions:
@@ -144,7 +144,7 @@ menu:
 
     # --- MUTE MENU ---
     mute:
-      title: '&e&lMute Details for &6{target}'
+      title: '<gradient:#f7971e:#ffd200><bold>Mute Details for <color:#ffffff>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_HAT:1.0:0.6'
       items:
@@ -163,15 +163,15 @@ menu:
         toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: '&ePunishment Method: &b{method}'
+          name: '<color:#ffea00>Punishment Method: <color:#00c6ff>{method}</color></color>'
           slot: '35'
           lore:
-            - '&7Click to toggle between'
-            - '&bIP&7 and &bLocal&7 punishment.'
+            - '<color:#b0b0b0>Click to toggle between</color>'
+            - '<color:#00c6ff>IP</color> <color:#b0b0b0>and</color> <color:#00c6ff>Local</color> <color:#b0b0b0>punishment.</color>'
             - ''
-            - '&fAction: &bMute'
-            - '&7- Restricts &b{target}''s'
-            - '&7  ability to chat.'
+            - '<color:#ffffff>Action: <color:#00c6ff>Mute</color></color>'
+            - '<color:#b0b0b0>- Restricts <color:#00c6ff>{target}</color>''s</color>'
+            - '<color:#b0b0b0>  ability to chat.</color>'
           left_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
@@ -180,12 +180,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
           slot: '11'
-          name: '&eSet Mute Time'
+          name: '<color:#ffea00>Set Mute Time</color>'
           lore:
-            - '&fCurrent Time: &b{time}'
+            - '<color:#ffffff>Current Time: <color:#00c6ff>{time}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7duration of the mute.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>duration of the mute.</color>'
           left_click_actions:
             - 'OPEN_MENU:time_selector'
           right_click_actions:
@@ -194,12 +194,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '13'
-          name: '&eSet Mute Reason'
+          name: '<color:#ffea00>Set Mute Reason</color>'
           lore:
-            - '&fCurrent Reason: &b{reason}'
+            - '<color:#ffffff>Current Reason: <color:#00c6ff>{reason}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7reason for the mute.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>reason for the mute.</color>'
           left_click_actions:
             - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
             - 'REQUEST_INPUT:reason_input'
@@ -212,15 +212,15 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15'
-          name: '&a&lConfirm Mute'
+          name: '<gradient:#56ab2f:#a8e063><bold>Confirm Mute</bold></gradient>'
           lore:
-            - '&7Click to confirm and'
-            - '&7apply the mute to &b{target}&7.'
+            - '<color:#b0b0b0>Click to confirm and</color>'
+            - '<color:#b0b0b0>apply the mute to <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&fMethod: &b{method}'
-            - '&fRequires:'
-            - '&7- Time: {time_status}'
-            - '&7- Reason: {reason_status}'
+            - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
+            - '<color:#ffffff>Requires:</color>'
+            - '<color:#b0b0b0>- Time: {time_status}</color>'
+            - '<color:#b0b0b0>- Reason: {reason_status}</color>'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:'
           right_click_actions:
@@ -229,10 +229,10 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
           slot: '31'
-          name: '&a&lRemove Mute'
+          name: '<gradient:#56ab2f:#a8e063><bold>Remove Mute</bold></gradient>'
           lore:
-            - '&7Click to remove'
-            - '&7mute from &b{target}&7.'
+            - '<color:#b0b0b0>Click to remove</color>'
+            - '<color:#b0b0b0>mute from <color:#00c6ff>{target}</color>.</color>'
           left_click_actions:
             - 'UN_MUTE:'
           right_click_actions:
@@ -241,10 +241,10 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
           slot: '27'
-          name: '&cBack'
+          name: '<color:#ff1744>Back</color>'
           lore:
-            - '&7Return to main'
-            - '&7Punishment Menu.'
+            - '<color:#b0b0b0>Return to main</color>'
+            - '<color:#b0b0b0>Punishment Menu.</color>'
           left_click_actions:
             - 'OPEN_MENU:punish_menu'
           right_click_actions:
@@ -252,7 +252,7 @@ menu:
 
     # --- SOFTBAN MENU ---
     softban:
-      title: '&3&lSoftBan Details for &b{target}'
+      title: '<gradient:#00c6ff:#0072ff><bold>SoftBan Details for <color:#ffffff>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_BEEHIVE_WORK:1.0:1.0'
       items:
@@ -271,15 +271,15 @@ menu:
         toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: '&ePunishment Method: &b{method}'
+          name: '<color:#ffea00>Punishment Method: <color:#00c6ff>{method}</color></color>'
           slot: '35'
           lore:
-            - '&7Click to toggle between'
-            - '&bIP&7 and &bLocal&7 punishment.'
+            - '<color:#b0b0b0>Click to toggle between</color>'
+            - '<color:#00c6ff>IP</color> <color:#b0b0b0>and</color> <color:#00c6ff>Local</color> <color:#b0b0b0>punishment.</color>'
             - ''
-            - '&fAction: &bSoftBan'
-            - '&7- Restricts the use of certain'
-            - '&7  commands for &b{target}&7.'
+            - '<color:#ffffff>Action: <color:#00c6ff>SoftBan</color></color>'
+            - '<color:#b0b0b0>- Restricts the use of certain</color>'
+            - '<color:#b0b0b0>  commands for <color:#00c6ff>{target}</color>.</color>'
           left_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
@@ -288,12 +288,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
           slot: '11'
-          name: '&eSet SoftBan Time'
+          name: '<color:#ffea00>Set SoftBan Time</color>'
           lore:
-            - '&fCurrent Time: &b{time}'
+            - '<color:#ffffff>Current Time: <color:#00c6ff>{time}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7duration of the softban.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>duration of the softban.</color>'
           left_click_actions:
             - 'OPEN_MENU:time_selector'
           right_click_actions:
@@ -302,12 +302,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '13'
-          name: '&eSet SoftBan Reason'
+          name: '<color:#ffea00>Set SoftBan Reason</color>'
           lore:
-            - '&fCurrent Reason: &b{reason}'
+            - '<color:#ffffff>Current Reason: <color:#00c6ff>{reason}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7reason for the SoftBan.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>reason for the SoftBan.</color>'
           left_click_actions:
             - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
             - 'REQUEST_INPUT:reason_input'
@@ -320,15 +320,15 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
           slot: '31'
-          name: '&a&lRemove SoftBan'
+          name: '<gradient:#56ab2f:#a8e063><bold>Remove SoftBan</bold></gradient>'
           lore:
-            - '&7Click to remove softban'
-            - '&7from &b{target}&7.'
+            - '<color:#b0b0b0>Click to remove softban</color>'
+            - '<color:#b0b0b0>from <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&fCurrent Status:'
+            - '<color:#ffffff>Current Status:</color>'
             - '{target_softban_status}'
-            - '&fRemaining Time:'
-            - '&e{target_softban_remaining_time}'
+            - '<color:#ffffff>Remaining Time:</color>'
+            - '<color:#ffea00>{target_softban_remaining_time}</color>'
           left_click_actions:
             - 'UN_SOFTBAN:'
           right_click_actions:
@@ -337,15 +337,15 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15'
-          name: '&a&lConfirm SoftBan'
+          name: '<gradient:#56ab2f:#a8e063><bold>Confirm SoftBan</bold></gradient>'
           lore:
-            - '&7Click to confirm and'
-            - '&7apply the softban to &b{target}&7.'
+            - '<color:#b0b0b0>Click to confirm and</color>'
+            - '<color:#b0b0b0>apply the softban to <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&fMethod: &b{method}'
-            - '&fRequires:'
-            - '&7- Time: {time_status}'
-            - '&7- Reason: {reason_status}'
+            - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
+            - '<color:#ffffff>Requires:</color>'
+            - '<color:#b0b0b0>- Time: {time_status}</color>'
+            - '<color:#b0b0b0>- Reason: {reason_status}</color>'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:'
           right_click_actions:
@@ -354,10 +354,10 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
           slot: '27'
-          name: '&cBack'
+          name: '<color:#ff1744>Back</color>'
           lore:
-            - '&7Return to main'
-            - '&7Punishment Menu.'
+            - '<color:#b0b0b0>Return to main</color>'
+            - '<color:#b0b0b0>Punishment Menu.</color>'
           left_click_actions:
             - 'OPEN_MENU:punish_menu'
           right_click_actions:
@@ -365,7 +365,7 @@ menu:
 
     # --- KICK MENU ---
     kick:
-      title: '&9&lKick Details for &1{target}'
+      title: '<gradient:#3a7bd5:#3a6073><bold>Kick Details for <color:#ffffff>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_WOODEN_DOOR_OPEN:1.0:1.0'
       items:
@@ -380,15 +380,15 @@ menu:
         toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: '&ePunishment Method: &b{method}'
+          name: '<color:#ffea00>Punishment Method: <color:#00c6ff>{method}</color></color>'
           slot: '13'
           lore:
-            - '&7Click to toggle between'
-            - '&bIP&7 and &bLocal&7 punishment.'
+            - '<color:#b0b0b0>Click to toggle between</color>'
+            - '<color:#00c6ff>IP</color> <color:#b0b0b0>and</color> <color:#00c6ff>Local</color> <color:#b0b0b0>punishment.</color>'
             - ''
-            - '&fAction: &bKick'
-            - '&7- Kicks &b{target}&7 from'
-            - '&7  the server.'
+            - '<color:#ffffff>Action: <color:#00c6ff>Kick</color></color>'
+            - '<color:#b0b0b0>- Kicks <color:#00c6ff>{target}</color> from</color>'
+            - '<color:#b0b0b0>  the server.</color>'
           left_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
@@ -397,12 +397,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '11'
-          name: '&eSet Kick Reason'
+          name: '<color:#ffea00>Set Kick Reason</color>'
           lore:
-            - '&fCurrent Reason: &b{reason}'
+            - '<color:#ffffff>Current Reason: <color:#00c6ff>{reason}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7reason for the kick.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>reason for the kick.</color>'
           left_click_actions:
             - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
             - 'REQUEST_INPUT:reason_input'
@@ -415,14 +415,14 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15'
-          name: '&a&lConfirm Kick'
+          name: '<gradient:#56ab2f:#a8e063><bold>Confirm Kick</bold></gradient>'
           lore:
-            - '&7Click to confirm and'
-            - '&7kick &b{target}&7.'
+            - '<color:#b0b0b0>Click to confirm and</color>'
+            - '<color:#b0b0b0>kick <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&fMethod: &b{method}'
-            - '&fRequires:'
-            - '&7- Reason: {reason_status}'
+            - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
+            - '<color:#ffffff>Requires:</color>'
+            - '<color:#b0b0b0>- Reason: {reason_status}</color>'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:'
           right_click_actions:
@@ -431,10 +431,10 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
           slot: '27'
-          name: '&cBack'
+          name: '<color:#ff1744>Back</color>'
           lore:
-            - '&7Return to main'
-            - '&7Punishment Menu.'
+            - '<color:#b0b0b0>Return to main</color>'
+            - '<color:#b0b0b0>Punishment Menu.</color>'
           left_click_actions:
             - 'OPEN_MENU:punish_menu'
           right_click_actions:
@@ -442,7 +442,7 @@ menu:
 
     # --- WARN MENU ---
     warn:
-      title: '&6&lWarn Details for &e{target}'
+      title: '<gradient:#f12711:#f5af19><bold>Warn Details for <color:#ffffff>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_BASS:1.0:0.6'
       items:
@@ -461,14 +461,14 @@ menu:
         toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: '&ePunishment Method: &b{method}'
+          name: '<color:#ffea00>Punishment Method: <color:#00c6ff>{method}</color></color>'
           slot: '13'
           lore:
-            - '&7This punishment is always applied'
-            - '&blocally&7 and cannot be changed.'
+            - '<color:#b0b0b0>This punishment is always applied</color>'
+            - '<color:#00c6ff>locally</color> <color:#b0b0b0>and cannot be changed.</color>'
             - ''
-            - '&fAction: &bWarn'
-            - '&7- Issues a warning to &b{target}&7.'
+            - '<color:#ffffff>Action: <color:#00c6ff>Warn</color></color>'
+            - '<color:#b0b0b0>- Issues a warning to <color:#00c6ff>{target}</color>.</color>'
           left_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
@@ -477,12 +477,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '11'
-          name: '&eSet Warn Reason'
+          name: '<color:#ffea00>Set Warn Reason</color>'
           lore:
-            - '&fCurrent Reason: &b{reason}'
+            - '<color:#ffffff>Current Reason: <color:#00c6ff>{reason}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7reason for the warning.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>reason for the warning.</color>'
           left_click_actions:
             - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
             - 'REQUEST_INPUT:reason_input'
@@ -495,14 +495,14 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15'
-          name: '&a&lConfirm Warn'
+          name: '<gradient:#56ab2f:#a8e063><bold>Confirm Warn</bold></gradient>'
           lore:
-            - '&7Click to confirm and'
-            - '&7apply the warning to &b{target}&7.'
+            - '<color:#b0b0b0>Click to confirm and</color>'
+            - '<color:#b0b0b0>apply the warning to <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&fMethod: &b{method}'
-            - '&fRequires:'
-            - '&7- Reason: {reason_status}'
+            - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
+            - '<color:#ffffff>Requires:</color>'
+            - '<color:#b0b0b0>- Reason: {reason_status}</color>'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:'
           right_click_actions:
@@ -511,12 +511,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
           slot: '31'
-          name: '&4&lRemove Last Warn'
+          name: '<gradient:#ff416c:#ff4b2b><bold>Remove Last Warn</bold></gradient>'
           lore:
-            - '&7Removes the last warning'
-            - '&7from &b{target}&7.'
+            - '<color:#b0b0b0>Removes the last warning</color>'
+            - '<color:#b0b0b0>from <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&7Click to unwarn.'
+            - '<color:#b0b0b0>Click to unwarn.</color>'
           left_click_actions:
             - 'UN_WARN:'
           right_click_actions:
@@ -525,10 +525,10 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
           slot: '27'
-          name: '&cBack'
+          name: '<color:#ff1744>Back</color>'
           lore:
-            - '&7Return to main'
-            - '&7Punishment Menu.'
+            - '<color:#b0b0b0>Return to main</color>'
+            - '<color:#b0b0b0>Punishment Menu.</color>'
           left_click_actions:
             - 'OPEN_MENU:punish_menu'
           right_click_actions:
@@ -536,7 +536,7 @@ menu:
 
     # --- FREEZE MENU ---
     freeze:
-      title: '&5&lFreeze Details for &d{target}'
+      title: '<gradient:#8e2de2:#4a00e0><bold>Freeze Details for <color:#ffffff>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_AMETHYST_BLOCK_BREAK:1.0:0.6'
       items:
@@ -555,15 +555,15 @@ menu:
         toggle_method_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
-          name: '&ePunishment Method: &b{method}'
+          name: '<color:#ffea00>Punishment Method: <color:#00c6ff>{method}</color></color>'
           slot: '13'
           lore:
-            - '&7This punishment is always applied'
-            - '&blocally&7 and cannot be changed.'
+            - '<color:#b0b0b0>This punishment is always applied</color>'
+            - '<color:#00c6ff>locally</color> <color:#b0b0b0>and cannot be changed.</color>'
             - ''
-            - '&fAction: &bFreeze'
-            - '&7- Immobilizes &b{target}&7.'
-            - '&7- Staff review required.'
+            - '<color:#ffffff>Action: <color:#00c6ff>Freeze</color></color>'
+            - '<color:#b0b0b0>- Immobilizes <color:#00c6ff>{target}</color>.</color>'
+            - '<color:#b0b0b0>- Staff review required.</color>'
           left_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
@@ -572,12 +572,12 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
           slot: '11'
-          name: '&eSet Freeze Reason (Optional)'
+          name: '<color:#ffea00>Set Freeze Reason (Optional)</color>'
           lore:
-            - '&fCurrent Reason: &b{reason}'
+            - '<color:#ffffff>Current Reason: <color:#00c6ff>{reason}</color></color>'
             - ''
-            - '&7Click to set the'
-            - '&7reason for the freeze.'
+            - '<color:#b0b0b0>Click to set the</color>'
+            - '<color:#b0b0b0>reason for the freeze.</color>'
           left_click_actions:
             - 'PLAY_SOUND:BLOCK_ANVIL_DESTROY:1.0:2.0'
             - 'REQUEST_INPUT:reason_input'
@@ -590,14 +590,14 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
           slot: '15'
-          name: '&a&lConfirm Freeze'
+          name: '<gradient:#56ab2f:#a8e063><bold>Confirm Freeze</bold></gradient>'
           lore:
-            - '&7Click to confirm and'
-            - '&7apply the freeze to &b{target}&7.'
+            - '<color:#b0b0b0>Click to confirm and</color>'
+            - '<color:#b0b0b0>apply the freeze to <color:#00c6ff>{target}</color>.</color>'
             - ''
-            - '&fMethod: &b{method}'
-            - '&fOptional:'
-            - '&7- Reason: {reason_status}'
+            - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
+            - '<color:#ffffff>Optional:</color>'
+            - '<color:#b0b0b0>- Reason: {reason_status}</color>'
           left_click_actions:
             - 'CONFIRM_PUNISHMENT:'
           right_click_actions:
@@ -606,10 +606,10 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/c73fb2a28f3b665486412db7b66cdb7fc5c7d33d74e850b94722dd3d14aaa"
           slot: '31'
-          name: '&a&lRemove Freeze'
+          name: '<gradient:#56ab2f:#a8e063><bold>Remove Freeze</bold></gradient>'
           lore:
-            - '&7Click to remove'
-            - '&7freeze from &b{target}&7.'
+            - '<color:#b0b0b0>Click to remove</color>'
+            - '<color:#b0b0b0>freeze from <color:#00c6ff>{target}</color>.</color>'
           left_click_actions:
             - 'UN_FREEZE:'
           right_click_actions:
@@ -618,10 +618,10 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
           slot: '27'
-          name: '&cBack'
+          name: '<color:#ff1744>Back</color>'
           lore:
-            - '&7Return to main'
-            - '&7Punishment Menu.'
+            - '<color:#b0b0b0>Return to main</color>'
+            - '<color:#b0b0b0>Punishment Menu.</color>'
           left_click_actions:
             - 'OPEN_MENU:punish_menu'
           right_click_actions:

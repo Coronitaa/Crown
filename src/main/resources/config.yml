@@ -8,7 +8,7 @@
 # - {support_link}: The support link defined below.
 
 
-prefix: "#ff801a&lᴄʀᴏᴡɴ &6🜲&r " # Supports color codes (&) and RGB hex codes (#RRGGBB).
+prefix: "<gradient:#ff801a:#ff4b2b><bold>ᴄʀᴏᴡɴ</bold></gradient> <color:#ff4b2b>🜲</color> " # Supports color codes (&) and RGB hex codes (#RRGGBB).
 
 support-link: "your.discord.gg" # Add your support link here.
 

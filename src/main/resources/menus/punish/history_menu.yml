@@ -31,28 +31,28 @@
 # - {active_ban_count}, {active_mute_count}, ...
 
 menu:
-  title: '&8&lHistory: &b{target}'
+  title: '<color:#757575><bold>History:</bold></color> <color:#00c6ff>{target}</color>'
   items:
     loading_item:
       material: 'CLOCK'
       slot: '22'
-      name: '&e&lLoading History...'
+      name: '<color:#ffea00><bold>Loading History...</bold></color>'
       lore:
-        - '&7Please wait while we fetch the'
-        - '&7punishment history for &b{target}&7.'
+        - '<color:#b0b0b0>Please wait while we fetch the</color>'
+        - '<color:#b0b0b0>punishment history for <color:#00c6ff>{target}</color>.</color>'
 
     # --- History Entry Definitions ---
     history_entry: # Default template for entries if no specific type matches below
       material: 'BOOK'
-      name: '&e{punishment_type} &7({method}) {status}'
+      name: '<color:#ffea00>{punishment_type}</color> <color:#b0b0b0>({method}) {status}</color>'
       lore:
-        - '&7ID: &f{punishment_id}'
-        - '&7Reason: &f{reason}'
-        - '&7Date: &b{date}'
-        - '&7By: &b{punisher}'
-        - '&7Duration: &e{duration}'
+        - '<color:#b0b0b0>ID: <color:#ffffff>{punishment_id}</color></color>'
+        - '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
+        - '<color:#b0b0b0>Date: <color:#00c6ff>{date}</color></color>'
+        - '<color:#b0b0b0>By: <color:#00c6ff>{punisher}</color></color>'
+        - '<color:#b0b0b0>Duration: <color:#ffea00>{duration}</color></color>'
         - ''
-        - '&aClick to check details.'
+        - '<color:#00e676>Click to check details.</color>'
       left_click_actions:
         - 'CLOSE_MENU'
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
@@ -66,37 +66,37 @@ menu:
     ban_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/55effce109de50f5853b0c32dcc1a28cf62a504b610e71e22f1fde6fc1a4b93d'
-      name: '&c&lBan &7({method}) {status}'
+      name: '<gradient:#ff416c:#ff4b2b><bold>Ban</bold></gradient> <color:#b0b0b0>({method}) {status}</color>'
       lore: inherit # Inherits lore from history_entry and replaces placeholders
 
     mute_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/e82b0b7c68e88800030e674522aab40396fa543072b949c0600e66c2ed352ff0'
-      name: '&e&lMute &7({method}) {status}'
+      name: '<gradient:#f7971e:#ffd200><bold>Mute</bold></gradient> <color:#b0b0b0>({method}) {status}</color>'
       lore: inherit
 
     freeze_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bc3d0632c03e9f8748cf94c2576e8aef785bd8da433f3d139a7b561a5a714ada'
-      name: '&5&lFreeze &7({method}) {status}'
+      name: '<gradient:#8e2de2:#4a00e0><bold>Freeze</bold></gradient> <color:#b0b0b0>({method}) {status}</color>'
       lore: inherit
 
     softban_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/b978c31c63d7da80b9448220b8a9b896003f1b3281c341ab10194c6c4dfbe23d'
-      name: '&3&lSoftBan &7({method}) {status}'
+      name: '<gradient:#00c6ff:#0072ff><bold>SoftBan</bold></gradient> <color:#b0b0b0>({method}) {status}</color>'
       lore: inherit
 
     kick_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/5ae0e486db4ec49ff1b52cfeceda4c3f36fde23c835ea3ccfcaac935e49b5f10'
-      name: '&9&lKick &7({method}) {status}'
+      name: '<gradient:#3a7bd5:#3a6073><bold>Kick</bold></gradient> <color:#b0b0b0>({method}) {status}</color>'
       lore: inherit
 
     warn_history_entry:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/4f09ade78eff3009cbf9ed12c0ac8f8a2073e9a95a82d8a12a42bce4773adcd7'
-      name: '&6&lWarn &7({method}) {status}'
+      name: '<gradient:#f12711:#f5af19><bold>Warn</bold></gradient> <color:#b0b0b0>({method}) {status}</color>'
       lore: inherit
 
     # --- Control Items ---
@@ -104,10 +104,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/19bf3292e126a105b54eba713aa1b152d541a1d8938829c56364d178ed22bf'
       slot: '52'
-      name: '&aNext Page'
+      name: '<color:#00e676>Next Page</color>'
       lore:
-        - '&7Click to view the'
-        - '&anext page&7 of history.'
+        - '<color:#b0b0b0>Click to view the</color>'
+        - '<color:#00e676>next page</color> <color:#b0b0b0>of history.</color>'
       left_click_actions:
         - 'ADJUST_PAGE:next_page'
         - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2'
@@ -116,10 +116,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
       slot: '51'
-      name: '&cPrevious Page'
+      name: '<color:#ff1744>Previous Page</color>'
       lore:
-        - '&7Click to view the'
-        - '&cprevious page&7 of history.'
+        - '<color:#b0b0b0>Click to view the</color>'
+        - '<color:#ff1744>previous page</color> <color:#b0b0b0>of history.</color>'
       left_click_actions:
         - 'ADJUST_PAGE:previous_page'
         - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2'
@@ -127,26 +127,26 @@ menu:
     back_button:
       material: 'BARRIER'
       slot: '53'
-      name: '&cBack'
+      name: '<color:#ff1744>Back</color>'
       lore:
-        - '&7Return to the main'
-        - '&7Punishment Menu.'
+        - '<color:#b0b0b0>Return to the main</color>'
+        - '<color:#b0b0b0>Punishment Menu.</color>'
       left_click_actions:
         - 'OPEN_MENU:punish_menu'
 
     punishment_counts_item:
       material: "FILLED_MAP"
       slot: '49' # Bottom center slot
-      name: "&bPunishment Summary"
+      name: "<color:#00c6ff>Punishment Summary</color>"
       lore:
-        - "&7Total and Active Punishments for &b{target}&7:"
+        - "<color:#b0b0b0>Total and Active Punishments for <color:#00c6ff>{target}</color>:</color>"
         - ""
-        - "&cBans: &e{ban_count} &a({active_ban_count})"
-        - "&eMutes: &e{mute_count} &a({active_mute_count})"
-        - "&9Kicks: &e{kick_count} &a({active_kick_count})"
-        - "&3Softbans: &e{softban_count} &a({active_softban_count})"
-        - "&6Warns: &e{warn_count} &a({active_warn_count})"
-        - "&5Freezes: &e{freeze_count} &a({active_freeze_count})"
+        - "<color:#ff5555>Bans: <color:#ffea00>{ban_count}</color> <color:#00e676>({active_ban_count})</color></color>"
+        - "<color:#ffea00>Mutes: <color:#ffea00>{mute_count}</color> <color:#00e676>({active_mute_count})</color></color>"
+        - "<color:#3a7bd5>Kicks: <color:#ffea00>{kick_count}</color> <color:#00e676>({active_kick_count})</color></color>"
+        - "<color:#00c6ff>Softbans: <color:#ffea00>{softban_count}</color> <color:#00e676>({active_softban_count})</color></color>"
+        - "<color:#f5af19>Warns: <color:#ffea00>{warn_count}</color> <color:#00e676>({active_warn_count})</color></color>"
+        - "<color:#8e2de2>Freezes: <color:#ffea00>{freeze_count}</color> <color:#00e676>({active_freeze_count})</color></color>"
         - ""
 
     background_fill:

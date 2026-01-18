@@ -45,8 +45,8 @@ blocked_commands:
 # Post-action hooks for softban.
 hooks:
   on-punish:
-    - 'MESSAGE_MODS:{prefix}&3{target} &7was soft-banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+    - 'MESSAGE_MODS:{prefix}<color:#00c6ff>{target}</color> <color:#b0b0b0>was soft-banned by <color:#ffea00>{player}</color>. Reason: <color:#ffffff>{reason}</color> Duration: <color:#ffffff>{time}</color></color>'
     - 'PLAY_SOUND_MODS:BLOCK_CHAIN_PLACE:1.0:1.2'
   on-unpunish:
-    - 'MESSAGE_MODS:{prefix}&a{target} &7was un-softbanned by &e{player}.'
+    - 'MESSAGE_MODS:{prefix}<color:#00e676>{target}</color> <color:#b0b0b0>was un-softbanned by <color:#ffea00>{player}</color>.</color>'
     - 'PLAY_SOUND_MODS:BLOCK_CHAIN_BREAK:1.0:1.2'

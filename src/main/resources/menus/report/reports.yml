@@ -16,7 +16,7 @@
 
 report-menu:
   # Title of the book item itself.
-  book-title: "<gradient:gold:yellow>Create a Report</gradient>"
+  book-title: "<gradient:#f7971e:#ffd200><bold>Create a Report</bold></gradient>"
   # The key of the first page to be displayed when the book is opened.
   initial-page: "root"
 
@@ -24,115 +24,115 @@ report-menu:
   # Each page has a unique key (e.g., "root", "player_categories").
   pages:
     root:
-      title: "<gradient:gold:yellow>Create a Report</gradient>"
+      title: "<gradient:#f7971e:#ffd200><bold>Create a Report</bold></gradient>"
       options:
-        - text: "#be3ac6Report a Player or Clan"
-          hover: "&7Report a user or group of users."
+        - text: "<color:#be3ac6>Report a Player or Clan</color>"
+          hover: "<color:#b0b0b0>Report a user or group of users.</color>"
           # GOTO action navigates to another page defined in this file.
           action: "GOTO:select_target_type"
-        - text: "#7972d7Report a Server Issue"
-          hover: "&7Report bugs, lag, or other server problems."
+        - text: "<color:#7972d7>Report a Server Issue</color>"
+          hover: "<color:#b0b0b0>Report bugs, lag, or other server problems.</color>"
           # This action navigates, and also sets the report type and target name.
           action: "GOTO:server_categories;SET_TYPE:SERVER;SET_TARGET:Server"
 
     select_target_type:
-      title: "Report Type"
+      title: "<color:#00c6ff><bold>Report Type</bold></color>"
       options:
-        - text: "&bReport a specific Player"
-          hover: "&7Report a single user."
+        - text: "<color:#00c6ff>Report a specific Player</color>"
+          hover: "<color:#b0b0b0>Report a single user.</color>"
           # REQUEST_INPUT action prompts the user for input in chat.
           # The value after the colon is the type of input we expect.
           # The second parameter is the page to go to upon successful input.
           action: "REQUEST_INPUT:PLAYER:player_categories"
-        - text: "&bReport a Clan"
-          hover: "&7Report a group of players by their clan name."
+        - text: "<color:#00c6ff>Report a Clan</color>"
+          hover: "<color:#b0b0b0>Report a group of players by their clan name.</color>"
           action: "REQUEST_INPUT:CLAN:clan_categories"
 
     # --- Player-Related Categories & Reasons ---
     player_categories:
-      title: "Select a Category"
+      title: "<color:#00c6ff><bold>Select a Category</bold></color>"
       options:
-        - text: "&cDisruptive Gameplay"
-          hover: "&7Cheating, hacking, exploiting."
+        - text: "<color:#ff5555>Disruptive Gameplay</color>"
+          hover: "<color:#b0b0b0>Cheating, hacking, exploiting.</color>"
           action: "GOTO:disruptive_reasons;SET_CATEGORY:Disruptive Gameplay"
-        - text: "&6Bad Behavior"
-          hover: "&7Insults, harassment, spam."
+        - text: "<color:#ff9100>Bad Behavior</color>"
+          hover: "<color:#b0b0b0>Insults, harassment, spam.</color>"
           action: "GOTO:verbal_reasons;SET_CATEGORY:Bad Behavior"
-        - text: "&eAbusive Gameplay"
-          hover: "&7Griefing, spawnkilling, scamming."
+        - text: "<color:#ffea00>Abusive Gameplay</color>"
+          hover: "<color:#b0b0b0>Griefing, spawnkilling, scamming.</color>"
           action: "GOTO:abusive_reasons;SET_CATEGORY:Abusive Gameplay"
-        - text: "&dOther"
-          hover: "&7If none of the above fit."
+        - text: "<color:#d500f9>Other</color>"
+          hover: "<color:#b0b0b0>If none of the above fit.</color>"
           # REQUEST_INPUT:CUSTOM_REASON is a special type that finalizes the report.
           action: "REQUEST_INPUT:CUSTOM_REASON"
 
     disruptive_reasons:
-      title: "Disruptive Gameplay"
+      title: "<color:#ff5555><bold>Disruptive Gameplay</bold></color>"
       options:
-        - text: "&bKill Aura / Aimbot"
-          hover: "&7Automatic attacking or aiming."
+        - text: "<color:#00c6ff>Kill Aura / Aimbot</color>"
+          hover: "<color:#b0b0b0>Automatic attacking or aiming.</color>"
           # SELECT_REASON action sets the reason and proceeds to the next step (requesting details).
           action: "SELECT_REASON:Kill Aura / Aimbot"
-        - text: "&bFly / Speed Hacks"
-          hover: "&7Unnatural movement abilities."
+        - text: "<color:#00c6ff>Fly / Speed Hacks</color>"
+          hover: "<color:#b0b0b0>Unnatural movement abilities.</color>"
           action: "SELECT_REASON:Fly / Speed Hacks"
-        - text: "&bX-Ray / Resource Cheats"
-          hover: "&7Seeing through blocks to find resources."
+        - text: "<color:#00c6ff>X-Ray / Resource Cheats</color>"
+          hover: "<color:#b0b0b0>Seeing through blocks to find resources.</color>"
           action: "SELECT_REASON:X-Ray"
 
     verbal_reasons:
-      title: "Bad Behavior"
+      title: "<color:#ff9100><bold>Bad Behavior</bold></color>"
       options:
-        - text: "&bChat Spam"
-          hover: "&7Flooding chat with messages."
+        - text: "<color:#00c6ff>Chat Spam</color>"
+          hover: "<color:#b0b0b0>Flooding chat with messages.</color>"
           action: "SELECT_REASON:Chat Spam"
-        - text: "&bHarassment / Insults"
-          hover: "&7Targeted and repeated insults."
+        - text: "<color:#00c6ff>Harassment / Insults</color>"
+          hover: "<color:#b0b0b0>Targeted and repeated insults.</color>"
           action: "SELECT_REASON:Harassment"
-        - text: "&bInappropriate Content"
-          hover: "&7Links, language, or topics that are not allowed."
+        - text: "<color:#00c6ff>Inappropriate Content</color>"
+          hover: "<color:#b0b0b0>Links, language, or topics that are not allowed.</color>"
           action: "SELECT_REASON:Inappropriate Content"
 
     abusive_reasons:
-      title: "Abusive Gameplay"
+      title: "<color:#ffea00><bold>Abusive Gameplay</bold></color>"
       options:
-        - text: "&bGriefing / Raiding"
-          hover: "&7Destroying property without permission."
+        - text: "<color:#00c6ff>Griefing / Raiding</color>"
+          hover: "<color:#b0b0b0>Destroying property without permission.</color>"
           action: "SELECT_REASON:Griefing"
-        - text: "&bScamming"
-          hover: "&7Deceiving players for items or money."
+        - text: "<color:#00c6ff>Scamming</color>"
+          hover: "<color:#b0b0b0>Deceiving players for items or money.</color>"
           action: "SELECT_REASON:Scamming"
-        - text: "&bSpawnkilling / Trapping"
-          hover: "&7Repeatedly killing a player at their spawn or trapping them."
+        - text: "<color:#00c6ff>Spawnkilling / Trapping</color>"
+          hover: "<color:#b0b0b0>Repeatedly killing a player at their spawn or trapping them.</color>"
           action: "SELECT_REASON:Trapping"
 
     # --- Server-Related Categories & Reasons ---
     server_categories:
-      title: "Server Issues"
+      title: "<color:#7972d7><bold>Server Issues</bold></color>"
       options:
-        - text: "&9Bug or Glitch"
-          hover: "&7Report an exploit or unintended behavior."
+        - text: "<color:#3a7bd5>Bug or Glitch</color>"
+          hover: "<color:#b0b0b0>Report an exploit or unintended behavior.</color>"
           action: "GOTO:bug_reasons;SET_CATEGORY:Bug or Glitch"
-        - text: "&5Server Performance"
-          hover: "&7Report lag, crashes, or TPS drops."
+        - text: "<color:#8e2de2>Server Performance</color>"
+          hover: "<color:#b0b0b0>Report lag, crashes, or TPS drops.</color>"
           action: "GOTO:performance_reasons;SET_CATEGORY:Server Performance"
 
     bug_reasons:
-      title: "Bug or Glitch"
+      title: "<color:#3a7bd5><bold>Bug or Glitch</bold></color>"
       options:
-        - text: "&bDuplication Glitch"
-          hover: "&7A way to duplicate items or currency."
+        - text: "<color:#00c6ff>Duplication Glitch</color>"
+          hover: "<color:#b0b0b0>A way to duplicate items or currency.</color>"
           action: "SELECT_REASON:Duplication Glitch"
-        - text: "&bMap Exploit"
-          hover: "&7Getting into areas you shouldn't be able to."
+        - text: "<color:#00c6ff>Map Exploit</color>"
+          hover: "<color:#b0b0b0>Getting into areas you shouldn't be able to.</color>"
           action: "SELECT_REASON:Map Exploit"
 
     performance_reasons:
-      title: "Server Performance"
+      title: "<color:#8e2de2><bold>Server Performance</bold></color>"
       options:
-        - text: "&bLag Machine"
-          hover: "&7A player-made construction causing server lag."
+        - text: "<color:#00c6ff>Lag Machine</color>"
+          hover: "<color:#b0b0b0>A player-made construction causing server lag.</color>"
           action: "SELECT_REASON:Lag Machine"
-        - text: "&bServer Crash"
-          hover: "&7An action that crashed the server."
+        - text: "<color:#00c6ff>Server Crash</color>"
+          hover: "<color:#b0b0b0>An action that crashed the server.</color>"
           action: "SELECT_REASON:Server Crash"

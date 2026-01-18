@@ -46,8 +46,8 @@ blocked_commands:
 # Post-action hooks for mute.
 hooks:
   on-punish:
-    - 'MESSAGE_MODS:{prefix}&e{target} &7was muted by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+    - 'MESSAGE_MODS:{prefix}<color:#ffea00>{target}</color> <color:#b0b0b0>was muted by <color:#ffea00>{player}</color>. Reason: <color:#ffffff>{reason}</color> Duration: <color:#ffffff>{time}</color></color>'
     - 'PLAY_SOUND_MODS:ENTITY_VEX_CHARGE:1.0:1.0'
   on-unpunish:
-    - 'MESSAGE_MODS:{prefix}&a{target} &7was unmuted by &e{player}.'
+    - 'MESSAGE_MODS:{prefix}<color:#00e676>{target}</color> <color:#b0b0b0>was unmuted by <color:#ffea00>{player}</color>.</color>'
     - 'PLAY_SOUND_MODS:ENTITY_EXPERIENCE_ORB_PICKUP:1.0:1.5'

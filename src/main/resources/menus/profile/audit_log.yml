@@ -20,29 +20,29 @@
 # - {cleared_count}: Number of items cleared (for clear actions).
 
 book:
-  title: '&cAudit Log: &4{target}'
-  author: '&6Crown System'
-  no-logs-message: "&4No operator actions have been recorded for this player yet."
+  title: '<color:#ff1744>Audit Log: <color:#8b0000>{target}</color></color>'
+  author: '<color:#f5af19>Crown System</color>'
+  no-logs-message: "<color:#8b0000>No operator actions have been recorded for this player yet.</color>"
 
   # Format for the hover-over tooltip on the main action text.
   hover-format:
-    - "&eAction Details"
-    - "&7Executor: &b{executor}"
-    - "&7Target: &b{target}"
-    - "&7Date: &f{date}"
-    - "&7Time: &f{time}"
-    - "&7Inventory: &f{inventory_type}"
+    - "<color:#ffea00>Action Details</color>"
+    - "<color:#b0b0b0>Executor: <color:#00c6ff>{executor}</color></color>"
+    - "<color:#b0b0b0>Target: <color:#00c6ff>{target}</color></color>"
+    - "<color:#b0b0b0>Date: <color:#ffffff>{date}</color></color>"
+    - "<color:#b0b0b0>Time: <color:#ffffff>{time}</color></color>"
+    - "<color:#b0b0b0>Inventory: <color:#ffffff>{inventory_type}</color></color>"
 
   # Format for each log entry line based on the action type.
   line-formats:
-    clear-inventory: "&7{executor} &ccleared the inventory ({cleared_count} items)."
-    clear-ender-chest: "&7{executor} &ccleared the ender chest ({cleared_count} items)."
-    item-add-inventory: "&7{executor} &aadded {item_name} &7x{item_count} to inventory."
-    item-remove-inventory: "&7{executor} &cremoved {item_name} &7x{item_count} from inventory."
-    item-move-inventory: "&7{executor} &emoved {item_name} &7x{item_count} in inventory."
-    item-add-enderchest: "&7{executor} &aadded {item_name} &7x{item_count} to ender chest."
-    item-remove-enderchest: "&7{executor} &cremoved {item_name} &7x{item_count} from ender chest."
-    item-move-enderchest: "&7{executor} &emoved {item_name} &7x{item_count} in ender chest."
-    item-add-profile: "&7{executor} &aequipped {item_name} &7x{item_count}."
-    item-remove-profile: "&7{executor} &cunequipped {item_name} &7x{item_count}."
-    item-move-profile: "&7{executor} &eswapped {item_name} &7x{item_count}."
+    clear-inventory: "<color:#b0b0b0>{executor} <color:#ff1744>cleared the inventory ({cleared_count} items).</color></color>"
+    clear-ender-chest: "<color:#b0b0b0>{executor} <color:#ff1744>cleared the ender chest ({cleared_count} items).</color></color>"
+    item-add-inventory: "<color:#b0b0b0>{executor} <color:#00e676>added {item_name} <color:#b0b0b0>x{item_count} to inventory.</color></color></color>"
+    item-remove-inventory: "<color:#b0b0b0>{executor} <color:#ff1744>removed {item_name} <color:#b0b0b0>x{item_count} from inventory.</color></color></color>"
+    item-move-inventory: "<color:#b0b0b0>{executor} <color:#ffea00>moved {item_name} <color:#b0b0b0>x{item_count} in inventory.</color></color></color>"
+    item-add-enderchest: "<color:#b0b0b0>{executor} <color:#00e676>added {item_name} <color:#b0b0b0>x{item_count} to ender chest.</color></color></color>"
+    item-remove-enderchest: "<color:#b0b0b0>{executor} <color:#ff1744>removed {item_name} <color:#b0b0b0>x{item_count} from ender chest.</color></color></color>"
+    item-move-enderchest: "<color:#b0b0b0>{executor} <color:#ffea00>moved {item_name} <color:#b0b0b0>x{item_count} in ender chest.</color></color></color>"
+    item-add-profile: "<color:#b0b0b0>{executor} <color:#00e676>equipped {item_name} <color:#b0b0b0>x{item_count}.</color></color></color>"
+    item-remove-profile: "<color:#b0b0b0>{executor} <color:#ff1744>unequipped {item_name} <color:#b0b0b0>x{item_count}.</color></color></color>"
+    item-move-profile: "<color:#b0b0b0>{executor} <color:#ffea00>swapped {item_name} <color:#b0b0b0>x{item_count}.</color></color></color>"

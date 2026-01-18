@@ -46,7 +46,7 @@
 # - {punish_count}: Total of all punishments.
 
 menu:
-  title: '&8&lProfile: &b{target}'
+  title: '<color:#757575><bold>Profile:</bold></color> <color:#00c6ff>{target}</color>'
   open_actions:
     - 'PLAY_SOUND:BLOCK_ENDER_CHEST_OPEN:1.0:1.2'
   items:
@@ -54,17 +54,17 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: '{target}'
       slot: 4
-      name: '&b&l{target}''s Profile'
+      name: '<color:#00c6ff><bold>{target}''s Profile</bold></color>'
       lore:
-        - '&7Level: &e{xp_level}'
-        - '&7Playtime: &e{play_time}'
-        - '&7Health: &c{health}'
-        - '&7Food: &6{food_level}'
+        - '<color:#b0b0b0>Level: <color:#ffea00>{xp_level}</color></color>'
+        - '<color:#b0b0b0>Playtime: <color:#ffea00>{play_time}</color></color>'
+        - '<color:#b0b0b0>Health: <color:#ff1744>{health}</color></color>'
+        - '<color:#b0b0b0>Food: <color:#f5af19>{food_level}</color></color>'
         - ''
-        - '&7Kills: &a{player_kills}'
-        - '&7Deaths: &c{deaths}'
+        - '<color:#b0b0b0>Kills: <color:#00e676>{player_kills}</color></color>'
+        - '<color:#b0b0b0>Deaths: <color:#ff1744>{deaths}</color></color>'
         - ''
-        - '&eLeft-Click to change target.'
+        - '<color:#ffea00>Left-Click to change target.</color>'
       left_click_actions:
         - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0'
         - 'REQUEST_INPUT:change_target'
@@ -76,10 +76,10 @@ menu:
       material: 'NETHERITE_SWORD'
       custom_model_data: 1
       slot: 48
-      name: '&c&lPunish Player'
+      name: '<gradient:#ff416c:#ff4b2b><bold>Punish Player</bold></gradient>'
       lore:
-        - '&7Open the punishment menu'
-        - '&7for &b{target}&7.'
+        - '<color:#b0b0b0>Open the punishment menu</color>'
+        - '<color:#b0b0b0>for <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_MENU:punish_menu'
@@ -87,10 +87,10 @@ menu:
     open_enderchest_menu:
       material: 'ENDER_CHEST'
       slot: 49
-      name: '&5&lView Ender Chest'
+      name: '<gradient:#8e2de2:#4a00e0><bold>View Ender Chest</bold></gradient>'
       lore:
-        - '&7View and edit the'
-        - '&7ender chest of &b{target}&7.'
+        - '<color:#b0b0b0>View and edit the</color>'
+        - '<color:#b0b0b0>ender chest of <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_MENU:enderchest_menu'
@@ -98,10 +98,10 @@ menu:
     open_inventory_menu:
       material: 'CHEST'
       slot: 50
-      name: '&a&lView Full Inventory'
+      name: '<gradient:#56ab2f:#a8e063><bold>View Full Inventory</bold></gradient>'
       lore:
-        - '&7View and edit the full'
-        - '&7inventory of &b{target}&7.'
+        - '<color:#b0b0b0>View and edit the full</color>'
+        - '<color:#b0b0b0>inventory of <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_MENU:full_inventory_menu'
@@ -109,11 +109,11 @@ menu:
     audit_log_button:
       material: 'WRITABLE_BOOK'
       slot: 51
-      name: '&6&lOperator Log'
+      name: '<gradient:#f7971e:#ffd200><bold>Operator Log</bold></gradient>'
       lore:
-        - '&7Shows a log of actions'
-        - '&7performed on this player'
-        - '&7by operators.'
+        - '<color:#b0b0b0>Shows a log of actions</color>'
+        - '<color:#b0b0b0>performed on this player</color>'
+        - '<color:#b0b0b0>by operators.</color>'
       left_click_actions:
         - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.0'
         - 'OPEN_AUDIT_LOG'

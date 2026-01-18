@@ -17,7 +17,7 @@
 # - {target}: Target player's name.
 
 menu:
-  title: '&8&lEnder Chest: &b{target}'
+  title: '<color:#757575><bold>Ender Chest:</bold></color> <color:#00c6ff>{target}</color>'
   open_actions:
     - 'PLAY_SOUND:BLOCK_ENDER_CHEST_OPEN:1.0:1.0'
   items:
@@ -25,9 +25,9 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
       slot: 40
-      name: '&c&lBack to Profile'
+      name: '<gradient:#ff416c:#ff4b2b><bold>Back to Profile</bold></gradient>'
       lore:
-        - '&7Return to the profile menu.'
+        - '<color:#b0b0b0>Return to the profile menu.</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_MENU:profile_menu'
@@ -35,22 +35,22 @@ menu:
     clear_inventory_button:
       material: 'TNT'
       slot: 38
-      name: '&c&lClear Ender Chest'
+      name: '<gradient:#ed213a:#93291e><bold>Clear Ender Chest</bold></gradient>'
       lore:
-        - '&7Click to remove all items'
-        - '&7from &b{target}''s&7 ender chest.'
+        - '<color:#b0b0b0>Click to remove all items</color>'
+        - '<color:#b0b0b0>from <color:#00c6ff>{target}</color>''s ender chest.</color>'
         - ''
-        - '&8(Requires confirmation)'
+        - '<color:#757575>(Requires confirmation)</color>'
       left_click_actions:
         - 'REQUEST_CLEAR_ENDER_CHEST'
       confirm_state:
         material: 'LAVA_BUCKET'
-        name: '&4&lCONFIRM CLEAR ENDER CHEST'
+        name: '<gradient:#8b0000:#ff1744><bold>CONFIRM CLEAR ENDER CHEST</bold></gradient>'
         lore:
-          - '&cClick again to permanently'
-          - '&cdelete all items.'
+          - '<color:#ff1744>Click again to permanently</color>'
+          - '<color:#ff1744>delete all items.</color>'
           - ''
-          - '&eThis action cannot be undone.'
+          - '<color:#ffea00>This action cannot be undone.</color>'
 
     background_fill:
       material: 'BLACK_STAINED_GLASS_PANE'

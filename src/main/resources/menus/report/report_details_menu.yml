@@ -36,16 +36,16 @@
 # - {reports_sent}: Number of reports sent by the player.
 
 menu:
-  title: '&c&lReport Details: #{report_id}'
+  title: '<gradient:#ff416c:#ff4b2b><bold>Report Details: #{report_id}</bold></gradient>'
   size: 54
   items:
     target_info:
       material: 'PLAYER_HEAD'
       player_head: '{target}'
       slot: 11
-      name: '&cTarget Info: &b{target}'
+      name: '<color:#ff5555>Target Info: <color:#00c6ff>{target}</color></color>'
       lore:
-        - '&7Click to open profile.'
+        - '<color:#b0b0b0>Click to open profile.</color>'
       left_click_actions:
         - 'OPEN_PROFILE_TARGET'
         -
@@ -57,18 +57,18 @@ menu:
     target_summary:
       material: 'WRITABLE_BOOK'
       slot: 20
-      name: '&6{target}''s Record'
+      name: '<color:#f5af19>{target}''s Record</color>'
       lore:
-        - '&7Bans: &c{ban_count}'
-        - '&7Mutes: &e{mute_count}'
-        - '&7Warns: &6{warn_count}'
-        - '&7Kicks: &9{kick_count}'
+        - '<color:#b0b0b0>Bans: <color:#ff5555>{ban_count}</color></color>'
+        - '<color:#b0b0b0>Mutes: <color:#ffea00>{mute_count}</color></color>'
+        - '<color:#b0b0b0>Warns: <color:#f5af19>{warn_count}</color></color>'
+        - '<color:#b0b0b0>Kicks: <color:#3a7bd5>{kick_count}</color></color>'
         - ''
-        - '&7Reports Received: &c{reports_received}'
-        - '&7Reports Sent: &a{reports_sent}'
+        - '<color:#b0b0b0>Reports Received: <color:#ff5555>{reports_received}</color></color>'
+        - '<color:#b0b0b0>Reports Sent: <color:#00e676>{reports_sent}</color></color>'
         - ''
-        - '&eLeft-Click to see reports against them.'
-        - '&eRight-Click to see their history.'
+        - '<color:#ffea00>Left-Click to see reports against them.</color>'
+        - '<color:#ffea00>Right-Click to see their history.</color>'
       left_click_actions:
         - 'REPORTS_FILTER_TARGET'
       right_click_actions:
@@ -78,27 +78,27 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: '{requester}'
       slot: 15
-      name: '&aRequester Info: &b{requester}'
+      name: '<color:#00e676>Requester Info: <color:#00c6ff>{requester}</color></color>'
       lore:
-        - '&7Click to open profile.'
+        - '<color:#b0b0b0>Click to open profile.</color>'
       left_click_actions:
         - 'OPEN_PROFILE_REQUESTER'
 
     requester_summary:
       material: 'WRITABLE_BOOK'
       slot: 24
-      name: '&6{requester}''s Record'
+      name: '<color:#f5af19>{requester}''s Record</color>'
       lore:
-        - '&7Bans: &c{ban_count}'
-        - '&7Mutes: &e{mute_count}'
-        - '&7Warns: &6{warn_count}'
-        - '&7Kicks: &9{kick_count}'
+        - '<color:#b0b0b0>Bans: <color:#ff5555>{ban_count}</color></color>'
+        - '<color:#b0b0b0>Mutes: <color:#ffea00>{mute_count}</color></color>'
+        - '<color:#b0b0b0>Warns: <color:#f5af19>{warn_count}</color></color>'
+        - '<color:#b0b0b0>Kicks: <color:#3a7bd5>{kick_count}</color></color>'
         - ''
-        - '&7Reports Received: &c{reports_received}'
-        - '&7Reports Sent: &a{reports_sent}'
+        - '<color:#b0b0b0>Reports Received: <color:#ff5555>{reports_received}</color></color>'
+        - '<color:#b0b0b0>Reports Sent: <color:#00e676>{reports_sent}</color></color>'
         - ''
-        - '&eLeft-Click to see reports against them.'
-        - '&eRight-Click to see their history.'
+        - '<color:#ffea00>Left-Click to see reports against them.</color>'
+        - '<color:#ffea00>Right-Click to see their history.</color>'
       left_click_actions:
         - 'REPORTS_FILTER_REQUESTER'
       right_click_actions:
@@ -107,105 +107,105 @@ menu:
     report_details:
       material: 'BOOK'
       slot: 4
-      name: '&eReport Information'
+      name: '<color:#ffea00>Report Information</color>'
       lore:
-        - '&7Category: &f{category}'
-        - '&7Reason: &f{reason}'
-        - '&7Details: &f{details}'
-        - '&7Date: &b{date}'
+        - '<color:#b0b0b0>Category: <color:#ffffff>{category}</color></color>'
+        - '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
+        - '<color:#b0b0b0>Details: <color:#ffffff>{details}</color></color>'
+        - '<color:#b0b0b0>Date: <color:#00c6ff>{date}</color></color>'
 
     moderator_info:
       material: 'PLAYER_HEAD'
       player_head: '{moderator}'
       slot: 0
-      name: '&dModerator Info'
+      name: '<color:#d500f9>Moderator Info</color>'
       lore:
-        - '&7Handled by: &b{moderator}'
+        - '<color:#b0b0b0>Handled by: <color:#00c6ff>{moderator}</color></color>'
         - ''
-        - '&7Click to open profile.'
+        - '<color:#b0b0b0>Click to open profile.</color>'
       left_click_actions:
         - 'OPEN_PROFILE_MODERATOR'
 
     collected_data:
       material: 'COMPASS'
       slot: 22
-      name: '&6Collected Data'
+      name: '<color:#f5af19>Collected Data</color>'
       lore:
-        - '&7Loading data...'
+        - '<color:#b0b0b0>Loading data...</color>'
 
     take_report:
       material: 'LIME_DYE'
       slot: 47
-      name: '&a&lTake Report'
+      name: '<gradient:#56ab2f:#a8e063><bold>Take Report</bold></gradient>'
       lore:
-        - '&7Assign this report to yourself'
-        - '&7and change its status to &6Taken&7.'
+        - '<color:#b0b0b0>Assign this report to yourself</color>'
+        - '<color:#b0b0b0>and change its status to <color:#f5af19>Taken</color>.</color>'
       left_click_actions:
         - 'SET_REPORT_STATUS_TAKE'
       confirm_state:
         material: 'ORANGE_DYE'
-        name: '&6&lConfirm Takeover'
+        name: '<gradient:#f5af19:#f12711><bold>Confirm Takeover</bold></gradient>'
         lore:
-          - '&cThis report is already assigned to'
-          - '&c&l{moderator}&c.'
+          - '<color:#ff5555>This report is already assigned to</color>'
+          - '<color:#ff5555><bold>{moderator}</bold>.</color>'
           - ''
-          - '&eClick again to take it anyway.'
+          - '<color:#ffea00>Click again to take it anyway.</color>'
 
     resolve_report:
       material: 'EMERALD_BLOCK'
       slot: 48
-      name: '&a&lResolve Report'
+      name: '<gradient:#56ab2f:#a8e063><bold>Resolve Report</bold></gradient>'
       lore:
-        - '&7Mark this report as resolved.'
-        - '&8(Requires confirmation)'
+        - '<color:#b0b0b0>Mark this report as resolved.</color>'
+        - '<color:#757575>(Requires confirmation)</color>'
       left_click_actions:
         - 'SET_REPORT_STATUS_RESOLVED'
       confirm_state:
         material: 'LIME_WOOL'
-        name: '&2&lCONFIRM RESOLVE'
+        name: '<gradient:#00b09b:#96c93d><bold>CONFIRM RESOLVE</bold></gradient>'
         lore:
-          - '&aClick again to resolve.'
+          - '<color:#00e676>Click again to resolve.</color>'
 
     reject_report:
       material: 'REDSTONE_BLOCK'
       slot: 49
-      name: '&c&lReject Report'
+      name: '<gradient:#ff416c:#ff4b2b><bold>Reject Report</bold></gradient>'
       lore:
-        - '&7Mark this report as rejected.'
-        - '&8(Requires confirmation)'
+        - '<color:#b0b0b0>Mark this report as rejected.</color>'
+        - '<color:#757575>(Requires confirmation)</color>'
       left_click_actions:
         - 'SET_REPORT_STATUS_REJECTED'
       confirm_state:
         material: 'RED_WOOL'
-        name: '&4&lCONFIRM REJECT'
+        name: '<gradient:#ed213a:#93291e><bold>CONFIRM REJECT</bold></gradient>'
         lore:
-          - '&cClick again to reject.'
+          - '<color:#ff1744>Click again to reject.</color>'
 
     mark_as_pending_button:
       material: 'CLOCK'
       slot: 50
-      name: '&e&lMark as Pending'
+      name: '<gradient:#f7971e:#ffd200><bold>Mark as Pending</bold></gradient>'
       lore:
-        - '&7Re-open this report and remove'
-        - '&7the assigned moderator.'
-        - '&8(Requires confirmation)'
+        - '<color:#b0b0b0>Re-open this report and remove</color>'
+        - '<color:#b0b0b0>the assigned moderator.</color>'
+        - '<color:#757575>(Requires confirmation)</color>'
       left_click_actions:
         - 'SET_REPORT_STATUS_PENDING'
       confirm_state:
         material: 'GLOWSTONE_DUST'
-        name: '&6&lCONFIRM RE-OPEN'
+        name: '<gradient:#f5af19:#f12711><bold>CONFIRM RE-OPEN</bold></gradient>'
         lore:
-          - '&eClick again to mark as pending.'
+          - '<color:#ffea00>Click again to mark as pending.</color>'
 
     assign_moderator:
       material: 'DIAMOND_HELMET'
       slot: 51
-      name: '&bAssign to Moderator'
+      name: '<color:#00c6ff>Assign to Moderator</color>'
       lore:
-        - '&7Assign this report to another'
-        - '&7moderator for review.'
+        - '<color:#b0b0b0>Assign this report to another</color>'
+        - '<color:#b0b0b0>moderator for review.</color>'
         - ''
-        - '&eClick to assign.'
+        - '<color:#ffea00>Click to assign.</color>'
       left_click_actions:
         - 'ASSIGN_MODERATOR'
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
@@ -213,19 +213,19 @@ menu:
     punish_target:
       material: 'NETHERITE_SWORD'
       slot: 30
-      name: '&cPunish Target'
+      name: '<color:#ff5555>Punish Target</color>'
       lore:
-        - '&7Open punish menu for &b{target}&7.'
+        - '<color:#b0b0b0>Open punish menu for <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'OPEN_MENU:punish_menu_target'
 
     punish_requester:
       material: 'WOODEN_SWORD'
       slot: 32
-      name: '&cPunish Requester'
+      name: '<color:#ff5555>Punish Requester</color>'
       lore:
-        - '&7Open punish menu for &b{requester}&7.'
-        - '&c(For false reports)'
+        - '<color:#b0b0b0>Open punish menu for <color:#00c6ff>{requester}</color>.</color>'
+        - '<color:#ff5555>(For false reports)</color>'
       left_click_actions:
         - 'OPEN_MENU:punish_menu_requester'
 
@@ -233,9 +233,9 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9'
       slot: 45
-      name: '&c&lBack to Reports'
+      name: '<gradient:#ff416c:#ff4b2b><bold>Back to Reports</bold></gradient>'
       lore:
-        - '&7Return to the main reports list.'
+        - '<color:#b0b0b0>Return to the main reports list.</color>'
       left_click_actions:
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0'
         - 'OPEN_REPORTS_MENU'

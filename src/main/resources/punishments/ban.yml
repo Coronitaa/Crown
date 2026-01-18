@@ -41,20 +41,20 @@ default-reason: "Banned by a moderator."
 default-unpunish-reason: "Unbanned by a moderator."
 
 ban-screen:
-  - '&c&lYou have been banned from the server.'
+  - '<gradient:#ff416c:#ff4b2b><bold>You have been banned from the server.</bold></gradient>'
   - ''
-  - '&7Reason: &f{reason}'
-  - '&7Expires in: &f{time_left}'
-  - '&7Date: &f{date}'
-  - '&7Punishment ID: &f{punishment_id}'
+  - '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
+  - '<color:#b0b0b0>Expires in: <color:#ffffff>{time_left}</color></color>'
+  - '<color:#b0b0b0>Date: <color:#ffffff>{date}</color></color>'
+  - '<color:#b0b0b0>Punishment ID: <color:#ffffff>{punishment_id}</color></color>'
   - ''
-  - '&7Appeal at: &b{support_link}'
+  - '<color:#b0b0b0>Appeal at: <color:#00c6ff><u>{support_link}</u></color></color>'
 
 # Post-action hooks for ban.
 hooks:
   on-punish:
-    - 'MESSAGE_MODS:{prefix}&c{target} &7was banned by &e{player}&7. Reason: &f{reason}&7 Duration: &f{time}'
+    - 'MESSAGE_MODS:{prefix}<color:#ff5555>{target}</color> <color:#b0b0b0>was banned by <color:#ffea00>{player}</color>. Reason: <color:#ffffff>{reason}</color> Duration: <color:#ffffff>{time}</color></color>'
     - 'PLAY_SOUND_MODS:ENTITY_ENDER_DRAGON_GROWL:1.0:0.8'
   on-unpunish:
-    - 'MESSAGE_MODS:{prefix}&a{target} &7was unbanned by &e{player}.'
+    - 'MESSAGE_MODS:{prefix}<color:#00e676>{target}</color> <color:#b0b0b0>was unbanned by <color:#ffea00>{player}</color>.</color>'
     - 'PLAY_SOUND_MODS:ENTITY_PLAYER_LEVELUP:1.0:1.2'

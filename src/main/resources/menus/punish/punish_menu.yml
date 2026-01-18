@@ -39,7 +39,7 @@
 # - {active_ban_count}, {active_mute_count}, ...: Active punishment counts.
 
 menu:
-  title: '#ea3a1a&lPUNISH MENU'
+  title: '<gradient:#ea3a1a:#ff6b6b><bold>PUNISH MENU</bold></gradient>'
   open_actions:
     - 'PLAY_SOUND:BLOCK_SHROOMLIGHT_PLACE:1.0:1.0'
   items:
@@ -60,20 +60,20 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: '{target}' # Uses target's skin
       slot: '10'
-      name: '&bPlayer Information'
+      name: '<color:#00c6ff>Player Information</color>'
       lore:
-        - '&7Info for &b{target}&7:'
+        - '<color:#b0b0b0>Info for <color:#00c6ff>{target}</color>:</color>'
         - ''
-        - '&7Online: &b{target_online}'
-        - '&7IP: &b{target_ip}'
-        - '&7Coords: &b{target_coords}'
-        - '&7World: &b{target_world}'
+        - '<color:#b0b0b0>Online: <color:#00c6ff>{target_online}</color></color>'
+        - '<color:#b0b0b0>IP: <color:#00c6ff>{target_ip}</color></color>'
+        - '<color:#b0b0b0>Coords: <color:#00c6ff>{target_coords}</color></color>'
+        - '<color:#b0b0b0>World: <color:#00c6ff>{target_world}</color></color>'
         - ''
-        - '&7Softbanned: {target_softban_status}'
-        - '&7Softban Ends: &6{target_softban_remaining_time}'
+        - '<color:#b0b0b0>Softbanned: {target_softban_status}</color>'
+        - '<color:#b0b0b0>Softban Ends: <color:#ff9100>{target_softban_remaining_time}</color></color>'
         - ''
-        - '&eLeft-Click to change target.'
-        - '&eRight-Click to spectate.'
+        - '<color:#ffea00>Left-Click to change target.</color>'
+        - '<color:#ffea00>Right-Click to spectate.</color>'
       left_click_actions:
         - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0'
         - 'REQUEST_INPUT:change_target' # Request new target name input
@@ -86,10 +86,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/55effce109de50f5853b0c32dcc1a28cf62a504b610e71e22f1fde6fc1a4b93d'
       slot: '13'
-      name: '&c&lBan'
+      name: '<gradient:#ff416c:#ff4b2b><bold>Ban</bold></gradient>'
       lore:
-        - '&7Left-Click to configure'
-        - '&7a ban for &b{target}&7.'
+        - '<color:#b0b0b0>Left-Click to configure</color>'
+        - '<color:#b0b0b0>a ban for <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'OPEN_MENU:ban_details'
       right_click_actions:
@@ -99,10 +99,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/e82b0b7c68e88800030e674522aab40396fa543072b949c0600e66c2ed352ff0'
       slot: '22'
-      name: '&e&lMute'
+      name: '<gradient:#f7971e:#ffd200><bold>Mute</bold></gradient>'
       lore:
-        - '&7Left-Click to configure'
-        - '&7a mute for &b{target}&7.'
+        - '<color:#b0b0b0>Left-Click to configure</color>'
+        - '<color:#b0b0b0>a mute for <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'OPEN_MENU:mute_details'
       right_click_actions:
@@ -112,10 +112,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/b978c31c63d7da80b9448220b8a9b896003f1b3281c341ab10194c6c4dfbe23d'
       slot: '14'
-      name: '&3&lSoftBan'
+      name: '<gradient:#00c6ff:#0072ff><bold>SoftBan</bold></gradient>'
       lore:
-        - '&7Left-Click to configure'
-        - '&7a softban for &b{target}&7.'
+        - '<color:#b0b0b0>Left-Click to configure</color>'
+        - '<color:#b0b0b0>a softban for <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'OPEN_MENU:softban_details'
       right_click_actions:
@@ -125,10 +125,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/5ae0e486db4ec49ff1b52cfeceda4c3f36fde23c835ea3ccfcaac935e49b5f10'
       slot: '15'
-      name: '&9&lKick'
+      name: '<gradient:#3a7bd5:#3a6073><bold>Kick</bold></gradient>'
       lore:
-        - '&7Left-Click to configure'
-        - '&7a kick for &b{target}&7.'
+        - '<color:#b0b0b0>Left-Click to configure</color>'
+        - '<color:#b0b0b0>a kick for <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'OPEN_MENU:kick_details'
       right_click_actions:
@@ -138,10 +138,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/4f09ade78eff3009cbf9ed12c0ac8f8a2073e9a95a82d8a12a42bce4773adcd7'
       slot: '16'
-      name: '&6&lWarn'
+      name: '<gradient:#f12711:#f5af19><bold>Warn</bold></gradient>'
       lore:
-        - '&7Left-Click to configure'
-        - '&7a warning for &b{target}&7.'
+        - '<color:#b0b0b0>Left-Click to configure</color>'
+        - '<color:#b0b0b0>a warning for <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'OPEN_MENU:warn_details'
       right_click_actions:
@@ -151,10 +151,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bc3d0632c03e9f8748cf94c2576e8aef785bd8da433f3d139a7b561a5a714ada'
       slot: '23'
-      name: '&5&lFreeze'
+      name: '<gradient:#8e2de2:#4a00e0><bold>Freeze</bold></gradient>'
       lore:
-        - '&7Left-Click to configure'
-        - '&7a freeze for &b{target}&7.'
+        - '<color:#b0b0b0>Left-Click to configure</color>'
+        - '<color:#b0b0b0>a freeze for <color:#00c6ff>{target}</color>.</color>'
       left_click_actions:
         - 'OPEN_MENU:freeze_details'
       right_click_actions:
@@ -164,18 +164,18 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/c0cf74e2638ba5ad32237a37b1d76aa123d18546e7eb9a6b9961e4bf1c3a919'
       slot: '37'
-      name: '&a&lHistory'
+      name: '<gradient:#56ab2f:#a8e063><bold>History</bold></gradient>'
       lore:
-        - '&7Left-Click to view punishment'
-        - '&7history for &b{target}&7.'
+        - '<color:#b0b0b0>Left-Click to view punishment</color>'
+        - '<color:#b0b0b0>history for <color:#00c6ff>{target}</color>.</color>'
         - ""
-        - "&7Punishment Summary:"
-        - "&c Bans: &e{ban_count}"
-        - "&e Mutes: &e{mute_count}"
-        - "&9 Kicks: &e{kick_count}"
-        - "&3 Softbans: &e{softban_count}"
-        - "&6 Warns: &e{warn_count}"
-        - "&5 Freezes: &e{freeze_count}"
+        - "<color:#b0b0b0>Punishment Summary:</color>"
+        - "<color:#ff5555> Bans: <color:#ffea00>{ban_count}</color></color>"
+        - "<color:#ffea00> Mutes: <color:#ffea00>{mute_count}</color></color>"
+        - "<color:#3a7bd5> Kicks: <color:#ffea00>{kick_count}</color></color>"
+        - "<color:#00c6ff> Softbans: <color:#ffea00>{softban_count}</color></color>"
+        - "<color:#f5af19> Warns: <color:#ffea00>{warn_count}</color></color>"
+        - "<color:#8e2de2> Freezes: <color:#ffea00>{freeze_count}</color></color>"
         - ""
 
       left_click_actions:
@@ -192,10 +192,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/beda6a673ba76531d32f2e358c10b7c9e9cd6615d1b77654f98aab44a0d7c17f'
       slot: '40'
-      name: '&3&lInvsee'
+      name: '<gradient:#00c6ff:#0072ff><bold>Invsee</bold></gradient>'
       lore:
-        - '&7Click to spy'
-        - "&b{target}&7's inventory!."
+        - '<color:#b0b0b0>Click to spy</color>'
+        - "<color:#00c6ff>{target}</color>'s inventory!."
       left_click_actions:
         - 'PLAYER_COMMAND:invsee {target}'
         - 'PLAY_SOUND:BLOCK_FIRE_EXTINGUISH:1.0:0.5'
@@ -207,10 +207,10 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/54d48ac7e65b91467904f2f4d154556776ffa9cd2d526b12a0499bb59cc656c7'
       slot: '41'
-      name: '&e&lTP TO ME'
+      name: '<gradient:#f7971e:#ffd200><bold>TP TO ME</bold></gradient>'
       lore:
-        - '&7Click to TP &b{target}'
-        - '&7to your actual location.'
+        - '<color:#b0b0b0>Click to TP <color:#00c6ff>{target}</color></color>'
+        - '<color:#b0b0b0>to your actual location.</color>'
       left_click_actions:
         - 'PLAYER_COMMAND:tp {target} {player}' # Player command action. Syntax: 'PLAYER_COMMAND:<command>'
         - 'PLAY_SOUND:ITEM_CHORUS_FRUIT_TELEPORT:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
@@ -225,42 +225,42 @@ menu:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/8045743910f23cecff1008ab6adf797d8e6297b2a43c70df572f2e8245697237'
       slot: '42'
-      name: '&4&lCLEAR INVENTORY'
+      name: '<gradient:#ff416c:#ff4b2b><bold>CLEAR INVENTORY</bold></gradient>'
       lore:
-        - '&7Click to clear'
-        - "&7player's &finventory&7."
+        - '<color:#b0b0b0>Click to clear</color>'
+        - "<color:#b0b0b0>player's <color:#ffffff>inventory</color>.</color>"
       left_click_actions:
         - 'PLAYER_COMMAND_OP:clearinventory {target}' # Player command OP action. Syntax: 'PLAYER_COMMAND_OP:<command>'
         - 'PLAY_SOUND:ENTITY_WITHER_SHOOT:1.0:0.5' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-        - 'MESSAGE_TARGET:&c&nYour inventory has been deleted by an administrator.' # Message to target action. Syntax: 'MESSAGE_TARGET:<message>'
+        - 'MESSAGE_TARGET:<color:#ff5555><u>Your inventory has been deleted by an administrator.</u></color>' # Message to target action. Syntax: 'MESSAGE_TARGET:<message>'
       right_click_actions:
         - 'PLAYER_COMMAND_OP:clearinventory {target}'
         - 'PLAY_SOUND:ENTITY_WITHER_SHOOT:1.0:0.5'
-        - 'MESSAGE_TARGET:&c&nYour inventory has been deleted by an administrator.'
+        - 'MESSAGE_TARGET:<color:#ff5555><u>Your inventory has been deleted by an administrator.</u></color>'
 
     kill:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/c40091316b1c9daa21795c47ae567b27dad64d995e83b6556427f871f8d0632a'
       slot: '43'
-      name: '&2&lKILL PLAYER'
+      name: '<gradient:#56ab2f:#a8e063><bold>KILL PLAYER</bold></gradient>'
       lore:
-        - '&7Left-Click to sentence'
-        - '&7player to &4death&7.'
+        - '<color:#b0b0b0>Left-Click to sentence</color>'
+        - '<color:#b0b0b0>player to <color:#ff1744>death</color>.</color>'
         - ''
-        - '&fRight-Click to &aheal'
+        - '<color:#ffffff>Right-Click to <color:#00e676>heal</color></color>'
       left_click_actions: # Actions performed on left click.
         - 'PLAY_SOUND:ENTITY_WITCH_CELEBRATE:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
         - 'GIVE_EFFECT_TARGET:WITHER:9999:3:true' # Give effect to target action. Syntax: 'GIVE_EFFECT_TARGET:<effect_type>:<duration_seconds>:<amplifier>:<show_particles(optional)>'
         - 'PLAY_SOUND_TARGET:ENTITY_WITHER_SHOOT:1.0:0.6' # Play sound to target action. Syntax: 'PLAY_SOUND_TARGET:<sound_name>:<volume>:<pitch>'
-        - 'TITLE_TARGET:#481358&lYou Have Been Sentenced to Death:&8&nYou will not escape the claws of death.:30:20:20' # Title to target action. Syntax: 'TITLE_TARGET:<title>:<subtitle>:<time_seconds>:<fade_in_ticks>:<fade_out_ticks>'
+        - 'TITLE_TARGET:&5&lYou Have Been Sentenced to Death:&7&nYou will not escape the claws of death.:30:20:20' # Title to target action. Syntax: 'TITLE_TARGET:<title>:<subtitle>:<time_seconds>:<fade_in_ticks>:<fade_out_ticks>'
         - 'MESSAGE:'
-        - 'MESSAGE:#9feadc&l{target} #481358&lHas Been Sentenced to Death.' # Message action. Syntax: 'MESSAGE:<message>'
+        - 'MESSAGE:<gradient:#9feadc:#481358><bold>{target}</bold></gradient> <color:#481358><bold>Has Been Sentenced to Death.</bold></color>' # Message action. Syntax: 'MESSAGE:<message>'
         - 'MESSAGE:'
       right_click_actions: # Actions performed on right click.
         - 'PLAY_SOUND:ENTITY_PILLAGER_AMBIENT:1.0:0.6'
         - 'CONSOLE_COMMAND:heal {target}'
-        - 'TITLE_TARGET:#9feadc&lYou Have Been Blessed:#d8f69c&lWith Forgiveness! &e&nLucky you!:10:20:20'
+        - 'TITLE_TARGET:&a&lYou Have Been Blessed:&e&nWith Forgiveness! Lucky you!:10:20:20'
         - 'PLAY_SOUND_TARGET:ENTITY_WITHER_DEATH:1.0:0.6'
         - 'MESSAGE:'
-        - 'MESSAGE:#9feadc&l{target} #d8f69c&lHas Been Forgiven.'
+        - 'MESSAGE:<gradient:#9feadc:#d8f69c><bold>{target}</bold></gradient> <color:#d8f69c><bold>Has Been Forgiven.</bold></color>'
         - 'MESSAGE:'

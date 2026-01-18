@@ -50,10 +50,10 @@ levels:
   1:
     expiration: '1m'
     on-warn-actions:
-      - 'MESSAGE_TARGET:&cYou have received your first warning for: &e{reason}'
-      - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #1 by &e{player}&7. Reason: &f{reason}'
+      - 'MESSAGE_TARGET:<color:#ff5555>You have received your first warning for: <color:#ffea00>{reason}</color></color>'
+      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #1 by <color:#ffea00>{player}</color>. Reason: <color:#ffffff>{reason}</color></color>'
     on-expire-actions:
-      - 'MESSAGE_TARGET:&aYour first warning has expired or been removed.'
+      - 'MESSAGE_TARGET:<color:#00e676>Your first warning has expired or been removed.</color>'
 
   2:
     expiration: '2m'
@@ -61,13 +61,13 @@ levels:
     # Format: APPLY_MUTE:<duration>:<reason>
     on-warn-actions:
       - 'APPLY_MUTE:1h:Muted due to reaching warning level 2.'
-      - 'MESSAGE_TARGET:&cYou have received your second warning for: &e{reason}&c. You are now muted for 1 hour.'
-      - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #2 by &e{player}&7. Muted for 1h.'
+      - 'MESSAGE_TARGET:<color:#ff5555>You have received your second warning for: <color:#ffea00>{reason}</color>. You are now muted for 1 hour.</color>'
+      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #2 by <color:#ffea00>{player}</color>. Muted for 1h.</color>'
     # Use the associated punishment ID to unmute the correct punishment upon expiration.
     # The placeholder {associated_punishment_id:mute} will be replaced with the ID of the mute created by this warning.
     on-expire-actions:
       - 'CONSOLE_COMMAND:unpunish #{associated_punishment_id:mute} Warning level 2 expired.'
-      - 'MESSAGE_TARGET:&aYour second warning has expired. Your mute has been lifted.'
+      - 'MESSAGE_TARGET:<color:#00e676>Your second warning has expired. Your mute has been lifted.</color>'
 
   3:
     expiration: '3m'
@@ -79,11 +79,11 @@ levels:
     # Format: APPLY_SOFTBAN:<duration>:<reason>
     on-warn-actions:
       - 'APPLY_SOFTBAN:1d:Softbanned due to reaching warning level 3.'
-      - 'MESSAGE_TARGET:&cYou have received your third warning for: &e{reason}&c. You are now softbanned for 1 day with limited commands.'
-      - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #3 by &e{player}&7. Softbanned for 1d.'
+      - 'MESSAGE_TARGET:<color:#ff5555>You have received your third warning for: <color:#ffea00>{reason}</color>. You are now softbanned for 1 day with limited commands.</color>'
+      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #3 by <color:#ffea00>{player}</color>. Softbanned for 1d.</color>'
     on-expire-actions:
       - 'CONSOLE_COMMAND:unpunish #{associated_punishment_id:softban} Warning level 3 expired.'
-      - 'MESSAGE_TARGET:&aYour third warning has expired. Your softban has been lifted.'
+      - 'MESSAGE_TARGET:<color:#00e676>Your third warning has expired. Your softban has been lifted.</color>'
 
   4:
     expiration: '5m'
@@ -91,13 +91,13 @@ levels:
     # Format: APPLY_BAN:<duration>:<reason>
     on-warn-actions:
       - 'APPLY_BAN:7d:Banned due to reaching warning level 4.'
-      - 'MESSAGE_TARGET:&cYou have received your fourth warning for: &e{reason}&c. You have been banned for 7 days.'
-      - 'MESSAGE_MODS:{prefix}&6{target} &7received warning #4 by &e{player}&7. Banned for 7d.'
+      - 'MESSAGE_TARGET:<color:#ff5555>You have received your fourth warning for: <color:#ffea00>{reason}</color>. You have been banned for 7 days.</color>'
+      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #4 by <color:#ffea00>{player}</color>. Banned for 7d.</color>'
     on-expire-actions:
       # Note: This will only run if the player is online when the warn expires. If they are banned, this action may not be useful.
       # It's here to demonstrate the placeholder functionality. A manual unban would likely be required.
       - 'CONSOLE_COMMAND:unpunish #{associated_punishment_id:ban} Warning level 4 expired.'
-      - 'MESSAGE_MODS:{prefix}&aWarning #4 for {target} has expired. Their associated ban may need manual review if still active.'
+      - 'MESSAGE_MODS:{prefix}<color:#00e676>Warning #4 for {target} has expired. Their associated ban may need manual review if still active.</color>'
 
 # Post-action hooks for warn (generally unused when using levels)
 #hooks:
