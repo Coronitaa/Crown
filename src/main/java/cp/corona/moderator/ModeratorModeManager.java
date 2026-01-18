@@ -59,7 +59,7 @@ public class ModeratorModeManager {
         moderatorTools.clear();
         ConfigurationSection inventorySection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("moderator-inventory");
         if (inventorySection != null) loadItemsFromSection(inventorySection);
-        ConfigurationSection selectorSection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("tool-selector-menu.items");
+        ConfigurationSection selectorSection = plugin.getConfigManager().getToolSelectorMenuConfig().getConfig().getConfigurationSection("menu.items");
         if (selectorSection != null) loadItemsFromSection(selectorSection);
     }
 
@@ -114,24 +114,54 @@ public class ModeratorModeManager {
         // Load preferences from DB (or use defaults if new)
         plugin.getSoftBanDatabaseManager().getModPreferences(player.getUniqueId()).thenAccept(dbPrefs -> {
             List<String> favoriteTools = dbPrefs.getFavoriteTools();
+            boolean isNewUser = favoriteTools == null;
+
             // If the player has never set favorites (list is null), load the default ones.
-            // If they have set them, even to be empty, respect that.
-            if (favoriteTools == null) {
+            if (isNewUser) {
                 favoriteTools = new ArrayList<>(plugin.getConfigManager().getModModeConfig().getConfig().getStringList("default-favorites"));
+            }
+            
+            // Initialize with DB values
+            boolean interactions = dbPrefs.isInteractions();
+            boolean containerSpy = dbPrefs.isContainerSpy();
+            boolean flyEnabled = dbPrefs.isFlyEnabled();
+            boolean modOnJoin = dbPrefs.isModOnJoin();
+            boolean silent = dbPrefs.isSilent();
+            float walkSpeed = dbPrefs.getWalkSpeed();
+            float flySpeed = dbPrefs.getFlySpeed();
+            float jumpMultiplier = dbPrefs.getJumpMultiplier();
+            boolean nightVision = dbPrefs.isNightVision();
+            boolean glowingEnabled = dbPrefs.isGlowingEnabled();
+            
+            // If it's a fresh profile (isNewUser) OR walkSpeed is 0 (legacy check), apply defaults from config
+            if (isNewUser || walkSpeed == 0.0f) {
+                ConfigurationSection defaults = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("default-settings");
+                if (defaults != null) {
+                    interactions = defaults.getBoolean("interactions", false);
+                    containerSpy = defaults.getBoolean("container-spy", true);
+                    flyEnabled = defaults.getBoolean("fly", true);
+                    modOnJoin = defaults.getBoolean("mod-on-join", false);
+                    silent = defaults.getBoolean("silent", false);
+                    walkSpeed = (float) defaults.getDouble("walk-speed", 1.0);
+                    flySpeed = (float) defaults.getDouble("fly-speed", 1.0);
+                    jumpMultiplier = (float) defaults.getDouble("jump-boost", 1.0);
+                    nightVision = defaults.getBoolean("night-vision", false);
+                    glowingEnabled = defaults.getBoolean("glowing", false);
+                }
             }
 
             ModPreferenceData prefs = new ModPreferenceData(
-                    dbPrefs.isInteractions(),
-                    dbPrefs.isContainerSpy(),
-                    dbPrefs.isFlyEnabled(),
-                    dbPrefs.isModOnJoin(),
-                    dbPrefs.isSilent(),
+                    interactions,
+                    containerSpy,
+                    flyEnabled,
+                    modOnJoin,
+                    silent,
                     new ArrayList<>(favoriteTools), // Make a mutable copy
-                    dbPrefs.getWalkSpeed(),
-                    dbPrefs.getFlySpeed(),
-                    dbPrefs.getJumpMultiplier(),
-                    dbPrefs.isNightVision(),
-                    dbPrefs.isGlowingEnabled()
+                    walkSpeed,
+                    flySpeed,
+                    jumpMultiplier,
+                    nightVision,
+                    glowingEnabled
             );
             activePreferences.put(player.getUniqueId(), prefs);
 
@@ -644,7 +674,34 @@ public class ModeratorModeManager {
 
     private ModPreferenceData createDefaultPrefs() {
         List<String> defaultFavorites = plugin.getConfigManager().getModModeConfig().getConfig().getStringList("default-favorites");
-        return new ModPreferenceData(false, true, true, false, false, new ArrayList<>(defaultFavorites), 1.0f, 1.0f, 1.0f, false, false);
+        
+        // Load defaults from config
+        ConfigurationSection defaults = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("default-settings");
+        boolean interactions = false;
+        boolean containerSpy = true;
+        boolean fly = true;
+        boolean modOnJoin = false;
+        boolean silent = false;
+        float walkSpeed = 1.0f;
+        float flySpeed = 1.0f;
+        float jumpBoost = 1.0f;
+        boolean nightVision = false;
+        boolean glowing = false;
+
+        if (defaults != null) {
+            interactions = defaults.getBoolean("interactions", false);
+            containerSpy = defaults.getBoolean("container-spy", true);
+            fly = defaults.getBoolean("fly", true);
+            modOnJoin = defaults.getBoolean("mod-on-join", false);
+            silent = defaults.getBoolean("silent", false);
+            walkSpeed = (float) defaults.getDouble("walk-speed", 1.0);
+            flySpeed = (float) defaults.getDouble("fly-speed", 1.0);
+            jumpBoost = (float) defaults.getDouble("jump-boost", 1.0);
+            nightVision = defaults.getBoolean("night-vision", false);
+            glowing = defaults.getBoolean("glowing", false);
+        }
+
+        return new ModPreferenceData(interactions, containerSpy, fly, modOnJoin, silent, new ArrayList<>(defaultFavorites), walkSpeed, flySpeed, jumpBoost, nightVision, glowing);
     }
 
     // --- State Getters ---

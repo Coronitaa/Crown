@@ -1,6 +1,7 @@
 package cp.corona.menus.mod;
 
 import cp.corona.crown.Crown;
+import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -30,7 +31,7 @@ public class ToolSelectorMenu implements InventoryHolder {
         this.viewer = viewer;
         this.toolIdKey = new NamespacedKey(plugin, "tool-id");
 
-        ConfigurationSection menuConfig = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("tool-selector-menu");
+        ConfigurationSection menuConfig = plugin.getConfigManager().getToolSelectorMenuConfig().getConfig().getConfigurationSection("menu");
         String title = MessageUtils.getColorMessage(menuConfig.getString("title", "&8Mod Tools"));
         int size = menuConfig.getInt("size", 27);
 
@@ -39,18 +40,26 @@ public class ToolSelectorMenu implements InventoryHolder {
     }
 
     private void initializeItems() {
-        ConfigurationSection itemsSection = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("tool-selector-menu.items");
+        ConfigurationSection itemsSection = plugin.getConfigManager().getToolSelectorMenuConfig().getConfig().getConfigurationSection("menu.items");
         if (itemsSection == null) return;
 
         List<String> favoriteTools = plugin.getModeratorModeManager().getFavoriteTools(viewer.getUniqueId());
 
         for (String key : itemsSection.getKeys(false)) {
-            ConfigurationSection itemConfig = itemsSection.getConfigurationSection(key);
-            if (itemConfig == null) continue;
+            MenuItem menuItem = plugin.getConfigManager().getToolSelectorMenuItemConfig(key);
+            if (menuItem == null) continue;
 
-            String toolId = itemConfig.getString("tool-id");
-            if (toolId == null) continue;
+            // If it's a background item or non-tool item, just place it
+            String toolId = itemsSection.getString(key + ".tool-id");
+            if (toolId == null) {
+                ItemStack item = menuItem.toItemStack(viewer, plugin.getConfigManager());
+                for (int slot : menuItem.getSlots()) {
+                    inventory.setItem(slot, item);
+                }
+                continue;
+            }
 
+            // It's a tool item
             ItemStack item = plugin.getModeratorModeManager().getModeratorTools().get(toolId);
             if (item == null) continue;
             item = item.clone(); // Work with a copy
@@ -98,7 +107,10 @@ public class ToolSelectorMenu implements InventoryHolder {
 
             meta.setLore(lore);
             item.setItemMeta(meta);
-            inventory.setItem(itemConfig.getInt("slot"), item);
+            
+            for (int slot : menuItem.getSlots()) {
+                inventory.setItem(slot, item);
+            }
         }
     }
 

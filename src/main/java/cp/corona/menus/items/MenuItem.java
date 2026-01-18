@@ -50,10 +50,16 @@ import java.util.stream.Collectors;
 public class MenuItem {
 
     private String material;
+    private String materialOn;
+    private String materialOff;
     private String name;
     private List<String> lore;
     private String playerHead; // Unified field for player head, can be username or URL
+    private String playerHeadOn;
+    private String playerHeadOff;
     private Integer customModelData;
+    private Integer customModelDataOn;
+    private Integer customModelDataOff;
     private int quantity = 1;
     private List<Integer> slots;
     private String clickSound;
@@ -63,6 +69,7 @@ public class MenuItem {
     // Refactored actions to support multiple actions per click type
     private List<ClickActionData> leftClickActions = Collections.emptyList();
     private List<ClickActionData> rightClickActions = Collections.emptyList();
+    private List<ClickActionData> shiftLeftClickActions = Collections.emptyList();
     private MenuItem confirmState;
 
 
@@ -76,6 +83,22 @@ public class MenuItem {
 
     public void setMaterial(String material) {
         this.material = material;
+    }
+
+    public String getMaterialOn() {
+        return materialOn;
+    }
+
+    public void setMaterialOn(String materialOn) {
+        this.materialOn = materialOn;
+    }
+
+    public String getMaterialOff() {
+        return materialOff;
+    }
+
+    public void setMaterialOff(String materialOff) {
+        this.materialOff = materialOff;
     }
 
     // Name
@@ -113,6 +136,22 @@ public class MenuItem {
         this.playerHead = playerHead;
     }
 
+    public String getPlayerHeadOn() {
+        return playerHeadOn;
+    }
+
+    public void setPlayerHeadOn(String playerHeadOn) {
+        this.playerHeadOn = playerHeadOn;
+    }
+
+    public String getPlayerHeadOff() {
+        return playerHeadOff;
+    }
+
+    public void setPlayerHeadOff(String playerHeadOff) {
+        this.playerHeadOff = playerHeadOff;
+    }
+
     // Custom Model Data
     public Integer getCustomModelData() {
         return customModelData;
@@ -120,6 +159,22 @@ public class MenuItem {
 
     public void setCustomModelData(Integer customModelData) {
         this.customModelData = customModelData;
+    }
+
+    public Integer getCustomModelDataOn() {
+        return customModelDataOn;
+    }
+
+    public void setCustomModelDataOn(Integer customModelDataOn) {
+        this.customModelDataOn = customModelDataOn;
+    }
+
+    public Integer getCustomModelDataOff() {
+        return customModelDataOff;
+    }
+
+    public void setCustomModelDataOff(Integer customModelDataOff) {
+        this.customModelDataOff = customModelDataOff;
     }
 
     // Quantity
@@ -183,6 +238,14 @@ public class MenuItem {
 
     public void setRightClickActions(List<ClickActionData> rightClickActions) {
         this.rightClickActions = rightClickActions;
+    }
+
+    public List<ClickActionData> getShiftLeftClickActions() {
+        return shiftLeftClickActions;
+    }
+
+    public void setShiftLeftClickActions(List<ClickActionData> shiftLeftClickActions) {
+        this.shiftLeftClickActions = shiftLeftClickActions;
     }
 
 
@@ -250,7 +313,7 @@ public class MenuItem {
 
             if (itemMaterial == Material.PLAYER_HEAD) {
                 SkullMeta skullMeta = (SkullMeta) meta;
-                this.applyPlayerHeadTexture(skullMeta, target, configManager);
+                this.applyPlayerHeadTexture(skullMeta, this.playerHead, target, configManager);
                 meta = skullMeta;
             }
             itemStack.setItemMeta(meta);
@@ -275,38 +338,39 @@ public class MenuItem {
      * Automatically detects if `playerHead` is a username or a URL.
      *
      * @param skullMeta   The SkullMeta to apply the texture to.
+     * @param headValue   The value to use for the head (username or URL).
      * @param target      The target player for context and placeholders.
      * @param configManager MainConfigManager instance for placeholder processing.
      */
-    private void applyPlayerHeadTexture(final SkullMeta skullMeta, final OfflinePlayer target, final MainConfigManager configManager) {
+    private void applyPlayerHeadTexture(final SkullMeta skullMeta, String headValue, final OfflinePlayer target, final MainConfigManager configManager) {
+        if (headValue == null || headValue.isEmpty()) return;
+
         PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID());
         PlayerTextures textures = profile.getTextures();
         boolean textureSet = false;
 
         // Unified playerHead config - can be username or URL
-        if (this.playerHead != null && !this.playerHead.isEmpty()) {
-            if (this.playerHead.startsWith("http://") || this.playerHead.startsWith("https://")) {
-                // 1. Treat playerHead as texture URL
-                try {
-                    URL textureURL = new URL(this.playerHead);
-                    textures.setSkin(textureURL);
-                    textureSet = true;
-                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player_head URL: " + this.playerHead + " for item: " + this.name);
-                } catch (MalformedURLException e) {
-                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Invalid player_head URL: " + this.playerHead + " for item: " + this.name + ". Must be a direct texture URL from textures.minecraft.net.");
-                }
-            } else {
-                // 2. Treat playerHead as username
-                final String playerName = processText(this.playerHead, target, configManager);
-                PlayerProfile loadedProfile = Bukkit.getOfflinePlayer(playerName).getPlayerProfile(); // Synchronously fetch profile
+        if (headValue.startsWith("http://") || headValue.startsWith("https://")) {
+            // 1. Treat playerHead as texture URL
+            try {
+                URL textureURL = new URL(headValue);
+                textures.setSkin(textureURL);
+                textureSet = true;
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player_head URL: " + headValue + " for item: " + this.name);
+            } catch (MalformedURLException e) {
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Invalid player_head URL: " + headValue + " for item: " + this.name + ". Must be a direct texture URL from textures.minecraft.net.");
+            }
+        } else {
+            // 2. Treat playerHead as username
+            final String playerName = processText(headValue, target, configManager);
+            PlayerProfile loadedProfile = Bukkit.getOfflinePlayer(playerName).getPlayerProfile(); // Synchronously fetch profile
 
-                if (loadedProfile != null && loadedProfile.getTextures() != null && loadedProfile.getTextures().getSkin() != null) {
-                    skullMeta.setOwnerProfile(loadedProfile);
-                    textureSet = true;
-                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player name (sync): " + playerName + " for item: " + this.name); // Log as sync now
-                } else {
-                    if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Failed to load skin for player: " + playerName + " (sync load failed) for item: " + this.name + ". Using default head."); // Log as sync load failed
-                }
+            if (loadedProfile != null && loadedProfile.getTextures() != null && loadedProfile.getTextures().getSkin() != null) {
+                skullMeta.setOwnerProfile(loadedProfile);
+                textureSet = true;
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player name (sync): " + playerName + " for item: " + this.name); // Log as sync now
+            } else {
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Failed to load skin for player: " + playerName + " (sync load failed) for item: " + this.name + ". Using default head."); // Log as sync load failed
             }
         }
 
@@ -314,10 +378,9 @@ public class MenuItem {
         if (textures != null && textures.getSkin() != null && textureSet) {
             skullMeta.setOwnerProfile(profile);
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Owner profile set SUCCESSFULLY for item: " + this.name);
-        } else if (!textureSet && (playerHead != null)) { // Warn if texture was intended to be set but failed
+        } else if (!textureSet) { // Warn if texture was intended to be set but failed
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Skull profile is still missing textures after attempting to set for item: " + this.name + ". Check player_head config. Ensure player_head is a valid username or a DIRECT texture URL from textures.minecraft.net.");
         }
-        // No warning if textureSet is false and playerHead is null/empty, assuming default head is intentional
     }
 
     /**

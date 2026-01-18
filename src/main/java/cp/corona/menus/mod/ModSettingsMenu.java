@@ -1,6 +1,7 @@
 package cp.corona.menus.mod;
 
 import cp.corona.crown.Crown;
+import cp.corona.menus.items.MenuItem;
 import cp.corona.moderator.ModeratorModeManager;
 import cp.corona.utils.MessageUtils;
 import org.bukkit.Bukkit;
@@ -27,7 +28,7 @@ public class ModSettingsMenu implements InventoryHolder {
         this.plugin = plugin;
         this.viewer = viewer;
 
-        ConfigurationSection menuConfig = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("mod-settings-menu");
+        ConfigurationSection menuConfig = plugin.getConfigManager().getSettingsMenuConfig().getConfig().getConfigurationSection("menu");
         String title = MessageUtils.getColorMessage(menuConfig.getString("title", "&8Personal Settings"));
         int size = menuConfig.getInt("size", 45);
 
@@ -36,7 +37,7 @@ public class ModSettingsMenu implements InventoryHolder {
     }
 
     private void initializeItems() {
-        ConfigurationSection config = plugin.getConfigManager().getModModeConfig().getConfig().getConfigurationSection("mod-settings-menu.items");
+        ConfigurationSection config = plugin.getConfigManager().getSettingsMenuConfig().getConfig().getConfigurationSection("menu.items");
         if (config == null) return;
 
         ModeratorModeManager manager = plugin.getModeratorModeManager();
@@ -53,72 +54,100 @@ public class ModSettingsMenu implements InventoryHolder {
         boolean nightVision = manager.isNightVisionEnabled(viewer.getUniqueId());
         boolean glowingEnabled = manager.isGlowingEnabled(viewer.getUniqueId());
 
-        // Create items
-        createToggleItem(config.getConfigurationSection("interactions"), interactions);
-        createToggleItem(config.getConfigurationSection("container-spy"), containerSpy);
-        createToggleItem(config.getConfigurationSection("fly"), flyEnabled);
-        createToggleItem(config.getConfigurationSection("mod-on-join"), modOnJoin);
-        createToggleItem(config.getConfigurationSection("silent"), silent);
-        createToggleItem(config.getConfigurationSection("glowing"), glowingEnabled);
-        createSpeedItem(config.getConfigurationSection("walk-speed"), walkSpeed, "speed");
-        createSpeedItem(config.getConfigurationSection("fly-speed"), flySpeed, "speed");
-        createSpeedItem(config.getConfigurationSection("jump-boost"), jumpMultiplier, "multiplier");
-        createToggleItem(config.getConfigurationSection("night-vision"), nightVision);
-    }
+        for (String key : config.getKeys(false)) {
+            MenuItem menuItem = plugin.getConfigManager().getSettingsMenuItemConfig(key);
+            if (menuItem == null) continue;
 
-    private void createToggleItem(ConfigurationSection itemConfig, boolean state) {
-        if (itemConfig == null) return;
+            ItemStack item;
+            String status = "";
+            String speed = "";
+            String multiplier = "";
 
-        Material matOn = Material.matchMaterial(itemConfig.getString("material_on", "LIME_DYE"));
-        Material matOff = Material.matchMaterial(itemConfig.getString("material_off", "GRAY_DYE"));
-        Material finalMat = state ? matOn : matOff;
-
-        ItemStack item = new ItemStack(finalMat != null ? finalMat : Material.STONE);
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            String name = itemConfig.getString("name", "Toggle");
-            meta.setDisplayName(MessageUtils.getColorMessage(name));
-
-            List<String> lore = itemConfig.getStringList("lore");
-            List<String> processedLore = new ArrayList<>();
-            String status = state ? "&a&lENABLED" : "&c&lDISABLED";
-
-            for (String line : lore) {
-                processedLore.add(MessageUtils.getColorMessage(line.replace("{status}", status)));
+            // Determine state for toggle items
+            boolean state = false;
+            boolean isToggleItem = false;
+            
+            switch (key) {
+                case "interactions":
+                    state = interactions;
+                    isToggleItem = true;
+                    break;
+                case "container-spy":
+                    state = containerSpy;
+                    isToggleItem = true;
+                    break;
+                case "fly":
+                    state = flyEnabled;
+                    isToggleItem = true;
+                    break;
+                case "mod-on-join":
+                    state = modOnJoin;
+                    isToggleItem = true;
+                    break;
+                case "silent":
+                    state = silent;
+                    isToggleItem = true;
+                    break;
+                case "glowing":
+                    state = glowingEnabled;
+                    isToggleItem = true;
+                    break;
+                case "night-vision":
+                    state = nightVision;
+                    isToggleItem = true;
+                    break;
+                case "walk-speed":
+                    speed = String.format("%.2f", walkSpeed);
+                    break;
+                case "fly-speed":
+                    speed = String.format("%.2f", flySpeed);
+                    break;
+                case "jump-boost":
+                    multiplier = String.format("%.2f", jumpMultiplier);
+                    break;
             }
-            meta.setLore(processedLore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
 
-        inventory.setItem(itemConfig.getInt("slot"), item);
-    }
-
-    private void createSpeedItem(ConfigurationSection itemConfig, float value, String placeholder) {
-        if (itemConfig == null) return;
-
-        Material mat = Material.matchMaterial(itemConfig.getString("material", "FEATHER"));
-        ItemStack item = new ItemStack(mat != null ? mat : Material.STONE);
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            String name = itemConfig.getString("name", "Speed");
-            meta.setDisplayName(MessageUtils.getColorMessage(name));
-
-            List<String> lore = itemConfig.getStringList("lore");
-            List<String> processedLore = new ArrayList<>();
-            String valueStr = String.format("%.2f", value);
-
-            for (String line : lore) {
-                processedLore.add(MessageUtils.getColorMessage(line.replace("{" + placeholder + "}", valueStr)));
+            if (isToggleItem) {
+                status = state ? "&a&lENABLED" : "&c&lDISABLED";
+                // Use material_on/off if available
+                if (menuItem.getMaterialOn() != null && menuItem.getMaterialOff() != null) {
+                    Material mat = Material.matchMaterial(state ? menuItem.getMaterialOn() : menuItem.getMaterialOff());
+                    if (mat != null) menuItem.setMaterial(mat.name());
+                }
+                
+                // Use player_head_on/off if available
+                if (menuItem.getPlayerHeadOn() != null && menuItem.getPlayerHeadOff() != null) {
+                    menuItem.setPlayerHead(state ? menuItem.getPlayerHeadOn() : menuItem.getPlayerHeadOff());
+                }
+                
+                // Use custom_model_data_on/off if available
+                if (menuItem.getCustomModelDataOn() != null && menuItem.getCustomModelDataOff() != null) {
+                    menuItem.setCustomModelData(state ? menuItem.getCustomModelDataOn() : menuItem.getCustomModelDataOff());
+                }
             }
-            meta.setLore(processedLore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
 
-        inventory.setItem(itemConfig.getInt("slot"), item);
+            // Build item with placeholders
+            item = menuItem.toItemStack(viewer, plugin.getConfigManager());
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                if (meta.hasLore()) {
+                    List<String> lore = meta.getLore();
+                    List<String> newLore = new ArrayList<>();
+                    for (String line : lore) {
+                        line = line.replace("{status}", MessageUtils.getColorMessage(status))
+                                   .replace("{speed}", speed)
+                                   .replace("{multiplier}", multiplier);
+                        newLore.add(line);
+                    }
+                    meta.setLore(newLore);
+                }
+                item.setItemMeta(meta);
+            }
+
+            for (int slot : menuItem.getSlots()) {
+                inventory.setItem(slot, item);
+            }
+        }
     }
 
     public void open() {

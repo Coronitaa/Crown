@@ -1,0 +1,182 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/mod/settings_menu.yml
+# Configuration for the personal settings GUI
+# Access: /mod settings or via the Settings Tool.
+
+# --- Available Placeholders ---
+# - {status}: Current status of a setting (Enabled/Disabled, On/Off).
+# - {speed}: Current speed multiplier (for walk/fly speed).
+# - {multiplier}: Current jump boost multiplier.
+
+menu:
+  title: '<color:#757575><bold>Personal Settings</bold></color>'
+  size: 45
+  items:
+    background_fill:
+      material: 'GRAY_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '0-9,11,13,15,17-21,23,25-28,31,34-44'
+
+    interactions:
+      slot: 10
+      material_on: 'PLAYER_HEAD'
+      player_head_on: 'http://textures.minecraft.net/texture/891183efb941c57c6a37f61c94e25b44b67a804452e02a0d2996deda6d20d7c6'
+      material_off: 'PLAYER_HEAD'
+      player_head_off: 'http://textures.minecraft.net/texture/117d86e3f81cc1837c70f10be4889834c04f57a7e98e0dd0b4b223b50c7a8f90'
+      name: '<gradient:#f12711:#f5af19><bold>World Interactions</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Control if you can interact</color>'
+        - '<color:#b0b0b0>with the world physically.</color>'
+        - ''
+        - '<color:#b0b0b0>Status: {status}</color>'
+        - ''
+        - '<color:#ffea00>Click to toggle.</color>'
+      left_click_actions:
+        - 'TOGGLE_SETTING:interactions'
+
+    fly:
+      slot: 12
+      material_on: 'FEATHER'
+      material_off: 'CHARCOAL'
+      name: '<color:#ffffff><bold>Fly Mode</bold></color>'
+      lore:
+        - '<color:#b0b0b0>Toggle flight ability</color>'
+        - '<color:#b0b0b0>while in Mod Mode.</color>'
+        - ''
+        - '<color:#b0b0b0>Status: {status}</color>'
+        - ''
+        - '<color:#ffea00>Click to toggle.</color>'
+      left_click_actions:
+        - 'TOGGLE_SETTING:fly'
+
+    container-spy:
+      slot: 14
+      material_on: 'ENDER_EYE'
+      material_off: 'ENDER_PEARL'
+      name: '<gradient:#00c6ff:#0072ff><bold>Container Spy</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Control if right-clicking containers</color>'
+        - '<color:#b0b0b0>opens them silently.</color>'
+        - ''
+        - '<color:#b0b0b0>Status: {status}</color>'
+        - ''
+        - '<color:#ffea00>Click to toggle.</color>'
+      left_click_actions:
+        - 'TOGGLE_SETTING:container_spy'
+
+    mod-on-join:
+      slot: 16
+      material_on: 'DIAMOND_BOOTS'
+      material_off: 'LEATHER_BOOTS'
+      name: '<gradient:#56ab2f:#a8e063><bold>Mod Mode on Join</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Automatically enter Mod Mode</color>'
+        - '<color:#b0b0b0>when joining the server.</color>'
+        - ''
+        - '<color:#b0b0b0>Status: {status}</color>'
+        - ''
+        - '<color:#ffea00>Click to toggle.</color>'
+      left_click_actions:
+        - 'TOGGLE_SETTING:mod_on_join'
+
+    silent:
+      slot: 22
+      material_on: 'BELL'
+      material_off: 'BARRIER'
+      name: '<gradient:#ff416c:#ff4b2b><bold>Silent Mode</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Appear completely offline.</color>'
+        - '<color:#b0b0b0>Hides join/quit messages</color>'
+        - '<color:#b0b0b0>and list presence.</color>'
+        - ''
+        - '<color:#b0b0b0>Status: {status}</color>'
+        - ''
+        - '<color:#ffea00>Click to toggle.</color>'
+      left_click_actions:
+        - 'TOGGLE_SETTING:silent'
+
+    glowing:
+      slot: 24
+      material_on: 'GLOW_INK_SAC'
+      material_off: 'INK_SAC'
+      name: '<gradient:#00c6ff:#0072ff><bold>Player Glowing</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Toggle glowing effect on</color>'
+        - '<color:#b0b0b0>nearby players.</color>'
+        - ''
+        - '<color:#b0b0b0>Status: {status}</color>'
+        - ''
+        - '<color:#ffea00>Click to toggle.</color>'
+      left_click_actions:
+        - 'TOGGLE_SETTING:glowing'
+
+    walk-speed:
+      slot: 29
+      material: 'LEATHER_BOOTS'
+      name: '<gradient:#00c6ff:#0072ff><bold>Walk Speed</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Adjust your walking speed.</color>'
+        - ''
+        - '<color:#b0b0b0>Current: <color:#ffea00>{speed}x</color></color>'
+        - ''
+        - '<color:#ffea00>L-Click: <color:#00e676>+0.25</color></color>'
+        - '<color:#ffea00>R-Click: <color:#ff1744>-0.25</color></color>'
+        - '<color:#ffea00>Shift+L-Click: <color:#ffffff>Reset</color></color>'
+      left_click_actions:
+        - 'ADJUST_SPEED:walk:0.25'
+      right_click_actions:
+        - 'ADJUST_SPEED:walk:-0.25'
+      shift_left_click_actions:
+        - 'RESET_SPEED:walk'
+
+    fly-speed:
+      slot: 30
+      material: 'ELYTRA'
+      name: '<gradient:#00c6ff:#0072ff><bold>Fly Speed</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Adjust your flying speed.</color>'
+        - ''
+        - '<color:#b0b0b0>Current: <color:#ffea00>{speed}x</color></color>'
+        - ''
+        - '<color:#ffea00>L-Click: <color:#00e676>+0.25</color></color>'
+        - '<color:#ffea00>R-Click: <color:#ff1744>-0.25</color></color>'
+        - '<color:#ffea00>Shift+L-Click: <color:#ffffff>Reset</color></color>'
+      left_click_actions:
+        - 'ADJUST_SPEED:fly:0.25'
+      right_click_actions:
+        - 'ADJUST_SPEED:fly:-0.25'
+      shift_left_click_actions:
+        - 'RESET_SPEED:fly'
+
+    jump-boost:
+      slot: 32
+      material: 'RABBIT_FOOT'
+      name: '<gradient:#56ab2f:#a8e063><bold>Jump Boost</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Adjust your jump height.</color>'
+        - ''
+        - '<color:#b0b0b0>Current: <color:#ffea00>{multiplier}x</color></color>'
+        - ''
+        - '<color:#ffea00>L-Click: <color:#00e676>+0.50</color></color>'
+        - '<color:#ffea00>R-Click: <color:#ff1744>-0.50</color></color>'
+        - '<color:#ffea00>Shift+L-Click: <color:#ffffff>Reset</color></color>'
+      left_click_actions:
+        - 'ADJUST_JUMP:0.5'
+      right_click_actions:
+        - 'ADJUST_JUMP:-0.5'
+      shift_left_click_actions:
+        - 'RESET_JUMP'
+
+    night-vision:
+      slot: 33
+      material_on: 'GOLDEN_CARROT'
+      material_off: 'CARROT'
+      name: '<gradient:#f7971e:#ffd200><bold>Night Vision</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Toggle permanent night vision.</color>'
+        - ''
+        - '<color:#b0b0b0>Status: {status}</color>'
+        - ''
+        - '<color:#ffea00>Click to toggle.</color>'
+      left_click_actions:
+        - 'TOGGLE_SETTING:night_vision'

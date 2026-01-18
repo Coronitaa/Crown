@@ -689,78 +689,78 @@ public class ModeratorModeListener implements Listener {
 
     private void handleSettingsMenuClick(InventoryClickEvent event, Player player) {
         event.setCancelled(true);
-        int slot = event.getSlot();
+        ItemStack clickedItem = event.getCurrentItem();
+        if (clickedItem == null || !clickedItem.hasItemMeta()) return;
 
-        int interactionsSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.interactions.slot");
-        int containerSpySlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.container-spy.slot");
-        int flySlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.fly.slot");
-        int modOnJoinSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.mod-on-join.slot");
-        int silentSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.silent.slot");
-        int walkSpeedSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.walk-speed.slot");
-        int flySpeedSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.fly-speed.slot");
-        int jumpBoostSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.jump-boost.slot");
-        int nightVisionSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.night-vision.slot");
-        int glowingSlot = plugin.getConfigManager().getModModeConfig().getConfig().getInt("mod-settings-menu.items.glowing.slot");
-
-        if (slot == interactionsSlot) {
-            plugin.getModeratorModeManager().toggleInteractions(player);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == containerSpySlot) {
-            plugin.getModeratorModeManager().toggleContainerSpy(player);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == flySlot) {
-            plugin.getModeratorModeManager().toggleFly(player);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == modOnJoinSlot) {
-            plugin.getModeratorModeManager().toggleModOnJoin(player);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == silentSlot) {
-            plugin.getModeratorModeManager().toggleSilent(player);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == glowingSlot) {
-            plugin.getModeratorModeManager().toggleGlowing(player);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == walkSpeedSlot) {
-            if (event.getClick() == ClickType.LEFT) {
-                plugin.getModeratorModeManager().modifyWalkSpeed(player, 0.25f);
-            } else if (event.getClick() == ClickType.RIGHT) {
-                plugin.getModeratorModeManager().modifyWalkSpeed(player, -0.25f);
-            } else if (event.getClick() == ClickType.SHIFT_LEFT) {
-                plugin.getModeratorModeManager().resetWalkSpeed(player);
+        // Find which item was clicked by iterating through config keys
+        // This is less efficient than slot mapping but more flexible with the new config structure
+        // Alternatively, we could store the key in the item's persistent data container
+        
+        // For now, let's try to identify by slot since we have access to the config
+        String clickedKey = null;
+        for (String key : plugin.getConfigManager().getSettingsMenuConfig().getConfig().getConfigurationSection("menu.items").getKeys(false)) {
+            List<Integer> slots = plugin.getConfigManager().getSettingsMenuItemConfig(key).getSlots();
+            if (slots.contains(event.getSlot())) {
+                clickedKey = key;
+                break;
             }
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == flySpeedSlot) {
-            if (event.getClick() == ClickType.LEFT) {
-                plugin.getModeratorModeManager().modifyFlySpeed(player, 0.25f);
-            } else if (event.getClick() == ClickType.RIGHT) {
-                plugin.getModeratorModeManager().modifyFlySpeed(player, -0.25f);
-            } else if (event.getClick() == ClickType.SHIFT_LEFT) {
-                plugin.getModeratorModeManager().resetFlySpeed(player);
-            }
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == jumpBoostSlot) {
-            if (event.getClick() == ClickType.LEFT) {
-                plugin.getModeratorModeManager().modifyJumpMultiplier(player, 0.5f);
-            } else if (event.getClick() == ClickType.RIGHT) {
-                plugin.getModeratorModeManager().modifyJumpMultiplier(player, -0.5f);
-            } else if (event.getClick() == ClickType.SHIFT_LEFT) {
-                plugin.getModeratorModeManager().resetJumpMultiplier(player);
-            }
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
-        } else if (slot == nightVisionSlot) {
-            plugin.getModeratorModeManager().toggleNightVision(player);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            new ModSettingsMenu(plugin, player).open();
         }
+        
+        if (clickedKey == null) return;
+
+        switch (clickedKey) {
+            case "interactions":
+                plugin.getModeratorModeManager().toggleInteractions(player);
+                break;
+            case "container-spy":
+                plugin.getModeratorModeManager().toggleContainerSpy(player);
+                break;
+            case "fly":
+                plugin.getModeratorModeManager().toggleFly(player);
+                break;
+            case "mod-on-join":
+                plugin.getModeratorModeManager().toggleModOnJoin(player);
+                break;
+            case "silent":
+                plugin.getModeratorModeManager().toggleSilent(player);
+                break;
+            case "glowing":
+                plugin.getModeratorModeManager().toggleGlowing(player);
+                break;
+            case "night-vision":
+                plugin.getModeratorModeManager().toggleNightVision(player);
+                break;
+            case "walk-speed":
+                if (event.getClick() == ClickType.LEFT) {
+                    plugin.getModeratorModeManager().modifyWalkSpeed(player, 0.25f);
+                } else if (event.getClick() == ClickType.RIGHT) {
+                    plugin.getModeratorModeManager().modifyWalkSpeed(player, -0.25f);
+                } else if (event.getClick() == ClickType.SHIFT_LEFT) {
+                    plugin.getModeratorModeManager().resetWalkSpeed(player);
+                }
+                break;
+            case "fly-speed":
+                if (event.getClick() == ClickType.LEFT) {
+                    plugin.getModeratorModeManager().modifyFlySpeed(player, 0.25f);
+                } else if (event.getClick() == ClickType.RIGHT) {
+                    plugin.getModeratorModeManager().modifyFlySpeed(player, -0.25f);
+                } else if (event.getClick() == ClickType.SHIFT_LEFT) {
+                    plugin.getModeratorModeManager().resetFlySpeed(player);
+                }
+                break;
+            case "jump-boost":
+                if (event.getClick() == ClickType.LEFT) {
+                    plugin.getModeratorModeManager().modifyJumpMultiplier(player, 0.5f);
+                } else if (event.getClick() == ClickType.RIGHT) {
+                    plugin.getModeratorModeManager().modifyJumpMultiplier(player, -0.5f);
+                } else if (event.getClick() == ClickType.SHIFT_LEFT) {
+                    plugin.getModeratorModeManager().resetJumpMultiplier(player);
+                }
+                break;
+        }
+        
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+        new ModSettingsMenu(plugin, player).open();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

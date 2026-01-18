@@ -1,0 +1,109 @@
+## THIS YAML MUST BE VALID so check your changes for errors at https://jsonformatter.org/yaml-validator.
+# PATH: src/main/resources/menus/mod/tool_selector_menu.yml
+# Configuration for the tool selection GUI.
+# Access: /mod tools or via the Tool Selector item.
+
+menu:
+  title: '<color:#757575><bold>Moderation Tools</bold></color>'
+  size: 27
+  items:
+    background_fill:
+      material: 'GRAY_STAINED_GLASS_PANE'
+      name: ' '
+      slot: '0-9,17-26'
+      
+    player-selector:
+      tool-id: 'player_selector_tool'
+      slot: 10
+      material: 'PLAYER_HEAD'
+      name: '<gradient:#f7971e:#ffd200><bold>Player Selector</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>The essential tool for targeting.</color>'
+        - '<color:#757575>(Cannot be removed or favorited)</color>'
+      left_click_actions:
+        - 'EQUIP_TOOL:player_selector_tool'
+        - 'CLOSE_MENU'
+
+    vanish-tool:
+      tool-id: 'vanish_spectator_tool'
+      slot: 11
+      material: 'ENDER_EYE'
+      name: '<gradient:#56ab2f:#a8e063><bold>Vanish / Spectator</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Manage your visibility and enter spectator mode.</color>'
+        - ''
+        - '<color:#ffea00>Shift+R-Click: <color:#ffffff>Toggle Vanish</color></color>'
+        - '<color:#ffea00>R-Click: <color:#ffffff>Enter/Exit Spectator</color></color>'
+      left_click_actions:
+        - 'EQUIP_TOOL:vanish_spectator_tool'
+        - 'CLOSE_MENU'
+
+    settings-tool:
+      tool-id: 'settings_tool'
+      slot: 12
+      material: 'COMPARATOR'
+      name: '<gradient:#f12711:#f5af19><bold>Moderator Settings</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Access your personal configurations.</color>'
+        - ''
+        - '<color:#ffea00>R-Click: <color:#ffffff>Open Settings Menu</color></color>'
+      left_click_actions:
+        - 'EQUIP_TOOL:settings_tool'
+        - 'CLOSE_MENU'
+
+    freeze-tool:
+      tool-id: 'freeze_player_tool'
+      slot: 13
+      material: 'ICE'
+      name: '<gradient:#00c6ff:#0072ff><bold>Freeze Player</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Freeze or unfreeze players.</color>'
+        - ''
+        - '<color:#ffea00>L-Click on Player: <color:#ffffff>Unfreeze</color></color>'
+        - '<color:#ffea00>R-Click on Player: <color:#ffffff>Freeze</color></color>'
+        - '<color:#ffea00>L/R-Click in Air: <color:#ffffff>Act on selected/looked-at player</color></color>'
+      left_click_actions:
+        - 'EQUIP_TOOL:freeze_player_tool'
+        - 'CLOSE_MENU'
+
+    invsee-tool:
+      tool-id: 'invsee_tool'
+      slot: 14
+      material: 'ENDER_CHEST'
+      name: '<gradient:#d500f9:#651fff><bold>Inspect Player</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>View profiles and inventories.</color>'
+        - ''
+        - '<color:#ffea00>R-Click on Player: <color:#ffffff>Open Profile</color></color>'
+        - '<color:#ffea00>R-Click in Air: <color:#ffffff>Open profile of selected player</color></color>'
+      left_click_actions:
+        - 'EQUIP_TOOL:invsee_tool'
+        - 'CLOSE_MENU'
+
+    teleport-tool:
+      tool-id: 'teleport_tool'
+      slot: 15
+      material: 'ENDER_PEARL'
+      name: '<gradient:#8e2de2:#4a00e0><bold>Teleport Tool</bold></gradient>'
+      lore:
+        - '<color:#b0b0b0>Advanced movement abilities.</color>'
+        - ''
+        - '<color:#ffea00>L-Click: <color:#ffffff>Teleport to surface</color></color>'
+        - '<color:#ffea00>R-Click: <color:#ffffff>Boost forward</color></color>'
+      left_click_actions:
+        - 'EQUIP_TOOL:teleport_tool'
+        - 'CLOSE_MENU'
+
+    random-tp-tool:
+      tool-id: 'random_tp_tool'
+      slot: 16
+      material: 'FEATHER'
+      name: '<color:#ffffff><bold>Player Teleport</bold></color>'
+      lore:
+        - '<color:#b0b0b0>Teleport to other players.</color>'
+        - ''
+        - '<color:#ffea00>R-Click: <color:#ffffff>TP to selected player (or random)</color></color>'
+        - '<color:#ffea00>Shift+R-Click: <color:#ffffff>TP to a random player</color></color>'
+      left_click_actions:
+        - 'EQUIP_TOOL:random_tp_tool'
+        - 'CLOSE_MENU'

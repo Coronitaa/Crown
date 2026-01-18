@@ -42,6 +42,8 @@ public class MainConfigManager {
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
     private final CustomConfig modModeConfig;
     private final CustomConfig lockerMenuConfig;
+    private final CustomConfig toolSelectorMenuConfig;
+    private final CustomConfig settingsMenuConfig;
     private final Crown plugin;
     private final String defaultTimeUnit;
 
@@ -87,6 +89,8 @@ public class MainConfigManager {
         
         // Mod Menus
         lockerMenuConfig = new CustomConfig("locker_menu.yml", "menus/mod", plugin, false);
+        toolSelectorMenuConfig = new CustomConfig("tool_selector_menu.yml", "menus/mod", plugin, false);
+        settingsMenuConfig = new CustomConfig("settings_menu.yml", "menus/mod", plugin, false);
         
         modModeConfig = new CustomConfig("mod_mode.yml", null, plugin, false);
 
@@ -110,6 +114,8 @@ public class MainConfigManager {
         reportsConfig.registerConfig();
         punishmentConfigs.values().forEach(CustomConfig::registerConfig);
         lockerMenuConfig.registerConfig();
+        toolSelectorMenuConfig.registerConfig();
+        settingsMenuConfig.registerConfig();
 
         loadConfig();
         this.defaultTimeUnit = getTimeUnit("default");
@@ -135,6 +141,8 @@ public class MainConfigManager {
         reportsConfig.reloadConfig();
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
         lockerMenuConfig.reloadConfig();
+        toolSelectorMenuConfig.reloadConfig();
+        settingsMenuConfig.reloadConfig();
         this.debugEnabled = pluginConfig.getConfig().getBoolean("logging.debug", false);
 
         this.reportCooldown = pluginConfig.getConfig().getInt("report-system.cooldown", 60);
@@ -163,6 +171,22 @@ public class MainConfigManager {
 
     public MenuItem getLockerMenuItemConfig(String itemKey) {
         return loadMenuItemFromConfig(lockerMenuConfig.getConfig(), "menu.items." + itemKey);
+    }
+
+    public CustomConfig getToolSelectorMenuConfig() {
+        return toolSelectorMenuConfig;
+    }
+
+    public MenuItem getToolSelectorMenuItemConfig(String itemKey) {
+        return loadMenuItemFromConfig(toolSelectorMenuConfig.getConfig(), "menu.items." + itemKey);
+    }
+
+    public CustomConfig getSettingsMenuConfig() {
+        return settingsMenuConfig;
+    }
+
+    public MenuItem getSettingsMenuItemConfig(String itemKey) {
+        return loadMenuItemFromConfig(settingsMenuConfig.getConfig(), "menu.items." + itemKey);
     }
 
     public int getReportCooldown() {
@@ -927,6 +951,30 @@ public class MainConfigManager {
         }
         menuItem.setQuantity(config.getInt(configPath + ".quantity", 1));
         menuItem.setSlots(parseSlots(config.getString(configPath + ".slot")));
+        
+        // Load material_on and material_off if present (for toggle items)
+        if (config.contains(configPath + ".material_on")) {
+            menuItem.setMaterialOn(config.getString(configPath + ".material_on"));
+        }
+        if (config.contains(configPath + ".material_off")) {
+            menuItem.setMaterialOff(config.getString(configPath + ".material_off"));
+        }
+        
+        // Load player_head_on and player_head_off
+        if (config.contains(configPath + ".player_head_on")) {
+            menuItem.setPlayerHeadOn(config.getString(configPath + ".player_head_on"));
+        }
+        if (config.contains(configPath + ".player_head_off")) {
+            menuItem.setPlayerHeadOff(config.getString(configPath + ".player_head_off"));
+        }
+        
+        // Load custom_model_data_on and custom_model_data_off
+        if (config.contains(configPath + ".custom_model_data_on")) {
+            menuItem.setCustomModelDataOn(config.getInt(configPath + ".custom_model_data_on"));
+        }
+        if (config.contains(configPath + ".custom_model_data_off")) {
+            menuItem.setCustomModelDataOff(config.getInt(configPath + ".custom_model_data_off"));
+        }
 
         List<String> leftClickActionConfigs = config.getStringList(configPath + ".left_click_actions");
         if (!leftClickActionConfigs.isEmpty()) {
@@ -939,6 +987,14 @@ public class MainConfigManager {
         List<String> rightClickActionConfigs = config.getStringList(configPath + ".right_click_actions");
         if (!rightClickActionConfigs.isEmpty()) {
             menuItem.setRightClickActions(rightClickActionConfigs.stream()
+                    .map(MenuItem.ClickActionData::fromConfigString)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList()));
+        }
+        
+        List<String> shiftLeftClickActionConfigs = config.getStringList(configPath + ".shift_left_click_actions");
+        if (!shiftLeftClickActionConfigs.isEmpty()) {
+            menuItem.setShiftLeftClickActions(shiftLeftClickActionConfigs.stream()
                     .map(MenuItem.ClickActionData::fromConfigString)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList()));
