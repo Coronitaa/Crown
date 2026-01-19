@@ -72,17 +72,59 @@ public class LockerMenu implements InventoryHolder {
         CompletableFuture<List<DatabaseManager.ConfiscatedItemEntry>> itemsFuture;
 
         if (ownerUUID == null) {
-            // Global Locker
             countFuture = plugin.getSoftBanDatabaseManager().countAllConfiscatedItems();
             itemsFuture = plugin.getSoftBanDatabaseManager().getAllConfiscatedItems(page, entriesPerPage);
         } else {
-            // Personal Locker
             countFuture = plugin.getSoftBanDatabaseManager().countConfiscatedItems(ownerUUID);
             itemsFuture = plugin.getSoftBanDatabaseManager().getConfiscatedItems(ownerUUID, page, entriesPerPage);
         }
 
-        countFuture.thenAcceptBothAsync(itemsFuture, (totalCount, items) -> Bukkit.getScheduler().runTask(plugin, () -> {
+        // Procesamiento ASÍNCRONO de los items (Deserialización pesada aquí)
+        countFuture.thenCombineAsync(itemsFuture, (totalCount, entries) -> {
+            List<PreLoadedItem> loadedItems = new ArrayList<>();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            NamespacedKey idKey = new NamespacedKey(plugin, "locker_item_id");
+
+            for (DatabaseManager.ConfiscatedItemEntry entry : entries) {
+                ItemStack item = AuditLogBook.deserialize(entry.getItemData());
+                if (item != null) {
+                    // Preparar metadata en async hasta donde la API de Bukkit lo permita de forma segura
+                    // (Nota: Crear ItemMeta suele ser seguro async, aplicarlo al inventario NO)
+                    ItemMeta meta = item.getItemMeta();
+                    if (meta != null) {
+                        List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                        lore.add(MessageUtils.getColorMessage("&8&m----------------"));
+                        lore.add(MessageUtils.getColorMessage("&7Confiscated: &f" + sdf.format(new Date(entry.getConfiscatedAt()))));
+                        
+                        String confiscatorName = entry.getConfiscatedBy().equals("Console") ? "Console" : Bukkit.getOfflinePlayer(UUID.fromString(entry.getConfiscatedBy())).getName();
+                        lore.add(MessageUtils.getColorMessage("&7By: &e" + (confiscatorName != null ? confiscatorName : "Unknown")));
+                        lore.add(MessageUtils.getColorMessage("&7Source:"));
+                        lore.add(MessageUtils.getColorMessage("&b" + entry.getOriginalType()));
+                        
+                        // Lógica de permisos visuales pre-calculada
+                        boolean inModMode = plugin.getModeratorModeManager().isInModeratorMode(viewer.getUniqueId());
+                        if (isEditable) {
+                            lore.add(" ");
+                            lore.add(MessageUtils.getColorMessage("&eDouble Q &7to &cDelete"));
+                            if (!inModMode) lore.add(MessageUtils.getColorMessage("&eRight-Click &7to &bTake"));
+                        }
+                        if (!inModMode) lore.add(MessageUtils.getColorMessage("&eShift+R-Click &7to &dCopy"));
+                        
+                        meta.setLore(lore);
+                        // No podemos setear PersistentDataContainer async seguramente en todas las versiones,
+                        // así que guardamos el item, el meta y el ID para ensamblar en sync.
+                        item.setItemMeta(meta);
+                        loadedItems.add(new PreLoadedItem(item, entry.getId()));
+                    }
+                }
+            }
+            return new Pair<>(totalCount, loadedItems);
+        }).thenAccept(result -> Bukkit.getScheduler().runTask(plugin, () -> {
+            // Tarea SÍNCRONA (Main Thread) - Solo colocación rápida
             if (viewer == null || !viewer.isOnline() || viewer.getOpenInventory().getTopInventory().getHolder() != this) return;
+
+            int totalCount = result.getKey();
+            List<PreLoadedItem> loadedItems = result.getValue();
 
             this.totalPages = (int) Math.ceil((double) totalCount / (double) entriesPerPage);
             if (this.totalPages == 0) this.totalPages = 1;
@@ -92,47 +134,17 @@ public class LockerMenu implements InventoryHolder {
                 return;
             }
 
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
             NamespacedKey idKey = new NamespacedKey(plugin, "locker_item_id");
-            boolean inModMode = plugin.getModeratorModeManager().isInModeratorMode(viewer.getUniqueId());
-
-            for (int i = 0; i < items.size(); i++) {
-                DatabaseManager.ConfiscatedItemEntry entry = items.get(i);
-                ItemStack item = AuditLogBook.deserialize(entry.getItemData());
-
-                if (item != null) {
-                    ItemMeta meta = item.getItemMeta();
-                    if (meta != null) {
-                        List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-                        
-                        lore.add(MessageUtils.getColorMessage("&8&m----------------")); 
-                        lore.add(MessageUtils.getColorMessage("&7Confiscated: &f" + sdf.format(new Date(entry.getConfiscatedAt()))));
-                        
-                        String confiscatorName = entry.getConfiscatedBy().equals("Console") ? "Console" : Bukkit.getOfflinePlayer(UUID.fromString(entry.getConfiscatedBy())).getName();
-                        lore.add(MessageUtils.getColorMessage("&7By: &e" + (confiscatorName != null ? confiscatorName : "Unknown")));
-                        
-                        lore.add(MessageUtils.getColorMessage("&7Source:"));
-                        lore.add(MessageUtils.getColorMessage("&b" + entry.getOriginalType()));
-                        
-                        if (isEditable) {
-                            lore.add(" ");
-                            lore.add(MessageUtils.getColorMessage("&eDouble Q &7to &cDelete"));
-                            if (!inModMode) {
-                                lore.add(MessageUtils.getColorMessage("&eRight-Click &7to &bTake"));
-                            }
-                        }
-                        if (!inModMode) {
-                            lore.add(MessageUtils.getColorMessage("&eShift+R-Click &7to &dCopy"));
-                        }
-                        
-                        meta.setLore(lore);
-                        meta.getPersistentDataContainer().set(idKey, PersistentDataType.INTEGER, entry.getId());
-                        item.setItemMeta(meta);
-                    }
-                    inventory.setItem(i, item);
-                }
+            for (int i = 0; i < loadedItems.size(); i++) {
+                PreLoadedItem pItem = loadedItems.get(i);
+                ItemStack stack = pItem.stack;
+                ItemMeta meta = stack.getItemMeta();
+                // Aplicar PersistentDataContainer en hilo principal por seguridad
+                meta.getPersistentDataContainer().set(idKey, PersistentDataType.INTEGER, pItem.dbId);
+                stack.setItemMeta(meta);
+                inventory.setItem(i, stack);
             }
-            
+
             placeControlItems();
             viewer.updateInventory();
         }));
@@ -193,5 +205,12 @@ public class LockerMenu implements InventoryHolder {
     @Override
     public @NotNull Inventory getInventory() {
         return inventory;
+    }
+
+    // Clases auxiliares para transporte de datos
+    private record PreLoadedItem(ItemStack stack, int dbId) {}
+    private record Pair<K, V>(K key, V value) {
+        public K getKey() { return key; }
+        public V getValue() { return value; }
     }
 }

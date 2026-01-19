@@ -1,5 +1,8 @@
 package cp.corona.database;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import java.util.concurrent.TimeUnit;
 import cp.corona.config.WarnLevel;
 import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;
@@ -9,26 +12,24 @@ import cp.corona.utils.TimeUtils;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.Date; // Keep this import
+import java.util.Date;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class DatabaseManager {
     private final Crown plugin;
-    private final String dbURL;
     private final String dbUsername;
     private final String dbPassword;
     private final String dbType;
+    private HikariDataSource dataSource;
     private static final String COMMAND_DELIMITER = ";;";
     private static final String FAVORITE_TOOLS_DELIMITER = ",";
 
@@ -51,16 +52,30 @@ public class DatabaseManager {
         this.dbUsername = plugin.getConfigManager().getDatabaseUsername();
         this.dbPassword = plugin.getConfigManager().getDatabasePassword();
 
+        HikariConfig config = new HikariConfig();
+
         if ("mysql".equalsIgnoreCase(dbType)) {
-            this.dbURL = String.format("jdbc:mysql://%s:%s/%s?autoReconnect=true&useSSL=false", dbAddress, dbPort, dbName);
+            config.setJdbcUrl(String.format("jdbc:mysql://%s:%s/%s?autoReconnect=true&useSSL=false", dbAddress, dbPort, dbName));
+            config.setUsername(this.dbUsername);
+            config.setPassword(this.dbPassword);
+            config.addDataSourceProperty("cachePrepStmts", "true");
+            config.addDataSourceProperty("prepStmtCacheSize", "250");
+            config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         } else {
             File dataFolder = plugin.getDataFolder();
             if (!dataFolder.exists()) {
                 dataFolder.mkdirs();
             }
             File dbFile = new File(dataFolder, dbName + ".db");
-            this.dbURL = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+            config.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
         }
+
+        config.setPoolName("Crown-Hikari");
+        config.setMaximumPoolSize(10);
+        config.setConnectionTimeout(TimeUnit.SECONDS.toMillis(30)); // 30 segundos
+        config.setLeakDetectionThreshold(TimeUnit.SECONDS.toMillis(60)); // Detección de fugas
+
+        this.dataSource = new HikariDataSource(config);
 
         CompletableFuture.runAsync(this::initializeDatabase)
                 .thenRun(() -> {
@@ -75,10 +90,12 @@ public class DatabaseManager {
     }
 
     public Connection getConnection() throws SQLException {
-        if ("mysql".equalsIgnoreCase(dbType)) {
-            return DriverManager.getConnection(dbURL, this.dbUsername, this.dbPassword);
-        } else {
-            return DriverManager.getConnection(dbURL);
+        return dataSource.getConnection();
+    }
+
+    public void close() {
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
         }
     }
 

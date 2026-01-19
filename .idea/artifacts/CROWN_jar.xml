@@ -3,6 +3,8 @@
     <output-path>$PROJECT_DIR$/out/artifacts/CROWN_jar</output-path>
     <root id="archive" name="CROWN.jar">
       <element id="module-output" name="CROWN" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/zaxxer/HikariCP/5.1.0/HikariCP-5.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

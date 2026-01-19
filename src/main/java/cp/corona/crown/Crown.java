@@ -62,7 +62,8 @@ public final class Crown extends JavaPlugin {
         this.moderatorModeManager = new ModeratorModeManager(this);
 
         // Run synchronously to prevent async API access errors
-        this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimer(this, 0L, 10L);
+        // Changed to 20 ticks (1 second) as requested
+        this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimer(this, 0L, 20L);
 
         registerCommands();
         registerEvents();
@@ -90,6 +91,10 @@ public final class Crown extends JavaPlugin {
 
         if (moderatorModeManager != null) {
             moderatorModeManager.disableAllModerators();
+        }
+
+        if (databaseManager != null) {
+            databaseManager.close();
         }
 
         if (configManager != null) {
