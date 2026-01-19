@@ -228,9 +228,9 @@ messages:
   mod_mode_crash_restore: '<color:#757575>[<color:#ff1744><bold>!</bold></color>]</color> <color:#ff5555>We detected an error and {prefix}<color:#ff5555>has restored your last known inventory.</color></color>'
 
   # Action Bar Status
-  mod_mode_actionbar_vanished: '&a&lVANISHED &8| &7Right-click tool to appear'
-  mod_mode_actionbar_visible: '&c&lVISIBLE &8| &7Right-click tool to vanish'
-  mod_mode_actionbar_spectator_timer: '&b&lSPECTATOR &8| &eReturning in &f{time}s'
+  mod_mode_actionbar_vanished: '&a&lVANISHED &r&8| &7Right-click tool to appear'
+  mod_mode_actionbar_visible: '&c&lVISIBLE &r&8| &7Right-click tool to vanish'
+  mod_mode_actionbar_spectator_timer: '&b&lSPECTATOR &r&8| &eReturning in &f{time}s'
   mod_mode_actionbar_selected: ' &8| &eSelected: &f{target}'
 
   # Tool Feedback
