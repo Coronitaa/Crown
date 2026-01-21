@@ -165,6 +165,18 @@ public class MainConfigManager {
         }
     }
 
+    public String getServerName() {
+        return pluginConfig.getConfig().getString("server-name", "survival");
+    }
+
+    public boolean isNetworkMode() {
+        return pluginConfig.getConfig().getBoolean("network-mode", false);
+    }
+
+    public List<String> getKnownServers() {
+        return pluginConfig.getConfig().getStringList("known-servers");
+    }
+
     public CustomConfig getLockerMenuConfig() {
         return lockerMenuConfig;
     }

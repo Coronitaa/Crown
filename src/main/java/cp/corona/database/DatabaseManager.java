@@ -131,7 +131,8 @@ public class DatabaseManager {
                     "removed_at DATETIME," +
                     "removed_reason TEXT," +
                     "by_ip BOOLEAN DEFAULT 0," +
-                    "warn_level INT DEFAULT 0)";
+                    "warn_level INT DEFAULT 0," +
+                    "scope VARCHAR(50) DEFAULT 'global')";
 
             if ("sqlite".equalsIgnoreCase(dbType)) {
                 createHistoryTableSQL = "CREATE TABLE IF NOT EXISTS punishment_history (" +
@@ -149,7 +150,8 @@ public class DatabaseManager {
                         "removed_at DATETIME," +
                         "removed_reason TEXT," +
                         "by_ip BOOLEAN DEFAULT 0," +
-                        "warn_level INT DEFAULT 0)";
+                        "warn_level INT DEFAULT 0," +
+                        "scope VARCHAR(50) DEFAULT 'global')";
             }
             statement.execute(createHistoryTableSQL);
 
@@ -347,6 +349,9 @@ public class DatabaseManager {
             }
             if (!columnExists(connection, "punishment_history", "warn_level")) {
                 statement.execute("ALTER TABLE punishment_history ADD COLUMN warn_level INT DEFAULT 0");
+            }
+            if (!columnExists(connection, "punishment_history", "scope")) {
+                statement.execute("ALTER TABLE punishment_history ADD COLUMN scope VARCHAR(50) DEFAULT 'global'");
             }
             if (!columnExists(connection, "softbans", "custom_commands")) {
                 statement.execute("ALTER TABLE softbans ADD COLUMN custom_commands TEXT");
@@ -730,21 +735,25 @@ public class DatabaseManager {
     }
 
     public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, List<String> customCommands) {
-        return executePunishmentAsync(targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, customCommands, 0);
+        return executePunishmentAsync(targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, customCommands, 0, "global");
     }
 
     public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, List<String> customCommands, int warnLevel) {
+        return executePunishmentAsync(targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, customCommands, warnLevel, "global");
+    }
+
+    public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, List<String> customCommands, int warnLevel, String scope) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection()) {
                 boolean isInternal = plugin.getConfigManager().isPunishmentInternal(punishmentType);
                 if (isInternal && !"warn".equalsIgnoreCase(punishmentType)) {
-                    PunishmentEntry activePunishment = getLatestActivePunishment(connection, targetUUID, punishmentType);
+                    PunishmentEntry activePunishment = getLatestActivePunishment(connection, targetUUID, punishmentType, scope);
                     if (activePunishment != null && (activePunishment.getEndTime() > System.currentTimeMillis() || activePunishment.getEndTime() == Long.MAX_VALUE)) {
                         updatePunishmentAsRemoved(connection, activePunishment.getPunishmentId(), "System", "Superseded by new punishment.");
                     }
                 }
 
-                String punishmentId = logPunishment(connection, targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel);
+                String punishmentId = logPunishment(connection, targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel, scope);
 
                 if (isInternal) {
                     switch (punishmentType.toLowerCase()) {
@@ -771,7 +780,11 @@ public class DatabaseManager {
             try (Connection connection = getConnection()) {
                 String punishmentId = punishmentIdToUpdate;
                 if (punishmentId == null) {
-                    punishmentId = getLatestActivePunishmentId(connection, targetUUID, punishmentType);
+                    // Default to global or current server scope if not specified?
+                    // For unpunish without ID, we usually target the latest active one regardless of scope or prioritize current scope?
+                    // Let's assume we target the latest active one visible to this server.
+                    String currentScope = plugin.getConfigManager().getServerName();
+                    punishmentId = getLatestActivePunishmentId(connection, targetUUID, punishmentType, currentScope);
                 } else {
                     PunishmentEntry entry = getPunishmentById(punishmentId);
                     if (entry == null || !entry.isActive()) {
@@ -1239,7 +1252,8 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
+                            rs.getInt("warn_level"),
+                            rs.getString("scope")
                     ));
                 }
             }
@@ -1489,21 +1503,25 @@ public class DatabaseManager {
 
 
     public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp) {
-        return logPunishment(playerUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, 0);
+        return logPunishment(playerUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, 0, "global");
     }
 
     public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, int warnLevel) {
+        return logPunishment(playerUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel, "global");
+    }
+
+    public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, int warnLevel, String scope) {
         try (Connection connection = getConnection()) {
-            return logPunishment(connection, playerUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel);
+            return logPunishment(connection, playerUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel, scope);
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error logging punishment!", e);
             return null;
         }
     }
 
-    private String logPunishment(Connection connection, UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, int warnLevel) throws SQLException {
+    private String logPunishment(Connection connection, UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, int warnLevel, String scope) throws SQLException {
         String punishmentId = generatePunishmentId();
-        String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string, active, by_ip, warn_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string, active, by_ip, warn_level, scope) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
             ps.setString(2, playerUUID.toString());
@@ -1515,6 +1533,7 @@ public class DatabaseManager {
             ps.setBoolean(8, true);
             ps.setBoolean(9, byIp);
             ps.setInt(10, warnLevel);
+            ps.setString(11, scope);
             ps.executeUpdate();
 
             return punishmentId;
@@ -1595,13 +1614,29 @@ public class DatabaseManager {
     }
 
     public List<PunishmentEntry> getPunishmentHistory(UUID playerUUID, int page, int entriesPerPage) {
+        return getPunishmentHistory(playerUUID, page, entriesPerPage, null);
+    }
+
+    public List<PunishmentEntry> getPunishmentHistory(UUID playerUUID, int page, int entriesPerPage, String scopeFilter) {
         List<PunishmentEntry> history = new ArrayList<>();
         int offset = (page - 1) * entriesPerPage;
-        String sql = "SELECT * FROM punishment_history WHERE player_uuid = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?";
-        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, playerUUID.toString());
-            ps.setInt(2, entriesPerPage);
-            ps.setInt(3, offset);
+        StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM punishment_history WHERE player_uuid = ? ");
+        List<Object> params = new ArrayList<>();
+        params.add(playerUUID.toString());
+
+        if (scopeFilter != null && !scopeFilter.isEmpty()) {
+            sqlBuilder.append("AND scope = ? ");
+            params.add(scopeFilter);
+        }
+
+        sqlBuilder.append("ORDER BY timestamp DESC LIMIT ? OFFSET ?");
+        params.add(entriesPerPage);
+        params.add(offset);
+
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sqlBuilder.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     history.add(new PunishmentEntry(
@@ -1618,7 +1653,8 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
+                            rs.getInt("warn_level"),
+                            rs.getString("scope")
                     ));
                 }
             }
@@ -1648,7 +1684,8 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
+                            rs.getInt("warn_level"),
+                            rs.getString("scope")
                     );
                 }
             }
@@ -1660,10 +1697,24 @@ public class DatabaseManager {
 
 
     public int getPunishmentHistoryCount(UUID playerUUID) {
+        return getPunishmentHistoryCount(playerUUID, null);
+    }
+
+    public int getPunishmentHistoryCount(UUID playerUUID, String scopeFilter) {
         int count = 0;
-        String sql = "SELECT COUNT(*) AS total FROM punishment_history WHERE player_uuid = ?";
-        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, playerUUID.toString());
+        StringBuilder sqlBuilder = new StringBuilder("SELECT COUNT(*) AS total FROM punishment_history WHERE player_uuid = ? ");
+        List<Object> params = new ArrayList<>();
+        params.add(playerUUID.toString());
+
+        if (scopeFilter != null && !scopeFilter.isEmpty()) {
+            sqlBuilder.append("AND scope = ? ");
+            params.add(scopeFilter);
+        }
+
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sqlBuilder.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     count = rs.getInt("total");
@@ -1719,19 +1770,20 @@ public class DatabaseManager {
         return idBuilder.toString();
     }
 
-    public String getLatestActivePunishmentId(UUID playerUUID, String punishmentType) {
+    public String getLatestActivePunishmentId(UUID playerUUID, String punishmentType, String scope) {
         try(Connection connection = getConnection()) {
-            return getLatestActivePunishmentId(connection, playerUUID, punishmentType);
+            return getLatestActivePunishmentId(connection, playerUUID, punishmentType, scope);
         } catch(SQLException e){
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment ID!", e);
         }
         return null;
     }
-    private String getLatestActivePunishmentId(Connection connection, UUID playerUUID, String punishmentType) throws SQLException {
-        String sql = "SELECT punishment_id FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 ORDER BY timestamp DESC LIMIT 1";
+    private String getLatestActivePunishmentId(Connection connection, UUID playerUUID, String punishmentType, String scope) throws SQLException {
+        String sql = "SELECT punishment_id FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 AND (scope = 'global' OR scope = ?) ORDER BY timestamp DESC LIMIT 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             ps.setString(2, punishmentType);
+            ps.setString(3, scope);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getString("punishment_id");
@@ -1741,20 +1793,21 @@ public class DatabaseManager {
         return null;
     }
 
-    public PunishmentEntry getLatestActivePunishment(UUID playerUUID, String punishmentType) {
+    public PunishmentEntry getLatestActivePunishment(UUID playerUUID, String punishmentType, String scope) {
         try(Connection connection = getConnection()){
-            return getLatestActivePunishment(connection, playerUUID, punishmentType);
+            return getLatestActivePunishment(connection, playerUUID, punishmentType, scope);
         } catch(SQLException e){
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment!", e);
         }
         return null;
     }
 
-    private PunishmentEntry getLatestActivePunishment(Connection connection, UUID playerUUID, String punishmentType) throws SQLException {
-        String sql = "SELECT * FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 ORDER BY timestamp DESC LIMIT 1";
+    private PunishmentEntry getLatestActivePunishment(Connection connection, UUID playerUUID, String punishmentType, String scope) throws SQLException {
+        String sql = "SELECT * FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 AND (scope = 'global' OR scope = ?) ORDER BY timestamp DESC LIMIT 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             ps.setString(2, punishmentType);
+            ps.setString(3, scope);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new PunishmentEntry(
@@ -1771,7 +1824,8 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
+                            rs.getInt("warn_level"),
+                            rs.getString("scope")
                     );
                 }
             }
@@ -1795,15 +1849,16 @@ public class DatabaseManager {
         return null;
     }
 
-    public PunishmentEntry getLatestActivePunishmentByIp(String ip, String punishmentType) {
+    public PunishmentEntry getLatestActivePunishmentByIp(String ip, String punishmentType, String scope) {
         String sql = "SELECT ph.* FROM punishment_history ph " +
                 "JOIN player_info pi ON ph.punishment_id = pi.punishment_id " +
-                "WHERE pi.ip = ? AND ph.punishment_type = ? AND ph.active = 1 " +
+                "WHERE pi.ip = ? AND ph.punishment_type = ? AND ph.active = 1 AND (ph.scope = 'global' OR ph.scope = ?) " +
                 "ORDER BY ph.timestamp DESC LIMIT 1";
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, ip);
             ps.setString(2, punishmentType);
+            ps.setString(3, scope);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new PunishmentEntry(
@@ -1820,7 +1875,8 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
+                            rs.getInt("warn_level"),
+                            rs.getString("scope")
                     );
                 }
             }
@@ -2283,8 +2339,9 @@ public class DatabaseManager {
         private final String removedReason;
         private final boolean byIp;
         private final int warnLevel;
+        private final String scope;
 
-        public PunishmentEntry(String punishmentId, UUID playerUUID, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString, boolean active, String removedByName, Timestamp removedAt, String removedReason, boolean byIp, int warnLevel) {
+        public PunishmentEntry(String punishmentId, UUID playerUUID, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString, boolean active, String removedByName, Timestamp removedAt, String removedReason, boolean byIp, int warnLevel, String scope) {
             this.punishmentId = punishmentId;
             this.playerUUID = playerUUID;
             this.type = type;
@@ -2299,6 +2356,7 @@ public class DatabaseManager {
             this.removedReason = removedReason;
             this.byIp = byIp;
             this.warnLevel = warnLevel;
+            this.scope = scope;
         }
 
         public String getPunishmentId() { return punishmentId; }
@@ -2318,6 +2376,7 @@ public class DatabaseManager {
         public String getRemovedReason() { return removedReason; }
         public boolean wasByIp() { return byIp; }
         public int getWarnLevel() { return warnLevel; }
+        public String getScope() { return scope; }
     }
     public static class PlayerInfo {
         private final String punishmentId;

@@ -31,13 +31,14 @@ public class HistoryMenu implements InventoryHolder {
     private int totalCount = 0;
     private boolean isLoadingPage = false;
     private final List<MenuItem> historyEntryItemsCache = Collections.synchronizedList(new ArrayList<>());
+    private String currentScope = "global"; // Default scope
 
     private static final String LOADING_ITEM_KEY = "loading_item";
-    private static final String BACK_BUTTON_KEY = "back_button";
     private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
     private static final String PREVIOUS_PAGE_BUTTON_KEY = "previous_page_button";
     private static final String HISTORY_ENTRY_ITEM_KEY = "history_entry";
     private static final String BACKGROUND_FILL_KEY = "background_fill";
+    private static final String SCOPE_FILTER_BUTTON_KEY = "scope_filter_button";
     private static final List<Integer> validSlots = List.of(
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -54,14 +55,14 @@ public class HistoryMenu implements InventoryHolder {
 
         loadMenuItems();
         initializeLoadingState(target);
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            loadPageAsync(1, (Player) inventory.getViewers().stream().findFirst().orElse(null));
-        });
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> 
+            loadPageAsync(1, (Player) inventory.getViewers().stream().findFirst().orElse(null))
+        );
     }
 
     private void initializeLoadingState(OfflinePlayer target) {
         inventory.clear();
-        setItemInMenu(LOADING_ITEM_KEY, plugin.getConfigManager().getHistoryMenuItemConfig(LOADING_ITEM_KEY), target, 22);
+        setItemInMenu(plugin.getConfigManager().getHistoryMenuItemConfig(LOADING_ITEM_KEY), target, 22);
         fillEmptySlotsWithBackground(target);
     }
 
@@ -141,11 +142,13 @@ public class HistoryMenu implements InventoryHolder {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         Bukkit.getScheduler().runTask(plugin, () -> initializeLoadingState(target));
 
+        String scopeFilter = currentScope.equals("global") ? null : currentScope;
+
         CompletableFuture<Integer> countFuture = CompletableFuture.supplyAsync(() ->
-                plugin.getSoftBanDatabaseManager().getPunishmentHistoryCount(targetUUID));
+                plugin.getSoftBanDatabaseManager().getPunishmentHistoryCount(targetUUID, scopeFilter));
 
         CompletableFuture<List<DatabaseManager.PunishmentEntry>> historyFuture = CompletableFuture.supplyAsync(() ->
-                plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, newPage, entriesPerPage));
+                plugin.getSoftBanDatabaseManager().getPunishmentHistory(targetUUID, newPage, entriesPerPage, scopeFilter));
 
         countFuture.thenAcceptBothAsync(historyFuture, (totalCount, pageEntries) -> {
             this.totalCount = totalCount;
@@ -195,6 +198,7 @@ public class HistoryMenu implements InventoryHolder {
 
             String status = entry.getStatus() != null ? entry.getStatus() : "";
             String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");
+            String scope = entry.getScope() != null ? entry.getScope() : "global";
             String nameTemplate = Optional.ofNullable(historyItemConfig.getName())
                     .orElse(baseItemConfig != null ? baseItemConfig.getName() : "");
 
@@ -215,7 +219,8 @@ public class HistoryMenu implements InventoryHolder {
                         .replace("{reason}", entry.getReason())
                         .replace("{date}", dateFormat.format(entry.getTimestamp()))
                         .replace("{punisher}", entry.getPunisherName())
-                        .replace("{duration}", getDurationDisplay(entry));
+                        .replace("{duration}", getDurationDisplay(entry))
+                        .replace("{scope}", scope);
                 lore.add(processedLine);
             }
 
@@ -258,8 +263,21 @@ public class HistoryMenu implements InventoryHolder {
                     !itemKey.equals(NEXT_PAGE_BUTTON_KEY) &&
                     !itemKey.equals(PREVIOUS_PAGE_BUTTON_KEY) &&
                     !itemKey.equals(LOADING_ITEM_KEY) &&
-                    !itemKey.equals(BACKGROUND_FILL_KEY)) {
-                setItemInMenu(itemKey, plugin.getConfigManager().getHistoryMenuItemConfig(itemKey), target);
+                    !itemKey.equals(BACKGROUND_FILL_KEY) &&
+                    !itemKey.equals(SCOPE_FILTER_BUTTON_KEY)) {
+                setItemInMenu(plugin.getConfigManager().getHistoryMenuItemConfig(itemKey), target);
+            }
+        }
+
+        if (plugin.getConfigManager().isNetworkMode()) {
+            MenuItem scopeItem = plugin.getConfigManager().getHistoryMenuItemConfig(SCOPE_FILTER_BUTTON_KEY);
+            if (scopeItem != null) {
+                ItemStack itemStack = scopeItem.toItemStack(target, plugin.getConfigManager(), "{current_scope}", currentScope);
+                if (itemStack != null && scopeItem.getSlots() != null) {
+                    for (int slot : scopeItem.getSlots()) {
+                        inventory.setItem(slot, itemStack);
+                    }
+                }
             }
         }
     }
@@ -296,17 +314,13 @@ public class HistoryMenu implements InventoryHolder {
         if (page <= 1) {
             clearPageButton(51);
         } else {
-            setItemInMenu(PREVIOUS_PAGE_BUTTON_KEY,
-                    plugin.getConfigManager().getHistoryMenuItemConfig(PREVIOUS_PAGE_BUTTON_KEY),
-                    target, 51);
+            setItemInMenu(plugin.getConfigManager().getHistoryMenuItemConfig(PREVIOUS_PAGE_BUTTON_KEY), target, 51);
         }
 
         if (!hasNextPage) {
             clearPageButton(52);
         } else {
-            setItemInMenu(NEXT_PAGE_BUTTON_KEY,
-                    plugin.getConfigManager().getHistoryMenuItemConfig(NEXT_PAGE_BUTTON_KEY),
-                    target, 52);
+            setItemInMenu(plugin.getConfigManager().getHistoryMenuItemConfig(NEXT_PAGE_BUTTON_KEY), target, 52);
         }
     }
 
@@ -334,16 +348,16 @@ public class HistoryMenu implements InventoryHolder {
         if(countsItem != null && countsItem.getSlots() != null){
             staticSlots.addAll(countsItem.getSlots());
         }
+        if (plugin.getConfigManager().isNetworkMode()) {
+            MenuItem scopeItem = plugin.getConfigManager().getHistoryMenuItemConfig(SCOPE_FILTER_BUTTON_KEY);
+            if (scopeItem != null && scopeItem.getSlots() != null) {
+                staticSlots.addAll(scopeItem.getSlots());
+            }
+        }
         return staticSlots.contains(slot);
     }
 
-    private void clearHistoryEntries() {
-        for (int slot : validSlots) {
-            inventory.clear(slot);
-        }
-    }
-
-    private void setItemInMenu(String itemKey, MenuItem menuItemConfig, OfflinePlayer target, int slot) {
+    private void setItemInMenu(MenuItem menuItemConfig, OfflinePlayer target, int slot) {
         if (menuItemConfig != null) {
             ItemStack itemStack = menuItemConfig.toItemStack(target, plugin.getConfigManager());
             if (itemStack != null) {
@@ -352,7 +366,7 @@ public class HistoryMenu implements InventoryHolder {
         }
     }
 
-    private void setItemInMenu(String itemKey, MenuItem menuItemConfig, OfflinePlayer target) {
+    private void setItemInMenu(MenuItem menuItemConfig, OfflinePlayer target) {
         if (menuItemConfig != null) {
             ItemStack itemStack = menuItemConfig.toItemStack(target, plugin.getConfigManager());
             if (itemStack != null && menuItemConfig.getSlots() != null) {
@@ -388,6 +402,18 @@ public class HistoryMenu implements InventoryHolder {
         }
     }
 
+    public void cycleScope(Player player) {
+        List<String> scopes = new ArrayList<>();
+        scopes.add("global");
+        scopes.addAll(plugin.getConfigManager().getKnownServers());
+        
+        int currentIndex = scopes.indexOf(currentScope);
+        int nextIndex = (currentIndex + 1) % scopes.size();
+        currentScope = scopes.get(nextIndex);
+        
+        loadPageAsync(1, player);
+    }
+
     public List<MenuItem> getHistoryEntryItems() {
         return historyEntryItemsCache;
     }
@@ -398,7 +424,9 @@ public class HistoryMenu implements InventoryHolder {
 
     private void loadMenuItems() {
         menuItemKeys.clear();
-        Set<String> configKeys = plugin.getConfigManager().getHistoryMenuConfig().getConfig().getConfigurationSection("menu.items").getKeys(false);
-        menuItemKeys.addAll(configKeys);
+        if (plugin.getConfigManager().getHistoryMenuConfig().getConfig().getConfigurationSection("menu.items") != null) {
+            Set<String> configKeys = plugin.getConfigManager().getHistoryMenuConfig().getConfig().getConfigurationSection("menu.items").getKeys(false);
+            menuItemKeys.addAll(configKeys);
+        }
     }
 }
