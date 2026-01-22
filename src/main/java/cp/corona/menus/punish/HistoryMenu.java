@@ -31,7 +31,7 @@ public class HistoryMenu implements InventoryHolder {
     private int totalCount = 0;
     private boolean isLoadingPage = false;
     private final List<MenuItem> historyEntryItemsCache = Collections.synchronizedList(new ArrayList<>());
-    private String currentScope = "global"; // Default scope
+    private String currentScope;
 
     private static final String LOADING_ITEM_KEY = "loading_item";
     private static final String NEXT_PAGE_BUTTON_KEY = "next_page_button";
@@ -49,6 +49,7 @@ public class HistoryMenu implements InventoryHolder {
     public HistoryMenu(UUID targetUUID, Crown plugin) {
         this.targetUUID = targetUUID;
         this.plugin = plugin;
+        this.currentScope = plugin.getConfigManager().getServerName();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         String title = plugin.getConfigManager().getHistoryMenuTitle(target);
         inventory = Bukkit.createInventory(this, 54, title);
@@ -269,14 +270,12 @@ public class HistoryMenu implements InventoryHolder {
             }
         }
 
-        if (plugin.getConfigManager().isNetworkMode()) {
-            MenuItem scopeItem = plugin.getConfigManager().getHistoryMenuItemConfig(SCOPE_FILTER_BUTTON_KEY);
-            if (scopeItem != null) {
-                ItemStack itemStack = scopeItem.toItemStack(target, plugin.getConfigManager(), "{current_scope}", currentScope);
-                if (itemStack != null && scopeItem.getSlots() != null) {
-                    for (int slot : scopeItem.getSlots()) {
-                        inventory.setItem(slot, itemStack);
-                    }
+        MenuItem scopeItem = plugin.getConfigManager().getHistoryMenuItemConfig(SCOPE_FILTER_BUTTON_KEY);
+        if (scopeItem != null) {
+            ItemStack itemStack = scopeItem.toItemStack(target, plugin.getConfigManager(), "{current_scope}", currentScope);
+            if (itemStack != null && scopeItem.getSlots() != null) {
+                for (int slot : scopeItem.getSlots()) {
+                    inventory.setItem(slot, itemStack);
                 }
             }
         }
@@ -348,11 +347,9 @@ public class HistoryMenu implements InventoryHolder {
         if(countsItem != null && countsItem.getSlots() != null){
             staticSlots.addAll(countsItem.getSlots());
         }
-        if (plugin.getConfigManager().isNetworkMode()) {
-            MenuItem scopeItem = plugin.getConfigManager().getHistoryMenuItemConfig(SCOPE_FILTER_BUTTON_KEY);
-            if (scopeItem != null && scopeItem.getSlots() != null) {
-                staticSlots.addAll(scopeItem.getSlots());
-            }
+        MenuItem scopeItem = plugin.getConfigManager().getHistoryMenuItemConfig(SCOPE_FILTER_BUTTON_KEY);
+        if (scopeItem != null && scopeItem.getSlots() != null) {
+            staticSlots.addAll(scopeItem.getSlots());
         }
         return staticSlots.contains(slot);
     }

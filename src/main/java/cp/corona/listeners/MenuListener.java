@@ -1923,6 +1923,7 @@ public class MenuListener implements Listener {
         String commandTemplate = plugin.getConfigManager().getPunishmentCommand(punishmentType);
         String timeInput = detailsMenu.getBanTime() != null ? detailsMenu.getBanTime() : "permanent";
         String reason = detailsMenu.getBanReason() != null ? detailsMenu.getBanReason() : "No reason specified";
+        String scope = detailsMenu.getCurrentScope();
 
         String ipAddress = null;
         if (byIp) {
@@ -1994,6 +1995,10 @@ public class MenuListener implements Listener {
 
                 if (byIp) {
                     applyIpPunishmentToOnlinePlayers(punishmentType, finalIpAddress, endTime, reason, finalDurationForLog, punishmentId, targetUUID);
+                }
+
+                if (scope.equalsIgnoreCase("global") && (punishmentType.equalsIgnoreCase(BAN_PUNISHMENT_TYPE))) {
+                    sendProxyKick(target.getName(), reason);
                 }
 
                 playSound(player, "punish_confirm");
@@ -2148,6 +2153,7 @@ public class MenuListener implements Listener {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
         boolean byIp = punishDetailsMenu.isByIp();
+        String scope = punishDetailsMenu.getCurrentScope();
 
         if (!byIp && !target.isOnline()) {
             sendConfigMessage(player, "messages.player_not_online", "{input}", target.getName());
@@ -2206,6 +2212,10 @@ public class MenuListener implements Listener {
                             .replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString())
                             .replace("{reason}", reason);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+                }
+
+                if (scope.equalsIgnoreCase("global")) {
+                    sendProxyKick(target.getName(), reason);
                 }
 
                 playSound(player, "punish_confirm");
@@ -3037,6 +3047,16 @@ public class MenuListener implements Listener {
                 }
             }
         }
+    }
+
+    private void sendProxyKick(String playerName, String reason) {
+        if (Bukkit.getOnlinePlayers().isEmpty()) return;
+        Player p = Bukkit.getOnlinePlayers().iterator().next();
+        com.google.common.io.ByteArrayDataOutput out = com.google.common.io.ByteStreams.newDataOutput();
+        out.writeUTF("KickPlayer");
+        out.writeUTF(playerName);
+        out.writeUTF(reason);
+        p.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
     }
 
     private record TempHolder(UUID targetUUID) implements InventoryHolder {
