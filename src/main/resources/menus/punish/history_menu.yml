@@ -11,7 +11,6 @@
 # - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu)
 # - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2)
 # - NO_ACTION:                       (Does nothing - useful for display-only items)
-# - FILTER_SCOPE:<scope>             (Filters history by scope: global, survival, skywars, etc.)
 # (See punish_menu.yml for more potentially usable actions)
 
 # --- Available Placeholders ---
@@ -27,7 +26,6 @@
 # - {punishment_id}: The unique ID of the punishment record.
 # - {method}: The method of punishment (IP/Local).
 # - {status}: The current status of the punishment (Active, Expired, Removed, Paused).
-# - {scope}: The scope of the punishment (Global, Survival, etc.).
 # Summary Specific (within punishment_counts_item lore):
 # - {ban_count}, {mute_count}, {kick_count}, {softban_count}, {warn_count}, {freeze_count}
 # - {active_ban_count}, {active_mute_count}, ...
@@ -49,7 +47,6 @@ menu:
       name: '<color:#ffea00>{punishment_type}</color> <color:#b0b0b0>({method}) {status}</color>'
       lore:
         - '<color:#b0b0b0>ID: <color:#ffffff>{punishment_id}</color></color>'
-        - '<color:#b0b0b0>Scope: <color:#ffffff>{scope}</color></color>'
         - '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
         - '<color:#b0b0b0>Date: <color:#00c6ff>{date}</color></color>'
         - '<color:#b0b0b0>By: <color:#00c6ff>{punisher}</color></color>'
@@ -137,19 +134,6 @@ menu:
       left_click_actions:
         - 'OPEN_MENU:punish_menu'
 
-    scope_filter_button:
-      material: 'COMPASS'
-      slot: '48'
-      name: '<color:#ffea00>Filter Scope: <color:#00c6ff>{current_scope}</color></color>'
-      lore:
-        - '<color:#b0b0b0>Click to cycle through</color>'
-        - '<color:#b0b0b0>server scopes.</color>'
-        - ''
-        - '<color:#ffffff>Current: <color:#00c6ff>{current_scope}</color></color>'
-      left_click_actions:
-        - 'FILTER_SCOPE'
-        - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
-
     punishment_counts_item:
       material: "FILLED_MAP"
       slot: '49' # Bottom center slot
@@ -168,5 +152,5 @@ menu:
     background_fill:
       material: 'BLACK_STAINED_GLASS_PANE'
       name: ' '
-      # Fills slots 0-9, 17-18, 26-27, 35-36, 45-47, 50 (excluding history entries and buttons)
-      slot: '0-9,17,18,26,27,35,36,45,46,47,50'
+      # Fills slots 0-9, 17-18, 26-27, 35-36, 45-48, 50 (excluding history entries and buttons)
+      slot: '0-9,17,18,26,27,35,36,45,46,47,48,50'

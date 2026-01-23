@@ -12,17 +12,6 @@ prefix: "<gradient:#ff801a:#ff4b2b><bold>ᴄʀᴏᴡɴ</bold></gradient> <color:
 
 support-link: "your.discord.gg" # Add your support link here.
 
-# Server identification for network mode
-server-name: "survival" # Unique identifier for this server (e.g., survival, skywars, lobby)
-network-mode: false # Set to true if this server is part of a network and should handle remote punishments
-
-# List of known servers in the network for scope selection in menus.
-# Only used if network-mode is true.
-known-servers:
-  - "survival"
-  - "skywars"
-  - "lobby"
-
 # Database settings for storing softban status and punishment history.
 database:
   type: 'sqlite' # 'sqlite' (file-based) or 'mysql'.

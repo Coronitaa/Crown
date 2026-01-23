@@ -15,7 +15,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,7 +35,6 @@ public class PunishDetailsMenu implements InventoryHolder {
     private boolean reasonRequiredForConfirmation = true;
     private final OfflinePlayer target;
     private boolean byIp;
-    private String currentScope = "global";
 
     private final Set<String> menuItemKeys = new HashSet<>();
 
@@ -45,7 +43,6 @@ public class PunishDetailsMenu implements InventoryHolder {
     public static final String CONFIRM_PUNISH_KEY = "confirm_punish";
     public static final String BACK_BUTTON_KEY = "back_button";
     public static final String TOGGLE_METHOD_KEY = "toggle_method_button";
-    public static final String TOGGLE_SCOPE_KEY = "toggle_scope_button";
     public static final String UNSOFTBAN_BUTTON_KEY = "unsoftban_button";
     public static final String UNFREEZE_BUTTON_KEY = "unfreeze_button";
     public static final String UNBAN_BUTTON_KEY = "unban_button";
@@ -120,7 +117,6 @@ public class PunishDetailsMenu implements InventoryHolder {
             if (itemKey.equals(UNBAN_BUTTON_KEY) && !this.punishmentType.equals("ban")) continue;
             if (itemKey.equals(UNMUTE_BUTTON_KEY) && !this.punishmentType.equals("mute")) continue;
             if (itemKey.equals(UNWARN_BUTTON_KEY) && !this.punishmentType.equals("warn")) continue;
-            if (itemKey.equals(TOGGLE_SCOPE_KEY) && !plugin.getConfigManager().isNetworkMode()) continue;
 
             ItemStack itemStack;
             switch (itemKey) {
@@ -135,9 +131,6 @@ public class PunishDetailsMenu implements InventoryHolder {
                     break;
                 case TOGGLE_METHOD_KEY:
                     itemStack = getToggleMethodItem();
-                    break;
-                case TOGGLE_SCOPE_KEY:
-                    itemStack = getToggleScopeItem();
                     break;
                 case UNSOFTBAN_BUTTON_KEY:
                     itemStack = getUnSoftBanButton();
@@ -220,12 +213,6 @@ public class PunishDetailsMenu implements InventoryHolder {
         return toggleMethodConfig.toItemStack(target, plugin.getConfigManager(), "{method}", methodName);
     }
 
-    private ItemStack getToggleScopeItem() {
-        MenuItem toggleScopeConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, TOGGLE_SCOPE_KEY);
-        if (toggleScopeConfig == null) return null;
-        return toggleScopeConfig.toItemStack(target, plugin.getConfigManager(), "{scope}", currentScope);
-    }
-
     private ItemStack getConfirmPunishItem() {
         MenuItem confirmPunishConfig = plugin.getConfigManager().getDetailsMenuItemConfig(punishmentType, CONFIRM_PUNISH_KEY);
         if (confirmPunishConfig == null) return null;
@@ -235,7 +222,6 @@ public class PunishDetailsMenu implements InventoryHolder {
 
         return confirmPunishConfig.toItemStack(target, plugin.getConfigManager(),
                 "{method}", methodName,
-                "{scope}", currentScope,
                 "{time_status}", getTimeStatusText(),
                 "{reason_status}", getReasonStatusText(),
                 "{time}", displayTime,
@@ -302,19 +288,6 @@ public class PunishDetailsMenu implements InventoryHolder {
         updateConfirmButtonStatus();
     }
 
-    public void toggleScope() {
-        List<String> scopes = new ArrayList<>();
-        scopes.add("global");
-        scopes.addAll(plugin.getConfigManager().getKnownServers());
-        
-        int currentIndex = scopes.indexOf(currentScope);
-        int nextIndex = (currentIndex + 1) % scopes.size();
-        currentScope = scopes.get(nextIndex);
-        
-        updateToggleScopeItem();
-        updateConfirmButtonStatus();
-    }
-
     public void setByIp(boolean byIp) {
         this.byIp = byIp;
         updateToggleMethodItem();
@@ -325,13 +298,6 @@ public class PunishDetailsMenu implements InventoryHolder {
         ItemStack toggleItem = getToggleMethodItem();
         if (toggleItem != null) {
             setItemInMenu(TOGGLE_METHOD_KEY, toggleItem);
-        }
-    }
-
-    public void updateToggleScopeItem() {
-        ItemStack toggleItem = getToggleScopeItem();
-        if (toggleItem != null) {
-            setItemInMenu(TOGGLE_SCOPE_KEY, toggleItem);
         }
     }
 
@@ -439,8 +405,6 @@ public class PunishDetailsMenu implements InventoryHolder {
             if (confirmItem != null) setItemInMenu(CONFIRM_PUNISH_KEY, confirmItem);
             ItemStack toggleItem = getToggleMethodItem();
             if (toggleItem != null) setItemInMenu(TOGGLE_METHOD_KEY, toggleItem);
-            ItemStack toggleScopeItem = getToggleScopeItem();
-            if (toggleScopeItem != null) setItemInMenu(TOGGLE_SCOPE_KEY, toggleScopeItem);
 
             for (Player viewer : viewers) {
                 viewer.updateInventory();

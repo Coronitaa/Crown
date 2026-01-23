@@ -14,7 +14,6 @@
 # - UN_MUTE:                         (Removes mute - only applicable in mute menu)
 # - UN_WARN:                         (Removes warn - only applicable in warn menu)
 # - TOGGLE_PUNISH_METHOD:            (Toggles between IP and Local punishment)
-# - TOGGLE_SCOPE:                    (Toggles between Global and specific server scopes - Network Mode only)
 # - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0)
 # - TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout> (Shows title to clicking player)
 # - NO_ACTION:                       (Does nothing)
@@ -28,7 +27,6 @@
 # - {time_status}: Text indicating if time is set (uses placeholders.set/not_set).
 # - {reason_status}: Text indicating if reason is set (uses placeholders.set/not_set).
 # - {method}: Current punishment method (IP/Local).
-# - {scope}: Current punishment scope (Global/Server Name).
 # - {target_softban_status}: Target's softban status (relevant in softban menu).
 # - {target_softban_remaining_time}: Target's remaining softban time (relevant in softban menu).
 
@@ -43,7 +41,7 @@ menu:
         background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '0-9,17,18-26,28-29,33'
+          slot: '0-9,17,18-26,28-29,33-34'
         background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
           name: ' '
@@ -68,19 +66,6 @@ menu:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
-        toggle_scope_button:
-          material: 'COMPASS'
-          name: '<color:#ffea00>Punishment Scope: <color:#00c6ff>{scope}</color></color>'
-          slot: '34'
-          lore:
-            - '<color:#b0b0b0>Click to cycle through</color>'
-            - '<color:#b0b0b0>available scopes.</color>'
-            - ''
-            - '<color:#ffffff>Current: <color:#00c6ff>{scope}</color></color>'
-          left_click_actions:
-            - 'TOGGLE_SCOPE'
-          right_click_actions:
-            - 'TOGGLE_SCOPE'
         set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
@@ -123,7 +108,6 @@ menu:
             - '<color:#b0b0b0>apply the ban to <color:#00c6ff>{target}</color>.</color>'
             - ''
             - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
-            - '<color:#ffffff>Scope: <color:#00c6ff>{scope}</color></color>'
             - '<color:#ffffff>Requires:</color>'
             - '<color:#b0b0b0>- Time: {time_status}</color>'
             - '<color:#b0b0b0>- Reason: {reason_status}</color>'
@@ -167,7 +151,7 @@ menu:
         background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '0-9,17,18-26,28-29,33'
+          slot: '0-9,17,18-26,28-29,33-34'
         background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
           name: ' '
@@ -192,19 +176,6 @@ menu:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
-        toggle_scope_button:
-          material: 'COMPASS'
-          name: '<color:#ffea00>Punishment Scope: <color:#00c6ff>{scope}</color></color>'
-          slot: '34'
-          lore:
-            - '<color:#b0b0b0>Click to cycle through</color>'
-            - '<color:#b0b0b0>available scopes.</color>'
-            - ''
-            - '<color:#ffffff>Current: <color:#00c6ff>{scope}</color></color>'
-          left_click_actions:
-            - 'TOGGLE_SCOPE'
-          right_click_actions:
-            - 'TOGGLE_SCOPE'
         set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
@@ -247,7 +218,6 @@ menu:
             - '<color:#b0b0b0>apply the mute to <color:#00c6ff>{target}</color>.</color>'
             - ''
             - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
-            - '<color:#ffffff>Scope: <color:#00c6ff>{scope}</color></color>'
             - '<color:#ffffff>Requires:</color>'
             - '<color:#b0b0b0>- Time: {time_status}</color>'
             - '<color:#b0b0b0>- Reason: {reason_status}</color>'
@@ -289,7 +259,7 @@ menu:
         background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '0-9,17,18-26,28-29,33'
+          slot: '0-9,17,18-26,28-29,33,34'
         background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
           name: ' '
@@ -314,19 +284,6 @@ menu:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
-        toggle_scope_button:
-          material: 'COMPASS'
-          name: '<color:#ffea00>Punishment Scope: <color:#00c6ff>{scope}</color></color>'
-          slot: '34'
-          lore:
-            - '<color:#b0b0b0>Click to cycle through</color>'
-            - '<color:#b0b0b0>available scopes.</color>'
-            - ''
-            - '<color:#ffffff>Current: <color:#00c6ff>{scope}</color></color>'
-          left_click_actions:
-            - 'TOGGLE_SCOPE'
-          right_click_actions:
-            - 'TOGGLE_SCOPE'
         set_time:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/6fe8cff75f7d433260af1ecb2f773b4bc381d951de4e2eb661423779a590e72b"
@@ -386,7 +343,6 @@ menu:
             - '<color:#b0b0b0>apply the softban to <color:#00c6ff>{target}</color>.</color>'
             - ''
             - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
-            - '<color:#ffffff>Scope: <color:#00c6ff>{scope}</color></color>'
             - '<color:#ffffff>Requires:</color>'
             - '<color:#b0b0b0>- Time: {time_status}</color>'
             - '<color:#b0b0b0>- Reason: {reason_status}</color>'
@@ -587,7 +543,7 @@ menu:
         background_fill_1:
           material: 'GRAY_STAINED_GLASS_PANE'
           name: ' '
-          slot: '0-9,17,18-26,28-29,33'
+          slot: '0-9,17,18-26,28-29,33-35'
         background_fill_2:
           material: 'WHITE_STAINED_GLASS_PANE'
           name: ' '
@@ -600,7 +556,7 @@ menu:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/d01afe973c5482fdc71e6aa10698833c79c437f21308ea9a1a095746ec274a0f"
           name: '<color:#ffea00>Punishment Method: <color:#00c6ff>{method}</color></color>'
-          slot: '35'
+          slot: '13'
           lore:
             - '<color:#b0b0b0>This punishment is always applied</color>'
             - '<color:#00c6ff>locally</color> <color:#b0b0b0>and cannot be changed.</color>'
@@ -612,19 +568,6 @@ menu:
             - 'TOGGLE_PUNISH_METHOD'
           right_click_actions:
             - 'TOGGLE_PUNISH_METHOD'
-        toggle_scope_button:
-          material: 'COMPASS'
-          name: '<color:#ffea00>Punishment Scope: <color:#00c6ff>{scope}</color></color>'
-          slot: '34'
-          lore:
-            - '<color:#b0b0b0>Click to cycle through</color>'
-            - '<color:#b0b0b0>available scopes.</color>'
-            - ''
-            - '<color:#ffffff>Current: <color:#00c6ff>{scope}</color></color>'
-          left_click_actions:
-            - 'TOGGLE_SCOPE'
-          right_click_actions:
-            - 'TOGGLE_SCOPE'
         set_reason:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a7ed66f5a70209d821167d156fdbc0ca3bf11ad54ed5d86e75c265f7e5029ec1"
@@ -653,7 +596,6 @@ menu:
             - '<color:#b0b0b0>apply the freeze to <color:#00c6ff>{target}</color>.</color>'
             - ''
             - '<color:#ffffff>Method: <color:#00c6ff>{method}</color></color>'
-            - '<color:#ffffff>Scope: <color:#00c6ff>{scope}</color></color>'
             - '<color:#ffffff>Optional:</color>'
             - '<color:#b0b0b0>- Reason: {reason_status}</color>'
           left_click_actions:

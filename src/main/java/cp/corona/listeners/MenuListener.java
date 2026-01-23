@@ -1302,13 +1302,6 @@ public class MenuListener implements Listener {
                 }
                 return true;
             }
-            case TOGGLE_SCOPE -> {
-                if (plugin.getConfigManager().isNetworkMode()) {
-                    punishDetailsMenu.toggleScope();
-                    punishDetailsMenu.open(player);
-                }
-                return true;
-            }
             case CONFIRM_PUNISHMENT -> { handleConfirmButtonClick(player, punishDetailsMenu); return true; }
             case UN_SOFTBAN -> { if (!player.hasPermission(UNPUNISH_SOFTBAN_PERMISSION)) { sendNoPermissionMenuMessage(player, "unsoftban"); return true; } handleUnsoftbanButtonClick(player, punishDetailsMenu); return true; }
             case UN_FREEZE -> { if (!player.hasPermission(UNPUNISH_FREEZE_PERMISSION)) { sendNoPermissionMenuMessage(player, "unfreeze"); return true; } handleUnfreezeButtonClick(player, punishDetailsMenu); return true; }
@@ -1358,12 +1351,6 @@ public class MenuListener implements Listener {
                     else if (firstArg.equalsIgnoreCase("previous_page")) historyMenu.previousPage(player);
                     return true;
                 } return false;
-            }
-            case FILTER_SCOPE -> {
-                if (plugin.getConfigManager().isNetworkMode()) {
-                    historyMenu.cycleScope(player);
-                }
-                return true;
             }
             default -> { return false; }
         }
@@ -2318,7 +2305,7 @@ public class MenuListener implements Listener {
         boolean removed = plugin.getPluginFrozenPlayers().containsKey(targetUUID);
 
         if (removed) {
-            String originalPunishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(targetUUID, FREEZE_PUNISHMENT_TYPE, plugin.getConfigManager().getServerName());
+            String originalPunishmentId = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentId(targetUUID, FREEZE_PUNISHMENT_TYPE);
 
             plugin.getSoftBanDatabaseManager().executeUnpunishmentAsync(targetUUID, FREEZE_PUNISHMENT_TYPE, player.getName(), reason, originalPunishmentId)
                     .thenAccept(punishmentId -> {

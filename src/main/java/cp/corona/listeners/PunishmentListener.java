@@ -72,23 +72,11 @@ public class PunishmentListener implements Listener {
                 }
             }
 
-            // Check scope for ban
-            String currentScope = plugin.getConfigManager().getServerName();
-            DatabaseManager.PunishmentEntry punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(event.getUniqueId(), "ban", currentScope);
+            DatabaseManager.PunishmentEntry punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(event.getUniqueId(), "ban");
             if (punishmentEntry == null) {
-                punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "ban", currentScope);
+                punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "ban");
             }
-            
-            // If we found a relevant punishment entry in DB, use its ID.
-            // If not (e.g. vanilla ban), use N/A.
-            // Note: If network-mode is on, we rely on the DB entry to enforce scope. 
-            // If vanilla ban exists but no DB entry for this scope, technically we should allow if it was a different server ban,
-            // but vanilla bans are global per server instance. We assume sync happens via DB.
-            
             String punishmentId = (punishmentEntry != null) ? punishmentEntry.getPunishmentId() : "N/A";
-
-            // If network mode is enabled and we found NO database entry for this scope/global, 
-            // but there is a vanilla ban, it might be a leftover or a local ban. We respect the vanilla ban.
 
             String kickMessage = getKickMessage(plugin.getConfigManager().getBanScreen(), reason, timeLeft, punishmentId, expiration);
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, MessageUtils.getColorMessage(kickMessage));
@@ -108,14 +96,8 @@ public class PunishmentListener implements Listener {
 
             boolean hasMute = false;
             boolean hasSoftban = false;
-            String currentScope = plugin.getConfigManager().getServerName();
 
             for (DatabaseManager.PunishmentEntry punishment : allActivePunishments) {
-                // Filter by scope
-                if (!punishment.getScope().equals("global") && !punishment.getScope().equals(currentScope)) {
-                    continue;
-                }
-
                 if (punishment.getType().equalsIgnoreCase("mute")) {
                     plugin.getMutedPlayersCache().put(playerUUID, punishment.getEndTime());
                     hasMute = true;
@@ -147,7 +129,6 @@ public class PunishmentListener implements Listener {
 
             List<DatabaseManager.PunishmentEntry> standardPunishments = allActivePunishments.stream()
                     .filter(p -> !p.getType().equalsIgnoreCase("freeze") && !p.getType().equalsIgnoreCase("warn"))
-                    .filter(p -> p.getScope().equals("global") || p.getScope().equals(currentScope))
                     .collect(Collectors.toList());
             List<ActiveWarningEntry> activeWarnings = dbManager.getAllActiveAndPausedWarnings(playerUUID);
             Map<String, DatabaseManager.PunishmentEntry> punishmentDetailsMap = allActivePunishments.stream()
@@ -265,11 +246,10 @@ public class PunishmentListener implements Listener {
             methodText = plugin.getConfigManager().getMessage("placeholders.by_local");
         }
 
-        String hover = String.format("&eReason: &f%s\n&eDate: &f%s\n&eMethod: &f%s\n&eScope: &f%s",
+        String hover = String.format("&eReason: &f%s\n&eDate: &f%s\n&eMethod: &f%s",
                 entry.getReason(),
                 dateFormat.format(entry.getTimestamp()),
-                methodText,
-                entry.getScope()
+                methodText
         );
         return MessageUtils.getColorMessage(hover);
     }
