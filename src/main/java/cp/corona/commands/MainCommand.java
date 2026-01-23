@@ -824,7 +824,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             default:
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
                 return;
-            }
+        }
 
         if (punishType.equalsIgnoreCase("warn") && useInternal) {
             // Warn logic is complex and involves multiple DB reads/writes, handle it separately.
@@ -858,10 +858,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     applyIpPunishmentToOnlinePlayers(punishType, finalIpAddress, finalPunishmentEndTime, reason, finalDurationForLog, punishmentId, target.getUniqueId());
                 }
 
-                if (scope.equalsIgnoreCase("global") && (punishType.equalsIgnoreCase("ban") || punishType.equalsIgnoreCase("kick"))) {
-                    sendProxyKick(target.getName(), reason);
-                }
-
                 String messageKey = byIp ? "messages.direct_punishment_confirmed_ip" : "messages.direct_punishment_confirmed";
                 sendConfigMessage(sender, messageKey, "{target}", target.getName(), "{time}", finalDurationForLog, "{reason}", reason, "{punishment_type}", punishType, "{punishment_id}", punishmentId);
 
@@ -873,16 +869,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
             });
         });
-    }
-
-    private void sendProxyKick(String playerName, String reason) {
-        if (Bukkit.getOnlinePlayers().isEmpty()) return;
-        Player p = Bukkit.getOnlinePlayers().iterator().next();
-        com.google.common.io.ByteArrayDataOutput out = com.google.common.io.ByteStreams.newDataOutput();
-        out.writeUTF("KickPlayer");
-        out.writeUTF(playerName);
-        out.writeUTF(reason);
-        p.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
     }
 
     private void applyIpPunishmentToOnlinePlayers(String punishmentType, String ipAddress, long endTime, String reason, String durationForLog, String punishmentId, UUID originalTargetUUID) {
@@ -1310,12 +1296,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         List<String> currentArgs = new ArrayList<>(Arrays.asList(args));
         String currentArg = currentArgs.getLast();
-        String previousArg = currentArgs.size() > 1 ? currentArgs.get(currentArgs.size() - 2) : "";
-
-        if (previousArg.equalsIgnoreCase("-s") || previousArg.equalsIgnoreCase("-server")) {
-            StringUtil.copyPartialMatches(currentArg, plugin.getConfigManager().getKnownServers(), completions);
-            return;
-        }
 
         if (commandLabel.equals("punish")) {
             if (currentArgs.size() == 1) {

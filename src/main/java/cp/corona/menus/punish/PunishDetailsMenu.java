@@ -36,7 +36,7 @@ public class PunishDetailsMenu implements InventoryHolder {
     private boolean reasonRequiredForConfirmation = true;
     private final OfflinePlayer target;
     private boolean byIp;
-    private String currentScope;
+    private String currentScope = "global";
 
     private final Set<String> menuItemKeys = new HashSet<>();
 
@@ -61,7 +61,6 @@ public class PunishDetailsMenu implements InventoryHolder {
         this.plugin = plugin;
         this.punishmentType = punishmentType.toLowerCase();
         this.target = Bukkit.getOfflinePlayer(targetUUID);
-        this.currentScope = plugin.getConfigManager().getServerName();
         String title = plugin.getConfigManager().getDetailsMenuText("title", target, this.punishmentType);
         int inventorySize = 36;
         inventory = Bukkit.createInventory(this, inventorySize, MessageUtils.getColorMessage(title));
@@ -121,6 +120,7 @@ public class PunishDetailsMenu implements InventoryHolder {
             if (itemKey.equals(UNBAN_BUTTON_KEY) && !this.punishmentType.equals("ban")) continue;
             if (itemKey.equals(UNMUTE_BUTTON_KEY) && !this.punishmentType.equals("mute")) continue;
             if (itemKey.equals(UNWARN_BUTTON_KEY) && !this.punishmentType.equals("warn")) continue;
+            if (itemKey.equals(TOGGLE_SCOPE_KEY) && !plugin.getConfigManager().isNetworkMode()) continue;
 
             ItemStack itemStack;
             switch (itemKey) {
@@ -389,10 +389,6 @@ public class PunishDetailsMenu implements InventoryHolder {
 
     public boolean isTimeRequired() {
         return timeRequired;
-    }
-
-    public String getCurrentScope() {
-        return currentScope;
     }
 
     public void updateSetTimeItem() {

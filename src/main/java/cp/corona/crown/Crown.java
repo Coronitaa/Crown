@@ -14,8 +14,8 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import cp.corona.commands.ModeratorCommand;
-import cp.corona.moderator.ModeratorModeManager;
 import cp.corona.moderator.ModeratorModeListener;
+import cp.corona.moderator.ModeratorModeManager;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashSet;
@@ -64,8 +64,6 @@ public final class Crown extends JavaPlugin {
         // Run synchronously to prevent async API access errors
         // Changed to 20 ticks (1 second) as requested
         this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimer(this, 0L, 20L);
-
-        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
         registerCommands();
         registerEvents();
