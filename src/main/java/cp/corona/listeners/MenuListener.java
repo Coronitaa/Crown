@@ -126,7 +126,7 @@ public class MenuListener implements Listener {
     /**
      * Cancels any existing confirmation for a player, reverting the button's visual state.
      * This ensures only one confirmation can be active per player at any time.
-     * @param player The player whose confirmation should be cancelled.
+     * @param player The player whose confirmation should be canceled.
      */
     private void cancelExistingConfirmation(Player player) {
         ConfirmationContext existingContext = pendingConfirmations.remove(player.getUniqueId());
@@ -523,7 +523,7 @@ public class MenuListener implements Listener {
             BukkitTask task = new BukkitRunnable() {
                 @Override
                 public void run() {
-                    // This task will only run if not cancelled by a second click or another confirmation
+                    // This task will only run if not canceled by a second click or another confirmation
                     cancelExistingConfirmation(moderator);
                 }
             }.runTaskLater(plugin, 100L); // 5-second timeout
