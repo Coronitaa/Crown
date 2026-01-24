@@ -79,6 +79,11 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
 
+            if (target.getUniqueId().equals(player.getUniqueId())) {
+                MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_target_self_error");
+                return true;
+            }
+
             if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
                 plugin.getModeratorModeManager().enableModeratorMode(player, false, false);
             }

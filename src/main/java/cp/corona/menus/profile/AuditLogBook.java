@@ -43,29 +43,26 @@ public class AuditLogBook {
     }
 
     public void openBook() {
-        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        BookMeta loadingMeta = (BookMeta) book.getItemMeta();
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
-
-        String title = plugin.getConfigManager().getAuditLogText("book.title", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
-        loadingMeta.setTitle(MessageUtils.getColorMessage(title));
-        loadingMeta.setAuthor(MessageUtils.getColorMessage(plugin.getConfigManager().getAuditLogText("book.author")));
-        loadingMeta.addPages(Component.text("Loading audit log..."));
-        book.setItemMeta(loadingMeta);
-
-        viewer.openBook(book);
-
+        // Fetch data asynchronously first
         plugin.getSoftBanDatabaseManager().getOperatorActions(targetUUID).thenAccept(logEntries -> 
-            Bukkit.getScheduler().runTask(plugin, () -> buildAndOpen(logEntries, book))
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
+                BookMeta meta = (BookMeta) book.getItemMeta();
+                OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+
+                String title = plugin.getConfigManager().getAuditLogText("book.title", "{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+                meta.setTitle(MessageUtils.getColorMessage(title));
+                meta.setAuthor(MessageUtils.getColorMessage(plugin.getConfigManager().getAuditLogText("book.author")));
+
+                buildAndOpen(logEntries, book, meta);
+            })
         );
     }
 
-    private void buildAndOpen(List<DatabaseManager.AuditLogEntry> logEntries, ItemStack book) {
+    private void buildAndOpen(List<DatabaseManager.AuditLogEntry> logEntries, ItemStack book, BookMeta bookMeta) {
         if (viewer == null || !viewer.isOnline()) {
             return;
         }
-
-        BookMeta bookMeta = (BookMeta) book.getItemMeta();
 
         if (logEntries.isEmpty()) {
             String noLogsMessage = plugin.getConfigManager().getAuditLogText("book.no-logs-message");
@@ -172,7 +169,7 @@ public class AuditLogBook {
     private String getInventoryType(String actionType) {
         actionType = actionType.toLowerCase();
         if (actionType.contains("inventory")) return "Player Inventory";
-        if (actionType.contains("enderchest")) return "Ender Chest";
+        if (actionType.contains("ender_chest") || actionType.contains("enderchest")) return "Ender Chest";
         if (actionType.contains("profile")) return "Player Equipment";
         return "Unknown";
     }
