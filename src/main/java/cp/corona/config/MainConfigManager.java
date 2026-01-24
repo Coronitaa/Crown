@@ -1,6 +1,7 @@
 package cp.corona.config;
 
 import cp.corona.crown.Crown;
+import cp.corona.database.ActiveWarningEntry;
 import cp.corona.database.DatabaseManager;
 import cp.corona.menus.punish.PunishDetailsMenu;
 import cp.corona.menus.items.MenuItem;
@@ -49,7 +50,7 @@ public class MainConfigManager {
 
     private boolean debugEnabled;
     private boolean placeholderAPIEnabled;
-    private CrownPunishmentsPlaceholders placeholders;
+    private CrownPlaceholders placeholders;
 
     private final Map<Integer, WarnLevel> warnLevels = new HashMap<>();
     private String warnExpirationMode;
@@ -737,7 +738,7 @@ public class MainConfigManager {
     public void registerPlaceholders() {
         if (placeholderAPIEnabled) {
             if (placeholders == null) {
-                placeholders = new CrownPunishmentsPlaceholders(plugin);
+                placeholders = new CrownPlaceholders(plugin);
             }
             if (!placeholders.isRegistered()) {
                 boolean registered = placeholders.register();
@@ -1142,11 +1143,11 @@ public class MainConfigManager {
         return MessageUtils.getColorMessage(message);
     }
 
-    private class CrownPunishmentsPlaceholders extends PlaceholderExpansion {
+    private class CrownPlaceholders extends PlaceholderExpansion {
 
         private final Crown plugin;
 
-        public CrownPunishmentsPlaceholders(Crown plugin) {
+        public CrownPlaceholders(Crown plugin) {
             this.plugin = plugin;
         }
 
@@ -1176,23 +1177,60 @@ public class MainConfigManager {
                 return null;
             }
 
+            // Softban
             if (params.equalsIgnoreCase("is_softbanned")) {
                 return String.valueOf(plugin.getSoftBanDatabaseManager().isSoftBanned(player.getUniqueId()));
             }
+            if (params.equalsIgnoreCase("softban_time_left")) {
+                return formatTimeLeft(plugin.getSoftBanDatabaseManager().getSoftBanEndTime(player.getUniqueId()));
+            }
+
+            // Mute
+            if (params.equalsIgnoreCase("is_muted")) {
+                return String.valueOf(plugin.getSoftBanDatabaseManager().isMuted(player.getUniqueId()));
+            }
+            if (params.equalsIgnoreCase("mute_time_left")) {
+                return formatTimeLeft(plugin.getSoftBanDatabaseManager().getMuteEndTime(player.getUniqueId()));
+            }
+
+            // Ban
+            if (params.equalsIgnoreCase("is_banned")) {
+                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(player.getUniqueId(), "ban");
+                boolean isBanned = entry != null && entry.isActive() && (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE);
+                return String.valueOf(isBanned);
+            }
+            if (params.equalsIgnoreCase("ban_time_left")) {
+                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(player.getUniqueId(), "ban");
+                if (entry != null && entry.isActive()) {
+                    return formatTimeLeft(entry.getEndTime());
+                }
+                return "N/A";
+            }
+
+            // Warn
+            if (params.equalsIgnoreCase("is_warned")) {
+                ActiveWarningEntry entry = plugin.getSoftBanDatabaseManager().getLatestActiveWarning(player.getUniqueId());
+                boolean isWarned = entry != null && (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == -1);
+                return String.valueOf(isWarned);
+            }
+            if (params.equalsIgnoreCase("warn_time_left")) {
+                ActiveWarningEntry entry = plugin.getSoftBanDatabaseManager().getLatestActiveWarning(player.getUniqueId());
+                if (entry != null) {
+                    return formatTimeLeft(entry.getEndTime());
+                }
+                return "N/A";
+            }
+
+            // Freeze
             if (params.equalsIgnoreCase("is_frozen")) {
                 return String.valueOf(plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId()));
             }
-
-            if (params.equalsIgnoreCase("softban_time_left")) {
-                long endTime = plugin.getSoftBanDatabaseManager().getSoftBanEndTime(player.getUniqueId());
-                if (endTime == 0) {
-                    return "N/A";
+            if (params.equalsIgnoreCase("freeze_time_left")) {
+                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(player.getUniqueId(), "freeze");
+                if (entry != null && entry.isActive()) {
+                    return formatTimeLeft(entry.getEndTime());
                 }
-                if (endTime == Long.MAX_VALUE) {
-                    return getMessage("placeholders.permanent_time_display");
-                }
-                int remainingSeconds = (int) ((endTime - System.currentTimeMillis()) / 1000);
-                return TimeUtils.formatTime(remainingSeconds, MainConfigManager.this);
+                return "N/A";
             }
 
             if (params.endsWith("_count")) {
@@ -1213,6 +1251,21 @@ public class MainConfigManager {
             }
 
             return null;
+        }
+
+        private String formatTimeLeft(long endTime) {
+            if (endTime == 0) {
+                return "N/A";
+            }
+            if (endTime == Long.MAX_VALUE || endTime == -1) {
+                return getMessage("placeholders.permanent_time_display");
+            }
+            long currentTime = System.currentTimeMillis();
+            if (endTime <= currentTime) {
+                return "N/A";
+            }
+            int remainingSeconds = (int) ((endTime - currentTime) / 1000);
+            return TimeUtils.formatTime(remainingSeconds, MainConfigManager.this);
         }
 
         @Override

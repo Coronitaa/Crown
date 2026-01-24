@@ -163,7 +163,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     private boolean handleCrownBaseCommand(CommandSender sender, String[] args) {
         if (args.length == 0) {
-            help(sender);
+            help(sender, 1);
             return true;
         }
 
@@ -189,8 +189,16 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 }
                 return true;
             case HELP_SUBCOMMAND:
+                int page = 1;
+                if (subArgs.length > 0) {
+                    try {
+                        page = Integer.parseInt(subArgs[0]);
+                    } catch (NumberFormatException ignored) {}
+                }
+                help(sender, page);
+                return true;
             default:
-                help(sender);
+                help(sender, 1);
                 return true;
         }
     }
@@ -509,7 +517,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
     private boolean handlePunishCommand(CommandSender sender, String[] args) {
         if (args.length == 0) {
-            help(sender);
+            help(sender, 1);
             return true;
         }
 
@@ -790,7 +798,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             default:
                 sendConfigMessage(sender, "messages.invalid_punishment_type", "{types}", String.join(", ", PUNISHMENT_TYPES));
                 return;
-        }
+            }
 
         if (punishType.equalsIgnoreCase("warn") && useInternal) {
             // Warn logic is complex and involves multiple DB reads/writes, handle it separately.
@@ -1536,35 +1544,106 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         };
     }
 
-    private void help(CommandSender sender) {
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_header")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_punish")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_punish_extended")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_punish_alias")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unpunish_alias")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_softban_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_freeze_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_ban_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_mute_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_kick_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_warn_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unban_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unmute_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unwarn_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unsoftban_command")));
-        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_unfreeze_command")));
+    private void help(CommandSender sender, int page) {
+        // Define categories
+        Map<String, List<String>> categories = new LinkedHashMap<>();
+        categories.put("punishment", new ArrayList<>());
+        categories.put("unpunishment", new ArrayList<>());
+        categories.put("utility", new ArrayList<>());
+        categories.put("admin", new ArrayList<>());
+
+        // Populate categories
+        List<String> punishCmds = categories.get("punishment");
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_punish"));
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_punish_extended"));
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_punish_alias"));
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_ban_command"));
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_mute_command"));
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_softban_command"));
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_kick_command"));
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_warn_command"));
+        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_freeze_command"));
+
+        List<String> unpunishCmds = categories.get("unpunishment");
+        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unpunish"));
+        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unpunish_alias"));
+        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unban_command"));
+        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unmute_command"));
+        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unsoftban_command"));
+        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unwarn_command"));
+        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unfreeze_command"));
+
+        List<String> utilityCmds = categories.get("utility");
         if (sender.hasPermission(PROFILE_PERMISSION)) {
-            sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_profile_command")));
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_profile_command"));
         }
         if (sender.hasPermission(HISTORY_PERMISSION)) {
-            sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_history_command")));
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_history_command"));
         }
         if (sender.hasPermission(CHECK_PERMISSION)) {
-            sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_check_command")));
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_check_command"));
         }
+        if (sender.hasPermission(REPORT_CREATE_PERMISSION) || !plugin.getConfigManager().isReportPermissionRequired()) {
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_report_command"));
+        }
+        if (sender.hasPermission(REPORT_VIEW_PERMISSION)) {
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_reports_command"));
+        }
+
+        List<String> adminCmds = categories.get("admin");
         if (sender.hasPermission(ADMIN_PERMISSION)) {
-            sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_reload")));
+            adminCmds.add(plugin.getConfigManager().getMessage("messages.help_reload"));
+        }
+
+        // Remove empty categories
+        categories.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+
+        List<String> categoryKeys = new ArrayList<>(categories.keySet());
+        int totalPages = categoryKeys.size();
+
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+
+        String currentCategoryKey = categoryKeys.get(page - 1);
+        List<String> currentMessages = categories.get(currentCategoryKey);
+
+        sender.sendMessage(MessageUtils.getColorMessage(""));
+        sender.sendMessage(MessageUtils.getColorMessage(""));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_header")));
+        sender.sendMessage(MessageUtils.getColorMessage(""));
+        sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_category_" + currentCategoryKey)));
+        sender.sendMessage(MessageUtils.getColorMessage(""));
+        
+        for (String msg : currentMessages) {
+            sender.sendMessage(MessageUtils.getColorMessage(msg));
+        }
+
+        if (sender instanceof Player) {
+            sender.sendMessage(MessageUtils.getColorMessage(""));
+            sender.sendMessage(MessageUtils.getColorMessage(""));
+            Component footer = Component.empty();
+            if (page > 1) {
+                footer = footer.append(MessageUtils.getColorComponent(plugin.getConfigManager().getMessage("messages.help_previous_page"))
+                        .clickEvent(ClickEvent.runCommand("/crown help " + (page - 1)))
+                        .hoverEvent(HoverEvent.showText(MessageUtils.getColorComponent(plugin.getConfigManager().getMessage("messages.help_previous_page_hover")))));
+            } else {
+                footer = footer.append(MessageUtils.getColorComponent(plugin.getConfigManager().getMessage("messages.help_no_previous_page")));
+            }
+
+            footer = footer.append(MessageUtils.getColorComponent(" &7| "));
+
+            if (page < totalPages) {
+                footer = footer.append(MessageUtils.getColorComponent(plugin.getConfigManager().getMessage("messages.help_next_page"))
+                        .clickEvent(ClickEvent.runCommand("/crown help " + (page + 1)))
+                        .hoverEvent(HoverEvent.showText(MessageUtils.getColorComponent(plugin.getConfigManager().getMessage("messages.help_next_page_hover")))));
+            } else {
+                footer = footer.append(MessageUtils.getColorComponent(plugin.getConfigManager().getMessage("messages.help_no_next_page")));
+            }
+            sender.sendMessage(footer);
+        } else {
+            sender.sendMessage(MessageUtils.getColorMessage(""));
+            sender.sendMessage(MessageUtils.getColorMessage(""));
+            sender.sendMessage(MessageUtils.getColorMessage("&7Page " + page + "/" + totalPages));
         }
     }
 }

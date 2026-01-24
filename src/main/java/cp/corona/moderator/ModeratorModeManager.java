@@ -185,6 +185,11 @@ public class ModeratorModeManager {
                     // Load favorite tools into hotbar
                     loadFavoriteTools(player);
 
+                    // Update selector item if a player is selected (e.g. via /mod target command)
+                    if (selectedPlayers.containsKey(player.getUniqueId())) {
+                        updateSelectorItem(player, selectedPlayers.get(player.getUniqueId()));
+                    }
+
                     // Apply GameMode based on Interactions
                     player.setGameMode(prefs.isInteractions() ? GameMode.SURVIVAL : GameMode.ADVENTURE);
 
@@ -782,11 +787,8 @@ public class ModeratorModeManager {
                     ItemStack originalTool = moderatorTools.get("player_selector_tool");
                     if (originalTool != null && originalTool.hasItemMeta()) {
                         ItemMeta originalMeta = originalTool.getItemMeta();
-                        if (originalMeta != null) {
-                            List<String> usageLore = originalMeta.getLore();
-                            if (usageLore != null && usageLore.size() > 1) {
-                               lore.addAll(usageLore.subList(1, usageLore.size()));
-                            }
+                        if (originalMeta != null && originalMeta.hasLore()) {
+                             lore.addAll(originalMeta.getLore());
                         }
                     }
 
@@ -1076,7 +1078,7 @@ public class ModeratorModeManager {
             player.setFlySpeed(flySpeed);
             
             // Clear mod-mode effects before restoring
-            for (PotionEffectType type : List.of(PotionEffectType.JUMP_BOOST, PotionEffectType.NIGHT_VISION, PotionEffectType.INVISIBILITY)) {
+            for (PotionEffectType type : Arrays.asList(PotionEffectType.JUMP_BOOST, PotionEffectType.NIGHT_VISION, PotionEffectType.INVISIBILITY)) {
                 player.removePotionEffect(type);
             }
             

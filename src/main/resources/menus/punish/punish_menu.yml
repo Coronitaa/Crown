@@ -54,7 +54,7 @@ menu:
     background_fill_3:
       material: 'GRAY_STAINED_GLASS_PANE'
       name: ' '
-      slot: '24,25'
+      slot: '22,25'
 
     info:
       material: 'PLAYER_HEAD'
@@ -69,8 +69,6 @@ menu:
         - '<color:#b0b0b0>Coords: <color:#00c6ff>{target_coords}</color></color>'
         - '<color:#b0b0b0>World: <color:#00c6ff>{target_world}</color></color>'
         - ''
-        - '<color:#b0b0b0>Softbanned: {target_softban_status}</color>'
-        - '<color:#b0b0b0>Softban Ends: <color:#ff9100>{target_softban_remaining_time}</color></color>'
         - ''
         - '<color:#ffea00>Left-Click to change target.</color>'
         - '<color:#ffea00>Right-Click to spectate.</color>'
@@ -79,7 +77,7 @@ menu:
         - 'REQUEST_INPUT:change_target' # Request new target name input
       right_click_actions:
         - 'PLAY_SOUND:ENTITY_EVOKER_CAST_SPELL:1.0:0.6'
-        - 'CONSOLE_COMMAND:gamemode spectator {player}' # Use CONSOLE_COMMAND for permission safety
+        - 'PLAYER_COMMAND:mod target {target}' # Use CONSOLE_COMMAND for permission safety
         - 'CONSOLE_COMMAND:tp {player} {target_coords}'
 
     ban:
@@ -98,7 +96,7 @@ menu:
     mute:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/e82b0b7c68e88800030e674522aab40396fa543072b949c0600e66c2ed352ff0'
-      slot: '22'
+      slot: '23'
       name: '<gradient:#f7971e:#ffd200><bold>Mute</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Left-Click to configure</color>'
@@ -150,7 +148,7 @@ menu:
     freeze:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/bc3d0632c03e9f8748cf94c2576e8aef785bd8da433f3d139a7b561a5a714ada'
-      slot: '23'
+      slot: '24'
       name: '<gradient:#8e2de2:#4a00e0><bold>Freeze</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Left-Click to configure</color>'
@@ -186,21 +184,21 @@ menu:
         - 'PLAY_SOUND:UI_CARTOGRAPHY_TABLE_TAKE_RESULT:1.0:1.0'
 
 
-##Some example buttons:
+    ##Some example buttons:
 
-    invsee:
+    profile:
       material: 'PLAYER_HEAD'
       player_head: 'http://textures.minecraft.net/texture/beda6a673ba76531d32f2e358c10b7c9e9cd6615d1b77654f98aab44a0d7c17f'
       slot: '40'
-      name: '<gradient:#00c6ff:#0072ff><bold>Invsee</bold></gradient>'
+      name: '<gradient:#00c6ff:#0072ff><bold>OPEN PROFILE</bold></gradient>'
       lore:
-        - '<color:#b0b0b0>Click to spy</color>'
-        - "<color:#00c6ff>{target}</color>'s inventory!."
+        - '<color:#b0b0b0>Click to open</color>'
+        - "<color:#00c6ff>{target}</color>&7's profile!."
       left_click_actions:
-        - 'PLAYER_COMMAND:invsee {target}'
+        - 'PLAYER_COMMAND:profile {target}'
         - 'PLAY_SOUND:BLOCK_FIRE_EXTINGUISH:1.0:0.5'
       right_click_actions:
-        - 'PLAYER_COMMAND:invsee {target}'
+        - 'PLAYER_COMMAND:profile {target}'
         - 'PLAY_SOUND:BLOCK_FIRE_EXTINGUISH:1.0:0.5'
 
     tp-me:
@@ -238,29 +236,17 @@ menu:
         - 'PLAY_SOUND:ENTITY_WITHER_SHOOT:1.0:0.5'
         - 'MESSAGE_TARGET:<color:#ff5555><u>Your inventory has been deleted by an administrator.</u></color>'
 
-    kill:
+    reports:
       material: 'PLAYER_HEAD'
-      player_head: 'http://textures.minecraft.net/texture/c40091316b1c9daa21795c47ae567b27dad64d995e83b6556427f871f8d0632a'
+      player_head: 'http://textures.minecraft.net/texture/1e8b317b63172bdcef9b35116e8bb997479296afdb910a90ad73cd946dc7602c'
       slot: '43'
-      name: '<gradient:#56ab2f:#a8e063><bold>KILL PLAYER</bold></gradient>'
+      name: '<gradient:#56ab2f:#a8e063><bold>CHECK REPORTS</bold></gradient>'
       lore:
-        - '<color:#b0b0b0>Left-Click to sentence</color>'
-        - '<color:#b0b0b0>player to <color:#ff1744>death</color>.</color>'
-        - ''
-        - '<color:#ffffff>Right-Click to <color:#00e676>heal</color></color>'
-      left_click_actions: # Actions performed on left click.
-        - 'PLAY_SOUND:ENTITY_WITCH_CELEBRATE:1.0:0.6' # Play sound action. Syntax: 'PLAY_SOUND:<sound_name>:<volume>:<pitch>'
-        - 'GIVE_EFFECT_TARGET:WITHER:9999:3:true' # Give effect to target action. Syntax: 'GIVE_EFFECT_TARGET:<effect_type>:<duration_seconds>:<amplifier>:<show_particles(optional)>'
-        - 'PLAY_SOUND_TARGET:ENTITY_WITHER_SHOOT:1.0:0.6' # Play sound to target action. Syntax: 'PLAY_SOUND_TARGET:<sound_name>:<volume>:<pitch>'
-        - 'TITLE_TARGET:&5&lYou Have Been Sentenced to Death:&7&nYou will not escape the claws of death.:30:20:20' # Title to target action. Syntax: 'TITLE_TARGET:<title>:<subtitle>:<time_seconds>:<fade_in_ticks>:<fade_out_ticks>'
-        - 'MESSAGE:'
-        - 'MESSAGE:<gradient:#9feadc:#481358><bold>{target}</bold></gradient> <color:#481358><bold>Has Been Sentenced to Death.</bold></color>' # Message action. Syntax: 'MESSAGE:<message>'
-        - 'MESSAGE:'
-      right_click_actions: # Actions performed on right click.
-        - 'PLAY_SOUND:ENTITY_PILLAGER_AMBIENT:1.0:0.6'
-        - 'CONSOLE_COMMAND:heal {target}'
-        - 'TITLE_TARGET:&a&lYou Have Been Blessed:&e&nWith Forgiveness! Lucky you!:10:20:20'
-        - 'PLAY_SOUND_TARGET:ENTITY_WITHER_DEATH:1.0:0.6'
-        - 'MESSAGE:'
-        - 'MESSAGE:<gradient:#9feadc:#d8f69c><bold>{target}</bold></gradient> <color:#d8f69c><bold>Has Been Forgiven.</bold></color>'
-        - 'MESSAGE:'
+        - '<color:#b0b0b0>Click to see</color>'
+        - "&creports&7 against <color:#00c6ff>{target}</color>"
+      left_click_actions:
+        - 'PLAYER_COMMAND:reports {target}'
+        - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:0.5'
+      right_click_actions:
+        - 'PLAYER_COMMAND:reports {target}'
+        - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:0.5'

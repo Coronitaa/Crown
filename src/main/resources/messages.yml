@@ -57,7 +57,11 @@ messages:
   profile_self_check_error: '{prefix}<color:#ff5555>You cannot view your own profile.</color>'
   player_ip_not_found: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> doesn''t have a known IP address. Change your punishment to a LOCAL method.</color>'
 
-  help_header: '<gradient:#f7971e:#ffd200><bold>CrownPunishments Commands:</bold></gradient>'
+  help_header: '<gradient:#f7971e:#ffd200><bold>CROWN Commands:</bold></gradient>'
+  help_category_punishment: '<color:#ffea00>Category: <color:#ffffff>Punishment Commands</color></color>'
+  help_category_unpunishment: '<color:#ffea00>Category: <color:#ffffff>Unpunishment Commands</color></color>'
+  help_category_utility: '<color:#ffea00>Category: <color:#ffffff>Utility Commands</color></color>'
+  help_category_admin: '<color:#ffea00>Category: <color:#ffffff>Admin Commands</color></color>'
   help_punish: '<color:#00c6ff>/crown punish <player></color> <color:#b0b0b0>- Open punishment menu.</color>'
   help_punish_extended: '<color:#00c6ff>/crown punish <player> <type> [time] [reason]</color> <color:#b0b0b0>- Direct punish.</color>'
   help_punish_alias: '<color:#00c6ff>/punish <player> <type> [time] [reason]</color> <color:#b0b0b0>- Quick punish.</color>'
@@ -78,6 +82,14 @@ messages:
   help_history_command: '<color:#00c6ff>/history <player></color> <color:#b0b0b0>- View punishment history.</color>'
   help_reload: '<color:#00c6ff>/crown reload</color> <color:#b0b0b0>- Reload configuration.</color>'
   help_profile_command: '<color:#00c6ff>/profile <player></color> <color:#b0b0b0>- View player profile.</color>'
+  help_report_command: '<color:#00c6ff>/report <player> [reason]</color> <color:#b0b0b0>- Report a player.</color>'
+  help_reports_command: '<color:#00c6ff>/reports</color> <color:#b0b0b0>- View reports.</color>'
+  help_previous_page: '<gradient:#ff416c:#ff4b2b><bold>[Previous]</bold></gradient>'
+  help_previous_page_hover: '<color:#b0b0b0>Click to go to the previous page.</color>'
+  help_next_page: '<gradient:#56ab2f:#a8e063><bold>[Next]</bold></gradient>'
+  help_next_page_hover: '<color:#b0b0b0>Click to go to the next page.</color>'
+  help_no_previous_page: '<color:#757575><bold>[Previous]</bold></color>'
+  help_no_next_page: '<color:#757575><bold>[Next]</bold></color>'
 
   active_punishments_header: '<gradient:#ff416c:#ff4b2b><bold>You have active punishments:</bold></gradient>'
   active_punishment_entry: '<color:#ff5555>- <color:#b0b0b0>({id})</color> <color:#ffea00>{type}</color> <color:#b0b0b0>- Expires in:</color> <color:#ffffff>{time_left}</color></color>'
@@ -245,6 +257,7 @@ messages:
   mod_mode_no_player_selected: '{prefix}<color:#ff5555>No player is selected.</color>'
   mod_mode_prompt_player_name: '{prefix}<color:#ffea00>Type the name of the player to select in chat (or "cancel"):</color>'
   mod_mode_player_not_found: '{prefix}<color:#ff5555>Player ''{target}'' not found.</color>'
+  mod_mode_target_set: '{prefix}<gradient:#56ab2f:#a8e063>Mod mode enabled and target set to <color:#ffffff>{target}</color>.</gradient>'
 
   # Interaction Tool (New)
   mod_mode_interactions_enabled: '{prefix}<gradient:#56ab2f:#a8e063>Interactions enabled. You are now in Survival mode.</gradient>'

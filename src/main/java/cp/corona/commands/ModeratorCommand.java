@@ -66,6 +66,28 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // /mod target <player>
+        if (args.length > 0 && args[0].equalsIgnoreCase("target")) {
+            if (args.length < 2) {
+                MessageUtils.sendConfigMessage(plugin, player, "messages.invalid_player_name");
+                return true;
+            }
+
+            Player target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                MessageUtils.sendConfigMessage(plugin, player, "messages.player_not_online", "{input}", args[1]);
+                return true;
+            }
+
+            if (!plugin.getModeratorModeManager().isInModeratorMode(player.getUniqueId())) {
+                plugin.getModeratorModeManager().enableModeratorMode(player, false, false);
+            }
+            
+            plugin.getModeratorModeManager().setSelectedPlayer(player.getUniqueId(), target.getUniqueId());
+            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_target_set", "{target}", target.getName());
+            return true;
+        }
+
         plugin.getModeratorModeManager().toggleModeratorMode(player);
         return true;
     }
@@ -76,20 +98,27 @@ public class ModeratorCommand implements CommandExecutor, TabCompleter {
 
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            StringUtil.copyPartialMatches(args[0], Collections.singletonList("locker"), completions);
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("locker")) {
-            if (sender.hasPermission("crown.mod.locker.admin")) {
-                List<String> suggestions = new ArrayList<>();
-                suggestions.add("all");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    suggestions.add(p.getName());
+            StringUtil.copyPartialMatches(args[0], List.of("locker", "target"), completions);
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("locker")) {
+                if (sender.hasPermission("crown.mod.locker.admin")) {
+                    List<String> suggestions = new ArrayList<>();
+                    suggestions.add("all");
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        suggestions.add(p.getName());
+                    }
+                    StringUtil.copyPartialMatches(args[1], suggestions, completions);
+                } else {
+                    // For non-admins, only suggest online players
+                    List<String> playerNames = Bukkit.getOnlinePlayers().stream()
+                                                     .map(Player::getName)
+                                                     .collect(Collectors.toList());
+                    StringUtil.copyPartialMatches(args[1], playerNames, completions);
                 }
-                StringUtil.copyPartialMatches(args[1], suggestions, completions);
-            } else {
-                // For non-admins, only suggest online players
+            } else if (args[0].equalsIgnoreCase("target")) {
                 List<String> playerNames = Bukkit.getOnlinePlayers().stream()
-                                                 .map(Player::getName)
-                                                 .collect(Collectors.toList());
+                        .map(Player::getName)
+                        .collect(Collectors.toList());
                 StringUtil.copyPartialMatches(args[1], playerNames, completions);
             }
         }
