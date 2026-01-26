@@ -111,6 +111,9 @@ public class MenuListener implements Listener {
     private final Map<UUID, DropConfirmData> dropConfirmations = new HashMap<>();
     private record DropConfirmData(int slot, long timestamp) {}
 
+    private final Map<UUID, ConfiscateConfirmData> confiscateConfirmations = new HashMap<>();
+    private record ConfiscateConfirmData(int slot, long timestamp) {}
+
 
     public MenuListener(Crown plugin) {
         this.plugin = plugin;
@@ -461,18 +464,69 @@ public class MenuListener implements Listener {
                 ItemStack cursorItem = event.getCursor();
                 ItemStack currentItem = event.getCurrentItem();
 
-                if (click.isLeftClick() || click.isRightClick()) {
+                boolean isSlotEmpty = currentItem == null || currentItem.getType() == Material.AIR;
+                boolean isCursorEmpty = cursorItem == null || cursorItem.getType() == Material.AIR;
+
+                // 1. Confiscation (Removal)
+                if (!isSlotEmpty) {
+                    if (click == ClickType.LEFT && isCursorEmpty) {
+                        handleConfiscation(player, holder, clickedSlot, currentItem);
+                        return;
+                    }
+
+                    // Block other removal methods (Right click, Shift click, Swapping)
+                    if (click.isRightClick() || click.isShiftClick() || !isCursorEmpty) {
+                        return;
+                    }
+                }
+
+                // 2. Placing items (Only allowed if slot is empty)
+                if (isSlotEmpty && !isCursorEmpty && (click.isLeftClick() || click.isRightClick())) {
                     event.getView().setCursor(currentItem);
                     event.getClickedInventory().setItem(clickedSlot, cursorItem);
                     logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), cursorItem, currentItem, holder);
-                } else if (click.isShiftClick() && currentItem != null && currentItem.getType() != Material.AIR) {
-                    handleShiftClick(player.getInventory(), currentItem);
-                    event.getClickedInventory().setItem(clickedSlot, null);
-                    logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), null, currentItem, holder);
+                    Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getView().getTopInventory()));
                 }
-
-                Bukkit.getScheduler().runTask(plugin, () -> synchronizeInventory(holder, event.getView().getTopInventory()));
             }
+        }
+    }
+
+    private void handleConfiscation(Player player, InventoryHolder holder, int slot, ItemStack item) {
+        UUID playerUUID = player.getUniqueId();
+        ConfiscateConfirmData lastClick = confiscateConfirmations.get(playerUUID);
+        long now = System.currentTimeMillis();
+
+        if (lastClick == null || lastClick.slot() != slot) {
+            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
+            return;
+        }
+
+        long diff = now - lastClick.timestamp();
+        if (diff < 200) return;
+
+        if (diff <= 2000) {
+            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now));
+
+            String serialized = AuditLogBook.serialize(item);
+            String containerType = "Inventory";
+            if (holder instanceof ProfileMenu) containerType = "Profile Menu";
+            else if (holder instanceof FullInventoryMenu) containerType = "Full Inventory Menu";
+            else if (holder instanceof EnderChestMenu) containerType = "Ender Chest Menu";
+
+            plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, playerUUID, containerType)
+                    .thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+                        player.getOpenInventory().getTopInventory().setItem(slot, null);
+                        logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), null, item, holder);
+                        synchronizeInventory(holder, player.getOpenInventory().getTopInventory());
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
+                        player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
+                    }));
+        } else {
+            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
+            MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
         }
     }
 
@@ -650,6 +704,7 @@ public class MenuListener implements Listener {
 
         // Always cancel any pending confirmation when a menu is closed.
         cancelExistingConfirmation(player);
+        confiscateConfirmations.remove(player.getUniqueId());
 
         InventoryHolder holder = event.getInventory().getHolder();
 
