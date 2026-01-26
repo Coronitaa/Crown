@@ -147,6 +147,7 @@ messages:
   clear_inventory_success: '{prefix}<gradient:#56ab2f:#a8e063>Successfully cleared <bold>{target}</bold>''s {inventory_type}.</gradient>'
 
   invalid_punishment_type: '{prefix}<color:#ff5555>Invalid punishment type. Available: <color:#ffea00>{types}</color></color>'
+  punishment_type_mismatch: '{prefix}<color:#ff5555>The punishment <color:#ffea00>#{id}</color> is of type <color:#ffea00>{actual_type}</color>, but you tried to unpunish it as <color:#ffea00>{expected_type}</color>.</color>'
   direct_punishment_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Applied {punishment_type} to <bold>{target}</bold>.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Time:</color> <color:#00c6ff>{time}</color>, <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
   direct_punishment_confirmed_ip: '{prefix}<gradient:#56ab2f:#a8e063>Applied {punishment_type} to <bold>{target}</bold> <color:#ff5555>(IP)</color>.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Time:</color> <color:#00c6ff>{time}</color>, <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
   unpunish_usage: '{prefix}<color:#ff5555>Usage: {usage}</color>'

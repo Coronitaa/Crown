@@ -233,7 +233,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             if (args.length > 1) {
                 System.arraycopy(args, 1, newArgs, 1, args.length - 1); // The reason
             }
-            return handleUnpunishCommand(sender, newArgs);
+            return handleUnpunishCommand(sender, newArgs, punishmentType);
         }
 
         // Handle unpunish by player name for aliases
@@ -594,6 +594,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleUnpunishCommand(CommandSender sender, String[] args) {
+        return handleUnpunishCommand(sender, args, null);
+    }
+
+    private boolean handleUnpunishCommand(CommandSender sender, String[] args, String expectedType) {
         if (args.length == 0) {
             String commandLabel = (sender instanceof Player) ? "unpunish" : "crown unpunish";
             sendConfigMessage(sender, "messages.unpunish_usage", "{usage}", "/" + commandLabel + " <player|#id> <type|reason> [reason]");
@@ -608,6 +612,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
             if (entry == null) {
                 sendConfigMessage(sender, "messages.punishment_not_found", "{id}", punishmentId);
+                return true;
+            }
+
+            if (expectedType != null && !entry.getType().equalsIgnoreCase(expectedType)) {
+                sendConfigMessage(sender, "messages.punishment_type_mismatch", "{id}", punishmentId, "{actual_type}", entry.getType().toUpperCase(), "{expected_type}", expectedType.toUpperCase());
                 return true;
             }
 
