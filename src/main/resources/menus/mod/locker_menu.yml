@@ -4,11 +4,10 @@
 # This menu displays items confiscated from players, primarily via softbans.
 # Access: Via /mod locker command.
 
-# --- Available Actions ---
+# --- Available Click Actions ---
 # - ADJUST_PAGE:<next_page|previous_page> (Navigates between pages)
 # - REQUEST_CLEAR_FULL_INVENTORY:    (Initiates confirmation to clear the entire locker for the target player)
-# - PLAY_SOUND:<sound>:<vol>:<pitch>
-# - NO_ACTION:
+# - PLAY_SOUND:<sound>:<vol>:<pitch> (Plays a sound to the clicking player)
 
 # --- Player Interactions ---
 # - Left-Click (Bottom Inv): Add item to locker.

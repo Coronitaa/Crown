@@ -4,20 +4,18 @@
 # Used to select punishment durations (ban, mute, softban).
 # Access: Via the Punish Details Menu when setting time.
 
-# --- Available Actions ---
-# - ADJUST_TIME:<time_adjustment_key> (e.g., ADJUST_TIME:plus_1_day, ADJUST_TIME:minus_5_min)
-# - REQUEST_INPUT:<input_type>       (e.g., REQUEST_INPUT:custom_time_input)
+# --- Available Click Actions ---
+# - ADJUST_TIME:<time_adjustment_key> (e.g., plus_1_day, minus_5_min)
+# - REQUEST_INPUT:custom_time_input  (Requests chat input for a custom time duration)
 # - SET_PUNISHMENT_TYPE:<key>        (Used here for 'confirm_time' or 'permanent_time')
-# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_details)
-# - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0)
+# - OPEN_MENU:<menu_key>             (e.g., punish_details)
+# - PLAY_SOUND:<sound>:<vol>:<pitch> (Plays a sound to the clicking player)
 # - TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout> (Shows title to clicking player)
 # - NO_ACTION:                       (Does nothing)
-# (See wiki for more potentially usable actions)
 
 # --- Available Placeholders ---
 # - {target}: Target player's name.
 # - {player}: Player viewing/interacting with the menu.
-# - {prefix}: Plugin prefix.
 # - {time}: Current selected time duration in the display item.
 
 

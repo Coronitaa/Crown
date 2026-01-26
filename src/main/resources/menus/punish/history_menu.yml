@@ -4,19 +4,16 @@
 # Displays a player's past punishments with pagination.
 # Access: /history <player> or via other menus.
 
-# --- Available Actions ---
-# - PLAYER_COMMAND:<command>         (e.g., PLAYER_COMMAND:check {punishment_id})
+# --- Available Click Actions ---
+# - PLAYER_COMMAND:<command>         (e.g., check {punishment_id})
 # - CLOSE_MENU:                      (Closes the current menu)
 # - ADJUST_PAGE:<next_page|previous_page> (Navigates between pages)
-# - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu)
-# - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.2)
-# - NO_ACTION:                       (Does nothing - useful for display-only items)
-# (See punish_menu.yml for more potentially usable actions)
+# - OPEN_MENU:<menu_key>             (e.g., punish_menu)
+# - PLAY_SOUND:<sound>:<vol>:<pitch> (Plays a sound to the clicking player)
 
 # --- Available Placeholders ---
 # General:
 # - {target}: Target player's name.
-# - {prefix}: Plugin prefix.
 # Entry Specific (within history_entry lore):
 # - {punishment_type}: Type of punishment/action recorded (e.g., "ban", "unmute").
 # - {reason}: Reason recorded for the action.

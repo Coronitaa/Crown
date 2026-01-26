@@ -4,7 +4,7 @@
 # Defines structure, items, and actions for setting punishment details.
 # Access: Via the main Punish Menu.
 
-# --- Available Actions ---
+# --- Available Click Actions ---
 # - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:time_selector, OPEN_MENU:punish_menu)
 # - REQUEST_INPUT:<input_type>       (e.g., REQUEST_INPUT:reason_input)
 # - CONFIRM_PUNISHMENT:              (Confirms and executes the current punishment)
@@ -16,14 +16,11 @@
 # - TOGGLE_PUNISH_METHOD:            (Toggles between IP and Local punishment)
 # - PLAY_SOUND:<sound>:<vol>:<pitch> (e.g., PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.0)
 # - TITLE:<title>:<subtitle>:<stay>:<fadein>:<fadeout> (Shows title to clicking player)
-# - NO_ACTION:                       (Does nothing)
-# (See wiki for more potentially usable actions like MESSAGE, etc.)
 
 # --- Available Placeholders ---
 # - {target}: Target player's name.
 # - {time}: Currently set punishment time duration.
 # - {reason}: Currently set punishment reason.
-# - {prefix}: Plugin prefix.
 # - {time_status}: Text indicating if time is set (uses placeholders.set/not_set).
 # - {reason_status}: Text indicating if reason is set (uses placeholders.set/not_set).
 # - {method}: Current punishment method (IP/Local).

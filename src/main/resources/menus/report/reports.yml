@@ -4,7 +4,7 @@
 # This file allows you to create a multi-page book interface for reporting.
 # Access: /report
 
-# --- Available Actions ---
+# --- Available Click Actions ---
 # - GOTO:<page_key>: Navigates to another page defined in this file.
 # - SET_TYPE:<type>: Sets the report type (PLAYER, CLAN, SERVER).
 # - SET_TARGET:<target>: Sets the target name (e.g., "Server").

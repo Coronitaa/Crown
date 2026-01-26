@@ -4,7 +4,7 @@
 # Displays comprehensive information about a specific report and allows staff to take action.
 # Access: Via the Reports Menu.
 
-# --- Available Actions ---
+# --- Available Click Actions ---
 # - OPEN_PROFILE_TARGET:             (Opens the target's profile)
 # - OPEN_PROFILE_REQUESTER:          (Opens the requester's profile)
 # - OPEN_PROFILE_MODERATOR:          (Opens the assigned moderator's profile)
@@ -19,8 +19,7 @@
 # - ASSIGN_MODERATOR:                (Prompts to assign a specific moderator)
 # - OPEN_MENU:<menu_key>             (e.g., OPEN_MENU:punish_menu_target, OPEN_MENU:punish_menu_requester)
 # - OPEN_REPORTS_MENU:               (Returns to the main reports list)
-# - PLAY_SOUND:<sound>:<vol>:<pitch>
-# - NO_ACTION:
+# - PLAY_SOUND:<sound>:<vol>:<pitch> (Plays a sound to the clicking player)
 
 # --- Available Placeholders ---
 # - {target}: Report target's name.

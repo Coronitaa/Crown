@@ -3,6 +3,14 @@
 # Configuration for the tool selection GUI.
 # Access: /mod tools or via the Tool Selector item.
 
+# --- Available Click Actions ---
+# - EQUIP_TOOL:<tool_id> (Equips the specified tool)
+# - CLOSE_MENU (Closes the menu)
+
+# --- Player Interactions ---
+# - Left-Click: Equip tool.
+# - Right-Click: Favorite/Unfavorite tool (if applicable).
+
 menu:
   title: '<color:#757575><bold>Moderation Tools</bold></color>'
   size: 27

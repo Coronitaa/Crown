@@ -3,10 +3,31 @@
 # Configuration for the personal settings GUI
 # Access: /mod settings or via the Settings Tool.
 
+# --- Available Click Actions ---
+# - TOGGLE_SETTING:<setting> (Toggles a boolean setting)
+# - ADJUST_SPEED:<walk|fly>:<amount> (Adjusts walk or fly speed)
+# - RESET_SPEED:<walk|fly> (Resets speed to default)
+# - ADJUST_JUMP:<amount> (Adjusts jump boost multiplier)
+# - RESET_JUMP (Resets jump boost to default)
+
+# Supported settings for "TOGGLE_SETTING":
+# - interactions: Toggles physical interactions.
+# - container-spy: Toggles silent container inspection.
+# - fly: Toggles flight capability.
+# - mod-on-join: Toggles automatic mod mode on join.
+# - silent: Toggles silent mode (vanish/join messages).
+# - glowing: Toggles glowing effect.
+# - night-vision: Toggles night vision.
+# - walk-speed: Controls walking speed (Left: +, Right: -, Shift+Left: Reset).
+# - fly-speed: Controls flying speed (Left: +, Right: -, Shift+Left: Reset).
+# - jump-boost: Controls jump boost (Left: +, Right: -, Shift+Left: Reset).
+
 # --- Available Placeholders ---
-# - {status}: Current status of a setting (Enabled/Disabled, On/Off).
-# - {speed}: Current speed multiplier (for walk/fly speed).
+# - {status}: Current status of the setting (Enabled/Disabled).
+# - {speed}: Current speed multiplier.
 # - {multiplier}: Current jump boost multiplier.
+# - {player}: The name of the player.
+# - %placeholder%: Any PlaceholderAPI placeholder.
 
 menu:
   title: '<color:#757575><bold>Personal Settings</bold></color>'
