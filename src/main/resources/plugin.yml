@@ -7,7 +7,7 @@ depend: [PlaceholderAPI]
 commands:
   crown:
     description: Main command for Crown.
-    usage: /<command> [punish|reload|help|unpunish|history|profile]
+    usage: /<command> [punish|reload|help|unpunish|history|profile|locker]
 
   punish:
     description: Alias for /crown punish command.
@@ -165,6 +165,6 @@ permissions:
   crown.mod.seevanish:
     description: Allows player to see other moderators who are in vanish mode.
     default: op
-  crown.mod.locker.admin:
+  crown.locker.admin:
     description: Allows modifying other moderators' lockers.
     default: op

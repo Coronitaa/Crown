@@ -5,6 +5,7 @@ import cp.corona.crown.Crown;
 import cp.corona.database.ActiveWarningEntry;
 import cp.corona.database.DatabaseManager;
 import cp.corona.listeners.MenuListener;
+import cp.corona.menus.mod.LockerMenu;
 import cp.corona.menus.punish.HistoryMenu;
 import cp.corona.menus.profile.ProfileMenu;
 import cp.corona.menus.punish.PunishDetailsMenu;
@@ -54,6 +55,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String REPORTS_COMMAND = "reports";
     private static final String REPORT_INTERNAL_SUBCOMMAND = "report_internal";
     private static final String PROFILE_COMMAND_ALIAS = "profile";
+    private static final String LOCKER_SUBCOMMAND = "locker";
 
 
     // Added constants for unpunish aliases and check alias
@@ -89,6 +91,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
     private static final String REPORT_CREATE_PERMISSION = "crown.report.create";
     private static final String REPORT_VIEW_PERMISSION = "crown.report.view";
+    private static final String MOD_USE_PERMISSION = "crown.mod.use";
+    private static final String PROFILE_EDIT_INVENTORY_PERMISSION = "crown.profile.editinventory";
+    private static final String LOCKER_ADMIN_PERMISSION = "crown.locker.admin";
 
     private static final List<String> PUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "kick", "warn", "freeze");
     private static final List<String> UNPUNISHMENT_TYPES = Arrays.asList("ban", "mute", "softban", "warn", "freeze");
@@ -183,6 +188,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return handleHistoryCommand(sender, subArgs);
             case PROFILE_SUBCOMMAND:
                 return handleProfileCommand(sender, subArgs);
+            case LOCKER_SUBCOMMAND:
+                return handleLockerCommand(sender, subArgs);
             case REPORT_INTERNAL_SUBCOMMAND:
                 if (sender instanceof Player) {
                     plugin.getReportBookManager().handleBookCommand((Player) sender, subArgs);
@@ -201,6 +208,43 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 help(sender, 1);
                 return true;
         }
+    }
+
+    private boolean handleLockerCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sendConfigMessage(sender, "messages.player_only");
+            return true;
+        }
+
+        if (!player.hasPermission(MOD_USE_PERMISSION) && !player.hasPermission(PROFILE_EDIT_INVENTORY_PERMISSION)) {
+            sendConfigMessage(player, "messages.no_permission");
+            return true;
+        }
+
+        if (args.length > 0) {
+            if (!player.hasPermission(LOCKER_ADMIN_PERMISSION)) {
+                sendConfigMessage(player, "messages.no_permission");
+                return true;
+            }
+
+            if (args[0].equalsIgnoreCase("all")) {
+                // Global Locker
+                new LockerMenu(plugin, player, null, 1).open();
+                return true;
+            }
+
+            OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                sendConfigMessage(player, "messages.never_played", "{input}", args[0]);
+                return true;
+            }
+            sendConfigMessage(player, "messages.locker_opened_other", "{target}", target.getName());
+            new LockerMenu(plugin, player, target.getUniqueId(), 1).open();
+        } else {
+            // Self Locker
+            new LockerMenu(plugin, player, player.getUniqueId(), 1).open();
+        }
+        return true;
     }
 
     private boolean handlePunishmentTypeAlias(CommandSender sender, String punishmentType, String[] args) {
@@ -1215,7 +1259,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         if (commandLabel.equals("crown")) {
             if (args.length == 1) {
-                StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, CHECK_SUBCOMMAND, HISTORY_SUBCOMMAND, PROFILE_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND), completions);
+                StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, CHECK_SUBCOMMAND, HISTORY_SUBCOMMAND, PROFILE_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND, LOCKER_SUBCOMMAND), completions);
             } else if (args.length > 1) {
                 String subcommand = args[0].toLowerCase();
                 String[] subArgs = Arrays.copyOfRange(args, 1, args.length);
@@ -1227,6 +1271,18 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     case HISTORY_SUBCOMMAND, PROFILE_SUBCOMMAND -> {
                         if (subArgs.length == 1) {
                             StringUtil.copyPartialMatches(subArgs[0], playerNames, completions);
+                        }
+                    }
+                    case LOCKER_SUBCOMMAND -> {
+                        if (subArgs.length == 1) {
+                            if (sender.hasPermission(LOCKER_ADMIN_PERMISSION)) {
+                                List<String> suggestions = new ArrayList<>();
+                                suggestions.add("all");
+                                suggestions.addAll(playerNames);
+                                StringUtil.copyPartialMatches(subArgs[0], suggestions, completions);
+                            } else {
+                                StringUtil.copyPartialMatches(subArgs[0], playerNames, completions);
+                            }
                         }
                     }
                 }

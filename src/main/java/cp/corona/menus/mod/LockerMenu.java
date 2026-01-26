@@ -45,7 +45,7 @@ public class LockerMenu implements InventoryHolder {
         boolean isGlobal = (ownerUUID == null);
         
         boolean isOwner = !isGlobal && viewer.getUniqueId().equals(ownerUUID);
-        boolean hasAdminPerm = viewer.hasPermission("crown.mod.locker.admin");
+        boolean hasAdminPerm = viewer.hasPermission("crown.locker.admin");
         
         this.isEditable = isOwner || hasAdminPerm;
 
