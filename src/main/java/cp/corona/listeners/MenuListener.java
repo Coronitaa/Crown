@@ -510,12 +510,18 @@ public class MenuListener implements Listener {
             confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now));
 
             String serialized = AuditLogBook.serialize(item);
+
+            OfflinePlayer target = getTargetForAction(holder);
+            String targetName = (target != null && target.getName() != null) ? target.getName() : "Unknown";
+
             String containerType = "Inventory";
             if (holder instanceof ProfileMenu) containerType = "Profile Menu";
             else if (holder instanceof FullInventoryMenu) containerType = "Full Inventory Menu";
             else if (holder instanceof EnderChestMenu) containerType = "Ender Chest Menu";
 
-            plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, playerUUID, containerType)
+            String source = containerType + " (" + targetName + ")";
+
+            plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, playerUUID, source)
                     .thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
                         player.getOpenInventory().getTopInventory().setItem(slot, null);
                         logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), null, item, holder);
