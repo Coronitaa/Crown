@@ -83,7 +83,7 @@ public class MenuListener implements Listener {
     private final Set<UUID> bypassCloseSync = new HashSet<>();
 
     private static final Set<Integer> PROFILE_ARMOR_SLOTS = Set.of(10, 19, 28, 37);
-    private static final Set<Integer> PROFILE_HAND_SLOTS = Set.of(23, 24);
+    private static final Set<Integer> PROFILE_HAND_SLOTS = Set.of(21, 30);
 
     private static final String BAN_PUNISHMENT_TYPE = "ban";
     private static final String MUTE_PUNISHMENT_TYPE = "mute";
@@ -753,8 +753,8 @@ public class MenuListener implements Listener {
                     updateSlotIfNeeded(guiInventory, 19, targetInv.getChestplate());
                     updateSlotIfNeeded(guiInventory, 28, targetInv.getLeggings());
                     updateSlotIfNeeded(guiInventory, 37, targetInv.getBoots());
-                    updateSlotIfNeeded(guiInventory, 23, targetInv.getItemInMainHand());
-                    updateSlotIfNeeded(guiInventory, 24, targetInv.getItemInOffHand());
+                    updateSlotIfNeeded(guiInventory, 21, targetInv.getItemInMainHand());
+                    updateSlotIfNeeded(guiInventory, 30, targetInv.getItemInOffHand());
                 } else if (holder instanceof FullInventoryMenu) {
                     PlayerInventory targetInv = target.getInventory();
                     for (int i = 0; i < 36; i++) {
@@ -809,8 +809,8 @@ public class MenuListener implements Listener {
             targetInv.setChestplate(guiInventory.getItem(19));
             targetInv.setLeggings(guiInventory.getItem(28));
             targetInv.setBoots(guiInventory.getItem(37));
-            targetInv.setItemInMainHand(guiInventory.getItem(23));
-            targetInv.setItemInOffHand(guiInventory.getItem(24));
+            targetInv.setItemInMainHand(guiInventory.getItem(21));
+            targetInv.setItemInOffHand(guiInventory.getItem(30));
         } else if (holder instanceof FullInventoryMenu) {
             PlayerInventory targetInv = targetPlayer.getInventory();
             for (int i = 0; i < 36; i++) {

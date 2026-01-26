@@ -73,9 +73,9 @@ menu:
 
 
     open_punish_menu:
-      material: 'NETHERITE_SWORD'
-      custom_model_data: 1
-      slot: 48
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/9f446a8f9284c62cf8d491fbdb338fd39ebbebe35e959c2fc4f786c67522efb'
+      slot: 16
       name: '<gradient:#ff416c:#ff4b2b><bold>Punish Player</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Open the punishment menu</color>'
@@ -85,8 +85,9 @@ menu:
         - 'OPEN_MENU:punish_menu'
 
     open_enderchest_menu:
-      material: 'ENDER_CHEST'
-      slot: 49
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/4148bc8423e1129fa7294fbeb8d51cf42ecc8889b19f9baaec973b52e27c1279'
+      slot: 34
       name: '<gradient:#8e2de2:#4a00e0><bold>View Ender Chest</bold></gradient>'
       lore:
         - '<color:#b0b0b0>View and edit the</color>'
@@ -96,8 +97,9 @@ menu:
         - 'OPEN_MENU:enderchest_menu'
 
     open_inventory_menu:
-      material: 'CHEST'
-      slot: 50
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/bdfcee8306e0434a747710e2bdc2558c5a222e9b693477909f10d6cc220f6764'
+      slot: 25
       name: '<gradient:#56ab2f:#a8e063><bold>View Full Inventory</bold></gradient>'
       lore:
         - '<color:#b0b0b0>View and edit the full</color>'
@@ -107,8 +109,9 @@ menu:
         - 'OPEN_MENU:full_inventory_menu'
 
     audit_log_button:
-      material: 'WRITABLE_BOOK'
-      slot: 51
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/b62651879d870499da50e34036800ddffd52f3e4e1993c5fc0fc825d03446d8b'
+      slot: 43
       name: '<gradient:#f7971e:#ffd200><bold>Operator Log</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Shows a log of actions</color>'
@@ -118,8 +121,36 @@ menu:
         - 'PLAY_SOUND:ITEM_BOOK_PAGE_TURN:1.0:1.0'
         - 'OPEN_AUDIT_LOG'
 
-    background_fill:
-      material: 'BLACK_STAINED_GLASS_PANE'
+    close:
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/68cbdb998fb4d5e28969e23f4bb87c9de5c303fbeb90a94d91d7445a673ea59d'
+      name: '&cClose Menu :D'
+      # Fills the remaining slots
+      slot: '49'
+      left_click_actions:
+        - 'PLAY_SOUND:BLOCK_BEEHIVE_SHEAR:1.0:1.0'
+        - 'CLOSE_MENU'
+      right_click_actions:
+        - 'CLOSE_MENU'
+        - 'PLAY_SOUND:BLOCK_BEEHIVE_SHEAR:1.0:1.0'
+
+    background_fill_1:
+      material: 'LIGHT_BLUE_STAINED_GLASS_PANE'
       name: ' '
       # Fills the remaining slots
-      slot: '0-3,5-9,11-18,20-22,25-27,29-36,38-47,52-53'
+      slot: '0-2,9,11-13,18,20,22,27,29,31,36,38-40,45-47'
+    background_fill_2:
+      material: 'RED_STAINED_GLASS_PANE'
+      name: ' '
+      # Fills the remaining slots
+      slot: '3,5'
+    background_fill_3:
+      material: 'BLUE_STAINED_GLASS_PANE'
+      name: ' '
+      # Fills the remaining slots
+      slot: '6-8,15,17,24,26,33,35,42,44,51-53'
+    background_fill_4:
+      material: 'GRAY_STAINED_GLASS_PANE'
+      name: ' '
+      # Fills the remaining slots
+      slot: '14,23,32,41,48,50'

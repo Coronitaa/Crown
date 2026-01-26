@@ -43,8 +43,8 @@ public class ProfileMenu implements InventoryHolder {
         inventory.setItem(19, playerInv.getChestplate());
         inventory.setItem(28, playerInv.getLeggings());
         inventory.setItem(37, playerInv.getBoots());
-        inventory.setItem(23, playerInv.getItemInMainHand());
-        inventory.setItem(24, playerInv.getItemInOffHand());
+        inventory.setItem(21, playerInv.getItemInMainHand());
+        inventory.setItem(30, playerInv.getItemInOffHand());
 
         // Then, load static items from config, which will fill around the equipment
         plugin.getConfigManager().getProfileMenuItemKeys().forEach(itemKey -> {
@@ -86,7 +86,7 @@ public class ProfileMenu implements InventoryHolder {
     }
 
     private boolean isEquipmentSlot(int slot) {
-        return slot == 10 || slot == 19 || slot == 28 || slot == 37 || slot == 23 || slot == 24;
+        return slot == 10 || slot == 19 || slot == 28 || slot == 37 || slot == 21 || slot == 30;
     }
 
     @Override
