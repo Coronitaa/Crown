@@ -134,11 +134,81 @@ public class MenuListener implements Listener {
             if (!existingContext.timeoutTask.isCancelled()) {
                 existingContext.timeoutTask.cancel();
             }
-            // Check if the same inventory is still open to prevent errors
-            if (player.getOpenInventory().getTopInventory().equals(existingContext.inventory)) {
+            // Restore the item.
+            try {
                 existingContext.inventory.setItem(existingContext.slot, existingContext.originalItem);
+            } catch (Exception e) {
+                // Ignore invalid inventory access
             }
         }
+    }
+
+    private String[] getPlaceholders(InventoryHolder holder) {
+        if (holder instanceof ReportDetailsMenu menu) {
+            DatabaseManager.ReportEntry report = menu.getReportEntry();
+            if (report != null && report.getModeratorUUID() != null) {
+                OfflinePlayer mod = Bukkit.getOfflinePlayer(report.getModeratorUUID());
+                return new String[]{"{moderator}", mod.getName() != null ? mod.getName() : "Unknown"};
+            }
+        }
+        return new String[0];
+    }
+
+    private boolean checkAndHandleConfirmation(Player player, InventoryHolder holder, MenuItem item, int slot, InventoryClickEvent event) {
+        boolean isButton = !item.getLeftClickActions().isEmpty() || !item.getRightClickActions().isEmpty() || !item.getShiftLeftClickActions().isEmpty();
+
+        ConfirmationContext context = pendingConfirmations.get(player.getUniqueId());
+
+        if (context != null && context.inventory.equals(event.getClickedInventory()) && context.slot == slot) {
+            cancelExistingConfirmation(player);
+            return true;
+        }
+
+        if (isButton || item.getConfirmState() != null) {
+            cancelExistingConfirmation(player);
+        }
+
+        if (item.getConfirmState() == null) {
+            return true;
+        }
+
+        // Special handling for ReportDetailsMenu take_report to skip confirmation if not needed
+        if (holder instanceof ReportDetailsMenu menu) {
+            for (ClickActionData action : item.getLeftClickActions()) {
+                if (action.getAction() == ClickAction.SET_REPORT_STATUS_TAKE) {
+                    DatabaseManager.ReportEntry report = menu.getReportEntry();
+                    if (report != null && (report.getModeratorUUID() == null || report.getModeratorUUID().equals(player.getUniqueId()))) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        OfflinePlayer target = getTargetForAction(holder);
+        ItemStack confirmStack = item.getConfirmState().toItemStack(target, plugin.getConfigManager(), getPlaceholders(holder));
+
+        ItemMeta meta = confirmStack.getItemMeta();
+        if (meta != null) {
+            meta.addEnchant(Enchantment.FORTUNE, 1, true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+            confirmStack.setItemMeta(meta);
+        }
+
+        ItemStack current = event.getCurrentItem();
+        ItemStack original = current != null ? current.clone() : null;
+
+        event.getClickedInventory().setItem(slot, confirmStack);
+        playSound(player, "confirm_again");
+
+        BukkitTask task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                cancelExistingConfirmation(player);
+            }
+        }.runTaskLater(plugin, 40L); // 2 seconds
+
+        pendingConfirmations.put(player.getUniqueId(), new ConfirmationContext(event.getClickedInventory(), slot, original, task, "GENERIC"));
+        return false;
     }
 
 
@@ -194,6 +264,7 @@ public class MenuListener implements Listener {
 
         // --- Bottom Inventory (Player Inv) - Add Item to Locker ---
         if (event.getClickedInventory() == event.getView().getBottomInventory()) {
+            cancelExistingConfirmation(player);
             if (event.isLeftClick()) {
                 if (!menu.isEditable) {
                     MessageUtils.sendConfigMessage(plugin, player, "messages.locker_read_only");
@@ -226,16 +297,30 @@ public class MenuListener implements Listener {
 
             // Controls logic (Pagination / Clear)
             MenuItem itemConfig = getMenuItemClicked(slot, menu);
-            if (itemConfig != null && itemConfig.getLeftClickActions() != null) {
-                for (MenuItem.ClickActionData action : itemConfig.getLeftClickActions()) {
-                    if (action.getAction() == ClickAction.ADJUST_PAGE) {
-                        if ("next_page".equals(action.getActionData()[0])) menu.nextPage();
-                        if ("previous_page".equals(action.getActionData()[0])) menu.prevPage();
-                    } else if (action.getAction() == ClickAction.REQUEST_CLEAR_FULL_INVENTORY) {
-                        handleClearConfirmation(player, null, "locker", itemConfig, event);
+            if (itemConfig != null) {
+                if (!checkAndHandleConfirmation(player, menu, itemConfig, slot, event)) {
+                    return;
+                }
+
+                if (itemConfig.getLeftClickActions() != null) {
+                    for (MenuItem.ClickActionData action : itemConfig.getLeftClickActions()) {
+                        if (action.getAction() == ClickAction.ADJUST_PAGE) {
+                            if ("next_page".equals(action.getActionData()[0])) menu.nextPage();
+                            if ("previous_page".equals(action.getActionData()[0])) menu.prevPage();
+                        } else if (action.getAction() == ClickAction.REQUEST_CLEAR_FULL_INVENTORY) {
+                            executeClear(player, null, "locker");
+                        }
+                    }
+                    return;
+                }
+            } else {
+                if (clicked != null && clicked.getType() != Material.AIR) {
+                    NamespacedKey idKey = new NamespacedKey(plugin, "locker_item_id");
+                    ItemMeta clickedMeta = clicked.getItemMeta();
+                    if (clickedMeta != null && clickedMeta.getPersistentDataContainer().has(idKey, PersistentDataType.INTEGER)) {
+                        cancelExistingConfirmation(player);
                     }
                 }
-                return;
             }
 
             if (clicked == null || clicked.getType() == Material.AIR) return;
@@ -347,6 +432,8 @@ public class MenuListener implements Listener {
             return;
         }
 
+        cancelExistingConfirmation(player);
+
         if (!player.hasPermission(EDIT_INVENTORY_PERMISSION)) {
             event.setCancelled(true);
             return;
@@ -425,7 +512,7 @@ public class MenuListener implements Listener {
         }
     }
 
-    private void handleClearConfirmation(Player moderator, OfflinePlayer target, String type, MenuItem clickedItem, InventoryClickEvent event) {
+    private void executeClear(Player moderator, OfflinePlayer target, String type) {
         if ("locker".equals(type)) {
             // Get the menu instance to check ownership
             if (!(moderator.getOpenInventory().getTopInventory().getHolder() instanceof LockerMenu menu)) return;
@@ -436,101 +523,53 @@ public class MenuListener implements Listener {
             }
             // Allowed in Mod Mode (exception)
 
-            UUID modId = moderator.getUniqueId();
-            String confirmationKey = "CLEAR_LOCKER";
-            ConfirmationContext context = pendingConfirmations.get(modId);
-
-            if (context != null && context.confirmationKey.equals(confirmationKey)) {
-                cancelExistingConfirmation(moderator);
-                // Clear items for the LOCKER OWNER
-                plugin.getSoftBanDatabaseManager().clearConfiscatedItems(menu.getOwnerUUID()).thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
-                    menu.loadPageAsync();
-                    MessageUtils.sendConfigMessage(plugin, moderator, "messages.locker_cleared");
-                    playSound(moderator, "punish_confirm");
-                }));
-            } else {
-                cancelExistingConfirmation(moderator);
-                MenuItem confirmState = clickedItem.getConfirmState();
-                if (confirmState != null) {
-                    event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(null, plugin.getConfigManager()));
-                    playSound(moderator, "confirm_again");
-                }
-
-                BukkitTask task = new BukkitRunnable() {
-                    @Override public void run() { cancelExistingConfirmation(moderator); }
-                }.runTaskLater(plugin, 100L);
-
-                ConfirmationContext newContext = new ConfirmationContext(event.getInventory(), event.getSlot(), clickedItem.toItemStack(null, plugin.getConfigManager()), task, confirmationKey);
-                pendingConfirmations.put(modId, newContext);
-            }
+            // Clear items for the LOCKER OWNER
+            plugin.getSoftBanDatabaseManager().clearConfiscatedItems(menu.getOwnerUUID()).thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+                menu.loadPageAsync();
+                MessageUtils.sendConfigMessage(plugin, moderator, "messages.locker_cleared");
+                playSound(moderator, "punish_confirm");
+            }));
             return;
         }
         UUID moderatorId = moderator.getUniqueId();
         UUID targetId = target.getUniqueId();
-        String confirmationKey = "CLEAR_" + type.toUpperCase() + ":" + targetId;
 
-        ConfirmationContext context = pendingConfirmations.get(moderatorId);
-
-        if (context != null && context.confirmationKey.equals(confirmationKey)) {
-            cancelExistingConfirmation(moderator); // Clears the pending confirmation upon success
-
-            Player targetPlayer = Bukkit.getPlayer(targetId);
-            if (targetPlayer == null || !targetPlayer.isOnline()) {
-                sendConfigMessage(moderator, "messages.player_not_online", "{input}", target.getName());
-                return;
-            }
-
-            int clearedCount;
-            String actionType;
-
-            if (type.equals("full")) {
-                PlayerInventory inv = targetPlayer.getInventory();
-                clearedCount = (int) Arrays.stream(inv.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
-                inv.clear();
-                inv.setArmorContents(new ItemStack[4]);
-                inv.setItemInOffHand(null);
-                actionType = "CLEAR_INVENTORY";
-            } else { // "ender"
-                Inventory enderChest = targetPlayer.getEnderChest();
-                clearedCount = (int) Arrays.stream(enderChest.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
-                enderChest.clear();
-                actionType = "CLEAR_ENDER_CHEST";
-            }
-
-            plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, actionType, String.valueOf(clearedCount));
-
-            sendConfigMessage(moderator, "messages.clear_inventory_success", "{target}", target.getName(), "{inventory_type}", type.equals("full") ? "inventory" : "ender chest");
-            playSound(moderator, "punish_confirm");
-
-            bypassCloseSync.add(moderatorId);
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (type.equals("full")) {
-                    new FullInventoryMenu(targetId, plugin).open(moderator);
-                } else {
-                    new EnderChestMenu(targetId, plugin).open(moderator);
-                }
-            });
-
-        } else {
-            cancelExistingConfirmation(moderator); // Cancel any other pending confirmation first
-
-            MenuItem confirmState = clickedItem.getConfirmState();
-            if (confirmState != null) {
-                event.getInventory().setItem(event.getSlot(), confirmState.toItemStack(target, plugin.getConfigManager()));
-                playSound(moderator, "confirm_again");
-            }
-
-            BukkitTask task = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    // This task will only run if not canceled by a second click or another confirmation
-                    cancelExistingConfirmation(moderator);
-                }
-            }.runTaskLater(plugin, 100L); // 5-second timeout
-
-            ConfirmationContext newContext = new ConfirmationContext(event.getInventory(), event.getSlot(), clickedItem.toItemStack(target, plugin.getConfigManager()), task, confirmationKey);
-            pendingConfirmations.put(moderatorId, newContext);
+        Player targetPlayer = Bukkit.getPlayer(targetId);
+        if (targetPlayer == null || !targetPlayer.isOnline()) {
+            sendConfigMessage(moderator, "messages.player_not_online", "{input}", target.getName());
+            return;
         }
+
+        int clearedCount;
+        String actionType;
+
+        if (type.equals("full")) {
+            PlayerInventory inv = targetPlayer.getInventory();
+            clearedCount = (int) Arrays.stream(inv.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
+            inv.clear();
+            inv.setArmorContents(new ItemStack[4]);
+            inv.setItemInOffHand(null);
+            actionType = "CLEAR_INVENTORY";
+        } else { // "ender"
+            Inventory enderChest = targetPlayer.getEnderChest();
+            clearedCount = (int) Arrays.stream(enderChest.getContents()).filter(item -> item != null && item.getType() != Material.AIR).count();
+            enderChest.clear();
+            actionType = "CLEAR_ENDER_CHEST";
+        }
+
+        plugin.getSoftBanDatabaseManager().logOperatorAction(targetId, moderatorId, actionType, String.valueOf(clearedCount));
+
+        sendConfigMessage(moderator, "messages.clear_inventory_success", "{target}", target.getName(), "{inventory_type}", type.equals("full") ? "inventory" : "ender chest");
+        playSound(moderator, "punish_confirm");
+
+        bypassCloseSync.add(moderatorId);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (type.equals("full")) {
+                new FullInventoryMenu(targetId, plugin).open(moderator);
+            } else {
+                new EnderChestMenu(targetId, plugin).open(moderator);
+            }
+        });
     }
 
 
@@ -553,6 +592,10 @@ public class MenuListener implements Listener {
 
         MenuItem clickedMenuItem = getMenuItemClicked(event.getRawSlot(), holder);
         if (clickedMenuItem != null) {
+            if (!checkAndHandleConfirmation(player, holder, clickedMenuItem, event.getRawSlot(), event)) {
+                return;
+            }
+
             clickedMenuItem.playClickSound(player);
 
             List<MenuItem.ClickActionData> actionsToExecute = Collections.emptyList();
@@ -776,15 +819,15 @@ public class MenuListener implements Listener {
 
         switch (action) {
             case REQUEST_CLEAR_FULL_INVENTORY -> {
-                handleClearConfirmation(player, getTargetForAction(holder), "full", clickedMenuItem, event);
+                executeClear(player, getTargetForAction(holder), "full");
                 return;
             }
             case REQUEST_CLEAR_ENDER_CHEST -> {
-                handleClearConfirmation(player, getTargetForAction(holder), "ender", clickedMenuItem, event);
+                executeClear(player, getTargetForAction(holder), "ender");
                 return;
             }
             case REQUEST_CLEAR_LOCKER -> {
-                handleClearConfirmation(player, null, "locker", clickedMenuItem, event);
+                executeClear(player, null, "locker");
                 return;
             }
         }
@@ -1427,7 +1470,7 @@ public class MenuListener implements Listener {
         switch (action) {
             case SET_REPORT_STATUS_TAKE -> {
                 if (report.getModeratorUUID() != null && !report.getModeratorUUID().equals(player.getUniqueId())) {
-                    handleReportStateChangeConfirmation(player, menu, action, event.getCurrentItem(), event.getSlot());
+                    executeReportStateChange(player, menu, action);
                 } else {
                     plugin.getSoftBanDatabaseManager().updateReportStatus(report.getReportId(), ReportStatus.TAKEN, player.getUniqueId())
                             .thenAccept(success -> {
@@ -1441,7 +1484,7 @@ public class MenuListener implements Listener {
             }
 
             case SET_REPORT_STATUS_RESOLVED, SET_REPORT_STATUS_REJECTED, SET_REPORT_STATUS_PENDING -> {
-                handleReportStateChangeConfirmation(player, menu, action, event.getCurrentItem(), event.getSlot());
+                executeReportStateChange(player, menu, action);
                 return true;
             }
             case ASSIGN_MODERATOR -> {
@@ -1508,76 +1551,31 @@ public class MenuListener implements Listener {
     }
 
     @SuppressWarnings("deprecation")
-    private void handleReportStateChangeConfirmation(Player player, ReportDetailsMenu menu, ClickAction action, ItemStack clickedItem, int slot) {
+    private void executeReportStateChange(Player player, ReportDetailsMenu menu, ClickAction action) {
         String reportId = menu.getReportId();
-        String confirmationKey = "REPORT_STATUS:" + reportId + ":" + action.name();
 
-        ConfirmationContext context = pendingConfirmations.get(player.getUniqueId());
+        ReportStatus newStatus = null;
+        UUID newModerator = player.getUniqueId();
 
-        if (context != null && context.confirmationKey.equals(confirmationKey)) {
-            cancelExistingConfirmation(player);
-
-            ReportStatus newStatus = null;
-            UUID newModerator = player.getUniqueId();
-
-            switch (action) {
-                case SET_REPORT_STATUS_RESOLVED: newStatus = ReportStatus.RESOLVED; break;
-                case SET_REPORT_STATUS_REJECTED: newStatus = ReportStatus.REJECTED; break;
-                case SET_REPORT_STATUS_PENDING: newStatus = ReportStatus.PENDING; newModerator = null; break;
-                case SET_REPORT_STATUS_TAKE: newStatus = ReportStatus.TAKEN; break;
-            }
-
-            if (newStatus == null) return;
-
-            final ReportStatus finalStatus = newStatus;
-            final UUID finalModerator = newModerator;
-
-            plugin.getSoftBanDatabaseManager().updateReportStatus(reportId, finalStatus, finalModerator)
-                    .thenAccept(success -> {
-                        if (success) {
-                            MessageUtils.sendConfigMessage(plugin, player, "messages.report_status_changed", "{report_id}", reportId, "{status_color}", finalStatus.getColor(), "{status}", finalStatus.getDisplayName());
-                            menu.loadReportAndInitialize();
-                        }
-                    });
-
-        } else {
-            cancelExistingConfirmation(player);
-
-            MenuItem menuItem = getMenuItemClicked(slot, menu);
-            if (menuItem != null && menuItem.getConfirmState() != null) {
-                ItemStack confirmStack = menuItem.getConfirmState().toItemStack(null, plugin.getConfigManager());
-                ItemMeta meta = confirmStack.getItemMeta();
-
-                if (action == ClickAction.SET_REPORT_STATUS_TAKE) {
-                    OfflinePlayer currentMod = Bukkit.getOfflinePlayer(menu.getReportEntry().getModeratorUUID());
-                    if (meta != null) {
-                        List<String> lore = meta.getLore();
-                        if (lore != null) {
-                            lore.replaceAll(line -> line.replace("{moderator}", currentMod.getName() != null ? currentMod.getName() : "Unknown"));
-                            meta.setLore(lore);
-                        }
-                    }
-                }
-                if (meta != null) {
-                    meta.addEnchant(Enchantment.FORTUNE, 1, true);
-                    meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
-                    confirmStack.setItemMeta(meta);
-                }
-
-                menu.getInventory().setItem(slot, confirmStack);
-                playSound(player, "confirm_again");
-
-                BukkitTask task = new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        cancelExistingConfirmation(player);
-                    }
-                }.runTaskLater(plugin, 100L); // 5-second timeout
-
-                ConfirmationContext newContext = new ConfirmationContext(menu.getInventory(), slot, clickedItem.clone(), task, confirmationKey);
-                pendingConfirmations.put(player.getUniqueId(), newContext);
-            }
+        switch (action) {
+            case SET_REPORT_STATUS_RESOLVED: newStatus = ReportStatus.RESOLVED; break;
+            case SET_REPORT_STATUS_REJECTED: newStatus = ReportStatus.REJECTED; break;
+            case SET_REPORT_STATUS_PENDING: newStatus = ReportStatus.PENDING; newModerator = null; break;
+            case SET_REPORT_STATUS_TAKE: newStatus = ReportStatus.TAKEN; break;
         }
+
+        if (newStatus == null) return;
+
+        final ReportStatus finalStatus = newStatus;
+        final UUID finalModerator = newModerator;
+
+        plugin.getSoftBanDatabaseManager().updateReportStatus(reportId, finalStatus, finalModerator)
+                .thenAccept(success -> {
+                    if (success) {
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.report_status_changed", "{report_id}", reportId, "{status_color}", finalStatus.getColor(), "{status}", finalStatus.getDisplayName());
+                        menu.loadReportAndInitialize();
+                    }
+                });
     }
 
 

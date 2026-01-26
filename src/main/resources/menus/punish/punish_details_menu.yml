@@ -141,6 +141,11 @@ menu:
             - 'UN_BAN:'
           right_click_actions:
             - 'UN_BAN:'
+          confirm_state:
+            material: 'RED_WOOL'
+            name: '<gradient:#ed213a:#93291e><bold>CONFIRM UNBAN</bold></gradient>'
+            lore:
+              - '<color:#ff1744>Click again to unban.</color>'
 
     # --- MUTE MENU ---
     mute:
@@ -237,6 +242,11 @@ menu:
             - 'UN_MUTE:'
           right_click_actions:
             - 'UN_MUTE:'
+          confirm_state:
+            material: 'RED_WOOL'
+            name: '<gradient:#ed213a:#93291e><bold>CONFIRM UNMUTE</bold></gradient>'
+            lore:
+              - '<color:#ff1744>Click again to unmute.</color>'
         back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
@@ -333,6 +343,11 @@ menu:
             - 'UN_SOFTBAN:'
           right_click_actions:
             - 'UN_SOFTBAN:'
+          confirm_state:
+            material: 'RED_WOOL'
+            name: '<gradient:#ed213a:#93291e><bold>CONFIRM UNSOFTBAN</bold></gradient>'
+            lore:
+              - '<color:#ff1744>Click again to unsoftban.</color>'
         confirm_punish:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/a79a5c95ee17abfef45c8dc224189964944d560f19a44f19f8a46aef3fee4756"
@@ -521,6 +536,11 @@ menu:
             - 'UN_WARN:'
           right_click_actions:
             - 'UN_WARN:'
+          confirm_state:
+            material: 'RED_WOOL'
+            name: '<gradient:#ed213a:#93291e><bold>CONFIRM UNWARN</bold></gradient>'
+            lore:
+              - '<color:#ff1744>Click again to unwarn.</color>'
         back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
@@ -614,6 +634,11 @@ menu:
             - 'UN_FREEZE:'
           right_click_actions:
             - 'UN_FREEZE:'
+          confirm_state:
+            material: 'RED_WOOL'
+            name: '<gradient:#ed213a:#93291e><bold>CONFIRM UNFREEZE</bold></gradient>'
+            lore:
+              - '<color:#ff1744>Click again to unfreeze.</color>'
         back_button:
           material: 'PLAYER_HEAD'
           player_head: "http://textures.minecraft.net/texture/37aee9a75bf0df7897183015cca0b2a7d755c63388ff01752d5f4419fc645"
