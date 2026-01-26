@@ -10,8 +10,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
@@ -60,6 +62,7 @@ public class MenuItem {
     private Integer customModelData;
     private Integer customModelDataOn;
     private Integer customModelDataOff;
+    private Boolean glow;
     private int quantity = 1;
     private List<Integer> slots;
     private String clickSound;
@@ -175,6 +178,14 @@ public class MenuItem {
 
     public void setCustomModelDataOff(Integer customModelDataOff) {
         this.customModelDataOff = customModelDataOff;
+    }
+
+    public Boolean getGlow() {
+        return glow;
+    }
+
+    public void setGlow(Boolean glow) {
+        this.glow = glow;
     }
 
     // Quantity
@@ -309,6 +320,11 @@ public class MenuItem {
                 meta.setCustomModelData(this.customModelData);
             } else if (metaData != null) {
                 meta.setCustomModelData(metaData); // Apply parsed metadata as CustomModelData - MODIFIED
+            }
+
+            if (Boolean.TRUE.equals(this.glow)) {
+                meta.addEnchant(Enchantment.FORTUNE, 1, true);
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
 
             if (itemMaterial == Material.PLAYER_HEAD) {

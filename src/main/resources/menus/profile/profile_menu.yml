@@ -109,8 +109,9 @@ menu:
         - 'OPEN_MENU:full_inventory_menu'
 
     audit_log_button:
-      material: 'PLAYER_HEAD'
+      material: 'KNOWLEDGE_BOOK'
       player_head: 'http://textures.minecraft.net/texture/b62651879d870499da50e34036800ddffd52f3e4e1993c5fc0fc825d03446d8b'
+      glow: true
       slot: 43
       name: '<gradient:#f7971e:#ffd200><bold>Operator Log</bold></gradient>'
       lore:

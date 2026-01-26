@@ -192,6 +192,11 @@ public class HistoryMenu implements InventoryHolder {
             MenuItem historyEntryItem = new MenuItem();
             historyEntryItem.setMaterial(historyItemConfig.getMaterial());
             historyEntryItem.setPlayerHead(historyItemConfig.getPlayerHead());
+            Boolean glow = historyItemConfig.getGlow();
+            if (glow == null && baseItemConfig != null) {
+                glow = baseItemConfig.getGlow();
+            }
+            historyEntryItem.setGlow(glow);
 
             String status = entry.getStatus() != null ? entry.getStatus() : "";
             String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip") : plugin.getConfigManager().getMessage("placeholders.by_local");

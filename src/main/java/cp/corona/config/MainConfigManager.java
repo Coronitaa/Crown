@@ -950,6 +950,9 @@ public class MainConfigManager {
         if (config.contains(configPath + ".custom_model_data")) {
             menuItem.setCustomModelData(config.getInt(configPath + ".custom_model_data"));
         }
+        if (config.contains(configPath + ".glow")) {
+            menuItem.setGlow(config.getBoolean(configPath + ".glow"));
+        }
         menuItem.setQuantity(config.getInt(configPath + ".quantity", 1));
         menuItem.setSlots(parseSlots(config.getString(configPath + ".slot")));
         
