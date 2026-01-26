@@ -342,8 +342,9 @@ messages:
   confiscate_confirm: '<color:#ffea00>Click again to confiscate this item.</color>'
   item_confiscated: '{prefix}<gradient:#56ab2f:#a8e063>Item confiscated and sent to locker.</gradient>'
   confiscate_fail_gone: '{prefix}<color:#ff5555>Item is no longer available.</color>'
-  locker_read_only: '{prefix}<color:#ff5555>This locker is Read-Only. You need <color:#00c6ff>crown.mod.locker.admin</color> to modify it.</color>'
+  locker_read_only: '{prefix}<color:#ff5555>This locker is Read-Only. You need <color:#00c6ff>crown.locker.admin</color> to modify it.</color>'
   locker_opened_other: '{prefix}<color:#ffea00>Opened locker of <color:#00c6ff>{target}</color>.</color>'
+  locker_target_no_permission: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> does not have permission to have a locker.</color>'
 
 # Section for reusable placeholder display values.
 placeholders:
