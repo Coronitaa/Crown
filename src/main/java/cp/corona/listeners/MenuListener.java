@@ -870,6 +870,10 @@ public class MenuListener implements Listener {
                 case PLAY_SOUND_MODS -> executePlaySoundModsAction(actionData);
                 case TITLE_MODS -> executeTitleModsAction(player, holder, actionData);
                 case MESSAGE_MODS -> executeMessageModsAction(player, holder, actionData);
+                case OPEN_AUDIT_LOG -> executeOpenAuditLogAction(player, actionData, holder);
+                case OPEN_PROFILE_TARGET -> executeOpenProfileTargetAction(player, actionData, holder);
+                case HISTORY_TARGET -> executeHistoryTargetAction(player, actionData, holder);
+                case OPEN_REPORTS_MENU -> new ReportsMenu(plugin, player).open(player);
                 default -> {
                     if (plugin.getConfigManager().isDebugEnabled() && action != ClickAction.NO_ACTION) {
                         plugin.getLogger().info("[DEBUG] Action " + action + " was not handled by common handlers (expected if menu-specific).");
@@ -1227,6 +1231,51 @@ public class MenuListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
     }
 
+    private void executeOpenAuditLogAction(Player player, String[] args, InventoryHolder holder) {
+        OfflinePlayer target = null;
+        if (args != null && args.length > 0 && args[0] != null && !args[0].isEmpty()) {
+            target = Bukkit.getOfflinePlayer(args[0]);
+        } else {
+            target = getTargetForAction(holder);
+        }
+
+        if (target != null) {
+            new AuditLogBook(plugin, target.getUniqueId(), player).openBook();
+        } else {
+             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] OPEN_AUDIT_LOG skipped: No target found.");
+        }
+    }
+
+    private void executeOpenProfileTargetAction(Player player, String[] args, InventoryHolder holder) {
+        OfflinePlayer target = null;
+        if (args != null && args.length > 0 && args[0] != null && !args[0].isEmpty()) {
+            target = Bukkit.getOfflinePlayer(args[0]);
+        } else {
+            target = getTargetForAction(holder);
+        }
+
+        if (target != null) {
+            openProfileIfOnline(player, target.getUniqueId());
+        } else {
+             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] OPEN_PROFILE_TARGET skipped: No target found.");
+        }
+    }
+
+    private void executeHistoryTargetAction(Player player, String[] args, InventoryHolder holder) {
+        OfflinePlayer target = null;
+        if (args != null && args.length > 0 && args[0] != null && !args[0].isEmpty()) {
+            target = Bukkit.getOfflinePlayer(args[0]);
+        } else {
+            target = getTargetForAction(holder);
+        }
+
+        if (target != null) {
+            new HistoryMenu(target.getUniqueId(), plugin).open(player);
+        } else {
+             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] HISTORY_TARGET skipped: No target found.");
+        }
+    }
+
     // ... (All original private handle...MenuActions methods remain here without change)
     private boolean handleProfileMenuActions(Player player, ProfileMenu profileMenu, ClickAction action, String[] actionData) {
         UUID targetUUID = profileMenu.getTargetUUID();
@@ -1253,9 +1302,6 @@ public class MenuListener implements Listener {
                 requestNewTargetName(player, "profile_menu");
                 return true;
             }
-        } else if (action == ClickAction.OPEN_AUDIT_LOG) {
-            new AuditLogBook(plugin, targetUUID, player).openBook();
-            return true;
         }
         return false;
     }
@@ -1496,10 +1542,6 @@ public class MenuListener implements Listener {
                 requestModeratorAssignmentInput(player, menu);
                 return true;
             }
-            case OPEN_REPORTS_MENU -> {
-                new ReportsMenu(plugin, player).open(player);
-                return true;
-            }
             case OPEN_MENU -> {
                 if (actionData != null && actionData.length > 0) {
                     if ("punish_menu_target".equalsIgnoreCase(actionData[0]) && report.getTargetUUID() != null) {
@@ -1508,10 +1550,6 @@ public class MenuListener implements Listener {
                         new PunishMenu(report.getRequesterUUID(), plugin).open(player);
                     }
                 }
-                return true;
-            }
-            case OPEN_PROFILE_TARGET -> {
-                openProfileIfOnline(player, report.getTargetUUID());
                 return true;
             }
             case OPEN_PROFILE_REQUESTER -> {
@@ -1532,12 +1570,6 @@ public class MenuListener implements Listener {
             }
             case REPORTS_FILTER_REQUESTER -> {
                 new ReportsMenu(plugin, player, 1, null, Bukkit.getOfflinePlayer(report.getRequesterUUID()).getName(), true, false).open(player);
-                return true;
-            }
-            case HISTORY_TARGET -> {
-                if (report.getTargetUUID() != null) {
-                    new HistoryMenu(report.getTargetUUID(), plugin).open(player);
-                }
                 return true;
             }
             case HISTORY_REQUESTER -> {
