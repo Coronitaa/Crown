@@ -1702,66 +1702,96 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private void help(CommandSender sender, int page) {
-        // Define categories
-        Map<String, List<String>> categories = new LinkedHashMap<>();
+        Map<String, List<HelpEntry>> categories = new LinkedHashMap<>();
         categories.put("punishment", new ArrayList<>());
         categories.put("unpunishment", new ArrayList<>());
         categories.put("utility", new ArrayList<>());
         categories.put("admin", new ArrayList<>());
 
-        // Populate categories
-        List<String> punishCmds = categories.get("punishment");
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_punish"));
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_punish_extended"));
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_punish_alias"));
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_ban_command"));
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_mute_command"));
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_softban_command"));
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_kick_command"));
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_warn_command"));
-        punishCmds.add(plugin.getConfigManager().getMessage("messages.help_freeze_command"));
+        List<HelpEntry> punishCmds = categories.get("punishment");
+        punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_punish"), "/crown punish"));
+        punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_punish_extended"), "/crown punish"));
+        punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_punish_alias"), "/punish"));
+        if (plugin.getConfigManager().isCommandEnabled("ban")) {
+            punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_ban_command"), "/ban"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("mute")) {
+            punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_mute_command"), "/mute"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("softban")) {
+            punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_softban_command"), "/softban"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("kick")) {
+            punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_kick_command"), "/kick"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("warn")) {
+            punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_warn_command"), "/warn"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("freeze")) {
+            punishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_freeze_command"), "/freeze"));
+        }
 
-        List<String> unpunishCmds = categories.get("unpunishment");
-        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unpunish"));
-        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unpunish_alias"));
-        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unban_command"));
-        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unmute_command"));
-        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unsoftban_command"));
-        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unwarn_command"));
-        unpunishCmds.add(plugin.getConfigManager().getMessage("messages.help_unfreeze_command"));
+        List<HelpEntry> unpunishCmds = categories.get("unpunishment");
+        unpunishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_unpunish"), "/crown unpunish"));
+        unpunishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_unpunish_alias"), "/unpunish"));
+        if (plugin.getConfigManager().isCommandEnabled("unban")) {
+            unpunishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_unban_command"), "/unban"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("unmute")) {
+            unpunishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_unmute_command"), "/unmute"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("unsoftban")) {
+            unpunishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_unsoftban_command"), "/unsoftban"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("unwarn")) {
+            unpunishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_unwarn_command"), "/unwarn"));
+        }
+        if (plugin.getConfigManager().isCommandEnabled("unfreeze")) {
+            unpunishCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_unfreeze_command"), "/unfreeze"));
+        }
 
-        List<String> utilityCmds = categories.get("utility");
+        List<HelpEntry> utilityCmds = categories.get("utility");
         if (sender.hasPermission(PROFILE_PERMISSION)) {
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_profile_command"));
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_log_command"));
+            if (plugin.getConfigManager().isCommandEnabled("profile")) {
+                utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_profile_command"), "/profile"));
+            } else {
+                utilityCmds.add(new HelpEntry(replaceHelpCommand("messages.help_profile_command", "/crown profile"), "/crown profile"));
+            }
+            utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_log_command"), "/crown log"));
         }
         if (sender.hasPermission(HISTORY_PERMISSION)) {
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_history_command"));
+            if (plugin.getConfigManager().isCommandEnabled("history")) {
+                utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_history_command"), "/history"));
+            } else {
+                utilityCmds.add(new HelpEntry(replaceHelpCommand("messages.help_history_command", "/crown history"), "/crown history"));
+            }
         }
         if (sender.hasPermission(CHECK_PERMISSION)) {
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_check_command"));
+            utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_check_command"), "/check"));
         }
-        if (sender.hasPermission(REPORT_CREATE_PERMISSION) || !plugin.getConfigManager().isReportPermissionRequired()) {
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_report_command"));
+        if (plugin.getConfigManager().isCommandEnabled("report")
+                && (sender.hasPermission(REPORT_CREATE_PERMISSION) || !plugin.getConfigManager().isReportPermissionRequired())) {
+            utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_report_command"), "/report"));
         }
-        if (sender.hasPermission(REPORT_VIEW_PERMISSION)) {
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_reports_command"));
+        if (plugin.getConfigManager().isCommandEnabled("report") && sender.hasPermission(REPORT_VIEW_PERMISSION)) {
+            utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_reports_command"), "/reports"));
         }
         if (sender.hasPermission(MOD_USE_PERMISSION)) {
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_mod_command"));
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_mod_target_command"));
+            utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_mod_command"), "/mod"));
+            utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_mod_target_command"), "/mod target"));
         }
         if (sender.hasPermission(MOD_USE_PERMISSION) || sender.hasPermission(PROFILE_EDIT_INVENTORY_PERMISSION)) {
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_locker_command"));
-            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_locker_alias"));
+            utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_locker_command"), "/crown locker"));
+            if (plugin.getConfigManager().isCommandEnabled("locker")) {
+                utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_locker_alias"), "/locker"));
+            }
         }
 
-        List<String> adminCmds = categories.get("admin");
+        List<HelpEntry> adminCmds = categories.get("admin");
         if (sender.hasPermission(ADMIN_PERMISSION)) {
-            adminCmds.add(plugin.getConfigManager().getMessage("messages.help_reload"));
+            adminCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_reload"), "/crown reload"));
         }
 
-        // Remove empty categories
         categories.entrySet().removeIf(entry -> entry.getValue().isEmpty());
 
         List<String> categoryKeys = new ArrayList<>(categories.keySet());
@@ -1771,7 +1801,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (page > totalPages) page = totalPages;
 
         String currentCategoryKey = categoryKeys.get(page - 1);
-        List<String> currentMessages = categories.get(currentCategoryKey);
+        List<HelpEntry> currentMessages = categories.get(currentCategoryKey);
 
         sender.sendMessage(MessageUtils.getColorMessage(""));
         sender.sendMessage(MessageUtils.getColorMessage(""));
@@ -1780,8 +1810,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.help_category_" + currentCategoryKey)));
         sender.sendMessage(MessageUtils.getColorMessage(""));
         
-        for (String msg : currentMessages) {
-            sender.sendMessage(MessageUtils.getColorMessage(msg));
+        for (HelpEntry entry : currentMessages) {
+            if (sender instanceof Player player) {
+                Component line = MessageUtils.getColorComponent(entry.message())
+                        .clickEvent(ClickEvent.suggestCommand(entry.command()));
+                player.sendMessage(line);
+            } else {
+                sender.sendMessage(MessageUtils.getColorMessage(entry.message()));
+            }
         }
 
         if (sender instanceof Player) {
@@ -1812,4 +1848,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(MessageUtils.getColorMessage("&7Page " + page + "/" + totalPages));
         }
     }
+
+    private String replaceHelpCommand(String messageKey, String newCommand) {
+        String message = plugin.getConfigManager().getMessage(messageKey);
+        if (message == null || message.isEmpty()) {
+            return message;
+        }
+        return message.replaceFirst("/\\S+", newCommand);
+    }
+
+    private record HelpEntry(String message, String command) {}
 }
