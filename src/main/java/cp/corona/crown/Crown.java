@@ -10,7 +10,10 @@ import cp.corona.listeners.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import cp.corona.commands.ModeratorCommand;
@@ -18,6 +21,7 @@ import cp.corona.moderator.ModeratorModeListener;
 import cp.corona.moderator.ModeratorModeManager;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -105,31 +109,80 @@ public final class Crown extends JavaPlugin {
 
     public void registerCommands() {
         MainCommand mainCommand = new MainCommand(this);
+        
+        // Always registered
         registerCommand("crown", mainCommand);
         registerCommand("punish", mainCommand);
         registerCommand("unpunish", mainCommand);
         registerCommand("check", mainCommand);
-        registerCommand("report", mainCommand);
-        registerCommand("reports", mainCommand);
-        registerCommand("history", mainCommand);
-        registerCommand("profile", mainCommand);
-        registerCommand("locker", mainCommand);
-        registerCommand("softban", mainCommand);
-        registerCommand("freeze", mainCommand);
-        registerCommand("ban", mainCommand);
-        registerCommand("kick", mainCommand);
-        registerCommand("mute", mainCommand);
-        registerCommand("warn", mainCommand);
-        registerCommand("unban", mainCommand);
-        registerCommand("unwarn", mainCommand);
-        registerCommand("unmute", mainCommand);
-        registerCommand("unfreeze", mainCommand);
-        registerCommand("unsoftban", mainCommand);
+
+        // Conditionally registered
+        checkAndRegister("history", mainCommand);
+        checkAndRegister("profile", mainCommand);
+        checkAndRegister("locker", mainCommand);
+        checkAndRegister("softban", mainCommand);
+        checkAndRegister("freeze", mainCommand);
+        checkAndRegister("ban", mainCommand);
+        checkAndRegister("kick", mainCommand);
+        checkAndRegister("mute", mainCommand);
+        checkAndRegister("warn", mainCommand);
+        checkAndRegister("unban", mainCommand);
+        checkAndRegister("unwarn", mainCommand);
+        checkAndRegister("unmute", mainCommand);
+        checkAndRegister("unfreeze", mainCommand);
+        checkAndRegister("unsoftban", mainCommand);
+
+        if (configManager.isCommandEnabled("report")) {
+            registerCommand("report", mainCommand);
+            registerCommand("reports", mainCommand);
+        } else {
+            unregisterCommand("report");
+            unregisterCommand("reports");
+        }
+
         PluginCommand modCommand = getCommand("mod");
         if (modCommand != null) {
             ModeratorCommand moderatorExecutor = new ModeratorCommand(this);
             modCommand.setExecutor(moderatorExecutor);
-            modCommand.setTabCompleter(moderatorExecutor); // ADDED: Register TabCompleter
+            modCommand.setTabCompleter(moderatorExecutor);
+        }
+    }
+
+    private void checkAndRegister(String name, MainCommand executor) {
+        if (configManager.isCommandEnabled(name)) {
+            registerCommand(name, executor);
+        } else {
+            unregisterCommand(name);
+        }
+    }
+
+    private void unregisterCommand(String commandName) {
+        try {
+            PluginCommand command = getCommand(commandName);
+            if (command == null) return;
+
+            Field commandMapField = Bukkit.getServer().getClass().getDeclaredField("commandMap");
+            commandMapField.setAccessible(true);
+            CommandMap commandMap = (CommandMap) commandMapField.get(Bukkit.getServer());
+
+            Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
+            knownCommandsField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            Map<String, Command> knownCommands = (Map<String, Command>) knownCommandsField.get(commandMap);
+
+            knownCommands.remove(commandName);
+            knownCommands.remove(this.getName().toLowerCase() + ":" + commandName);
+
+            for (String alias : command.getAliases()) {
+                knownCommands.remove(alias);
+                knownCommands.remove(this.getName().toLowerCase() + ":" + alias);
+            }
+            
+            if (configManager.isDebugEnabled()) {
+                getLogger().info("Unregistered command: " + commandName);
+            }
+        } catch (Exception e) {
+            getLogger().log(Level.WARNING, "Failed to unregister command: " + commandName, e);
         }
     }
 

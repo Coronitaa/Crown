@@ -166,6 +166,10 @@ public class MainConfigManager {
         }
     }
 
+    public boolean isCommandEnabled(String commandName) {
+        return pluginConfig.getConfig().getBoolean("commands." + commandName, true);
+    }
+
     public CustomConfig getLockerMenuConfig() {
         return lockerMenuConfig;
     }

@@ -69,3 +69,22 @@ report-system:
     amount: 5
     # The time period in seconds.
     period: 60 # (5 minutes)
+
+# Command activation/deactivation.
+# Set to false to disable the command and its aliases.
+commands:
+  profile: true
+  history: true
+  locker: true
+  ban: true
+  kick: true
+  freeze: true
+  softban: true
+  mute: true
+  warn: true
+  unmute: true
+  unban: true
+  unwarn: true
+  unfreeze: true
+  unsoftban: true
+  report: true # Disabling this disables the entire report system including /reports.
