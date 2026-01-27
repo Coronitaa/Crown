@@ -135,6 +135,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "crown" -> {
                 return handleCrownBaseCommand(sender, args);
             }
+            case LOCKER_SUBCOMMAND -> {
+                return handleLockerCommand(sender, args);
+            }
             case PUNISH_SUBCOMMAND -> {
                 return handlePunishCommand(sender, args);
             }
@@ -1365,6 +1368,17 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     }
                 }
             }
+        } else if (commandLabel.equals(LOCKER_SUBCOMMAND)) {
+            if (args.length == 1) {
+                if (sender.hasPermission(LOCKER_ADMIN_PERMISSION)) {
+                    List<String> suggestions = new ArrayList<>();
+                    suggestions.add("all");
+                    suggestions.addAll(playerNames);
+                    StringUtil.copyPartialMatches(args[0], suggestions, completions);
+                } else {
+                    StringUtil.copyPartialMatches(args[0], playerNames, completions);
+                }
+            }
         } else if (commandLabel.equals(PUNISH_SUBCOMMAND)) {
             handlePunishTab(args, completions, playerNames, PUNISH_SUBCOMMAND);
         } else if (PUNISHMENT_TYPES.contains(commandLabel)) {
@@ -1732,6 +1746,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
         if (sender.hasPermission(REPORT_VIEW_PERMISSION)) {
             utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_reports_command"));
+        }
+        if (sender.hasPermission(MOD_USE_PERMISSION)) {
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_mod_command"));
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_mod_target_command"));
+        }
+        if (sender.hasPermission(MOD_USE_PERMISSION) || sender.hasPermission(PROFILE_EDIT_INVENTORY_PERMISSION)) {
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_locker_command"));
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_locker_alias"));
         }
 
         List<String> adminCmds = categories.get("admin");

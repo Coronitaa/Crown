@@ -113,6 +113,7 @@ public final class Crown extends JavaPlugin {
         registerCommand("reports", mainCommand);
         registerCommand("history", mainCommand);
         registerCommand("profile", mainCommand);
+        registerCommand("locker", mainCommand);
         registerCommand("softban", mainCommand);
         registerCommand("freeze", mainCommand);
         registerCommand("ban", mainCommand);

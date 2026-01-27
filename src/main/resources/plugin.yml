@@ -30,6 +30,10 @@ commands:
     description: Command to view a player's profile.
     usage: /<command> <player>
 
+  locker:
+    description: Command to open lockers.
+    usage: /<command> [player|all]
+
   report: # ADDED
     description: Command to report a player or a server issue.
     usage: /<command> [player]
