@@ -253,7 +253,7 @@ messages:
   mod_mode_actionbar_selected: ' &8| &eSelected: &f{target}'
 
   # Tool Feedback
-  mod_mode_random_tp: '{prefix}<color:#d500f9>Teleported to a random player: <color:#ffffff>{target}</color></color>'
+  mod_mode_random_tp: '{prefix}<color:#d500f9>Teleported to <color:#ffffff>{target}</color></color>'
   mod_mode_no_players_tp: '{prefix}<color:#ff5555>No other non-staff players available to teleport to.</color>'
   mod_mode_freeze_success: '{prefix}<color:#00c6ff>Froze player: <color:#ffffff>{target}</color></color>'
   mod_mode_invsee_success: '{prefix}<color:#d500f9>Opening profile for: <color:#ffffff>{target}</color></color>'

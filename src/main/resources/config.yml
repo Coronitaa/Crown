@@ -71,7 +71,7 @@ report-system:
     period: 60 # (5 minutes)
 
 # Command activation/deactivation.
-# Set to false to disable the command and its aliases.
+# Set to false to disable the command alias.
 commands:
   profile: true
   history: true
