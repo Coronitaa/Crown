@@ -8,6 +8,7 @@ import cp.corona.listeners.MenuListener;
 import cp.corona.menus.mod.LockerMenu;
 import cp.corona.menus.punish.HistoryMenu;
 import cp.corona.menus.profile.ProfileMenu;
+import cp.corona.menus.profile.AuditLogBook;
 import cp.corona.menus.punish.PunishDetailsMenu;
 import cp.corona.menus.punish.PunishMenu;
 import cp.corona.utils.MessageUtils;
@@ -50,6 +51,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String CHECK_SUBCOMMAND = "check";
     private static final String HISTORY_SUBCOMMAND = "history";
     private static final String PROFILE_SUBCOMMAND = "profile";
+    private static final String LOG_SUBCOMMAND = "log";
     private static final String HELP_SUBCOMMAND = "help";
     private static final String REPORT_COMMAND = "report";
     private static final String REPORTS_COMMAND = "reports";
@@ -188,6 +190,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return handleHistoryCommand(sender, subArgs);
             case PROFILE_SUBCOMMAND:
                 return handleProfileCommand(sender, subArgs);
+            case LOG_SUBCOMMAND:
+                return handleLogCommand(sender, subArgs);
             case LOCKER_SUBCOMMAND:
                 return handleLockerCommand(sender, subArgs);
             case REPORT_INTERNAL_SUBCOMMAND:
@@ -405,6 +409,30 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
 
         new ProfileMenu(target.getUniqueId(), plugin).open(playerSender);
+        return true;
+    }
+
+    private boolean handleLogCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PROFILE_PERMISSION)) {
+            sendConfigMessage(sender, "messages.no_permission_command");
+            return true;
+        }
+        if (!(sender instanceof Player playerSender)) {
+            sendConfigMessage(sender, "messages.player_only");
+            return true;
+        }
+        if (args.length == 0) {
+            sendConfigMessage(sender, "messages.log_usage", "{usage}", "/crown log <player>");
+            return true;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
+        if (!target.hasPlayedBefore() && !target.isOnline()) {
+            sendConfigMessage(sender, "messages.never_played", "{input}", args[0]);
+            return true;
+        }
+
+        new AuditLogBook(plugin, target.getUniqueId(), playerSender).openBook();
         return true;
     }
 
@@ -1309,7 +1337,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         if (commandLabel.equals("crown")) {
             if (args.length == 1) {
-                StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, CHECK_SUBCOMMAND, HISTORY_SUBCOMMAND, PROFILE_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND, LOCKER_SUBCOMMAND), completions);
+                StringUtil.copyPartialMatches(args[0], Arrays.asList(PUNISH_SUBCOMMAND, UNPUNISH_SUBCOMMAND, CHECK_SUBCOMMAND, HISTORY_SUBCOMMAND, PROFILE_SUBCOMMAND, LOG_SUBCOMMAND, HELP_SUBCOMMAND, RELOAD_SUBCOMMAND, LOCKER_SUBCOMMAND), completions);
             } else if (args.length > 1) {
                 String subcommand = args[0].toLowerCase();
                 String[] subArgs = Arrays.copyOfRange(args, 1, args.length);
@@ -1318,7 +1346,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     case PUNISH_SUBCOMMAND -> handlePunishTab(subArgs, completions, playerNames, PUNISH_SUBCOMMAND);
                     case UNPUNISH_SUBCOMMAND -> handleUnpunishTab(subArgs, completions, playerNames, UNPUNISH_SUBCOMMAND);
                     case CHECK_SUBCOMMAND -> handleCheckTab(subArgs, completions);
-                    case HISTORY_SUBCOMMAND, PROFILE_SUBCOMMAND -> {
+                    case HISTORY_SUBCOMMAND, PROFILE_SUBCOMMAND, LOG_SUBCOMMAND -> {
                         if (subArgs.length == 1) {
                             StringUtil.copyPartialMatches(subArgs[0], playerNames, completions);
                         }
@@ -1691,6 +1719,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         List<String> utilityCmds = categories.get("utility");
         if (sender.hasPermission(PROFILE_PERMISSION)) {
             utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_profile_command"));
+            utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_log_command"));
         }
         if (sender.hasPermission(HISTORY_PERMISSION)) {
             utilityCmds.add(plugin.getConfigManager().getMessage("messages.help_history_command"));

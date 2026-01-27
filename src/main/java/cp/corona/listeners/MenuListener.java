@@ -41,6 +41,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -727,6 +728,24 @@ public class MenuListener implements Listener {
         // Clear any pending chat inputs for this player
         if (pendingReportInputs.containsKey(player.getUniqueId()) || inputTimeouts.containsKey(player.getUniqueId())) {
             clearPlayerInputData(player);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        UUID playerUUID = player.getUniqueId();
+        
+        // Close any open profile/inventory menus if the target disconnects
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            InventoryHolder holder = onlinePlayer.getOpenInventory().getTopInventory().getHolder();
+            if (holder instanceof ProfileMenu || holder instanceof FullInventoryMenu || holder instanceof EnderChestMenu) {
+                OfflinePlayer target = getTargetForAction(holder);
+                if (target != null && target.getUniqueId().equals(playerUUID)) {
+                    onlinePlayer.closeInventory();
+                    sendConfigMessage(onlinePlayer, "messages.player_not_online", "{input}", player.getName());
+                }
+            }
         }
     }
 
@@ -2309,6 +2328,7 @@ public class MenuListener implements Listener {
                 int nextWarnLevel = (latestWarning != null) ? latestWarning.getWarnLevel() + 1 : 1;
 
                 WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(nextWarnLevel);
+
                 if (levelConfig == null) {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         sendConfigMessage(player, "messages.no_warn_level_configured", "{level}", String.valueOf(nextWarnLevel));

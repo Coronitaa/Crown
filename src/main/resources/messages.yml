@@ -82,6 +82,7 @@ messages:
   help_history_command: '<color:#00c6ff>/history <player></color> <color:#b0b0b0>- View punishment history.</color>'
   help_reload: '<color:#00c6ff>/crown reload</color> <color:#b0b0b0>- Reload configuration.</color>'
   help_profile_command: '<color:#00c6ff>/profile <player></color> <color:#b0b0b0>- View player profile.</color>'
+  help_log_command: '<color:#00c6ff>/crown log <player></color> <color:#b0b0b0>- View audit log.</color>'
   help_report_command: '<color:#00c6ff>/report <player> [reason]</color> <color:#b0b0b0>- Report a player.</color>'
   help_reports_command: '<color:#00c6ff>/reports</color> <color:#b0b0b0>- View reports.</color>'
   help_previous_page: '<gradient:#ff416c:#ff4b2b><bold>[Previous]</bold></gradient>'
@@ -116,7 +117,7 @@ messages:
   invalid_time_format_command: '{prefix}<color:#ff5555>Invalid time format: <color:#ffea00>{input}</color>. Use units (s, m, h, d, y) or "permanent".</color>'
 
   punishment_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Player <bold>{target}</bold> has been {punishment_action_verb}.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Duration:</color> <color:#00c6ff>{time}</color> <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
-  punishment_confirmed_ip: '{prefix}<gradient:#56ab2f:#a8e063>Player <bold>{target}</bold> has been {punishment_action_verb} <color:#ff5555>(IP)</color>.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Duration:</color> <color:#00c6ff>{time}</color> <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
+  punishment_confirmed_ip: '{prefix}<gradient:#56ab2f:#a8e063>Player <bold>{target}</bold> has been {punishment_action_verb} <color:#ff5555>(IP)</color>.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Time:</color> <color:#00c6ff>{time}</color>, <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
   set_time_reason_before_confirm: '{prefix}<color:#ff5555>Please set time and reason before confirming.</color>'
   set_time_before_confirm: '{prefix}<color:#ff5555>Please set the time before confirming.</color>'
   set_reason_before_confirm: '{prefix}<color:#ff5555>Please set the reason before confirming.</color>'
@@ -157,6 +158,7 @@ messages:
   punishment_not_active: '{prefix}<color:#ff5555>The punishment with ID ''{id}'' is already inactive.</color>'
   history_usage: '{prefix}<color:#ff5555>Usage: /history <player></color>'
   profile_usage: '{prefix}<color:#ff5555>Usage: /profile <player></color>'
+  log_usage: '{prefix}<color:#ff5555>Usage: /crown log <player></color>'
 
   check_info_header: '<gradient:#f7971e:#ffd200><bold>Punishment Information for ID: <color:#ffffff>{id}</color></bold></gradient>'
   check_info_player: '<color:#b0b0b0>Player: <color:#00c6ff>{player}</color> <color:#757575>({uuid})</color></color>'

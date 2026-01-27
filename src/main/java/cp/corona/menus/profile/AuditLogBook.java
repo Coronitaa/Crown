@@ -1,4 +1,4 @@
-// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\AuditLogBook.java
+// PATH: C:\Users\Valen\Desktop\Se vienen Cositas\PluginCROWN\CROWN\src\main\java\cp\corona\menus\profile\AuditLogBook.java
 package cp.corona.menus.profile;
 
 import cp.corona.crown.Crown;
