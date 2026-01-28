@@ -745,6 +745,9 @@ public class ModeratorModeManager {
     }
 
     private Component resolveExternalMessage(Player player, boolean isJoin) {
+        Component configured = resolveConfiguredMessage(player, isJoin);
+        if (configured != null) return configured;
+
         Plugin essentials = Bukkit.getPluginManager().getPlugin("Essentials");
         if (essentials instanceof JavaPlugin javaPlugin && essentials.isEnabled()) {
             String key = isJoin ? "custom-join-message" : "custom-quit-message";
@@ -762,6 +765,20 @@ public class ModeratorModeManager {
             }
         }
         return null;
+    }
+
+    private Component resolveConfiguredMessage(Player player, boolean isJoin) {
+        String raw = isJoin
+                ? plugin.getConfigManager().getCustomJoinMessage()
+                : plugin.getConfigManager().getCustomQuitMessage();
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("none")) {
+            return null;
+        }
+        String formatted = plugin.getConfigManager().processPlaceholders(trimmed, player);
+        formatted = applyPlayerReplacements(formatted, player);
+        return MessageUtils.getColorComponent(formatted);
     }
 
     private String applyPlayerReplacements(String message, Player player) {

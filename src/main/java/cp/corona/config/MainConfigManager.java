@@ -1135,6 +1135,14 @@ public class MainConfigManager {
         return auditLogConfig;
     }
 
+    public String getCustomJoinMessage() {
+        return messagesConfig.getConfig().getString("messages.custom-join-message", "");
+    }
+
+    public String getCustomQuitMessage() {
+        return messagesConfig.getConfig().getString("messages.custom-quit-message", "");
+    }
+
     public String getAuditLogText(String path, String... replacements) {
         String message = auditLogConfig.getConfig().getString(path, "");
         if (message == null || message.isEmpty()) return "";

@@ -241,10 +241,14 @@ messages:
   mod_mode_join_disabled: '{prefix}<gradient:#ed213a:#93291e>Mod mode on join disabled.</gradient>'
   mod_mode_glowing_enabled: '{prefix}<gradient:#56ab2f:#a8e063>Glowing effect enabled.</gradient>'
   mod_mode_glowing_disabled: '{prefix}<gradient:#ed213a:#93291e>Glowing effect disabled.</gradient>'
-
   mod_mode_silent_enabled: '{prefix}<gradient:#56ab2f:#a8e063>Silent Mode enabled. You will appear offline.</gradient>'
   mod_mode_silent_disabled: '{prefix}<gradient:#ed213a:#93291e>Silent Mode disabled. You will appear online.</gradient>'
   mod_mode_crash_restore: '<color:#757575>[<color:#ff1744><bold>!</bold></color>]</color> <color:#ff5555>We detected an error and {prefix}<color:#ff5555>has restored your last known inventory.</color></color>'
+
+  # If you are using custom join/quit messages, copy and paste them here using PlaceholderAPI's placeholders
+  # If they are from EssentialsX or you are not using any custom join/quit messages just keep them empty
+  custom-join-message: ''
+  custom-quit-message: ''
 
   # Action Bar Status
   mod_mode_actionbar_vanished: '<bold>&aVANISHED</bold> &8| &7Right-click tool to appear'
