@@ -5,6 +5,7 @@ import cp.corona.utils.MessageUtils;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -20,6 +21,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.Sound;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.*;
 import java.util.*;
@@ -42,6 +45,8 @@ public class ModeratorModeManager {
 
     // Stores active preferences for online moderators
     private final Map<UUID, ModPreferenceData> activePreferences = new ConcurrentHashMap<>();
+    private final Map<UUID, Component> cachedJoinMessages = new ConcurrentHashMap<>();
+    private final Map<UUID, Component> cachedQuitMessages = new ConcurrentHashMap<>();
 
     private final Map<UUID, Long> spectatorExpirations = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> preSpectatorVanishState = new ConcurrentHashMap<>();
@@ -362,15 +367,17 @@ public class ModeratorModeManager {
 
     // --- Fake Messages ---
     private void broadcastFakeJoin(Player player) {
-        // Use translatable component for multi-language support without firing dangerous events
-        Component msg = Component.translatable("multiplayer.player.joined", NamedTextColor.YELLOW, Component.text(player.getName()));
-        Bukkit.broadcast(msg);
+        Component msg = resolveJoinMessage(player);
+        if (msg != null && !msg.equals(Component.empty())) {
+            Bukkit.broadcast(msg);
+        }
     }
 
     private void broadcastFakeQuit(Player player) {
-        // Use translatable component for multi-language support without firing dangerous events
-        Component msg = Component.translatable("multiplayer.player.left", NamedTextColor.YELLOW, Component.text(player.getName()));
-        Bukkit.broadcast(msg);
+        Component msg = resolveQuitMessage(player);
+        if (msg != null && !msg.equals(Component.empty())) {
+            Bukkit.broadcast(msg);
+        }
     }
 
     // --- Preference Toggles & Logic ---
@@ -707,6 +714,63 @@ public class ModeratorModeManager {
         }
 
         return new ModPreferenceData(interactions, containerSpy, fly, modOnJoin, silent, new ArrayList<>(defaultFavorites), walkSpeed, flySpeed, jumpBoost, nightVision, glowing);
+    }
+
+    public void cacheJoinMessage(UUID uuid, Component message) {
+        if (message != null) {
+            cachedJoinMessages.put(uuid, message);
+        }
+    }
+
+    public void cacheQuitMessage(UUID uuid, Component message) {
+        if (message != null) {
+            cachedQuitMessages.put(uuid, message);
+        }
+    }
+
+    private Component resolveJoinMessage(Player player) {
+        Component external = resolveExternalMessage(player, true);
+        if (external != null) return external;
+        Component cached = cachedJoinMessages.get(player.getUniqueId());
+        if (cached != null) return cached;
+        return Component.translatable("multiplayer.player.joined", NamedTextColor.YELLOW, Component.text(player.getName()));
+    }
+
+    private Component resolveQuitMessage(Player player) {
+        Component external = resolveExternalMessage(player, false);
+        if (external != null) return external;
+        Component cached = cachedQuitMessages.get(player.getUniqueId());
+        if (cached != null) return cached;
+        return Component.translatable("multiplayer.player.left", NamedTextColor.YELLOW, Component.text(player.getName()));
+    }
+
+    private Component resolveExternalMessage(Player player, boolean isJoin) {
+        Plugin essentials = Bukkit.getPluginManager().getPlugin("Essentials");
+        if (essentials instanceof JavaPlugin javaPlugin && essentials.isEnabled()) {
+            String key = isJoin ? "custom-join-message" : "custom-quit-message";
+            String raw = javaPlugin.getConfig().getString(key);
+            if (raw != null) {
+                String trimmed = raw.trim();
+                if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("none")) {
+                    return Component.empty();
+                }
+                String formatted = applyPlayerReplacements(trimmed, player);
+                if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                    formatted = PlaceholderAPI.setPlaceholders(player, formatted);
+                }
+                return MessageUtils.getColorComponent(formatted);
+            }
+        }
+        return null;
+    }
+
+    private String applyPlayerReplacements(String message, Player player) {
+        String displayName = LegacyComponentSerializer.legacySection().serialize(player.displayName());
+        return message
+                .replace("{DISPLAYNAME}", displayName)
+                .replace("{USERNAME}", player.getName())
+                .replace("{PLAYER}", player.getName())
+                .replace("{WORLD}", player.getWorld().getName());
     }
 
     // --- State Getters ---

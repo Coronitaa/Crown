@@ -95,6 +95,8 @@ public class ModeratorModeListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        Component originalQuitMessage = event.quitMessage();
+        plugin.getModeratorModeManager().cacheQuitMessage(player.getUniqueId(), originalQuitMessage);
         if (plugin.getModeratorModeManager().isSilent(player.getUniqueId())) {
             event.quitMessage(null);
         }
@@ -111,6 +113,7 @@ public class ModeratorModeListener implements Listener {
         plugin.getModeratorModeManager().updateVanishedPlayerVisibility(player);
 
         Component originalJoinMessage = event.joinMessage();
+        plugin.getModeratorModeManager().cacheJoinMessage(player.getUniqueId(), originalJoinMessage);
         event.joinMessage(null);
 
         if (player.hasPermission("crown.mod.use")) {
