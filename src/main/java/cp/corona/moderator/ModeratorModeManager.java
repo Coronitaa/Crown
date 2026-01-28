@@ -752,7 +752,7 @@ public class ModeratorModeManager {
             if (raw != null) {
                 String trimmed = raw.trim();
                 if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("none")) {
-                    return Component.empty();
+                    return null;
                 }
                 String formatted = applyPlayerReplacements(trimmed, player);
                 if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
