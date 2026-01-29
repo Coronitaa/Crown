@@ -229,7 +229,7 @@ public class FreezeListener implements Listener {
                     "{message}", message));
             Component chatComponent = buildFreezeChatMessage(session, formattedAdminMessage);
             sendFreezeChatToModerators(session, chatComponent);
-            player.sendMessage(chatComponent);
+            player.sendMessage(MessageUtils.getColorComponent(formattedAdminMessage));
         } else {
             if (player.hasPermission(FREEZE_CHAT_PERMISSION)) {
                 UUID targetId = moderatorChatTargets.get(player.getUniqueId());
@@ -251,7 +251,7 @@ public class FreezeListener implements Listener {
 
                     Player frozenPlayer = Bukkit.getPlayer(targetId);
                     if (frozenPlayer != null && frozenPlayer.isOnline()) {
-                        frozenPlayer.sendMessage(chatComponent);
+                        frozenPlayer.sendMessage(MessageUtils.getColorComponent(formattedAdminMessage));
                     }
                     return;
                 }
