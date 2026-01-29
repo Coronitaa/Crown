@@ -10,6 +10,7 @@ public enum ClickAction {
     APPLY_SOFTBAN,
     APPLY_MUTE,
     APPLY_BAN,
+    APPLY_KICK,
     UN_SOFTBAN,
     UN_FREEZE,
     UN_BAN,

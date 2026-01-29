@@ -11,9 +11,10 @@
 # - {associated_punishment_id:<type>}: ID of a punishment (mute/softban/ban) created by a warning level.
 
 # --- Available Hook Actions ---
-# - APPLY_MUTE:<duration>:<reason>
-# - APPLY_SOFTBAN:<duration>:<reason>
-# - APPLY_BAN:<duration>:<reason>
+# - APPLY_MUTE:<duration>:<reason>[:ip|local]
+# - APPLY_SOFTBAN:<duration>:<reason>[:ip|local]
+# - APPLY_BAN:<duration>:<reason>[:ip|local]
+# - APPLY_KICK:<reason>[:ip|local]
 # - CONSOLE_COMMAND:<command>
 # - PLAYER_COMMAND:<command>
 # - PLAYER_COMMAND_OP:<command>
@@ -62,7 +63,7 @@ levels:
   2:
     expiration: '7d'
     # Use APPLY_MUTE to let the plugin handle mute creation and ID tracking.
-    # Format: APPLY_MUTE:<duration>:<reason>
+    # Format: APPLY_MUTE:<duration>:<reason>[:ip|local]
     on-warn-actions:
       - 'APPLY_MUTE:1d:Muted due to reaching warning level 2.'
       - |
@@ -85,7 +86,7 @@ levels:
       - claim
       - reward
     # Use APPLY_SOFTBAN to handle softban creation and ID tracking.
-    # Format: APPLY_SOFTBAN:<duration>:<reason>
+    # Format: APPLY_SOFTBAN:<duration>:<reason>[:ip|local]
     on-warn-actions:
       - 'APPLY_SOFTBAN:7d:Softbanned due to reaching warning level 3.'
       - |
@@ -102,7 +103,7 @@ levels:
   4:
     expiration: '1M'
     # Use APPLY_BAN to handle ban creation and ID tracking.
-    # Format: APPLY_BAN:<duration>:<reason>
+    # Format: APPLY_BAN:<duration>:<reason>[:ip|local]
     on-warn-actions:
       - 'APPLY_BAN:1M:Banned due to reaching warning level 4.'
       - |

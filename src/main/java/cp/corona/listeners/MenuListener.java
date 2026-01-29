@@ -2938,6 +2938,7 @@ public class MenuListener implements Listener {
             case APPLY_SOFTBAN:
             case APPLY_MUTE:
             case APPLY_BAN:
+            case APPLY_KICK:
                 if (warningContext == null) {
                     plugin.getLogger().warning("Cannot execute " + action + " hook action: This action requires a warning context but was called without one.");
                     return;
@@ -2945,25 +2946,14 @@ public class MenuListener implements Listener {
                 if (target == null) { logTargetMissing(action, plugin); return; }
                 if (actionArgs.length == 0 || actionArgs[0] == null) { logInvalidArgs(action, actionArgs, plugin); return; }
 
-                String[] parts = actionArgs[0].split(":", 2);
-                if (parts.length < 2) { logInvalidArgs(action, actionArgs, plugin); return; }
+                boolean expectsDuration = action != ClickAction.APPLY_KICK;
+                HookPunishmentArgs parsedArgs = parseHookPunishmentArgs(actionArgs[0], expectsDuration);
+                if (parsedArgs == null) { logInvalidArgs(action, actionArgs, plugin); return; }
 
-                String duration = parts[0];
-                String punishmentReason = parts[1];
+                String duration = parsedArgs.duration();
+                String punishmentReason = parsedArgs.reason();
                 String executorName = (executor instanceof Player) ? executor.getName() : "Console";
                 DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
-
-                long endTime;
-                if ("permanent".equalsIgnoreCase(duration)) {
-                    endTime = Long.MAX_VALUE;
-                } else {
-                    int seconds = TimeUtils.parseTime(duration, plugin.getConfigManager());
-                    if (seconds <= 0) {
-                        plugin.getLogger().warning("Invalid duration '" + duration + "' for " + action + " action. Punishment not applied.");
-                        return;
-                    }
-                    endTime = System.currentTimeMillis() + (seconds * 1000L);
-                }
 
                 String type = "";
                 List<String> customCommands = null;
@@ -2979,33 +2969,95 @@ public class MenuListener implements Listener {
                     case APPLY_BAN:
                         type = "ban";
                         break;
+                    case APPLY_KICK:
+                        type = "kick";
+                        break;
+                }
+
+                boolean byIp = parsedArgs.byIpOverride() != null ? parsedArgs.byIpOverride() : plugin.getConfigManager().isPunishmentByIp(type);
+                String ipAddress = null;
+                if (byIp) {
+                    ipAddress = resolveTargetIp(target);
+                    if (ipAddress == null) {
+                        plugin.getLogger().warning("Unable to resolve IP for " + action + " hook action on target: " + target.getUniqueId());
+                        return;
+                    }
+                } else if (action == ClickAction.APPLY_KICK && !target.isOnline()) {
+                    plugin.getLogger().warning("Cannot execute " + action + " hook action: Target is offline and punishment is local.");
+                    return;
+                }
+
+                long endTime;
+                String durationForLog;
+                if (action == ClickAction.APPLY_KICK) {
+                    endTime = 0L;
+                    durationForLog = "N/A";
+                } else if ("permanent".equalsIgnoreCase(duration)) {
+                    endTime = Long.MAX_VALUE;
+                    durationForLog = duration;
+                } else {
+                    int seconds = TimeUtils.parseTime(duration, plugin.getConfigManager());
+                    if (seconds <= 0) {
+                        plugin.getLogger().warning("Invalid duration '" + duration + "' for " + action + " action. Punishment not applied.");
+                        return;
+                    }
+                    endTime = System.currentTimeMillis() + (seconds * 1000L);
+                    durationForLog = duration;
                 }
 
                 final String finalType = type;
                 final List<String> finalCustomCommands = customCommands;
-                dbManager.executePunishmentAsync(target.getUniqueId(), finalType, punishmentReason, executorName, endTime, duration, false, finalCustomCommands, warningContext.getWarnLevel())
+                final boolean finalByIp = byIp;
+                final String finalIpAddress = ipAddress;
+                final String finalDurationForLog = durationForLog;
+                final long finalEndTime = endTime;
+                dbManager.executePunishmentAsync(target.getUniqueId(), finalType, punishmentReason, executorName, endTime, durationForLog, byIp, finalCustomCommands, warningContext.getWarnLevel())
                         .thenAccept(punishmentId -> {
                             if (punishmentId != null) {
                                 dbManager.addAssociatedPunishmentId(warningContext.getPunishmentId(), finalType, punishmentId);
+                                dbManager.logPlayerInfoAsync(punishmentId, target, finalByIp ? finalIpAddress : null);
 
                                 Bukkit.getScheduler().runTask(plugin, () -> {
                                     switch (finalType) {
                                         case "softban":
-                                            plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), endTime);
+                                            plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), finalEndTime);
                                             plugin.getSoftbannedCommandsCache().put(target.getUniqueId(), finalCustomCommands.isEmpty() ? plugin.getConfigManager().getBlockedCommands() : finalCustomCommands);
+                                            if (finalByIp && finalIpAddress != null) {
+                                                applyIpPunishmentToOnlinePlayers(finalType, finalIpAddress, finalEndTime, punishmentReason, finalDurationForLog, punishmentId, target.getUniqueId());
+                                            }
                                             break;
                                         case "mute":
-                                            plugin.getMutedPlayersCache().put(target.getUniqueId(), endTime);
+                                            plugin.getMutedPlayersCache().put(target.getUniqueId(), finalEndTime);
+                                            if (finalByIp && finalIpAddress != null) {
+                                                applyIpPunishmentToOnlinePlayers(finalType, finalIpAddress, finalEndTime, punishmentReason, finalDurationForLog, punishmentId, target.getUniqueId());
+                                            }
                                             break;
                                         case "ban":
-                                            if (target.getName() != null) {
-                                                Bukkit.getBanList(org.bukkit.BanList.Type.NAME).addBan(target.getName(), punishmentReason, endTime == Long.MAX_VALUE ? null : new Date(endTime), executorName);
+                                            if (finalByIp && finalIpAddress != null) {
+                                                Bukkit.getBanList(org.bukkit.BanList.Type.IP).addBan(finalIpAddress, punishmentReason, finalEndTime == Long.MAX_VALUE ? null : new Date(finalEndTime), executorName);
+                                            } else if (target.getName() != null) {
+                                                Bukkit.getBanList(org.bukkit.BanList.Type.NAME).addBan(target.getName(), punishmentReason, finalEndTime == Long.MAX_VALUE ? null : new Date(finalEndTime), executorName);
                                             }
                                             if (target.isOnline()) {
                                                 Player onlineTarget = target.getPlayer();
                                                 if (onlineTarget != null) {
-                                                    onlineTarget.kickPlayer(MessageUtils.getKickMessage(plugin.getConfigManager().getBanScreen(), punishmentReason, duration, punishmentId, endTime == Long.MAX_VALUE ? null : new Date(endTime), plugin.getConfigManager()));
+                                                    onlineTarget.kickPlayer(MessageUtils.getKickMessage(plugin.getConfigManager().getBanScreen(), punishmentReason, finalDurationForLog, punishmentId, finalEndTime == Long.MAX_VALUE ? null : new Date(finalEndTime), plugin.getConfigManager()));
                                                 }
+                                            }
+                                            if (finalByIp && finalIpAddress != null) {
+                                                applyIpPunishmentToOnlinePlayers(finalType, finalIpAddress, finalEndTime, punishmentReason, finalDurationForLog, punishmentId, target.getUniqueId());
+                                            }
+                                            break;
+                                        case "kick":
+                                            if (target.isOnline()) {
+                                                Player onlineTarget = target.getPlayer();
+                                                if (onlineTarget != null) {
+                                                    String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getKickScreen(), punishmentReason, finalDurationForLog, punishmentId, null, plugin.getConfigManager());
+                                                    onlineTarget.kickPlayer(kickMessage);
+                                                }
+                                            }
+                                            if (finalByIp && finalIpAddress != null) {
+                                                applyIpPunishmentToOnlinePlayers(finalType, finalIpAddress, 0L, punishmentReason, finalDurationForLog, punishmentId, target.getUniqueId());
                                             }
                                             break;
                                     }
@@ -3069,8 +3121,78 @@ public class MenuListener implements Listener {
         plugin.getLogger().warning("Invalid arguments for hook action " + action + ": " + Arrays.toString(args));
     }
 
+    private record HookPunishmentArgs(String duration, String reason, Boolean byIpOverride) {}
+
+    private HookPunishmentArgs parseHookPunishmentArgs(String rawArgs, boolean expectsDuration) {
+        if (rawArgs == null || rawArgs.isEmpty()) {
+            return null;
+        }
+
+        String[] parts = rawArgs.split(":");
+        if (expectsDuration) {
+            if (parts.length < 2) {
+                return null;
+            }
+            String duration = parts[0].trim();
+            if (duration.isEmpty()) {
+                return null;
+            }
+            int endIndex = parts.length;
+            Boolean override = parseByIpOverride(parts[parts.length - 1]);
+            if (override != null && parts.length >= 3) {
+                endIndex--;
+            } else {
+                override = null;
+            }
+            if (endIndex <= 1) {
+                return null;
+            }
+            String reason = String.join(":", Arrays.copyOfRange(parts, 1, endIndex)).trim();
+            if (reason.isEmpty()) {
+                return null;
+            }
+            return new HookPunishmentArgs(duration, reason, override);
+        }
+
+        int endIndex = parts.length;
+        Boolean override = parseByIpOverride(parts[parts.length - 1]);
+        if (override != null && parts.length >= 2) {
+            endIndex--;
+        } else {
+            override = null;
+        }
+        String reason = String.join(":", Arrays.copyOfRange(parts, 0, endIndex)).trim();
+        if (reason.isEmpty()) {
+            return null;
+        }
+        return new HookPunishmentArgs(null, reason, override);
+    }
+
+    private Boolean parseByIpOverride(String token) {
+        if (token == null) {
+            return null;
+        }
+        if ("ip".equalsIgnoreCase(token)) {
+            return true;
+        }
+        if ("local".equalsIgnoreCase(token)) {
+            return false;
+        }
+        return null;
+    }
+
+    private String resolveTargetIp(OfflinePlayer target) {
+        if (target.isOnline()) {
+            Player onlineTarget = target.getPlayer();
+            if (onlineTarget != null && onlineTarget.getAddress() != null && onlineTarget.getAddress().getAddress() != null) {
+                return onlineTarget.getAddress().getAddress().getHostAddress();
+            }
+        }
+        return plugin.getSoftBanDatabaseManager().getLastKnownIp(target.getUniqueId());
+    }
+
     @SuppressWarnings("deprecation")
-    private void applyIpPunishmentToOnlinePlayers(String punishmentType, String ipAddress, long endTime, String reason, String durationForLog, String punishmentId, UUID originalTargetUUID) {
+    public void applyIpPunishmentToOnlinePlayers(String punishmentType, String ipAddress, long endTime, String reason, String durationForLog, String punishmentId, UUID originalTargetUUID) {
         String lowerCasePunishType = punishmentType.toLowerCase();
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
@@ -3113,9 +3235,16 @@ public class MenuListener implements Listener {
         }
     }
 
-    private void applyIpUnpunishmentToOnlinePlayers(String punishmentType, String ipAddress) {
+    public void applyIpUnpunishmentToOnlinePlayers(String punishmentType, String ipAddress) {
+        applyIpUnpunishmentToOnlinePlayers(punishmentType, ipAddress, null);
+    }
+
+    public void applyIpUnpunishmentToOnlinePlayers(String punishmentType, String ipAddress, UUID originalTargetUUID) {
         String lowerCaseType = punishmentType.toLowerCase();
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            if (originalTargetUUID != null && onlinePlayer.getUniqueId().equals(originalTargetUUID)) {
+                continue;
+            }
             InetSocketAddress playerAddress = onlinePlayer.getAddress();
             if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
                 switch (lowerCaseType) {

@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.util.concurrent.TimeUnit;
 import cp.corona.config.WarnLevel;
 import cp.corona.crown.Crown;
+import cp.corona.listeners.MenuListener;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.report.ReportStatus;
 import cp.corona.utils.MessageUtils;
@@ -909,7 +910,16 @@ public class DatabaseManager {
             for (String pair : warningToRemove.getAssociatedPunishmentIds().split(";")) {
                 if (pair.contains(":")) {
                     String associatedId = pair.split(":")[1];
-                    updatePunishmentAsRemoved(connection, associatedId, removerName, "Associated warning removed.");
+                    PunishmentEntry entry = getPunishmentById(associatedId);
+                    if (entry == null) {
+                        continue;
+                    }
+                    if (entry.isActive()) {
+                        updatePunishmentAsRemoved(connection, associatedId, removerName, "Associated warning removed.");
+                        handleAssociatedPunishmentRemoval(connection, warningToRemove.getPlayerUUID(), entry);
+                    } else if ("Paused by new warning".equalsIgnoreCase(entry.getRemovedReason())) {
+                        updatePunishmentAsRemoved(connection, associatedId, removerName, "Associated warning removed.");
+                    }
                 }
             }
         }
@@ -1034,18 +1044,38 @@ public class DatabaseManager {
             String punishmentId = parts[1];
 
             updatePunishmentAsRemoved(connection, punishmentId, "System", "Paused by new warning");
+            PunishmentEntry entry = getPunishmentById(punishmentId);
+            boolean wasByIp = entry != null && entry.wasByIp();
+            String ipAddress = wasByIp ? resolvePunishmentIp(punishmentId, warning.getPlayerUUID()) : null;
+            MenuListener menuListener = plugin.getMenuListener();
 
             switch (type.toLowerCase()) {
                 case "mute":
                     unmutePlayer(connection, warning.getPlayerUUID());
+                    if (wasByIp && ipAddress != null && menuListener != null) {
+                        Bukkit.getScheduler().runTask(plugin, () -> menuListener.applyIpUnpunishmentToOnlinePlayers("mute", ipAddress, warning.getPlayerUUID()));
+                    } else if (wasByIp) {
+                        plugin.getLogger().warning("Missing IP for by-ip mute pause on warning " + warning.getPunishmentId());
+                    }
                     break;
                 case "softban":
                     unSoftBanPlayer(connection, warning.getPlayerUUID());
+                    if (wasByIp && ipAddress != null && menuListener != null) {
+                        Bukkit.getScheduler().runTask(plugin, () -> menuListener.applyIpUnpunishmentToOnlinePlayers("softban", ipAddress, warning.getPlayerUUID()));
+                    } else if (wasByIp) {
+                        plugin.getLogger().warning("Missing IP for by-ip softban pause on warning " + warning.getPunishmentId());
+                    }
                     break;
                 case "ban":
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         OfflinePlayer target = Bukkit.getOfflinePlayer(warning.getPlayerUUID());
-                        if (target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
+                        if (wasByIp) {
+                            if (ipAddress != null && Bukkit.getBanList(BanList.Type.IP).isBanned(ipAddress)) {
+                                Bukkit.getBanList(BanList.Type.IP).pardon(ipAddress);
+                            } else if (ipAddress == null) {
+                                plugin.getLogger().warning("Missing IP for by-ip ban pause on warning " + warning.getPunishmentId());
+                            }
+                        } else if (target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
                             Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
                         }
                     });
@@ -1083,9 +1113,19 @@ public class DatabaseManager {
             String type = parts[0];
             String originalPunishmentId = parts[1];
 
+            if ("kick".equalsIgnoreCase(type)) {
+                continue;
+            }
+
             PunishmentEntry originalPunishment = getPunishmentById(originalPunishmentId);
             if (originalPunishment == null || !"Paused by new warning".equals(originalPunishment.getRemovedReason())) {
                 continue;
+            }
+
+            boolean wasByIp = originalPunishment.wasByIp();
+            String ipAddress = wasByIp ? resolvePunishmentIp(originalPunishmentId, warning.getPlayerUUID()) : null;
+            if (wasByIp && ipAddress == null) {
+                plugin.getLogger().warning("Missing IP for by-ip " + type + " resume on warning " + warning.getPunishmentId());
             }
 
             reactivatePunishment(connection, originalPunishmentId, newEndTime, remainingMillis);
@@ -1103,9 +1143,13 @@ public class DatabaseManager {
                         } catch (SQLException e) {
                             plugin.getLogger().log(Level.SEVERE, "Failed to re-apply mute on resume", e);
                         }
+                        plugin.getMutedPlayersCache().put(target.getUniqueId(), newEndTime);
                         if (target.isOnline()) {
                             String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", resumedPunishment.getDurationString(), "{reason}", resumedPunishment.getReason(), "{punishment_id}", originalPunishmentId);
                             target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
+                        }
+                        if (wasByIp && ipAddress != null && plugin.getMenuListener() != null) {
+                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("mute", ipAddress, newEndTime, resumedPunishment.getReason(), resumedPunishment.getDurationString(), originalPunishmentId, target.getUniqueId());
                         }
                         break;
                     case "softban":
@@ -1116,18 +1160,80 @@ public class DatabaseManager {
                         } catch (SQLException e) {
                             plugin.getLogger().log(Level.SEVERE, "Failed to re-apply softban on resume", e);
                         }
+                        WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(warning.getWarnLevel());
+                        List<String> customCommands = (levelConfig != null) ? levelConfig.getSoftbanBlockedCommands() : Collections.emptyList();
+                        plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), newEndTime);
+                        plugin.getSoftbannedCommandsCache().put(target.getUniqueId(), customCommands.isEmpty() ? plugin.getConfigManager().getBlockedCommands() : customCommands);
+                        if (wasByIp && ipAddress != null && plugin.getMenuListener() != null) {
+                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("softban", ipAddress, newEndTime, resumedPunishment.getReason(), resumedPunishment.getDurationString(), originalPunishmentId, target.getUniqueId());
+                        }
                         break;
                     case "ban":
                         Date expiration = (newEndTime == Long.MAX_VALUE) ? null : new Date(newEndTime);
-                        Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), resumedPunishment.getReason(), expiration, punisherName);
+                        if (wasByIp) {
+                            if (ipAddress == null) {
+                                return;
+                            }
+                            Bukkit.getBanList(BanList.Type.IP).addBan(ipAddress, resumedPunishment.getReason(), expiration, punisherName);
+                        } else if (target.getName() != null) {
+                            Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), resumedPunishment.getReason(), expiration, punisherName);
+                        }
                         if (target.isOnline()) {
                             String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getBanScreen(), resumedPunishment.getReason(), resumedPunishment.getDurationString(), originalPunishmentId, expiration, plugin.getConfigManager());
                             target.getPlayer().kickPlayer(kickMessage);
+                        }
+                        if (wasByIp && ipAddress != null && plugin.getMenuListener() != null) {
+                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("ban", ipAddress, newEndTime, resumedPunishment.getReason(), resumedPunishment.getDurationString(), originalPunishmentId, target.getUniqueId());
                         }
                         break;
                 }
             });
         }
+    }
+
+    private void handleAssociatedPunishmentRemoval(Connection connection, UUID targetUUID, PunishmentEntry entry) throws SQLException {
+        String type = entry.getType().toLowerCase();
+        boolean wasByIp = entry.wasByIp();
+        String ipAddress = wasByIp ? resolvePunishmentIp(entry.getPunishmentId(), targetUUID) : null;
+        if (wasByIp && ipAddress == null) {
+            plugin.getLogger().warning("Missing IP for by-ip " + type + " removal on punishment " + entry.getPunishmentId());
+        }
+        MenuListener menuListener = plugin.getMenuListener();
+
+        switch (type) {
+            case "mute":
+                unmutePlayer(connection, targetUUID);
+                if (wasByIp && ipAddress != null && menuListener != null) {
+                    Bukkit.getScheduler().runTask(plugin, () -> menuListener.applyIpUnpunishmentToOnlinePlayers("mute", ipAddress, targetUUID));
+                }
+                break;
+            case "softban":
+                unSoftBanPlayer(connection, targetUUID);
+                if (wasByIp && ipAddress != null && menuListener != null) {
+                    Bukkit.getScheduler().runTask(plugin, () -> menuListener.applyIpUnpunishmentToOnlinePlayers("softban", ipAddress, targetUUID));
+                }
+                break;
+            case "ban":
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
+                    if (wasByIp) {
+                        if (ipAddress != null && Bukkit.getBanList(BanList.Type.IP).isBanned(ipAddress)) {
+                            Bukkit.getBanList(BanList.Type.IP).pardon(ipAddress);
+                        }
+                    } else if (target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
+                        Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
+                    }
+                });
+                break;
+        }
+    }
+
+    private String resolvePunishmentIp(String punishmentId, UUID playerUUID) {
+        PlayerInfo info = getPlayerInfo(punishmentId);
+        if (info != null && info.getIp() != null && !info.getIp().isEmpty()) {
+            return info.getIp();
+        }
+        return getLastKnownIp(playerUUID);
     }
 
 
@@ -1187,30 +1293,48 @@ public class DatabaseManager {
 
     public void addAssociatedPunishmentId(String warningPunishmentId, String associatedPunishmentType, String associatedPunishmentId) {
         CompletableFuture.runAsync(() -> {
-            String sqlGet = "SELECT associated_punishment_ids FROM active_warnings WHERE punishment_id = ?";
-            String sqlUpdate = "UPDATE active_warnings SET associated_punishment_ids = ? WHERE punishment_id = ?";
-            try (Connection connection = getConnection();
-                 PreparedStatement psGet = connection.prepareStatement(sqlGet)) {
-                psGet.setString(1, warningPunishmentId);
-                ResultSet rs = psGet.executeQuery();
-                String currentIds = "";
-                if (rs.next()) {
-                    currentIds = rs.getString("associated_punishment_ids");
-                }
+            String newEntry = associatedPunishmentType + ":" + associatedPunishmentId;
+            String sqlUpdate = "sqlite".equalsIgnoreCase(dbType)
+                    ? "UPDATE active_warnings SET associated_punishment_ids = CASE WHEN associated_punishment_ids IS NULL OR associated_punishment_ids = '' THEN ? ELSE associated_punishment_ids || ';' || ? END WHERE punishment_id = ?"
+                    : "UPDATE active_warnings SET associated_punishment_ids = CASE WHEN associated_punishment_ids IS NULL OR associated_punishment_ids = '' THEN ? ELSE CONCAT(associated_punishment_ids, ';', ?) END WHERE punishment_id = ?";
 
-                String newEntry = associatedPunishmentType + ":" + associatedPunishmentId;
-                String updatedIds = (currentIds == null || currentIds.isEmpty()) ? newEntry : currentIds + ";" + newEntry;
-
-                try (PreparedStatement psUpdate = connection.prepareStatement(sqlUpdate)) {
-                    psUpdate.setString(1, updatedIds);
-                    psUpdate.setString(2, warningPunishmentId);
+            int attempts = 0;
+            int maxAttempts = "sqlite".equalsIgnoreCase(dbType) ? 5 : 1;
+            while (true) {
+                try (Connection connection = getConnection();
+                     PreparedStatement psUpdate = connection.prepareStatement(sqlUpdate)) {
+                    psUpdate.setString(1, newEntry);
+                    psUpdate.setString(2, newEntry);
+                    psUpdate.setString(3, warningPunishmentId);
                     psUpdate.executeUpdate();
+                    break;
+                } catch (SQLException e) {
+                    if (isSqliteBusy(e) && attempts < maxAttempts - 1) {
+                        attempts++;
+                        try {
+                            Thread.sleep(50L * attempts);
+                        } catch (InterruptedException interruptedException) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                        continue;
+                    }
+                    plugin.getLogger().log(Level.SEVERE, "Could not add associated punishment ID for warning " + warningPunishmentId, e);
+                    break;
                 }
-
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Could not add associated punishment ID for warning " + warningPunishmentId, e);
             }
         });
+    }
+
+    private boolean isSqliteBusy(SQLException e) {
+        if (!"sqlite".equalsIgnoreCase(dbType)) {
+            return false;
+        }
+        if (e.getErrorCode() == 5) {
+            return true;
+        }
+        String message = e.getMessage();
+        return message != null && (message.contains("SQLITE_BUSY") || message.toLowerCase(Locale.ROOT).contains("database is locked"));
     }
 
     public List<PunishmentEntry> getAllActivePunishments(UUID playerUUID, String playerIP) {
