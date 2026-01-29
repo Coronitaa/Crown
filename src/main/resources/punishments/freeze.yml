@@ -52,7 +52,7 @@ freeze_actions:
   actions:
     - 'MESSAGE:<gradient:#ff801a:#ff4b2b><bold>ᴄʀᴏᴡɴ</bold></gradient> <color:#ff4b2b>🜲</color> <gradient:#ff416c:#ff4b2b><bold>You are FROZEN!</bold></gradient> <color:#b0b0b0>Please remain still.</color>'
     - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_PLING:1.0:1.0'
-    - "TITLE:<gradient:#00c6ff:#0072ff><bold>You are FROZEN</bold></gradient>:<color:#ffffff>Don't leave the server</color>:5:5:5"
+    - "TITLE:&b&lYOU ARE FROZEN:&fDon't leave the server:5:5:5"
 
 # Post-action hooks for freeze.
 hooks:

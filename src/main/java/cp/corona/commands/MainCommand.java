@@ -106,7 +106,6 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             UNSOFTBAN_COMMAND_ALIAS, UNFREEZE_COMMAND_ALIAS
     );
     private static final List<String> IP_FLAGS = Arrays.asList("-ip", "-i", "-local", "-l");
-    private static final List<String> TIME_SUGGESTIONS = Arrays.asList("1s", "1m", "1h", "1d", "1M", "1y", "permanent");
     private static final List<String> CHECK_ACTIONS = Arrays.asList("info", "repunish", "unpunish");
     private static final List<String> ID_SUGGESTION = Collections.singletonList("<ID: XXXXXX>");
     private static final List<String> REASON_SUGGESTION = Collections.singletonList("<reason>");
@@ -1445,7 +1444,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             if (currentArgs.size() == 3) {
                 List<String> suggestions = new ArrayList<>();
                 if (ipSupported) suggestions.addAll(IP_FLAGS);
-                if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
+                if (timeSupported) suggestions.addAll(getTimeSuggestions());
                 if (currentArg.isEmpty()) {
                     suggestions.addAll(REASON_SUGGESTION);
                 }
@@ -1458,7 +1457,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 boolean isIpFlag = IP_FLAGS.stream().anyMatch(flag -> flag.equalsIgnoreCase(thirdArg));
                 if (isIpFlag && ipSupported) {
                     List<String> suggestions = new ArrayList<>();
-                    if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
+                    if (timeSupported) suggestions.addAll(getTimeSuggestions());
                     if (currentArg.isEmpty()) {
                         suggestions.addAll(REASON_SUGGESTION);
                     }
@@ -1482,7 +1481,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             if (currentArgs.size() == 2) {
                 List<String> suggestions = new ArrayList<>();
                 if (ipSupported) suggestions.addAll(IP_FLAGS);
-                if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
+                if (timeSupported) suggestions.addAll(getTimeSuggestions());
                 if (currentArg.isEmpty()) {
                     suggestions.addAll(REASON_SUGGESTION);
                 }
@@ -1496,7 +1495,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
                 if (isIpFlag && ipSupported) {
                     List<String> suggestions = new ArrayList<>();
-                    if (timeSupported) suggestions.addAll(TIME_SUGGESTIONS);
+                    if (timeSupported) suggestions.addAll(getTimeSuggestions());
                     if (currentArg.isEmpty()) {
                         suggestions.addAll(REASON_SUGGESTION);
                     }
@@ -1533,6 +1532,26 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 2) {
             StringUtil.copyPartialMatches(args[1], CHECK_ACTIONS, completions);
         }
+    }
+
+    private List<String> getTimeSuggestions() {
+        LinkedHashSet<String> suggestions = new LinkedHashSet<>();
+        String secondsUnit = plugin.getConfigManager().getSecondsTimeUnit();
+        String minutesUnit = plugin.getConfigManager().getMinutesTimeUnit();
+        String hoursUnit = plugin.getConfigManager().getHoursTimeUnit();
+        String dayUnit = plugin.getConfigManager().getDayTimeUnit();
+        String monthsUnit = plugin.getConfigManager().getMonthsTimeUnit();
+        String yearsUnit = plugin.getConfigManager().getYearsTimeUnit();
+
+        if (!secondsUnit.isEmpty()) suggestions.add("1" + secondsUnit);
+        if (!minutesUnit.isEmpty()) suggestions.add("1" + minutesUnit);
+        if (!hoursUnit.isEmpty()) suggestions.add("1" + hoursUnit);
+        if (!dayUnit.isEmpty()) suggestions.add("1" + dayUnit);
+        if (!monthsUnit.isEmpty()) suggestions.add("1" + monthsUnit);
+        if (!yearsUnit.isEmpty()) suggestions.add("1" + yearsUnit);
+        suggestions.add("permanent");
+
+        return new ArrayList<>(suggestions);
     }
 
     private void handleUnpunishTab(String[] args, List<String> completions, List<String> playerNames, String commandLabel) {

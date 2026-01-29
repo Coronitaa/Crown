@@ -34,7 +34,6 @@ sounds:
 
 # Time unit configurations for formatting and parsing time durations (e.g., "1d", "2h30m").
 time_units:
-  default: 's'   # Default unit if only a number is provided (e.g., "30" -> 30s).
   seconds: 's'   # Character(s) representing seconds.
   minutes: 'm'   # Character(s) representing minutes.
   hours: 'h'     # Character(s) representing hours.
@@ -51,10 +50,6 @@ on-join-alert:
 mod-mode:
   # Duration in seconds for the temporary spectator mode (Vanish tool).
   spectator-duration: 3
-
-# Logging configurations.
-logging:
-  debug: false # Set to true for detailed console output for troubleshooting.
 
 # Report system anti-abuse settings.
 report-system:
@@ -88,3 +83,7 @@ commands:
   unfreeze: true
   unsoftban: true
   report: true # Disabling this disables the entire report system including /reports.
+
+# Logging configurations.
+logging:
+  debug: false # Set to true for detailed console output for troubleshooting.

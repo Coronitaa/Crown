@@ -96,10 +96,18 @@ messages:
   help_no_previous_page: '<color:#757575><bold>[Previous]</bold></color>'
   help_no_next_page: '<color:#757575><bold>[Next]</bold></color>'
 
-  active_punishments_header: '<gradient:#ff416c:#ff4b2b><bold>You have active punishments:</bold></gradient>'
-  active_punishment_entry: '<color:#ff5555>- <color:#b0b0b0>({id})</color> <color:#ffea00>{type}</color> <color:#b0b0b0>- Expires in:</color> <color:#ffffff>{time_left}</color></color>'
-  active_punishments_footer: '<color:#b0b0b0>Please follow the rules.</color>'
-  support_link_message: '<color:#b0b0b0>You can get support at: <color:#00c6ff><u>{support_link}</u></color></color>'
+  active_punishments_header: |
+    <gradient:#ff512f:#dd2476><bold>!! SECURITY ALERT !!</bold></gradient>
+    <gradient:#ff9a44:#ff3d77><bold>ACTIVE PUNISHMENTS DETECTED</bold></gradient>
+  active_punishment_entry: |
+    <color:#ff5555>●</color> <color:#b0b0b0>#</color><color:#ffea00>{id}</color> <color:#b0b0b0>|</color> <color:#ffea00>{type}</color>
+    <color:#b0b0b0>Time Left:</color> <color:#ffffff>{time_left}</color>
+  active_punishments_footer: |
+    <gradient:#f7971e:#ffd200><bold>NOTICE</bold></gradient>
+    <color:#b0b0b0>Stay respectful. Further violations escalate.</color>
+  support_link_message: |
+    <gradient:#00c6ff:#0072ff><bold>NEED HELP?</bold></gradient>
+    <color:#b0b0b0>Open a ticket:</color> <color:#00c6ff><u>{support_link}</u></color>
 
   unpunish_not_supported: '{prefix}<color:#ff5555>Cannot unpunish type: <color:#ffea00>{punishment_type}</color>.</color>'
   unpunish_command_not_configured: '{prefix}<color:#ff5555>The unpunish command for <color:#ffea00>{punishment_type}</color> is not set in config.yml.</color>'
@@ -112,13 +120,13 @@ messages:
   prompt_mute_reason: '<color:#00e676>Enter mute reason (or type ''cancel''):</color>'
   prompt_softban_reason: '<color:#00e676>Enter softban reason (or type ''cancel''):</color>'
   prompt_kick_reason: '<color:#00e676>Enter kick reason (or type ''cancel''):</color>'
-  prompt_warn_reason: '<color:#00e676>Enter warn reason (or type ''cancel''):</color>'
+  prompt_warn_reason: '<gradient:#f7971e:#ffd200><bold>WARN REASON</bold></gradient> <color:#b0b0b0>(type ''cancel'' to abort)</color>'
   prompt_freeze_reason: '<color:#00e676>Enter freeze reason (or type ''cancel''):</color>'
   prompt_custom_time: '<color:#00e676>Enter custom time (e.g., 1d, 2h30m, 5y) or type ''cancel'':</color>'
 
   input_timeout: '<color:#ff5555>Input timed out. Action cancelled.</color>'
   input_cancelled: '<color:#ff5555>Input cancelled.</color>'
-  invalid_time_format_command: '{prefix}<color:#ff5555>Invalid time format: <color:#ffea00>{input}</color>. Use units (s, m, h, d, y) or "permanent".</color>'
+  invalid_time_format_command: '{prefix}<color:#ff5555>Invalid time format: <color:#ffea00>{input}</color>. Use a time unit (e.g., 1d) or "permanent".</color>'
 
   punishment_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Player <bold>{target}</bold> has been {punishment_action_verb}.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Duration:</color> <color:#00c6ff>{time}</color> <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
   punishment_confirmed_ip: '{prefix}<gradient:#56ab2f:#a8e063>Player <bold>{target}</bold> has been {punishment_action_verb} <color:#ff5555>(IP)</color>.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Time:</color> <color:#00c6ff>{time}</color>, <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
@@ -127,26 +135,29 @@ messages:
   set_reason_before_confirm: '{prefix}<color:#ff5555>Please set the reason before confirming.</color>'
   set_valid_time_confirm: '{prefix}<color:#ff5555>Please set a valid time duration before confirming.</color>'
 
-  softban_received: '<gradient:#ff416c:#ff4b2b><bold>SoftBan Alert!</bold></gradient> <color:#ff5555>You received a SoftBan. Reason: <color:#ffea00>{reason}</color>.</color>'
+  softban_received: |
+    <gradient:#ff416c:#ff4b2b><bold>SOFTBAN ALERT</bold></gradient>
+    <color:#ff5555>Status:</color> <color:#ffffff>Restricted Access</color>
+    <color:#ff5555>Reason:</color> <color:#ffea00>{reason}</color>
   softban_command_blocked: '{prefix}<color:#ff5555>Command blocked due to active SoftBan.</color>'
   no_active_softban: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> does not have an active softban.</color>'
   no_active_ban: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> does not have an active ban.</color>'
   no_active_mute: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> does not have an active mute.</color>'
-  no_active_warn: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> does not have an active warn.</color>'
+  no_active_warn: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> has no active warnings.</color>'
   unsoftban_success: '{prefix}<gradient:#56ab2f:#a8e063>Successfully removed softban from <bold>{target}</bold>.</gradient>'
 
   you_are_softbanned: |
-    <gradient:#ff416c:#ff4b2b><bold>You have been SoftBanned!</bold></gradient>
-    <color:#ff5555>ID: <color:#ffea00>{punishment_id}</color></color>
-    <color:#ff5555>Duration: <color:#ffea00>{time}</color></color>
-    <color:#ff5555>Reason: <color:#ffea00>{reason}</color></color>
-    <color:#b0b0b0>Certain commands are blocked during this time.</color>
+    <gradient:#ff416c:#ff4b2b><bold>SOFTBAN ACTIVE</bold></gradient>
+    <color:#b0b0b0>ID:</color> <color:#ffea00>{punishment_id}</color>
+    <color:#b0b0b0>Duration:</color> <color:#ffea00>{time}</color>
+    <color:#b0b0b0>Reason:</color> <color:#ffea00>{reason}</color>
+    <color:#ff5555>Access to certain commands is blocked.</color>
   you_are_muted: |
-    <gradient:#ff416c:#ff4b2b><bold>You have been muted!</bold></gradient>
-    <color:#ff5555>ID: <color:#ffea00>{punishment_id}</color></color>
-    <color:#ff5555>Duration: <color:#ffea00>{time}</color></color>
-    <color:#ff5555>Reason: <color:#ffea00>{reason}</color></color>
-    <color:#b0b0b0>You cannot send messages during this time.</color>
+    <gradient:#ff416c:#ff4b2b><bold>MUTE ACTIVE</bold></gradient>
+    <color:#b0b0b0>ID:</color> <color:#ffea00>{punishment_id}</color>
+    <color:#b0b0b0>Duration:</color> <color:#ffea00>{time}</color>
+    <color:#b0b0b0>Reason:</color> <color:#ffea00>{reason}</color>
+    <color:#ff5555>Chat messages are blocked.</color>
 
   chat_while_muted: '{prefix}<color:#ff5555>You are currently muted and cannot send messages.</color>'
   clear_inventory_success: '{prefix}<gradient:#56ab2f:#a8e063>Successfully cleared <bold>{target}</bold>''s {inventory_type}.</gradient>'
@@ -195,19 +206,18 @@ messages:
   ban_usage: '{prefix}<color:#ff5555>Usage: /ban <player> [time] [reason]</color>'
   mute_usage: '{prefix}<color:#ff5555>Usage: /mute <player> [time] [reason]</color>'
   kick_usage: '{prefix}<color:#ff5555>Usage: /kick <player> [reason]</color>'
-  warn_usage: '{prefix}<color:#ff5555>Usage: /warn <player> [reason]</color>'
+  warn_usage: '{prefix}<color:#ff5555>Usage: <color:#ffea00>/warn</color> <player> [reason]</color>'
 
   direct_unpunishment_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Removed {punishment_type} from <bold>{target}</bold>.</gradient>'
   direct_unsoftban_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Removed softban from <bold>{target}</bold>.</gradient>'
   direct_kick_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Player <bold>{target}</bold> kicked. Reason: <color:#ffffff>{reason}</color></gradient>'
-  direct_warn_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Player <bold>{target}</bold> warned. Reason: <color:#ffffff>{reason}</color></gradient>'
   direct_command_not_supported: '{prefix}<color:#ff5555>Direct command for {punishment_type} not supported, use the menu.</color>'
   history_menu_first_page: '{prefix}<color:#ff5555>You are on the first page.</color>'
   softban_usage: '{prefix}<color:#ff5555>Usage: /softban <player> [time] [reason]</color>'
 
   you_are_frozen: |
-    <gradient:#00c6ff:#0072ff><bold>You are FROZEN!</bold></gradient>
-    <color:#ff5555>Do not disconnect. Wait for a moderator.</color>
+    <gradient:#00c6ff:#0072ff><bold>FROZEN STATUS</bold></gradient>
+    <color:#ff5555>Do not disconnect. Await a moderator.</color>
     <color:#b0b0b0>Admins can see your chat messages.</color>
   direct_unfreeze_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Removed freeze from <bold>{target}</bold>.</gradient>'
   direct_freeze_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Froze <bold>{target}</bold>. Reason: <color:#ffffff>{reason}</color></gradient>'
@@ -314,7 +324,9 @@ messages:
 
   no_warn_level_configured: '{prefix}<color:#ff5555>No warn level is configured for level {level}. Action cancelled.</color>'
   check_info_warn_level: '<color:#b0b0b0>Warn Level: <color:#00c6ff>{level}</color></color>'
-  active_warning_entry: '<color:#ff5555>- <color:#b0b0b0>({id})</color> <color:#ffea00>{type}</color> (Level {level}) <color:#b0b0b0>- Expires in:</color> <color:#ffffff>{time_left}</color></color>'
+  active_warning_entry: |
+    <color:#ff5555>●</color> <color:#b0b0b0>#</color><color:#ffea00>{id}</color> <color:#b0b0b0>|</color> <color:#ffea00>{type}</color> <color:#b0b0b0>(Level {level})</color>
+    <color:#b0b0b0>Time Left:</color> <color:#ffffff>{time_left}</color>
 
   invalid_player_name: '{prefix}<color:#ff5555>The player name ''{input}'' is invalid. Please enter a valid player name (3-16 characters).</color>'
   punish_method_not_supported: '{prefix}<color:#ff5555>This punishment type does not support IP/Local toggling.</color>'
