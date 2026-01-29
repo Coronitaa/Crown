@@ -393,6 +393,12 @@ public class MainConfigManager {
         return Collections.emptyList();
     }
 
+    public boolean isFreezeChatPrivate() {
+        CustomConfig config = punishmentConfigs.get("freeze");
+        if (config == null) return false;
+        return config.getConfig().getBoolean("freeze_chat.private", false);
+    }
+
     public List<ClickActionData> getOnPunishActions(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
         if (config == null) return Collections.emptyList();

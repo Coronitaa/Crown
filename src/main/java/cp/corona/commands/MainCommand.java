@@ -4,6 +4,7 @@ import cp.corona.config.WarnLevel;
 import cp.corona.crown.Crown;
 import cp.corona.database.ActiveWarningEntry;
 import cp.corona.database.DatabaseManager;
+import cp.corona.listeners.FreezeListener;
 import cp.corona.listeners.MenuListener;
 import cp.corona.menus.mod.LockerMenu;
 import cp.corona.menus.punish.HistoryMenu;
@@ -74,6 +75,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String UNSOFTBAN_COMMAND_ALIAS = "unsoftban";
     private static final String UNFREEZE_COMMAND_ALIAS = "unfreeze";
     private static final String CHECK_COMMAND_ALIAS = "c"; // From plugin.yml
+    private static final String FREEZE_CHAT_COMMAND_ALIAS = "fchat";
 
     private static final String ADMIN_PERMISSION = "crown.admin";
     private static final String USE_PERMISSION = "crown.use";
@@ -94,6 +96,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String REPORT_CREATE_PERMISSION = "crown.report.create";
     private static final String REPORT_VIEW_PERMISSION = "crown.report.view";
     private static final String MOD_USE_PERMISSION = "crown.mod.use";
+    private static final String MOD_CHAT_PERMISSION = "crown.mod";
     private static final String PROFILE_EDIT_INVENTORY_PERMISSION = "crown.profile.editinventory";
     private static final String LOCKER_ADMIN_PERMISSION = "crown.locker.admin";
 
@@ -122,8 +125,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         boolean isReportCommand = commandLabel.equals(REPORT_COMMAND);
         boolean isReportsCommand = commandLabel.equals(REPORTS_COMMAND);
         boolean isInternalReportSubcommand = commandLabel.equals("crown") && args.length > 0 && args[0].equalsIgnoreCase(REPORT_INTERNAL_SUBCOMMAND);
+        boolean isFreezeChatCommand = commandLabel.equals(FREEZE_CHAT_COMMAND_ALIAS);
 
-        if (!isReportCommand && !isReportsCommand && !isInternalReportSubcommand) {
+        if (!isReportCommand && !isReportsCommand && !isInternalReportSubcommand && !isFreezeChatCommand) {
             if (!sender.hasPermission(USE_PERMISSION)) {
                 sendConfigMessage(sender, "messages.no_permission_command");
                 return true;
@@ -163,6 +167,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             }
             case UNBAN_COMMAND_ALIAS, UNMUTE_COMMAND_ALIAS, UNWARN_COMMAND_ALIAS, UNSOFTBAN_COMMAND_ALIAS, UNFREEZE_COMMAND_ALIAS -> {
                 return handleUnpunishmentTypeAlias(sender, commandLabel, args);
+            }
+            case FREEZE_CHAT_COMMAND_ALIAS -> {
+                return handleFreezeChatCommand(sender, args);
             }
             default -> {
                 return false;
@@ -1074,6 +1081,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     if (plugin.getConfigManager().isDebugEnabled())
                         plugin.getLogger().info("[MainCommand] Starting FreezeActionsTask for player " + onlineTarget.getName() + " after direct freeze command.");
                     plugin.getFreezeListener().startFreezeActionsTask(onlineTarget);
+                    plugin.getFreezeListener().startFreezeChatSession(sender, onlineTarget, punishmentId);
                 }
                 break;
         }
@@ -1205,6 +1213,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     case "freeze" -> {
                         if (plugin.getPluginFrozenPlayers().remove(onlinePlayer.getUniqueId()) != null) {
                             plugin.getFreezeListener().stopFreezeActionsTask(onlinePlayer.getUniqueId());
+                            plugin.getFreezeListener().endFreezeChatSession(onlinePlayer.getUniqueId());
                             sendConfigMessage(onlinePlayer, "messages.you_are_unfrozen");
                         }
                     }
@@ -1264,6 +1273,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
+        plugin.getFreezeListener().endFreezeChatSession(target.getUniqueId());
         plugin.getSoftBanDatabaseManager().executeUnpunishmentAsync(target.getUniqueId(), "freeze", sender.getName(), reason, punishmentId)
                 .thenAccept(unpunishedId -> Bukkit.getScheduler().runTask(plugin, () -> {
                     if (unpunishedId == null) return; // Should not happen if removed was true
@@ -1325,10 +1335,41 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessageUtils.getColorMessage(message));
     }
 
+    private boolean handleFreezeChatCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sendConfigMessage(sender, "messages.player_only");
+            return true;
+        }
+
+        if (!player.hasPermission(MOD_CHAT_PERMISSION)) {
+            sendConfigMessage(player, "messages.no_permission");
+            return true;
+        }
+
+        if (args.length < 1) {
+            String leftTarget = plugin.getFreezeListener().leaveModeratorChat(player);
+            if (leftTarget != null) {
+                sendConfigMessage(player, "messages.fchat_left", "{target}", leftTarget);
+            } else {
+                help(player, 1);
+            }
+            return true;
+        }
+
+        FreezeListener.FreezeChatToggleResult result = plugin.getFreezeListener().toggleModeratorChat(player, args[0]);
+        switch (result) {
+            case JOINED -> sendConfigMessage(player, "messages.fchat_joined", "{target}", args[0]);
+            case LEFT -> sendConfigMessage(player, "messages.fchat_left", "{target}", args[0]);
+            case NOT_ACTIVE -> sendConfigMessage(player, "messages.fchat_not_active", "{target}", args[0]);
+            case NOT_FOUND -> sendConfigMessage(player, "messages.fchat_not_found", "{target}", args[0]);
+        }
+        return true;
+    }
+
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         // Allow tab complete for /report even without crown.use
-        if (!command.getName().equalsIgnoreCase("report") && !sender.hasPermission(USE_PERMISSION)) {
+        if (!command.getName().equalsIgnoreCase("report") && !command.getName().equalsIgnoreCase(FREEZE_CHAT_COMMAND_ALIAS) && !sender.hasPermission(USE_PERMISSION)) {
             return Collections.emptyList();
         }
 
@@ -1414,6 +1455,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         completions.add("#");
                     }
                 }
+            }
+        } else if (commandLabel.equals(FREEZE_CHAT_COMMAND_ALIAS)) {
+            if (args.length == 1) {
+                StringUtil.copyPartialMatches(args[0], plugin.getFreezeListener().getFreezeChatSuggestions(), completions);
             }
         }
 
@@ -1798,6 +1843,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (sender.hasPermission(MOD_USE_PERMISSION)) {
             utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_mod_command"), "/mod"));
             utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_mod_target_command"), "/mod target"));
+        }
+        if (sender.hasPermission(MOD_CHAT_PERMISSION)) {
+            utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_fchat_command"), "/fchat"));
         }
         if (sender.hasPermission(MOD_USE_PERMISSION) || sender.hasPermission(PROFILE_EDIT_INVENTORY_PERMISSION)) {
             utilityCmds.add(new HelpEntry(plugin.getConfigManager().getMessage("messages.help_locker_command"), "/crown locker"));

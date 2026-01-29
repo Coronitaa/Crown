@@ -76,6 +76,9 @@ commands:
   unsoftban:
     description: Command to directly unsoftban players.
     usage: /<command> <player> [reason]
+  fchat:
+    description: Toggle participation in freeze chat.
+    usage: /<command> <player|#ID>
   mod:
     description: Toggles moderator mode.
     usage: /<command>

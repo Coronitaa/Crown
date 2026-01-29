@@ -2220,6 +2220,7 @@ public class MenuListener implements Listener {
                     if (onlineTarget != null) {
                         sendFreezeReceivedMessage(onlineTarget);
                         plugin.getFreezeListener().startFreezeActionsTask(onlineTarget);
+                        plugin.getFreezeListener().startFreezeChatSession(player, onlineTarget, punishmentId);
                     }
                 } else {
                     String processedCommand = commandTemplate
@@ -2431,6 +2432,7 @@ public class MenuListener implements Listener {
                             }
 
                             plugin.getPluginFrozenPlayers().remove(targetUUID);
+                            plugin.getFreezeListener().endFreezeChatSession(targetUUID);
                             playSound(player, "punish_confirm");
                             sendUnpunishConfirmation(player, target, FREEZE_PUNISHMENT_TYPE, punishmentId);
                             Player onlineTarget = target.getPlayer();
@@ -3129,6 +3131,7 @@ public class MenuListener implements Listener {
                     case "freeze":
                         if (plugin.getPluginFrozenPlayers().remove(onlinePlayer.getUniqueId()) != null) {
                             plugin.getFreezeListener().stopFreezeActionsTask(onlinePlayer.getUniqueId());
+                            plugin.getFreezeListener().endFreezeChatSession(onlinePlayer.getUniqueId());
                             sendConfigMessage(onlinePlayer, "messages.you_are_unfrozen");
                         }
                         break;

@@ -4,8 +4,12 @@ import cp.corona.crown.Crown;
 import cp.corona.menus.items.MenuItem;
 import cp.corona.utils.ColorUtils;
 import cp.corona.utils.MessageUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,9 +24,13 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
@@ -35,6 +43,32 @@ public class FreezeListener implements Listener {
 
     private final Crown plugin;
     private final HashMap<UUID, BukkitTask> freezeActionTasks = new HashMap<>();
+    private final Map<UUID, FreezeChatSession> freezeChatSessions = new ConcurrentHashMap<>();
+    private final Map<String, Set<UUID>> freezeChatIds = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> moderatorChatTargets = new ConcurrentHashMap<>();
+    private static final String FREEZE_CHAT_PERMISSION = "crown.mod";
+
+    private static class FreezeChatSession {
+        private final UUID frozenId;
+        private final String frozenName;
+        private final String punishmentId;
+        private final String punisherName;
+        private final Set<UUID> participants = ConcurrentHashMap.newKeySet();
+
+        private FreezeChatSession(UUID frozenId, String frozenName, String punishmentId, String punisherName) {
+            this.frozenId = frozenId;
+            this.frozenName = frozenName;
+            this.punishmentId = punishmentId;
+            this.punisherName = punisherName;
+        }
+    }
+
+    public enum FreezeChatToggleResult {
+        JOINED,
+        LEFT,
+        NOT_FOUND,
+        NOT_ACTIVE
+    }
 
     /**
      * Constructor for FreezeListener.
@@ -109,6 +143,9 @@ public class FreezeListener implements Listener {
 
             plugin.getLogger().info("Frozen player " + player.getName() + " disconnected. Disconnect actions scheduled (if configured).");
         }
+
+        removeModeratorFromSessions(playerId);
+        endFreezeChatSession(playerId);
     }
 
 
@@ -182,37 +219,48 @@ public class FreezeListener implements Listener {
         boolean isFrozen = plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId());
 
         if (isFrozen) {
-            if (!player.hasPermission("crown.mod")) {
-                event.setCancelled(true);
-
-                String message = event.getMessage();
-                String formattedAdminMessage = MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_player_chat_admin_only",
-                        "{player}", player.getName(),
-                        "{message}", message));
-
-                plugin.getServer().getOnlinePlayers().stream()
-                        .filter(p -> p.hasPermission("crown.mod"))
-                        .forEach(admin -> admin.sendMessage(formattedAdminMessage));
-
-                player.sendMessage(formattedAdminMessage);
-
-            } else {
-                event.setCancelled(true);
-                String message = event.getMessage();
-                String formattedAdminMessage = MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.frozen_player_chat_admin",
-                        "{player}", player.getName(),
-                        "{message}", message));
-
-                plugin.getServer().getOnlinePlayers().stream()
-                        .filter(p -> p.hasPermission("crown.mod"))
-                        .forEach(admin -> admin.sendMessage(formattedAdminMessage));
-            }
+            event.setCancelled(true);
+            FreezeChatSession session = freezeChatSessions.get(player.getUniqueId());
+            String punishmentId = session != null && session.punishmentId != null ? session.punishmentId : "N/A";
+            String message = event.getMessage();
+            String formattedAdminMessage = MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.freeze_chat_frozen_format",
+                    "{player}", player.getName(),
+                    "{punishment_id}", punishmentId,
+                    "{message}", message));
+            Component chatComponent = buildFreezeChatMessage(session, formattedAdminMessage);
+            sendFreezeChatToModerators(session, chatComponent);
+            player.sendMessage(chatComponent);
         } else {
+            if (player.hasPermission(FREEZE_CHAT_PERMISSION)) {
+                UUID targetId = moderatorChatTargets.get(player.getUniqueId());
+                if (targetId != null) {
+                    FreezeChatSession session = freezeChatSessions.get(targetId);
+                    if (session == null || !plugin.getPluginFrozenPlayers().containsKey(targetId)) {
+                        moderatorChatTargets.remove(player.getUniqueId());
+                        return;
+                    }
+
+                    event.setCancelled(true);
+                    String message = event.getMessage();
+                    String formattedAdminMessage = MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.freeze_chat_mod_format",
+                            "{moderator}", player.getName(),
+                            "{target}", session.frozenName,
+                            "{message}", message));
+                    Component chatComponent = buildFreezeChatMessage(session, formattedAdminMessage);
+                    sendFreezeChatToModerators(session, chatComponent);
+
+                    Player frozenPlayer = Bukkit.getPlayer(targetId);
+                    if (frozenPlayer != null && frozenPlayer.isOnline()) {
+                        frozenPlayer.sendMessage(chatComponent);
+                    }
+                    return;
+                }
+            }
+
             if (plugin.getPluginFrozenPlayers().values().stream().anyMatch(Boolean::valueOf)) {
                 List<Player> recipients = new ArrayList<>(event.getRecipients());
                 boolean removedAny = recipients.removeIf(recipient ->
-                        plugin.getPluginFrozenPlayers().containsKey(recipient.getUniqueId()) &&
-                                !player.hasPermission("crown.mod")
+                        plugin.getPluginFrozenPlayers().containsKey(recipient.getUniqueId())
                 );
                 if(removedAny) {
                     event.getRecipients().clear();
@@ -408,6 +456,146 @@ public class FreezeListener implements Listener {
             player.setInvulnerable(false);
             if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] Removed freezing effect from player: " + player.getName());
         }
+    }
+
+    public void startFreezeChatSession(CommandSender sender, Player frozenPlayer, String punishmentId) {
+        if (frozenPlayer == null || !frozenPlayer.isOnline()) return;
+
+        UUID frozenId = frozenPlayer.getUniqueId();
+        endFreezeChatSession(frozenId);
+
+        String punisherName = sender != null ? sender.getName() : "Unknown";
+        FreezeChatSession session = new FreezeChatSession(frozenId, frozenPlayer.getName(), punishmentId, punisherName);
+
+        if (sender instanceof Player moderator && moderator.hasPermission(FREEZE_CHAT_PERMISSION)) {
+            removeModeratorFromSessions(moderator.getUniqueId());
+            session.participants.add(moderator.getUniqueId());
+            moderatorChatTargets.put(moderator.getUniqueId(), frozenId);
+        }
+
+        freezeChatSessions.put(frozenId, session);
+        if (punishmentId != null && !punishmentId.isEmpty()) {
+            freezeChatIds.computeIfAbsent(punishmentId, id -> ConcurrentHashMap.newKeySet()).add(frozenId);
+        }
+    }
+
+    public void endFreezeChatSession(UUID frozenId) {
+        FreezeChatSession session = freezeChatSessions.remove(frozenId);
+        if (session == null) return;
+
+        if (session.punishmentId != null && freezeChatIds.containsKey(session.punishmentId)) {
+            Set<UUID> ids = freezeChatIds.get(session.punishmentId);
+            ids.remove(frozenId);
+            if (ids.isEmpty()) {
+                freezeChatIds.remove(session.punishmentId);
+            }
+        }
+
+        for (UUID participant : session.participants) {
+            moderatorChatTargets.remove(participant, frozenId);
+        }
+        session.participants.clear();
+    }
+
+    private FreezeChatSession getFreezeChatSessionByInput(String input) {
+        if (input == null || input.isEmpty()) return null;
+
+        if (input.startsWith("#")) {
+            String id = input.substring(1);
+            Set<UUID> ids = freezeChatIds.getOrDefault(id, Collections.emptySet());
+            for (UUID frozenId : ids) {
+                FreezeChatSession session = freezeChatSessions.get(frozenId);
+                if (session != null) return session;
+            }
+            return null;
+        }
+
+        for (FreezeChatSession session : freezeChatSessions.values()) {
+            if (session.frozenName.equalsIgnoreCase(input)) {
+                return session;
+            }
+        }
+        return null;
+    }
+
+    private boolean toggleModeratorChat(Player moderator, FreezeChatSession session) {
+        if (moderator == null || session == null) return false;
+
+        UUID moderatorId = moderator.getUniqueId();
+        UUID currentTarget = moderatorChatTargets.get(moderatorId);
+        if (currentTarget != null && currentTarget.equals(session.frozenId)) {
+            moderatorChatTargets.remove(moderatorId);
+            session.participants.remove(moderatorId);
+            return false;
+        }
+
+        removeModeratorFromSessions(moderatorId);
+        session.participants.add(moderatorId);
+        moderatorChatTargets.put(moderatorId, session.frozenId);
+        return true;
+    }
+
+    public FreezeChatToggleResult toggleModeratorChat(Player moderator, String input) {
+        FreezeChatSession session = getFreezeChatSessionByInput(input);
+        if (session == null) return FreezeChatToggleResult.NOT_FOUND;
+        if (!plugin.getPluginFrozenPlayers().containsKey(session.frozenId)) return FreezeChatToggleResult.NOT_ACTIVE;
+        return toggleModeratorChat(moderator, session) ? FreezeChatToggleResult.JOINED : FreezeChatToggleResult.LEFT;
+    }
+
+    public List<String> getFreezeChatSuggestions() {
+        List<String> suggestions = new ArrayList<>();
+        for (FreezeChatSession session : freezeChatSessions.values()) {
+            suggestions.add(session.frozenName);
+            if (session.punishmentId != null && !session.punishmentId.isEmpty()) {
+                suggestions.add("#" + session.punishmentId);
+            }
+        }
+        return suggestions;
+    }
+
+    public String leaveModeratorChat(Player moderator) {
+        if (moderator == null) return null;
+        UUID currentTarget = moderatorChatTargets.get(moderator.getUniqueId());
+        if (currentTarget == null) return null;
+        FreezeChatSession session = freezeChatSessions.get(currentTarget);
+        removeModeratorFromSessions(moderator.getUniqueId());
+        return session != null ? session.frozenName : null;
+    }
+
+    private void removeModeratorFromSessions(UUID moderatorId) {
+        UUID currentTarget = moderatorChatTargets.remove(moderatorId);
+        if (currentTarget == null) return;
+
+        FreezeChatSession session = freezeChatSessions.get(currentTarget);
+        if (session != null) {
+            session.participants.remove(moderatorId);
+        }
+    }
+
+    private void sendFreezeChatToModerators(FreezeChatSession session, Component formattedMessage) {
+        boolean privateChat = plugin.getConfigManager().isFreezeChatPrivate();
+        for (Player admin : Bukkit.getOnlinePlayers()) {
+            if (!admin.hasPermission(FREEZE_CHAT_PERMISSION)) continue;
+            if (privateChat && session != null && !session.participants.contains(admin.getUniqueId())) continue;
+            admin.sendMessage(formattedMessage);
+        }
+    }
+
+    private Component buildFreezeChatMessage(FreezeChatSession session, String formattedMessage) {
+        Component messageComponent = MessageUtils.getColorComponent(formattedMessage);
+        if (session == null) {
+            return messageComponent;
+        }
+
+        String id = session.punishmentId != null ? session.punishmentId : "N/A";
+        String hoverText = "<color:#b0b0b0>ID: <color:#ffea00>" + id + "</color>\n" +
+                "Applied by: <color:#ffea00>" + session.punisherName + "</color>\n" +
+                "Target: <color:#00c6ff>" + session.frozenName + "</color></color>";
+
+        String joinCommand = "/fchat #" + id;
+        return messageComponent
+                .hoverEvent(HoverEvent.showText(MessageUtils.getColorComponent(hoverText)))
+                .clickEvent(ClickEvent.suggestCommand(joinCommand));
     }
 
     /**

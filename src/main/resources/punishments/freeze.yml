@@ -46,6 +46,10 @@ disconnect_commands:
   - 'crown punish {target} ban 365d &cDisconnected while frozen!'
   - 'tellraw @a "<gradient:#ff801a:#ff4b2b><bold>ᴄʀᴏᴡɴ</bold></gradient> <color:#ff4b2b>🜲</color> <color:#ffea00>Player <color:#00c6ff>{target}</color> disconnected while frozen! <color:#ff1744>Applying actions</color>."'
 
+# Freeze chat configuration.
+freeze_chat:
+  private: false # If true, only moderators who joined the chat can see freeze messages.
+
 # Periodic actions to perform on the frozen player.
 freeze_actions:
   interval: 40 # Interval in ticks (20 ticks = 1 second)

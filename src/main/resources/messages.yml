@@ -41,16 +41,12 @@ messages:
   plugin_enabled: '{prefix}<gradient:#56ab2f:#a8e063>Plugin enabled.</gradient>'
   plugin_disabled: '{prefix}<gradient:#ed213a:#93291e>Plugin disabled.</gradient>'
   player_only: '{prefix}<color:#ff5555>Only players can use this command.</color>'
-  player_only_console_punish: '{prefix}<color:#ff5555>Console must specify target, punishment type, and other required arguments.</color>'
   no_permission: '{prefix}<gradient:#ff416c:#ff4b2b>You do not have permission to use this command.</gradient>'
   no_permission_menu_action: '{prefix}<color:#ff5555>You do not have permission for the <color:#ffea00>{action}</color> action.</color>'
   no_permission_punish_command_type: '{prefix}<color:#ff5555>You do not have permission to use the <color:#ffea00>{punishment_type}</color> command.</color>'
   no_permission_unpunish_command_type: '{prefix}<color:#ff5555>You do not have permission to unpunish <color:#ffea00>{punishment_type}</color>.</color>'
-  no_permission_details_menu: '{prefix}<color:#ff5555>You do not have permission to open the <color:#ffea00>{punishment_type}</color> details menu.</color>'
-  no_permission_punish_menu: '{prefix}<color:#ff5555>You do not have permission to use the punish menu.</color>'
   no_permission_command: '{prefix}<gradient:#ff416c:#ff4b2b>You do not have permission to use this command.</gradient>'
   reload_success: '{prefix}<gradient:#56ab2f:#a8e063>Configuration reloaded successfully.</gradient>'
-  invalid_player: '{prefix}<color:#ff5555>Invalid player specified. Usage: {usage}</color>'
   never_played: '{prefix}<color:#ff5555>Player <color:#ffea00>{input}</color> has never played on this server.</color>'
   player_not_online: '{prefix}<color:#ff5555>Player <color:#ffea00>{input}</color> is not currently online.</color>'
   profile_offline_error: '{prefix}<color:#ff5555>Cannot open profile for <color:#ffea00>{input}</color> because they are offline.</color>'
@@ -89,6 +85,7 @@ messages:
   help_locker_alias: '<color:#00c6ff>/locker [player|all]</color> <color:#b0b0b0>- Quick locker access.</color>'
   help_mod_command: '<color:#00c6ff>/mod</color> <color:#b0b0b0>- Toggle moderator mode.</color>'
   help_mod_target_command: '<color:#00c6ff>/mod target <player></color> <color:#b0b0b0>- Enable mod mode and set target.</color>'
+  help_fchat_command: '<color:#00c6ff>/fchat <player|#ID></color> <color:#b0b0b0>- Toggle freeze chat.</color>'
   help_previous_page: '<gradient:#ff416c:#ff4b2b><bold>[Previous]</bold></gradient>'
   help_previous_page_hover: '<color:#b0b0b0>Click to go to the previous page.</color>'
   help_next_page: '<gradient:#56ab2f:#a8e063><bold>[Next]</bold></gradient>'
@@ -110,7 +107,6 @@ messages:
     <color:#b0b0b0>Open a ticket:</color> <color:#00c6ff><u>{support_link}</u></color>
 
   unpunish_not_supported: '{prefix}<color:#ff5555>Cannot unpunish type: <color:#ffea00>{punishment_type}</color>.</color>'
-  unpunish_command_not_configured: '{prefix}<color:#ff5555>The unpunish command for <color:#ffea00>{punishment_type}</color> is not set in config.yml.</color>'
 
   not_banned: '{prefix}<color:#ff5555>That player is not banned.</color>'
   not_muted: '{prefix}<color:#ff5555>That player is not muted.</color>'
@@ -135,16 +131,11 @@ messages:
   set_reason_before_confirm: '{prefix}<color:#ff5555>Please set the reason before confirming.</color>'
   set_valid_time_confirm: '{prefix}<color:#ff5555>Please set a valid time duration before confirming.</color>'
 
-  softban_received: |
-    <gradient:#ff416c:#ff4b2b><bold>SOFTBAN ALERT</bold></gradient>
-    <color:#ff5555>Status:</color> <color:#ffffff>Restricted Access</color>
-    <color:#ff5555>Reason:</color> <color:#ffea00>{reason}</color>
   softban_command_blocked: '{prefix}<color:#ff5555>Command blocked due to active SoftBan.</color>'
   no_active_softban: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> does not have an active softban.</color>'
   no_active_ban: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> does not have an active ban.</color>'
   no_active_mute: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> does not have an active mute.</color>'
   no_active_warn: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> has no active warnings.</color>'
-  unsoftban_success: '{prefix}<gradient:#56ab2f:#a8e063>Successfully removed softban from <bold>{target}</bold>.</gradient>'
 
   you_are_softbanned: |
     <gradient:#ff416c:#ff4b2b><bold>SOFTBAN ACTIVE</bold></gradient>
@@ -167,7 +158,6 @@ messages:
   direct_punishment_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Applied {punishment_type} to <bold>{target}</bold>.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Time:</color> <color:#00c6ff>{time}</color>, <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
   direct_punishment_confirmed_ip: '{prefix}<gradient:#56ab2f:#a8e063>Applied {punishment_type} to <bold>{target}</bold> <color:#ff5555>(IP)</color>.</gradient> <color:#b0b0b0>(ID: <color:#ffea00>{punishment_id}</color>)</color> <color:#b0b0b0>Time:</color> <color:#00c6ff>{time}</color>, <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>'
   unpunish_usage: '{prefix}<color:#ff5555>Usage: {usage}</color>'
-  punish_usage: '{prefix}<color:#ff5555>Usage: {usage}</color>'
   check_usage: '{prefix}<color:#ff5555>Usage: /check <id> [info|repunish|unpunish]</color>'
   punishment_not_found: '{prefix}<color:#ff5555>Punishment with ID ''{id}'' not found.</color>'
   punishment_not_active: '{prefix}<color:#ff5555>The punishment with ID ''{id}'' is already inactive.</color>'
@@ -203,33 +193,23 @@ messages:
   check_info_repunish_button: '<gradient:#56ab2f:#a8e063><bold>[Repunish]</bold></gradient>'
   check_info_unpunish_button: '<gradient:#ff416c:#ff4b2b><bold>[Unpunish]</bold></gradient>'
 
-  ban_usage: '{prefix}<color:#ff5555>Usage: /ban <player> [time] [reason]</color>'
-  mute_usage: '{prefix}<color:#ff5555>Usage: /mute <player> [time] [reason]</color>'
-  kick_usage: '{prefix}<color:#ff5555>Usage: /kick <player> [reason]</color>'
-  warn_usage: '{prefix}<color:#ff5555>Usage: <color:#ffea00>/warn</color> <player> [reason]</color>'
 
   direct_unpunishment_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Removed {punishment_type} from <bold>{target}</bold>.</gradient>'
-  direct_unsoftban_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Removed softban from <bold>{target}</bold>.</gradient>'
-  direct_kick_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Player <bold>{target}</bold> kicked. Reason: <color:#ffffff>{reason}</color></gradient>'
-  direct_command_not_supported: '{prefix}<color:#ff5555>Direct command for {punishment_type} not supported, use the menu.</color>'
-  history_menu_first_page: '{prefix}<color:#ff5555>You are on the first page.</color>'
-  softban_usage: '{prefix}<color:#ff5555>Usage: /softban <player> [time] [reason]</color>'
 
   you_are_frozen: |
     <gradient:#00c6ff:#0072ff><bold>FROZEN STATUS</bold></gradient>
     <color:#ff5555>Do not disconnect. Await a moderator.</color>
-    <color:#b0b0b0>Admins can see your chat messages.</color>
-  direct_unfreeze_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Removed freeze from <bold>{target}</bold>.</gradient>'
-  direct_freeze_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Froze <bold>{target}</bold>. Reason: <color:#ffffff>{reason}</color></gradient>'
-  freeze_usage: '{prefix}<color:#ff5555>Usage: /freeze <player> [reason]</color>'
+    <color:#b0b0b0>Only admins can see your chat messages.</color>
   freeze_command_blocked: '{prefix}<color:#ff5555>Commands are blocked while frozen.</color>'
-  frozen_player_chat_admin_only: '<color:#b0b0b0>[<color:#d500f9>Frozen</color>] <color:#00c6ff>{player}</color>: <color:#ffffff>{message}</color></color>'
-  frozen_player_chat_admin: '<color:#b0b0b0>[<color:#d500f9>Frozen Admin</color>] <color:#00c6ff>{player}</color>: <color:#ffffff>{message}</color></color>'
+  freeze_chat_frozen_format: '<color:#b0b0b0>[<color:#00c6ff>{player}</color> <color:#ffea00>#{punishment_id}</color>] (fchat)</color> <color:#ffffff>{message}</color>'
+  freeze_chat_mod_format: '<color:#b0b0b0>[<color:#ffea00>{moderator}</color> -> <color:#00c6ff>{target}</color>] (fchat)</color> <color:#ffffff>{message}</color>'
+  fchat_joined: '{prefix}<color:#00c6ff>Joined freeze chat for <color:#ffffff>{target}</color>.</color>'
+  fchat_left: '{prefix}<color:#ffea00>Left freeze chat for <color:#ffffff>{target}</color>.</color>'
+  fchat_not_found: '{prefix}<color:#ff5555>No active freeze chat found for <color:#ffea00>{target}</color>.</color>'
+  fchat_not_active: '{prefix}<color:#ff5555>Freeze chat is no longer active for <color:#ffea00>{target}</color>.</color>'
   no_active_freeze: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> is not currently frozen.</color>'
   unfreeze_success: '{prefix}<gradient:#56ab2f:#a8e063>Successfully removed freeze from <bold>{target}</bold>.</gradient>'
   you_are_unfrozen: '{prefix}<gradient:#56ab2f:#a8e063>You are no longer frozen.</gradient>'
-  frozen_chat_admin_info: '<color:#757575>(Only admins can see your chat while frozen)</color>'
-  frozen_player_chat_self: '<color:#b0b0b0>[<color:#d500f9>Frozen</color>] <color:#00c6ff>{player}</color>: <color:#ffffff>{message}</color></color>'
   already_frozen: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> is already frozen.</color>'
 
   # --- Moderator Mode Messages ---
@@ -300,7 +280,6 @@ messages:
   report_submitted: '{prefix}<gradient:#56ab2f:#a8e063>Your report has been submitted successfully. (ID: <color:#ffea00>#{report_id}</color>)</gradient>'
   report_submit_failed: '{prefix}<color:#ff5555>There was an error submitting your report. Please try again later.</color>'
   report_staff_notification: '{prefix}<color:#ffea00>New report from <color:#00c6ff>{requester}</color> against <color:#ff5555>{target}</color> for <color:#ffffff>{reason}</color>.</color>'
-  reports_menu_loading: '{prefix}<color:#b0b0b0>Loading reports...</color>'
   report_status_changed: '{prefix}<gradient:#56ab2f:#a8e063>Report <color:#ffea00>{report_id}</color> status changed to {status_color}{status}.</gradient>'
   report_assigned: '{prefix}<gradient:#56ab2f:#a8e063>Report <color:#ffea00>{report_id}</color> has been assigned to <color:#00c6ff>{moderator}</color>.</gradient>'
   report_not_found: '{prefix}<color:#ff5555>Report with ID ''{id}'' could not be found.</color>'

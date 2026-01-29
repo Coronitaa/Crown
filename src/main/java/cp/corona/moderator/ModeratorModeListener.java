@@ -368,6 +368,7 @@ public class ModeratorModeListener implements Listener {
         String toolId = getToolId(item);
 
         if (toolId != null) {
+            event.setCancelled(true);
             handleEntityToolAction(player, target, toolId, false);
         }
     }
@@ -494,9 +495,12 @@ public class ModeratorModeListener implements Listener {
                 return;
             }
         } else {
+            Player rayTarget = rayTracePlayer(player);
             target = plugin.getModeratorModeManager().getSelectedPlayer(player.getUniqueId());
-            if (target == null) {
-                target = rayTracePlayer(player);
+            if (isLeft && rayTarget != null) {
+                target = rayTarget;
+            } else if (target == null) {
+                target = rayTarget;
             }
         }
 
@@ -522,7 +526,7 @@ public class ModeratorModeListener implements Listener {
             MessageUtils.sendConfigMessage(plugin, moderator, "messages.already_frozen", "{target}", target.getName());
             return;
         }
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "crown punish " + target.getName() + " freeze Staff Tool");
+        Bukkit.dispatchCommand(moderator, "crown punish " + target.getName() + " freeze Staff Tool");
         MessageUtils.sendConfigMessage(plugin, moderator, "messages.mod_mode_freeze_success", "{target}", target.getName());
     }
 
@@ -531,7 +535,7 @@ public class ModeratorModeListener implements Listener {
             MessageUtils.sendConfigMessage(plugin, moderator, "messages.no_active_freeze", "{target}", target.getName());
             return;
         }
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "crown unpunish " + target.getName() + " freeze Staff Tool");
+        Bukkit.dispatchCommand(moderator, "crown unpunish " + target.getName() + " freeze Staff Tool");
         MessageUtils.sendConfigMessage(plugin, moderator, "messages.unfreeze_success", "{target}", target.getName());
     }
 
