@@ -31,8 +31,8 @@
 # Configuration for mute punishment.
 use-internal: true # If true, the plugin will handle the mute internally. If false, it will use the command below.
 punish-by-ip: true # If true, the internal mute will be by IP address instead of player name.
-punish-command: 'tempmute {target} {time} {reason}'
-unpunish-command: 'unmute {target}'
+punish-command: 'tempmute {target} {time} {reason}' #if use-internal: false
+unpunish-command: 'unmute {target}' #if use-internal: false
 default-reason: "Muted by a moderator."
 default-unpunish-reason: "Unmuted by a moderator."
 

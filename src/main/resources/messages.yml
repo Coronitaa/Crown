@@ -36,6 +36,8 @@
 # - {status_color}: Color code for report status.
 # - {container}: Container type name.
 # - {owner}: Locker owner name.
+# Formatting:
+# - <center> or [center] at the start of a line will center that line in chat.
 
 messages:
   plugin_enabled: '{prefix}<gradient:#56ab2f:#a8e063>Plugin enabled.</gradient>'
@@ -53,7 +55,7 @@ messages:
   profile_self_check_error: '{prefix}<color:#ff5555>You cannot view your own profile.</color>'
   player_ip_not_found: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> doesn''t have a known IP address. Change your punishment to a LOCAL method.</color>'
 
-  help_header: '<gradient:#f7971e:#ffd200><bold>CROWN Commands:</bold></gradient>'
+  help_header: '<gradient:#f7971e:#ffd200><bold>CROWN COMMANDS:</bold></gradient>'
   help_category_punishment: '<color:#ffea00>Category: <color:#ffffff>Punishment Commands</color></color>'
   help_category_unpunishment: '<color:#ffea00>Category: <color:#ffffff>Unpunishment Commands</color></color>'
   help_category_utility: '<color:#ffea00>Category: <color:#ffffff>Utility Commands</color></color>'
@@ -94,18 +96,18 @@ messages:
   help_no_next_page: '<color:#757575><bold>[Next]</bold></color>'
 
   active_punishments_header: |
-    <gradient:#ff512f:#dd2476><bold>!! SECURITY ALERT !!</bold></gradient>
-    <gradient:#ff9a44:#ff3d77><bold>ACTIVE PUNISHMENTS DETECTED</bold></gradient>
-  active_punishment_entry: |
-    <color:#ff5555>●</color> <color:#b0b0b0>#</color><color:#ffea00>{id}</color> <color:#b0b0b0>|</color> <color:#ffea00>{type}</color>
+    <center><gradient:#ff512f:#feae01><bold>! ! CROWN ALERT ! !</bold></gradient>
+    <center><gradient:#ff9a44:#ff3d77><bold>ACTIVE PUNISHMENTS DETECTED</bold></gradient>
+  active_punishment_entry: |-
+    <color:#650501>●</color> <color:#db6055>#{id}</color> <color:#b0b0b0>|</color> <color:#fad001>{type}</color>
     <color:#b0b0b0>Time Left:</color> <color:#ffffff>{time_left}</color>
   active_punishments_footer: |
+    
     <gradient:#f7971e:#ffd200><bold>NOTICE</bold></gradient>
     <color:#b0b0b0>Stay respectful. Further violations escalate.</color>
   support_link_message: |
     <gradient:#00c6ff:#0072ff><bold>NEED HELP?</bold></gradient>
     <color:#b0b0b0>Open a ticket:</color> <color:#00c6ff><u>{support_link}</u></color>
-
   unpunish_not_supported: '{prefix}<color:#ff5555>Cannot unpunish type: <color:#ffea00>{punishment_type}</color>.</color>'
 
   not_banned: '{prefix}<color:#ff5555>That player is not banned.</color>'
@@ -138,17 +140,19 @@ messages:
   no_active_warn: '{prefix}<color:#ff5555>Player <color:#ffea00>{target}</color> has no active warnings.</color>'
 
   you_are_softbanned: |
-    <gradient:#ff416c:#ff4b2b><bold>SOFTBAN ACTIVE</bold></gradient>
-    <color:#b0b0b0>ID:</color> <color:#ffea00>{punishment_id}</color>
-    <color:#b0b0b0>Duration:</color> <color:#ffea00>{time}</color>
-    <color:#b0b0b0>Reason:</color> <color:#ffea00>{reason}</color>
-    <color:#ff5555>Access to certain commands is blocked.</color>
+    
+    <center><gradient:#ff416c:#ff4b2b><bold>YOU HAVE BEEN SOFTBANNED</bold></gradient>
+    <center><color:#b0b0b0>ID:</color> <color:#ffea00>#{punishment_id}</color>
+    <center><color:#b0b0b0>Duration:</color> <color:#ffea00>{time}</color>
+    <center><color:#b0b0b0>Reason:</color> <color:#ffea00>{reason}</color>
+    <center><color:#ff5555>Access to certain commands is blocked.</color>
   you_are_muted: |
-    <gradient:#ff416c:#ff4b2b><bold>MUTE ACTIVE</bold></gradient>
-    <color:#b0b0b0>ID:</color> <color:#ffea00>{punishment_id}</color>
-    <color:#b0b0b0>Duration:</color> <color:#ffea00>{time}</color>
-    <color:#b0b0b0>Reason:</color> <color:#ffea00>{reason}</color>
-    <color:#ff5555>Chat messages are blocked.</color>
+    
+    <center><gradient:#ff416c:#ff4b2b><bold>YOU HAVE BEEN MUTED</bold></gradient>
+    <center><color:#b0b0b0>ID:</color> <color:#ffea00>#{punishment_id}</color>
+    <center><color:#b0b0b0>Duration:</color> <color:#ffea00>{time}</color>
+    <center><color:#b0b0b0>Reason:</color> <color:#ffea00>{reason}</color>
+    <center><color:#ff5555>Chat messages are blocked.</color>
 
   chat_while_muted: '{prefix}<color:#ff5555>You are currently muted and cannot send messages.</color>'
   clear_inventory_success: '{prefix}<gradient:#56ab2f:#a8e063>Successfully cleared <bold>{target}</bold>''s {inventory_type}.</gradient>'
@@ -192,14 +196,13 @@ messages:
   check_info_removed: '<color:#b0b0b0>Removed by: <color:#00c6ff>{remover}</color> at <color:#00c6ff>{remove_date}</color> Reason: <color:#ffffff>{remove_reason}</color></color>'
   check_info_repunish_button: '<gradient:#56ab2f:#a8e063><bold>[Repunish]</bold></gradient>'
   check_info_unpunish_button: '<gradient:#ff416c:#ff4b2b><bold>[Unpunish]</bold></gradient>'
-
-
   direct_unpunishment_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Removed {punishment_type} from <bold>{target}</bold>.</gradient>'
 
   you_are_frozen: |
-    <gradient:#00c6ff:#0072ff><bold>FROZEN STATUS</bold></gradient>
-    <color:#ff5555>Do not disconnect. Await a moderator.</color>
-    <color:#b0b0b0>Only admins can see your chat messages.</color>
+    
+    <center><gradient:#00c6ff:#0072ff><bold>YOU ARE NOW FROZEN</bold></gradient>
+    <center><color:#ff5555>Do not disconnect. Await a moderator.</color>
+    <center><color:#b0b0b0>Only admins can see your chat messages.</color>
   freeze_command_blocked: '{prefix}<color:#ff5555>Commands are blocked while frozen.</color>'
   freeze_chat_frozen_format: '<color:#b0b0b0>[<color:#00c6ff>{player}</color> <color:#ffea00>#{punishment_id}</color>] (fchat)</color> <color:#ffffff>{message}</color>'
   freeze_chat_mod_format: '<color:#b0b0b0>[<color:#ffea00>{moderator}</color> -> <color:#00c6ff>{target}</color>] (fchat)</color> <color:#ffffff>{message}</color>'
@@ -303,10 +306,9 @@ messages:
 
   no_warn_level_configured: '{prefix}<color:#ff5555>No warn level is configured for level {level}. Action cancelled.</color>'
   check_info_warn_level: '<color:#b0b0b0>Warn Level: <color:#00c6ff>{level}</color></color>'
-  active_warning_entry: |
-    <color:#ff5555>●</color> <color:#b0b0b0>#</color><color:#ffea00>{id}</color> <color:#b0b0b0>|</color> <color:#ffea00>{type}</color> <color:#b0b0b0>(Level {level})</color>
+  active_warning_entry: |-
+    <color:#650501>●</color> <color:#db6055>#{id}</color> <color:#b0b0b0>|</color> <color:#fef46c>{type}</color> <color:#fea366>(Level {level})</color>
     <color:#b0b0b0>Time Left:</color> <color:#ffffff>{time_left}</color>
-
   invalid_player_name: '{prefix}<color:#ff5555>The player name ''{input}'' is invalid. Please enter a valid player name (3-16 characters).</color>'
   punish_method_not_supported: '{prefix}<color:#ff5555>This punishment type does not support IP/Local toggling.</color>'
   command_loop_error: '{prefix}<color:#ff5555>Error: The command ''{command}'' is an internal plugin command. Using it would create a loop. Please use a command from another plugin.</color>'

@@ -32,7 +32,7 @@
 # Configuration for kick punishment.
 use-internal: true # If true, the plugin will handle the kick internally. If false, it will use the command below.
 punish-by-ip: true # If true, the internal kick will be by IP address instead of player name.
-punish-command: 'kick {target} {reason}'
+punish-command: 'kick {target} {reason}' #if use-internal: false
 default-reason: "Kicked by a moderator."
 
 kick-screen:

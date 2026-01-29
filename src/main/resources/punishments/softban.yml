@@ -31,8 +31,8 @@
 # Configuration for softban punishment.
 use-internal: true # If true, the plugin will handle the softban internally. If false, it will use the command below.
 punish-by-ip: true # If true, the internal softban will be by IP address instead of player name.
-punish-command: 'softban {target} {time} {reason}'
-unpunish-command: 'unsoftban {target}'
+punish-command: 'softban {target} {time} {reason}' #if use-internal: false
+unpunish-command: 'unsoftban {target}' #if use-internal: false
 default-reason: "Softbanned by a moderator."
 default-unpunish-reason: "Un-softbanned by a moderator."
 

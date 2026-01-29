@@ -26,6 +26,8 @@ public final class ColorUtils {
     private static final Pattern SPIGOT_HEX_PATTERN = Pattern.compile("&x&([0-9a-fA-F])&([0-9a-fA-F])&([0-9a-fA-F])&([0-9a-fA-F])&([0-9a-fA-F])&([0-9a-fA-F])");
     private static final Pattern STANDARD_HEX_PATTERN = Pattern.compile("&#([0-9a-fA-F]{6})");
     private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("&([0-9a-fk-or])");
+    private static final Pattern CENTER_TAG_PATTERN = Pattern.compile("(?i)^\\s*(<center>|\\[center\\])\\s*");
+    private static final int CENTER_PX = 154;
 
     private static final Map<String, String> LEGACY_MAP = new HashMap<>();
     static {
@@ -86,14 +88,17 @@ public final class ColorUtils {
             return message;
         }
 
-        // 1. Sanitize input: Replace § with & to prevent MiniMessage errors
+        // 1. Apply centering tags before any color parsing
+        String centeredMessage = applyCentering(message);
+
+        // 2. Sanitize input: Replace § with & to prevent MiniMessage errors
         // and allow legacy codes to pass through as literal text.
-        String safeMessage = message.replace('§', '&');
+        String safeMessage = centeredMessage.replace('§', '&');
         
-        // 2. Convert Legacy codes to MiniMessage tags to ensure they play nice with gradients/etc.
+        // 3. Convert Legacy codes to MiniMessage tags to ensure they play nice with gradients/etc.
         safeMessage = convertLegacyToMiniMessage(safeMessage);
 
-        // 3. Parse MiniMessage tags -> Component
+        // 4. Parse MiniMessage tags -> Component
         Component component;
         try {
             component = MINI_MESSAGE.deserialize(safeMessage);
@@ -103,11 +108,11 @@ public final class ColorUtils {
             return ChatColor.translateAlternateColorCodes('&', safeMessage);
         }
 
-        // 4. Serialize Component -> Legacy String
+        // 5. Serialize Component -> Legacy String
         // This converts the component back to a string using § codes, including §x hex format.
         String legacy = LEGACY_SERIALIZER.serialize(component);
 
-        // 5. Handle legacy & codes and custom hex formats that might have been treated as text
+        // 6. Handle legacy & codes and custom hex formats that might have been treated as text
         // (This catches anything that wasn't converted or was added later)
         Matcher matcher = HEX_PATTERN.matcher(legacy);
         StringBuffer buffer = new StringBuffer();
@@ -119,6 +124,98 @@ public final class ColorUtils {
         matcher.appendTail(buffer);
 
         return ChatColor.translateAlternateColorCodes('&', buffer.toString());
+    }
+
+    private static String applyCentering(String message) {
+        String[] lines = message.split("\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            lines[i] = centerLine(lines[i]);
+        }
+        return String.join("\n", lines);
+    }
+
+    private static String centerLine(String line) {
+        Matcher matcher = CENTER_TAG_PATTERN.matcher(line);
+        if (!matcher.find()) {
+            return line;
+        }
+        String lineContent = line.substring(matcher.end());
+        int messagePxSize = getMessagePixelWidth(lineContent);
+        int toCompensate = CENTER_PX - (messagePxSize / 2);
+        if (toCompensate <= 0) {
+            return lineContent;
+        }
+
+        int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
+        int compensated = 0;
+        StringBuilder padding = new StringBuilder();
+        while (compensated < toCompensate) {
+            padding.append(' ');
+            compensated += spaceLength;
+        }
+        return padding + lineContent;
+    }
+
+    private static int getMessagePixelWidth(String message) {
+        int messagePxSize = 0;
+        boolean isBold = false;
+
+        for (int i = 0; i < message.length(); i++) {
+            char c = message.charAt(i);
+
+            if (c == '<') {
+                int tagEnd = message.indexOf('>', i);
+                if (tagEnd != -1) {
+                    String tagContent = message.substring(i + 1, tagEnd).trim().toLowerCase();
+                    boolean isClosing = tagContent.startsWith("/");
+                    if (isClosing) {
+                        tagContent = tagContent.substring(1);
+                    }
+                    int tagDivider = tagContent.indexOf(':');
+                    if (tagDivider != -1) {
+                        tagContent = tagContent.substring(0, tagDivider);
+                    }
+                    if (tagContent.equals("bold") || tagContent.equals("b")) {
+                        isBold = !isClosing;
+                    } else if (tagContent.equals("reset")) {
+                        isBold = false;
+                    }
+                    i = tagEnd;
+                    continue;
+                }
+            }
+
+            if (c == '§' || c == '&') {
+                if (i + 1 < message.length()) {
+                    char code = message.charAt(i + 1);
+                    if (code == 'x' || code == 'X') {
+                        int skipTo = i + 13;
+                        if (skipTo < message.length()) {
+                            i = skipTo;
+                        } else {
+                            break;
+                        }
+                        continue;
+                    }
+                    if (code == 'l' || code == 'L') {
+                        isBold = true;
+                    } else if (code == 'r' || code == 'R') {
+                        isBold = false;
+                    }
+                    i++;
+                    continue;
+                }
+            }
+
+            DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
+            messagePxSize += isBold ? dFI.getBoldLength() : dFI.getLength();
+            messagePxSize++;
+        }
+
+        if (messagePxSize > 0) {
+            messagePxSize--;
+        }
+        return messagePxSize;
     }
 
     /**
@@ -161,5 +258,136 @@ public final class ColorUtils {
         // then deserialize it back to a Component.
         String legacyText = translateRGBColors(message);
         return LEGACY_SERIALIZER.deserialize(legacyText);
+    }
+
+    private enum DefaultFontInfo {
+        A('A', 5),
+        a('a', 5),
+        B('B', 5),
+        b('b', 5),
+        C('C', 5),
+        c('c', 5),
+        D('D', 5),
+        d('d', 5),
+        E('E', 5),
+        e('e', 5),
+        F('F', 5),
+        f('f', 4),
+        G('G', 5),
+        g('g', 5),
+        H('H', 5),
+        h('h', 5),
+        I('I', 3),
+        i('i', 1),
+        J('J', 5),
+        j('j', 5),
+        K('K', 5),
+        k('k', 4),
+        L('L', 5),
+        l('l', 1),
+        M('M', 5),
+        m('m', 5),
+        N('N', 5),
+        n('n', 5),
+        O('O', 5),
+        o('o', 5),
+        P('P', 5),
+        p('p', 5),
+        Q('Q', 5),
+        q('q', 5),
+        R('R', 5),
+        r('r', 5),
+        S('S', 5),
+        s('s', 5),
+        T('T', 5),
+        t('t', 4),
+        U('U', 5),
+        u('u', 5),
+        V('V', 5),
+        v('v', 5),
+        W('W', 5),
+        w('w', 5),
+        X('X', 5),
+        x('x', 5),
+        Y('Y', 5),
+        y('y', 5),
+        Z('Z', 5),
+        z('z', 5),
+        NUM_1('1', 5),
+        NUM_2('2', 5),
+        NUM_3('3', 5),
+        NUM_4('4', 5),
+        NUM_5('5', 5),
+        NUM_6('6', 5),
+        NUM_7('7', 5),
+        NUM_8('8', 5),
+        NUM_9('9', 5),
+        NUM_0('0', 5),
+        EXCLAMATION_POINT('!', 1),
+        AT_SYMBOL('@', 6),
+        NUM_SIGN('#', 5),
+        DOLLAR_SIGN('$', 5),
+        PERCENT('%', 5),
+        UP_ARROW('^', 5),
+        AMPERSAND('&', 5),
+        ASTERISK('*', 5),
+        LEFT_PARENTHESIS('(', 4),
+        RIGHT_PARENTHESIS(')', 4),
+        MINUS('-', 5),
+        UNDERSCORE('_', 5),
+        PLUS_SIGN('+', 5),
+        EQUALS_SIGN('=', 5),
+        LEFT_CURL_BRACE('{', 4),
+        RIGHT_CURL_BRACE('}', 4),
+        LEFT_BRACKET('[', 3),
+        RIGHT_BRACKET(']', 3),
+        COLON(':', 1),
+        SEMI_COLON(';', 1),
+        DOUBLE_QUOTE('"', 3),
+        SINGLE_QUOTE('\'', 1),
+        LEFT_ARROW('<', 4),
+        RIGHT_ARROW('>', 4),
+        QUESTION_MARK('?', 5),
+        SLASH('/', 5),
+        BACK_SLASH('\\', 5),
+        LINE('|', 1),
+        TILDE('~', 5),
+        TICK('`', 2),
+        PERIOD('.', 1),
+        COMMA(',', 1),
+        SPACE(' ', 3),
+        DEFAULT('a', 4);
+
+        private final char character;
+        private final int length;
+
+        DefaultFontInfo(char character, int length) {
+            this.character = character;
+            this.length = length;
+        }
+
+        public char getCharacter() {
+            return this.character;
+        }
+
+        public int getLength() {
+            return this.length;
+        }
+
+        public int getBoldLength() {
+            if (this == SPACE) {
+                return this.length;
+            }
+            return this.length + 1;
+        }
+
+        public static DefaultFontInfo getDefaultFontInfo(char character) {
+            for (DefaultFontInfo dFI : DefaultFontInfo.values()) {
+                if (dFI.getCharacter() == character) {
+                    return dFI;
+                }
+            }
+            return DefaultFontInfo.DEFAULT;
+        }
     }
 }

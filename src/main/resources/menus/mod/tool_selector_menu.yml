@@ -106,7 +106,7 @@ menu:
       tool-id: 'random_tp_tool'
       slot: 16
       material: 'FEATHER'
-      name: '<color:#ffffff><bold>Player Teleport</bold></color>'
+      name: '<gradient:#3cfeff:#fd45fe><bold>Player Teleport</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Teleport to other players.</color>'
         - ''

@@ -29,8 +29,8 @@
 
 # Configuration for freeze punishment.
 use-internal: true # If true, the plugin will handle the freeze internally. If false, it will use the command below.
-punish-command: 'freeze {target} {reason}'
-unpunish-command: 'unfreeze {target}'
+punish-command: 'freeze {target} {reason}' #if use-internal: false
+unpunish-command: 'unfreeze {target}' #if use-internal: false
 default-reason: "Frozen by a moderator."
 default-unpunish-reason: "Unfrozen by a moderator."
 
