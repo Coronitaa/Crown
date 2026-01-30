@@ -6,7 +6,6 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Scoreboard;
@@ -72,34 +71,13 @@ public class ModeratorStateUpdateTask extends BukkitRunnable {
     }
 
     private void updatePlayersToGlowSet(Player moderator) {
+        if (!plugin.getModeratorModeManager().isGlowingEnabled(moderator.getUniqueId())) {
+            return;
+        }
+
         Player selected = plugin.getModeratorModeManager().getSelectedPlayer(moderator.getUniqueId());
         if (selected != null) {
             playersToGlow.add(selected.getUniqueId());
-        }
-
-        if (plugin.getModeratorModeManager().isGlowingEnabled(moderator.getUniqueId())) {
-            double range = plugin.getConfigManager().getModModeConfig().getConfig().getDouble("glowing-settings.range", 50.0);
-            double rangeSq = range * range; // Pre-calcular cuadrado
-
-            // Optimización: Usar getNearbyEntities si el rango es limitado, en lugar de iterar a todos
-            if (range > 0 && range < 100) { // Si el rango es razonable para búsqueda espacial
-                for (Entity entity : moderator.getNearbyEntities(range, range, range)) {
-                    if (entity instanceof Player target) {
-                        if (target.equals(moderator) || plugin.getModeratorModeManager().isInModeratorMode(target.getUniqueId())) continue;
-                        playersToGlow.add(target.getUniqueId());
-                    }
-                }
-            } else {
-                // Fallback a iteración global para rango infinito o muy grande (filtrando por mundo primero)
-                for (Player target : Bukkit.getOnlinePlayers()) {
-                    if (target.getWorld() != moderator.getWorld()) continue; // Chequeo rápido de mundo
-                    if (target.equals(moderator) || plugin.getModeratorModeManager().isInModeratorMode(target.getUniqueId())) continue;
-                    
-                    if (range == -1 || moderator.getLocation().distanceSquared(target.getLocation()) <= rangeSq) {
-                        playersToGlow.add(target.getUniqueId());
-                    }
-                }
-            }
         }
     }
 
