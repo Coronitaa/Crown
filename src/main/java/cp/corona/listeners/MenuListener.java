@@ -113,7 +113,7 @@ public class MenuListener implements Listener {
     private record DropConfirmData(int slot, long timestamp) {}
 
     private final Map<UUID, ConfiscateConfirmData> confiscateConfirmations = new HashMap<>();
-    private record ConfiscateConfirmData(int slot, long timestamp) {}
+    private record ConfiscateConfirmData(int slot, long timestamp, ItemStack itemSnapshot) {}
 
 
     public MenuListener(Crown plugin) {
@@ -497,8 +497,8 @@ public class MenuListener implements Listener {
         ConfiscateConfirmData lastClick = confiscateConfirmations.get(playerUUID);
         long now = System.currentTimeMillis();
 
-        if (lastClick == null || lastClick.slot() != slot) {
-            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now));
+        if (lastClick == null || lastClick.slot() != slot || !lastClick.itemSnapshot().isSimilar(item) || lastClick.itemSnapshot().getAmount() != item.getAmount()) {
+            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now, item.clone()));
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
             MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
             return;
@@ -508,7 +508,7 @@ public class MenuListener implements Listener {
         if (diff < 200) return;
 
         if (diff <= 2000) {
-            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now));
+            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now, item.clone()));
 
             String serialized = AuditLogBook.serialize(item);
 
@@ -531,7 +531,7 @@ public class MenuListener implements Listener {
                         player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
                     }));
         } else {
-            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now));
+            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now, item.clone()));
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
             MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
         }
