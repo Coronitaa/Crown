@@ -841,6 +841,28 @@ public class ModeratorModeManager {
         if (moderator != null) updateSelectorItem(moderator, null);
     }
 
+    public void clearSelectedPlayersByTarget(UUID targetUUID, String targetName) {
+        if (selectedPlayers.isEmpty()) return;
+
+        List<UUID> moderatorsToClear = new ArrayList<>();
+        for (Map.Entry<UUID, UUID> entry : selectedPlayers.entrySet()) {
+            if (targetUUID.equals(entry.getValue())) {
+                moderatorsToClear.add(entry.getKey());
+            }
+        }
+
+        for (UUID moderatorUUID : moderatorsToClear) {
+            selectedPlayers.remove(moderatorUUID);
+            Player moderator = Bukkit.getPlayer(moderatorUUID);
+            if (moderator != null) {
+                updateSelectorItem(moderator, null);
+                if (isInModeratorMode(moderatorUUID)) {
+                    MessageUtils.sendConfigMessage(plugin, moderator, "messages.mod_mode_target_disconnected", "{target}", targetName);
+                }
+            }
+        }
+    }
+
     private void updateSelectorItem(Player moderator, UUID targetUUID) {
         for (int i = 0; i < moderator.getInventory().getSize(); i++) {
             ItemStack item = moderator.getInventory().getItem(i);

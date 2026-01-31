@@ -38,9 +38,8 @@ moderator-inventory:
     slot: 0
     material: 'PLAYER_HEAD'
     name: '<gradient:#f7971e:#ffd200><bold>Player Selector</bold></gradient>'
-    lore:
-      - '<color:#b0b0b0>Target: <color:#ffffff>None</color></color>'
     usage:
+      - ''
       - '<color:#ffea00>L-Click: <color:#ffffff>Open profile.</color></color>'
       - '<color:#ffea00>Shift+L-Click: <color:#ffffff>Open punish menu.</color></color>'
       - '<color:#ffea00>R-Click: <color:#ffffff>Select player by name.</color></color>'

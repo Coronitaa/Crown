@@ -102,6 +102,7 @@ public class ModeratorModeListener implements Listener {
         if (plugin.getModeratorModeManager().isSilent(player.getUniqueId())) {
             event.quitMessage(null);
         }
+        plugin.getModeratorModeManager().clearSelectedPlayersByTarget(player.getUniqueId(), player.getName());
         plugin.getModeratorModeManager().handleDisconnect(player);
     }
 
