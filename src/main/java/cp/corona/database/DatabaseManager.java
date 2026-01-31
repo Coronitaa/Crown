@@ -1493,6 +1493,9 @@ public class DatabaseManager {
     }
 
     public boolean isSoftBanned(UUID uuid) {
+        if (plugin.getSoftBannedPlayersCache().containsKey(uuid)) {
+            return plugin.getSoftBannedPlayersCache().get(uuid) > System.currentTimeMillis();
+        }
         return getPunishmentEndTime("softbans", uuid) > System.currentTimeMillis();
     }
 
@@ -1516,6 +1519,9 @@ public class DatabaseManager {
     }
 
     public boolean isMuted(UUID uuid) {
+        if (plugin.getMutedPlayersCache().containsKey(uuid)) {
+            return plugin.getMutedPlayersCache().get(uuid) > System.currentTimeMillis();
+        }
         return getPunishmentEndTime("mutes", uuid) > System.currentTimeMillis();
     }
 
@@ -1524,6 +1530,9 @@ public class DatabaseManager {
     }
 
     public long getSoftBanEndTime(UUID uuid) {
+        if (plugin.getSoftBannedPlayersCache().containsKey(uuid)) {
+            return plugin.getSoftBannedPlayersCache().get(uuid);
+        }
         return getPunishmentEndTime("softbans", uuid);
     }
 
@@ -1568,6 +1577,9 @@ public class DatabaseManager {
 
 
     public long getMuteEndTime(UUID uuid) {
+        if (plugin.getMutedPlayersCache().containsKey(uuid)) {
+            return plugin.getMutedPlayersCache().get(uuid);
+        }
         return getPunishmentEndTime("mutes", uuid);
     }
 

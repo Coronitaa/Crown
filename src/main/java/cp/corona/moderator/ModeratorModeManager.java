@@ -23,11 +23,17 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.Sound;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class ModeratorModeManager {
 
@@ -51,12 +57,15 @@ public class ModeratorModeManager {
     private final Map<UUID, Long> spectatorExpirations = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> preSpectatorVanishState = new ConcurrentHashMap<>();
 
-    private final File sessionsFile;
+    private final File sessionsFolder;
 
     public ModeratorModeManager(Crown plugin) {
         this.plugin = plugin;
         this.toolIdKey = new NamespacedKey(plugin, "tool-id");
-        this.sessionsFile = new File(plugin.getDataFolder(), "mod_sessions.dat");
+        this.sessionsFolder = new File(plugin.getDataFolder(), "mod_sessions");
+        if (!sessionsFolder.exists()) {
+            sessionsFolder.mkdirs();
+        }
         loadModeratorItems();
     }
 
@@ -114,7 +123,7 @@ public class ModeratorModeManager {
 
         PlayerState state = new PlayerState(player);
         savedStates.put(player.getUniqueId(), state);
-        saveSessionToDisk(player.getUniqueId(), state);
+        saveSessionToDiskAsync(player.getUniqueId(), state);
 
         // Load preferences from DB (or use defaults if new)
         plugin.getSoftBanDatabaseManager().getModPreferences(player.getUniqueId()).thenAccept(dbPrefs -> {
@@ -267,7 +276,7 @@ public class ModeratorModeManager {
             // file will contain the restored inventory, preventing data loss.
             player.saveData();
             
-            removeSessionFromDisk(player.getUniqueId());
+            removeSessionFromDiskAsync(player.getUniqueId());
         }
 
         // Reset scoreboard to main to clear any custom teams
@@ -311,58 +320,46 @@ public class ModeratorModeManager {
     }
 
     public void checkAndRestoreSession(Player player) {
-        Map<UUID, PlayerState> sessions = readSessionsFromDisk();
-        if (sessions.containsKey(player.getUniqueId())) {
-            plugin.getLogger().warning("Detected crash session for " + player.getName() + ". Restoring state...");
-            PlayerState state = sessions.get(player.getUniqueId());
-            state.restore(player);
-            
-            // Also force save here just to be safe
-            player.saveData();
-
-            sessions.remove(player.getUniqueId());
-            writeSessionsToDisk(sessions);
-
-            MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_crash_restore");
-        }
-    }
-
-    private synchronized Map<UUID, PlayerState> readSessionsFromDisk() {
-        if (!sessionsFile.exists()) {
-            return new HashMap<>();
-        }
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(sessionsFile))) {
-            Object obj = ois.readObject();
-            if (obj instanceof Map) {
-                return new HashMap<>((Map<UUID, PlayerState>) obj);
+        CompletableFuture.runAsync(() -> {
+            File sessionFile = new File(sessionsFolder, player.getUniqueId() + ".dat");
+            if (sessionFile.exists()) {
+                try (BukkitObjectInputStream ois = new BukkitObjectInputStream(new GZIPInputStream(new FileInputStream(sessionFile)))) {
+                    PlayerState state = (PlayerState) ois.readObject();
+                    
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        plugin.getLogger().warning("Detected crash session for " + player.getName() + ". Restoring state...");
+                        state.restore(player);
+                        player.saveData();
+                        MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_crash_restore");
+                        
+                        // Delete file after successful restore
+                        CompletableFuture.runAsync(sessionFile::delete);
+                    });
+                } catch (IOException | ClassNotFoundException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Failed to restore session for " + player.getName(), e);
+                }
             }
-        } catch (IOException | ClassNotFoundException e) {
-            plugin.getLogger().severe("Failed to read mod sessions file. It might be corrupted.");
-            e.printStackTrace();
-        }
-        return new HashMap<>();
+        });
     }
 
-    private synchronized void writeSessionsToDisk(Map<UUID, PlayerState> sessions) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(sessionsFile))) {
-            oos.writeObject(sessions);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to write mod sessions file.");
-            e.printStackTrace();
-        }
+    private void saveSessionToDiskAsync(UUID uuid, PlayerState state) {
+        CompletableFuture.runAsync(() -> {
+            File sessionFile = new File(sessionsFolder, uuid + ".dat");
+            try (BukkitObjectOutputStream oos = new BukkitObjectOutputStream(new GZIPOutputStream(new FileOutputStream(sessionFile)))) {
+                oos.writeObject(state);
+            } catch (IOException e) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to save mod session for " + uuid, e);
+            }
+        });
     }
 
-    private void saveSessionToDisk(UUID uuid, PlayerState state) {
-        Map<UUID, PlayerState> sessions = readSessionsFromDisk();
-        sessions.put(uuid, state);
-        writeSessionsToDisk(sessions);
-    }
-
-    private void removeSessionFromDisk(UUID uuid) {
-        Map<UUID, PlayerState> sessions = readSessionsFromDisk();
-        if (sessions.remove(uuid) != null) {
-            writeSessionsToDisk(sessions);
-        }
+    private void removeSessionFromDiskAsync(UUID uuid) {
+        CompletableFuture.runAsync(() -> {
+            File sessionFile = new File(sessionsFolder, uuid + ".dat");
+            if (sessionFile.exists()) {
+                sessionFile.delete();
+            }
+        });
     }
 
     // --- Fake Messages ---

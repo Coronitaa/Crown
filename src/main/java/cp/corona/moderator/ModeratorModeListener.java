@@ -106,10 +106,10 @@ public class ModeratorModeListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        
+
         // Check for crash recovery first
         plugin.getModeratorModeManager().checkAndRestoreSession(player);
-        
+
         plugin.getModeratorModeManager().updateVanishedPlayerVisibility(player);
 
         Component originalJoinMessage = event.joinMessage();
@@ -144,7 +144,7 @@ public class ModeratorModeListener implements Listener {
     @EventHandler
     public void onServerListPing(PaperServerListPingEvent event) {
         event.getListedPlayers().removeIf(p -> plugin.getModeratorModeManager().isSilent(p.id()));
-        
+
         // Adjust online player count for silent players
         int silentCount = 0;
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -222,7 +222,7 @@ public class ModeratorModeListener implements Listener {
 
         Inventory inspectionInv;
         Component title = LegacyComponentSerializer.legacySection().deserialize(MessageUtils.getColorMessage("&8Inspect: " + typeName.replace("_", " ")));
-        
+
         InspectionHolder holder = new InspectionHolder(realInventory, loc);
         if (realInventory.getType() == InventoryType.CHEST) {
             inspectionInv = Bukkit.createInventory(holder, size, title);
@@ -234,15 +234,15 @@ public class ModeratorModeListener implements Listener {
                 inspectionInv = Bukkit.createInventory(holder, safeSize, title);
             }
         }
-        
+
         holder.setInspectionInventory(inspectionInv);
 
         player.openInventory(inspectionInv);
         player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.8f, 1.2f);
         MessageUtils.sendConfigMessage(plugin, player, "messages.mod_mode_inspecting_container", "{container}", typeName.replace("_", " "));
 
-        // Start real-time update task
-        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, holder::update, 1L, 1L);
+        // Start real-time update task (Optimized to 10 ticks)
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, holder::update, 1L, 10L);
         inspectionTasks.put(player.getUniqueId(), task);
     }
 
@@ -702,7 +702,7 @@ public class ModeratorModeListener implements Listener {
         // Find which item was clicked by iterating through config keys
         // This is less efficient than slot mapping but more flexible with the new config structure
         // Alternatively, we could store the key in the item's persistent data container
-        
+
         // For now, let's try to identify by slot since we have access to the config
         String clickedKey = null;
         for (String key : plugin.getConfigManager().getSettingsMenuConfig().getConfig().getConfigurationSection("menu.items").getKeys(false)) {
@@ -712,7 +712,7 @@ public class ModeratorModeListener implements Listener {
                 break;
             }
         }
-        
+
         if (clickedKey == null) return;
 
         switch (clickedKey) {
@@ -765,7 +765,7 @@ public class ModeratorModeListener implements Listener {
                 }
                 break;
         }
-        
+
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
         new ModSettingsMenu(plugin, player).open();
     }
@@ -894,12 +894,12 @@ public class ModeratorModeListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityTarget(EntityTargetEvent event) {
         if (!(event.getTarget() instanceof Player target)) return;
-        
+
         if (plugin.getModeratorModeManager().isInModeratorMode(target.getUniqueId())) {
-             if (event.getEntity() instanceof ExperienceOrb) {
-                 event.setCancelled(true);
-                 event.setTarget(null);
-             }
+            if (event.getEntity() instanceof ExperienceOrb) {
+                event.setCancelled(true);
+                event.setTarget(null);
+            }
         }
 
         if (plugin.getModeratorModeManager().isVanished(target.getUniqueId())) {
@@ -959,7 +959,7 @@ public class ModeratorModeListener implements Listener {
             }
         }
     }
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onInspectionClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
