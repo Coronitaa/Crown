@@ -6,6 +6,7 @@ import cp.corona.config.MainConfigManager;
 import cp.corona.database.DatabaseManager;
 import cp.corona.moderator.ModeratorStateUpdateTask;
 import cp.corona.report.ReportBookManager;
+import cp.corona.web.CrownWebServer;
 import cp.corona.listeners.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -47,6 +48,7 @@ public final class Crown extends JavaPlugin {
     private MenuListener menuListener;
     private FreezeListener freezeListener;
     private PunishmentListener punishmentListener;
+    private CrownWebServer webServer;
     private final Set<String> registeredCommands = new HashSet<>();
 
     @Override
@@ -69,6 +71,8 @@ public final class Crown extends JavaPlugin {
         // Changed to 20 ticks (1 second) as requested
         this.moderatorStateUpdateTask = new ModeratorStateUpdateTask(this).runTaskTimer(this, 0L, 20L);
 
+        startWebServer();
+
         registerCommands();
         registerEvents();
 
@@ -89,6 +93,10 @@ public final class Crown extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (webServer != null) {
+            webServer.stop();
+        }
+
         if (this.moderatorStateUpdateTask != null && !this.moderatorStateUpdateTask.isCancelled()) {
             this.moderatorStateUpdateTask.cancel();
         }
@@ -237,4 +245,16 @@ public final class Crown extends JavaPlugin {
     public ReportBookManager getReportBookManager() { return reportBookManager; }
     public Set<String> getRegisteredCommands() { return registeredCommands; }
     public Map<UUID, java.util.List<Long>> getPlayerReportTimestamps() { return playerReportTimestamps; }
+
+    private void startWebServer() {
+        boolean enabled = getConfig().getBoolean("web-manager.enabled", true);
+        if (!enabled) return;
+
+        int port = getConfig().getInt("web-manager.port", 8080);
+        String host = getConfig().getString("web-manager.host", "localhost");
+        String token = getConfig().getString("web-manager.token", "secret");
+
+        this.webServer = new CrownWebServer(this, port, host, token);
+        this.webServer.start();
+    }
 }

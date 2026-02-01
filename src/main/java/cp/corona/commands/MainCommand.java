@@ -59,6 +59,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String REPORT_INTERNAL_SUBCOMMAND = "report_internal";
     private static final String PROFILE_COMMAND_ALIAS = "profile";
     private static final String LOCKER_SUBCOMMAND = "locker";
+    private static final String WEB_SUBCOMMAND = "web";
 
 
     // Added constants for unpunish aliases and check alias
@@ -203,6 +204,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 return handleLogCommand(sender, subArgs);
             case LOCKER_SUBCOMMAND:
                 return handleLockerCommand(sender, subArgs);
+            case WEB_SUBCOMMAND:
+                return handleWebCommand(sender);
             case REPORT_INTERNAL_SUBCOMMAND:
                 if (sender instanceof Player) {
                     plugin.getReportBookManager().handleBookCommand((Player) sender, subArgs);
@@ -221,6 +224,25 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 help(sender, 1);
                 return true;
         }
+    }
+
+    private boolean handleWebCommand(CommandSender sender) {
+        if (!sender.hasPermission("crown.admin")) {
+            sendConfigMessage(sender, "messages.no_permission");
+            return true;
+        }
+
+        String host = plugin.getConfig().getString("web-manager.host", "localhost");
+        int port = plugin.getConfig().getInt("web-manager.port", 8080);
+        String token = plugin.getConfig().getString("web-manager.token", "secret");
+
+        sender.sendMessage("§8§m----------------------------------");
+        sender.sendMessage("§6§lCROWN WEB MANAGER");
+        sender.sendMessage(" ");
+        sender.sendMessage("§7Link: §bhttp://" + host + ":" + port);
+        sender.sendMessage("§7Token: §f" + token);
+        sender.sendMessage("§8§m----------------------------------");
+        return true;
     }
 
     private boolean handleLockerCommand(CommandSender sender, String[] args) {
