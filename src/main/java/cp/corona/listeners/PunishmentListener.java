@@ -96,6 +96,7 @@ public class PunishmentListener implements Listener {
 
             boolean hasMute = false;
             boolean hasSoftban = false;
+            boolean hasFreeze = false;
 
             for (DatabaseManager.PunishmentEntry punishment : allActivePunishments) {
                 if (punishment.getType().equalsIgnoreCase("mute")) {
@@ -110,6 +111,9 @@ public class PunishmentListener implements Listener {
                         plugin.getSoftbannedCommandsCache().put(playerUUID, plugin.getConfigManager().getBlockedCommands());
                     }
                     hasSoftban = true;
+                } else if (punishment.getType().equalsIgnoreCase("freeze")) {
+                    plugin.getPluginFrozenPlayers().put(playerUUID, true);
+                    hasFreeze = true;
                 }
             }
             // If no active punishments of these types were found, ensure they are not in the cache
@@ -117,6 +121,16 @@ public class PunishmentListener implements Listener {
             if(!hasSoftban) {
                 plugin.getSoftBannedPlayersCache().remove(playerUUID);
                 plugin.getSoftbannedCommandsCache().remove(playerUUID);
+            }
+            if(!hasFreeze) {
+                plugin.getPluginFrozenPlayers().remove(playerUUID);
+            } else {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    Player onlinePlayer = Bukkit.getPlayer(playerUUID);
+                    if (onlinePlayer != null && onlinePlayer.isOnline()) {
+                        plugin.getFreezeListener().startFreezeActionsTask(onlinePlayer);
+                    }
+                });
             }
 
 

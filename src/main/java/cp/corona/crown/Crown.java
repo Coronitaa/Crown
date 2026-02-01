@@ -6,6 +6,7 @@ import cp.corona.config.MainConfigManager;
 import cp.corona.database.DatabaseManager;
 import cp.corona.moderator.ModeratorStateUpdateTask;
 import cp.corona.report.ReportBookManager;
+import cp.corona.punishments.PunishmentManager;
 import cp.corona.web.CrownWebServer;
 import cp.corona.listeners.*;
 import org.bukkit.Bukkit;
@@ -34,6 +35,7 @@ public final class Crown extends JavaPlugin {
     private final String version = getDescription().getVersion();
     private MainConfigManager configManager;
     private DatabaseManager databaseManager;
+    private PunishmentManager punishmentManager;
     private boolean placeholderAPIEnabled;
     private ModeratorModeManager moderatorModeManager;
     private BukkitTask moderatorStateUpdateTask;
@@ -55,6 +57,7 @@ public final class Crown extends JavaPlugin {
     public void onEnable() {
         this.configManager = new MainConfigManager(this);
         this.databaseManager = new DatabaseManager(this);
+        this.punishmentManager = new PunishmentManager(this);
         this.reportBookManager = new ReportBookManager(this);
         this.placeholderAPIEnabled = configManager.isPlaceholderAPIEnabled();
 
@@ -234,6 +237,7 @@ public final class Crown extends JavaPlugin {
     public MenuListener getMenuListener() { return menuListener; }
     public FreezeListener getFreezeListener() { return freezeListener; }
     public PunishmentListener getPunishmentListener() { return punishmentListener; }
+    public PunishmentManager getPunishmentManager() { return punishmentManager; }
     public MainConfigManager getConfigManager() { return configManager; }
     public DatabaseManager getSoftBanDatabaseManager() { return databaseManager; }
     public boolean isPlaceholderAPIEnabled() { return placeholderAPIEnabled; }

@@ -1559,22 +1559,74 @@ public class DatabaseManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                String sql = "UPDATE punishment_history SET active = 0, removed_by_name = 'System', removed_reason = 'Expired', removed_at = ? WHERE active = 1 AND punishment_type = 'ban' AND punishment_time <= ? AND punishment_time != ?";
-                try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
-                    long currentTime = System.currentTimeMillis();
-                    ps.setTimestamp(1, new Timestamp(currentTime));
-                    ps.setLong(2, currentTime);
-                    ps.setLong(3, Long.MAX_VALUE);
+                long currentTime = System.currentTimeMillis();
+                Timestamp nowTs = new Timestamp(currentTime);
 
-                    int updatedRows = ps.executeUpdate();
-                    if (updatedRows > 0 && plugin.getConfigManager().isDebugEnabled()) {
-                        plugin.getLogger().info("[DatabaseManager] Marked " + updatedRows + " expired ban(s) as inactive.");
+                String sql = "SELECT punishment_id, player_uuid, punishment_type FROM punishment_history WHERE active = 1 AND punishment_time <= ? AND punishment_time != ?";
+                List<ExpiredEntry> expiredEntries = new ArrayList<>();
+
+                try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                    ps.setLong(1, currentTime);
+                    ps.setLong(2, Long.MAX_VALUE);
+
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            expiredEntries.add(new ExpiredEntry(
+                                    rs.getString("punishment_id"),
+                                    UUID.fromString(rs.getString("player_uuid")),
+                                    rs.getString("punishment_type")
+                            ));
+                        }
                     }
                 } catch (SQLException e) {
-                    plugin.getLogger().log(Level.SEVERE, "Error checking for expired internal bans", e);
+                    plugin.getLogger().log(Level.SEVERE, "Error selecting expired punishments", e);
+                }
+
+                if (!expiredEntries.isEmpty()) {
+                    String updateSql = "UPDATE punishment_history SET active = 0, removed_by_name = 'System', removed_reason = 'Expired', removed_at = ? WHERE punishment_id = ?";
+                    try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(updateSql)) {
+                        for (ExpiredEntry entry : expiredEntries) {
+                            ps.setTimestamp(1, nowTs);
+                            ps.setString(2, entry.punishmentId);
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+                    } catch (SQLException e) {
+                        plugin.getLogger().log(Level.SEVERE, "Error updating expired punishments", e);
+                    }
+
+                    // Apply removals for online players
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        for (ExpiredEntry entry : expiredEntries) {
+                            switch (entry.type.toLowerCase()) {
+                                case "freeze":
+                                    plugin.getPluginFrozenPlayers().remove(entry.playerUuid);
+                                    Player p = Bukkit.getPlayer(entry.playerUuid);
+                                    if (p != null) {
+                                        p.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.unfrozen_subject")));
+                                    }
+                                    break;
+                                case "warn":
+                                    // Marking as inactive in DB is enough for warns, as they are checked on join and active_warnings is also used.
+                                    // Actually, we should also check active_warnings table.
+                                    break;
+                            }
+                        }
+                    });
                 }
             }
-        }.runTaskTimerAsynchronously(plugin, 20L * 60 * 5, 20L * 60 * 5);
+        }.runTaskTimerAsynchronously(plugin, 20L * 60, 20L * 60); // Check every minute
+    }
+
+    private static class ExpiredEntry {
+        String punishmentId;
+        UUID playerUuid;
+        String type;
+        ExpiredEntry(String id, UUID uuid, String t) {
+            this.punishmentId = id;
+            this.playerUuid = uuid;
+            this.type = t;
+        }
     }
 
 
