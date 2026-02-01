@@ -52,11 +52,12 @@ public class PunishmentListener implements Listener {
         final String playerName = event.getName();
         final String playerIP = event.getAddress().getHostAddress();
 
-        BanEntry banEntry = nameBanList.isBanned(playerName) ? nameBanList.getBanEntry(playerName) :
-                ipBanList.isBanned(playerIP) ? ipBanList.getBanEntry(playerIP) : null;
+        BanEntry banEntry = nameBanList.isBanned(playerName) ? nameBanList.getBanEntry(playerName)
+                : ipBanList.isBanned(playerIP) ? ipBanList.getBanEntry(playerIP) : null;
 
         if (banEntry != null) {
-            String reason = banEntry.getReason() != null ? banEntry.getReason() : plugin.getConfigManager().getDefaultPunishmentReason("ban");
+            String reason = banEntry.getReason() != null ? banEntry.getReason()
+                    : plugin.getConfigManager().getDefaultPunishmentReason("ban");
             Date expiration = banEntry.getExpiration();
             String timeLeft = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
 
@@ -66,19 +67,23 @@ public class PunishmentListener implements Listener {
                     timeLeft = TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
                 } else {
                     // Pardon expired bans
-                    if (nameBanList.isBanned(playerName)) nameBanList.pardon(playerName);
-                    if (ipBanList.isBanned(playerIP)) ipBanList.pardon(playerIP);
+                    if (nameBanList.isBanned(playerName))
+                        nameBanList.pardon(playerName);
+                    if (ipBanList.isBanned(playerIP))
+                        ipBanList.pardon(playerIP);
                     return;
                 }
             }
 
-            DatabaseManager.PunishmentEntry punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(event.getUniqueId(), "ban");
+            DatabaseManager.PunishmentEntry punishmentEntry = plugin.getSoftBanDatabaseManager()
+                    .getLatestActivePunishment(event.getUniqueId(), "ban");
             if (punishmentEntry == null) {
                 punishmentEntry = plugin.getSoftBanDatabaseManager().getLatestActivePunishmentByIp(playerIP, "ban");
             }
             String punishmentId = (punishmentEntry != null) ? punishmentEntry.getPunishmentId() : "N/A";
 
-            String kickMessage = getKickMessage(plugin.getConfigManager().getBanScreen(), reason, timeLeft, punishmentId, expiration);
+            String kickMessage = getKickMessage(plugin.getConfigManager().getBanScreen(), reason, timeLeft,
+                    punishmentId, expiration);
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, MessageUtils.getColorMessage(kickMessage));
         }
     }
@@ -92,7 +97,8 @@ public class PunishmentListener implements Listener {
         // Asynchronously load punishment data and populate caches
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             DatabaseManager dbManager = plugin.getSoftBanDatabaseManager();
-            List<DatabaseManager.PunishmentEntry> allActivePunishments = dbManager.getAllActivePunishments(playerUUID, playerIP);
+            List<DatabaseManager.PunishmentEntry> allActivePunishments = dbManager.getAllActivePunishments(playerUUID,
+                    playerIP);
 
             boolean hasMute = false;
             boolean hasSoftban = false;
@@ -108,7 +114,8 @@ public class PunishmentListener implements Listener {
                     if (commands != null && !commands.isEmpty()) {
                         plugin.getSoftbannedCommandsCache().put(playerUUID, commands);
                     } else {
-                        plugin.getSoftbannedCommandsCache().put(playerUUID, plugin.getConfigManager().getBlockedCommands());
+                        plugin.getSoftbannedCommandsCache().put(playerUUID,
+                                plugin.getConfigManager().getBlockedCommands());
                     }
                     hasSoftban = true;
                 } else if (punishment.getType().equalsIgnoreCase("freeze")) {
@@ -116,13 +123,15 @@ public class PunishmentListener implements Listener {
                     hasFreeze = true;
                 }
             }
-            // If no active punishments of these types were found, ensure they are not in the cache
-            if(!hasMute) plugin.getMutedPlayersCache().remove(playerUUID);
-            if(!hasSoftban) {
+            // If no active punishments of these types were found, ensure they are not in
+            // the cache
+            if (!hasMute)
+                plugin.getMutedPlayersCache().remove(playerUUID);
+            if (!hasSoftban) {
                 plugin.getSoftBannedPlayersCache().remove(playerUUID);
                 plugin.getSoftbannedCommandsCache().remove(playerUUID);
             }
-            if(!hasFreeze) {
+            if (!hasFreeze) {
                 plugin.getPluginFrozenPlayers().remove(playerUUID);
             } else {
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -133,7 +142,6 @@ public class PunishmentListener implements Listener {
                 });
             }
 
-
             // The rest of the logic is for the join alert
             if (!plugin.getConfigManager().isJoinAlertEnabled() || allActivePunishments.isEmpty()) {
                 return;
@@ -142,14 +150,16 @@ public class PunishmentListener implements Listener {
             chatFrozenPlayers.add(playerUUID);
 
             List<DatabaseManager.PunishmentEntry> standardPunishments = allActivePunishments.stream()
-                    .filter(p -> !p.getType().equalsIgnoreCase("freeze") && !p.getType().equalsIgnoreCase("warn"))
+                    .filter(p -> !p.getType().equalsIgnoreCase("freeze") && !p.getType().equalsIgnoreCase("warn")
+                            && !p.getType().equalsIgnoreCase("kick"))
                     .collect(Collectors.toList());
             List<ActiveWarningEntry> activeWarnings = dbManager.getAllActiveAndPausedWarnings(playerUUID);
             Map<String, DatabaseManager.PunishmentEntry> punishmentDetailsMap = allActivePunishments.stream()
                     .filter(p -> p.getType().equalsIgnoreCase("warn"))
                     .collect(Collectors.toMap(DatabaseManager.PunishmentEntry::getPunishmentId, entry -> entry));
 
-            final List<TextComponent> messagesToSend = buildJoinAlertMessages(standardPunishments, activeWarnings, punishmentDetailsMap);
+            final List<TextComponent> messagesToSend = buildJoinAlertMessages(standardPunishments, activeWarnings,
+                    punishmentDetailsMap);
 
             // Schedule final actions back on the main thread
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -171,7 +181,8 @@ public class PunishmentListener implements Listener {
                     }
                 }
 
-                Bukkit.getScheduler().runTaskLater(plugin, () -> chatFrozenPlayers.remove(playerUUID), plugin.getConfigManager().getJoinAlertDuration() * 20L);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> chatFrozenPlayers.remove(playerUUID),
+                        plugin.getConfigManager().getJoinAlertDuration() * 20L);
             });
         });
     }
@@ -195,7 +206,8 @@ public class PunishmentListener implements Listener {
         String lowerCaseType = punishmentType.toLowerCase();
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             InetSocketAddress playerAddress = onlinePlayer.getAddress();
-            if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
+            if (playerAddress != null && playerAddress.getAddress() != null
+                    && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
                 if (lowerCaseType.equals("mute")) {
                     plugin.getMutedPlayersCache().remove(onlinePlayer.getUniqueId());
                     MessageUtils.sendConfigMessage(plugin, onlinePlayer, "messages.mute_expired");
@@ -208,44 +220,64 @@ public class PunishmentListener implements Listener {
         }
     }
 
-    private List<TextComponent> buildJoinAlertMessages(List<DatabaseManager.PunishmentEntry> standardPunishments, List<ActiveWarningEntry> activeWarnings, Map<String, DatabaseManager.PunishmentEntry> detailsMap) {
+    private List<TextComponent> buildJoinAlertMessages(List<DatabaseManager.PunishmentEntry> standardPunishments,
+            List<ActiveWarningEntry> activeWarnings, Map<String, DatabaseManager.PunishmentEntry> detailsMap) {
         final List<TextComponent> messages = new ArrayList<>();
-        messages.add(new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_header")))));
+        messages.add(new TextComponent(TextComponent.fromLegacyText(MessageUtils
+                .getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_header")))));
 
         for (DatabaseManager.PunishmentEntry punishment : standardPunishments) {
-            String timeLeft = (punishment.getEndTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) ((punishment.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
-            String visibleText = plugin.getConfigManager().getMessage("messages.active_punishment_entry", "{id}", punishment.getPunishmentId(), "{type}", punishment.getType(), "{time_left}", timeLeft);
-            TextComponent messageComponent = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(visibleText)));
-            messageComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(buildHoverText(punishment)).create()));
+            String timeLeft = (punishment.getEndTime() == Long.MAX_VALUE) ? "Permanent"
+                    : TimeUtils.formatTime((int) ((punishment.getEndTime() - System.currentTimeMillis()) / 1000),
+                            plugin.getConfigManager());
+            String visibleText = plugin.getConfigManager().getMessage("messages.active_punishment_entry", "{id}",
+                    punishment.getPunishmentId(), "{type}", punishment.getType(), "{time_left}", timeLeft);
+            TextComponent messageComponent = new TextComponent(
+                    TextComponent.fromLegacyText(MessageUtils.getColorMessage(visibleText)));
+            messageComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    new ComponentBuilder(buildHoverText(punishment)).create()));
             messages.add(messageComponent);
         }
 
         for (ActiveWarningEntry warning : activeWarnings) {
             DatabaseManager.PunishmentEntry details = detailsMap.get(warning.getPunishmentId());
-            if (details == null) continue;
+            if (details == null)
+                continue;
             String timeLeft;
             String statusSuffix = warning.isPaused() ? " &6(Paused)" : "";
             if (warning.isPaused()) {
-                timeLeft = TimeUtils.formatTime((int) (warning.getRemainingTimeOnPause() / 1000), plugin.getConfigManager());
+                timeLeft = TimeUtils.formatTime((int) (warning.getRemainingTimeOnPause() / 1000),
+                        plugin.getConfigManager());
             } else if (warning.getEndTime() == -1) {
                 timeLeft = "Permanent";
             } else {
-                timeLeft = TimeUtils.formatTime((int) ((warning.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
+                timeLeft = TimeUtils.formatTime((int) ((warning.getEndTime() - System.currentTimeMillis()) / 1000),
+                        plugin.getConfigManager());
             }
-            String visibleText = plugin.getConfigManager().getMessage("messages.active_warning_entry", "{id}", warning.getPunishmentId(), "{type}", "warn", "{level}", String.valueOf(warning.getWarnLevel()), "{time_left}", timeLeft + statusSuffix);
-            TextComponent messageComponent = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(visibleText)));
-            messageComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(buildHoverText(details)).create()));
+            String visibleText = plugin.getConfigManager().getMessage("messages.active_warning_entry", "{id}",
+                    warning.getPunishmentId(), "{type}", "warn", "{level}", String.valueOf(warning.getWarnLevel()),
+                    "{time_left}", timeLeft + statusSuffix);
+            TextComponent messageComponent = new TextComponent(
+                    TextComponent.fromLegacyText(MessageUtils.getColorMessage(visibleText)));
+            messageComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    new ComponentBuilder(buildHoverText(details)).create()));
             messages.add(messageComponent);
         }
 
-        messages.add(new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_footer")))));
-        TextComponent supportMessage = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.support_link_message", "{support_link}", plugin.getConfigManager().getSupportLink()))));
-        supportMessage.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://" + plugin.getConfigManager().getSupportLink()));
-        supportMessage.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.support_link_hover"))).create()));
+        messages.add(new TextComponent(TextComponent.fromLegacyText(MessageUtils
+                .getColorMessage(plugin.getConfigManager().getMessage("messages.active_punishments_footer")))));
+        TextComponent supportMessage = new TextComponent(TextComponent.fromLegacyText(
+                MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.support_link_message",
+                        "{support_link}", plugin.getConfigManager().getSupportLink()))));
+        supportMessage.setClickEvent(
+                new ClickEvent(ClickEvent.Action.OPEN_URL, "https://" + plugin.getConfigManager().getSupportLink()));
+        supportMessage.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                new ComponentBuilder(MessageUtils
+                        .getColorMessage(plugin.getConfigManager().getMessage("messages.support_link_hover")))
+                        .create()));
         messages.add(supportMessage);
         return messages;
     }
-
 
     private String buildHoverText(DatabaseManager.PunishmentEntry entry) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -263,8 +295,7 @@ public class PunishmentListener implements Listener {
         String hover = String.format("&eReason: &f%s\n&eDate: &f%s\n&eMethod: &f%s",
                 entry.getReason(),
                 dateFormat.format(entry.getTimestamp()),
-                methodText
-        );
+                methodText);
         return MessageUtils.getColorMessage(hover);
     }
 
@@ -275,7 +306,8 @@ public class PunishmentListener implements Listener {
         }
     }
 
-    private String getKickMessage(List<String> lines, String reason, String timeLeft, String punishmentId, Date expiration) {
+    private String getKickMessage(List<String> lines, String reason, String timeLeft, String punishmentId,
+            Date expiration) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String date = dateFormat.format(new Date());
         String dateUntil = expiration != null ? dateFormat.format(expiration) : "Never";
