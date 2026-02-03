@@ -61,8 +61,10 @@ menu:
 
     container-spy:
       slot: 14
-      material_on: 'ENDER_EYE'
-      material_off: 'ENDER_PEARL'
+      material_on: 'PLAYER_HEAD'
+      player_head_on: 'http://textures.minecraft.net/texture/c0cf6cdc11db74c0d77ba3756c6fde345fe5443ecf7ea4a41d16254e659584cf'
+      material_off: 'PLAYER_HEAD'
+      player_head_off: 'http://textures.minecraft.net/texture/edc36c9cb50a527aa55607a0df7185ad20aabaa903e8d9abfc78260705540def'
       name: '<gradient:#00c6ff:#0072ff><bold>Container Spy</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Control if right-clicking containers</color>'
@@ -74,8 +76,10 @@ menu:
 
     mod-on-join:
       slot: 16
-      material_on: 'DIAMOND_BOOTS'
-      material_off: 'LEATHER_BOOTS'
+      material_on: 'PLAYER_HEAD'
+      player_head_on: 'http://textures.minecraft.net/texture/5ae0e486db4ec49ff1b52cfeceda4c3f36fde23c835ea3ccfcaac935e49b5f10'
+      material_off: 'PLAYER_HEAD'
+      player_head_off: 'http://textures.minecraft.net/texture/f1d419b5c683dfbde30a6229967db7c957d2c4a9fee9e18cbf73969ba8693bbd'
       name: '<gradient:#56ab2f:#a8e063><bold>Mod Mode on Join</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Automatically enter Mod Mode</color>'
@@ -87,8 +91,10 @@ menu:
 
     silent:
       slot: 22
-      material_on: 'BELL'
-      material_off: 'BARRIER'
+      material_on: 'PLAYER_HEAD'
+      player_head_on: 'http://textures.minecraft.net/texture/525088ac98a7df223ecb2971f6488d14a820d837943ca1ad4d1f15b99bde6c'
+      material_off: 'PLAYER_HEAD'
+      player_head_off: 'http://textures.minecraft.net/texture/6f6df7b799711f967602f85ff388c1e828093c6d82271a50da16f53c231'
       name: '<gradient:#ff416c:#ff4b2b><bold>Silent Mode</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Appear completely offline.</color>'
@@ -101,8 +107,11 @@ menu:
 
     glowing:
       slot: 24
-      material_on: 'GLOW_INK_SAC'
-      material_off: 'INK_SAC'
+      material_on: 'PLAYER_HEAD'
+      player_head_on: 'http://textures.minecraft.net/texture/55e2b46e52ac92d419a2ddbcc9cdce7b451cb48ae739d85d607db0502a008ce0'
+      material_off: 'PLAYER_HEAD'
+      player_head_off: 'http://textures.minecraft.net/texture/e4268b99d2f655a830aba07f9efdf720c815a5dedcdf8a94533cd17515edf961'
+
       name: '<gradient:#00c6ff:#0072ff><bold>Player Glowing</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Toggle glowing effect on</color>'
@@ -114,7 +123,8 @@ menu:
 
     walk-speed:
       slot: 29
-      material: 'LEATHER_BOOTS'
+      material: 'PLAYER_HEAD'
+      player_head: 'http://textures.minecraft.net/texture/8c7dc49610c03416c5c53e334d64eb975a820de2bf37f05533f55cccef1fb864'
       name: '<gradient:#00c6ff:#0072ff><bold>Walk Speed</bold></gradient>'
       lore:
         - '<color:#b0b0b0>Adjust your walking speed.</color>'
