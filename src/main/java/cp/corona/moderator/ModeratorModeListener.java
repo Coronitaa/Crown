@@ -97,12 +97,6 @@ public class ModeratorModeListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-
-        // Track moderator session end
-        if (player.hasPermission("crown.mod.use")) {
-            plugin.getSoftBanDatabaseManager().logSessionEnd(player.getUniqueId());
-        }
-
         Component originalQuitMessage = event.quitMessage();
         plugin.getModeratorModeManager().cacheQuitMessage(player.getUniqueId(), originalQuitMessage);
         if (plugin.getModeratorModeManager().isSilent(player.getUniqueId())) {
@@ -116,11 +110,6 @@ public class ModeratorModeListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         
-        // Track moderator session
-        if (player.hasPermission("crown.mod.use")) {
-            plugin.getSoftBanDatabaseManager().logSessionStart(player.getUniqueId());
-        }
-
         // Check for crash recovery first
         plugin.getModeratorModeManager().checkAndRestoreSession(player);
         

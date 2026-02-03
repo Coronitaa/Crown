@@ -87,11 +87,3 @@ commands:
 # Logging configurations.
 logging:
   debug: false # Set to true for detailed console output for troubleshooting.
-
-# Web Manager configurations.
-web-manager:
-  enabled: true
-  port: 8080
-  token: "secret" # Authorization token (Bearer token)
-  # Public address for the /crown web command link
-  host: "localhost"

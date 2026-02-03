@@ -38,39 +38,6 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <relocations>
-                                <relocation>
-                                    <pattern>org.eclipse.jetty</pattern>
-                                    <shadedPattern>cp.corona.lib.jetty</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.fasterxml.jackson</pattern>
-                                    <shadedPattern>cp.corona.lib.jackson</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.zaxxer.hikari</pattern>
-                                    <shadedPattern>cp.corona.lib.hikari</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>jakarta.servlet</pattern>
-                                    <shadedPattern>cp.corona.lib.jakarta.servlet</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.slf4j.simple</pattern>
-                                    <shadedPattern>cp.corona.lib.slf4j.simple</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.jetbrains.annotations</pattern>
-                                    <shadedPattern>cp.corona.lib.annotations</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.intellij.lang.annotations</pattern>
-                                    <shadedPattern>cp.corona.lib.intellij.annotations</shadedPattern>
-                                </relocation>
-                            </relocations>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                            </transformers>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -78,7 +45,6 @@
                                         <exclude>META-INF/*.SF</exclude>
                                         <exclude>META-INF/*.DSA</exclude>
                                         <exclude>META-INF/*.RSA</exclude>
-                                        <exclude>META-INF/MANIFEST.MF</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
@@ -118,7 +84,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.1-R0.1-SNAPSHOT</version>
+            <version>1.21.11-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -132,21 +98,6 @@
             <artifactId>HikariCP</artifactId>
             <version>5.1.0</version>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.javalin</groupId>
-            <artifactId>javalin</artifactId>
-            <version>5.6.3</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.15.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>2.0.9</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
