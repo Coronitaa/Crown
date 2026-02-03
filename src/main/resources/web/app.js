@@ -57,54 +57,6 @@ function showToast(message, type = 'info', duration = 4000) {
     }, duration);
 }
 
-// Alert Banner System (inspired by LitebansU)
-function showAlert(title, message, type = 'info', details = null, duration = 6000) {
-    const container = document.getElementById('alert-container');
-    if (!container) return;
-
-    const alert = document.createElement('div');
-    alert.className = `alert-banner alert-${type}`;
-
-    const icons = {
-        success: 'check-circle',
-        error: 'alert-circle',
-        warning: 'alert-triangle',
-        info: 'info'
-    };
-
-    const detailsHtml = details ? `<div class="alert-details">${details}</div>` : '';
-
-    alert.innerHTML = `
-        <div class="alert-icon">
-            <i data-lucide="${icons[type] || icons.info}" class="w-5 h-5"></i>
-        </div>
-        <div class="alert-content">
-            <div class="alert-title">${title}</div>
-            <div class="alert-message">${message}</div>
-            ${detailsHtml}
-        </div>
-        <button class="alert-close" onclick="closeAlert(this)">
-            <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-    `;
-
-    container.appendChild(alert);
-    lucide.createIcons();
-
-    if (duration > 0) {
-        setTimeout(() => {
-            closeAlert(alert.querySelector('.alert-close'));
-        }, duration);
-    }
-}
-
-function closeAlert(btn) {
-    const alert = btn.closest('.alert-banner');
-    if (!alert) return;
-    alert.classList.add('closing');
-    setTimeout(() => alert.remove(), 300);
-}
-
 function updateAdminProfile() {
     const profileContainer = document.querySelector('.sidebar .p-4');
     if (profileContainer) {
@@ -273,7 +225,7 @@ async function renderPunishments() {
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">Punishment History</h2>
             <div class="flex space-x-2">
-                <button onclick="refreshPunishments()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-sm flex items-center space-x-2 transition">
+                <button onclick="renderPunishments()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-sm flex items-center space-x-2 transition">
                     <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                     <span>Refresh</span>
                 </button>
@@ -532,22 +484,7 @@ async function resolveReport(id, status) {
         body: JSON.stringify({ status, moderatorUuid: ADMIN_UUID })
     });
     if (result?.success) {
-        const statusLabel = status === 'RESOLVED' ? 'Resolved' : 'Rejected';
-        const alertType = status === 'RESOLVED' ? 'success' : 'warning';
-        showAlert(
-            `Report ${statusLabel}`,
-            `The report has been marked as ${statusLabel.toLowerCase()}.`,
-            alertType,
-            `<strong>Report ID:</strong> <code>${id}</code><br><strong>New Status:</strong> ${statusLabel}`
-        );
         renderReports();
-    } else {
-        showAlert(
-            'Failed to Update Report',
-            'The report status could not be updated. Please try again.',
-            'error',
-            `<strong>Report ID:</strong> <code>${id}</code>`
-        );
     }
 }
 
@@ -647,24 +584,10 @@ function openNewPunishmentModal() {
 
         if (result?.success) {
             closeModal();
-            const durationText = body.duration ? body.duration : 'Permanent';
-            showAlert(
-                'Punishment Executed Successfully',
-                `A ${result.type.toUpperCase()} has been applied to the player.`,
-                'success',
-                `<strong>Target:</strong> <code>${result.target}</code><br>
-                 <strong>Type:</strong> <code>${result.type.toUpperCase()}</code><br>
-                 <strong>Reason:</strong> ${body.reason}<br>
-                 <strong>Duration:</strong> ${durationText}${body.byIp ? '<br><strong>Method:</strong> IP Ban' : ''}`
-            );
+            showToast(`Punishment executed successfully: ${result.type.toUpperCase()} on ${result.target}`, 'success');
             renderPunishments();
         } else {
-            showAlert(
-                'Failed to Create Punishment',
-                result?.message || 'The punishment could not be applied. Please verify the player exists and try again.',
-                'error',
-                `<strong>Target:</strong> <code>${body.target}</code><br><strong>Type:</strong> ${body.type}`
-            );
+            showToast(result?.message || 'Failed to create punishment. Ensure player exists.', 'error');
         }
     };
 }
@@ -672,15 +595,4 @@ function openNewPunishmentModal() {
 async function renderModerators() {
     const content = document.getElementById('main-content');
     content.innerHTML = '<div class="card p-20 text-center"><p class="text-slate-500 text-lg">Moderator directory coming soon...</p></div>';
-}
-
-async function refreshPunishments() {
-    showAlert(
-        'Refreshing Data',
-        'Loading latest punishment records from the server...',
-        'info',
-        null,
-        2000
-    );
-    await renderPunishments();
 }
