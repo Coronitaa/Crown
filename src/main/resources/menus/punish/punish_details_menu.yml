@@ -31,7 +31,7 @@ menu:
   punish_details:
     # --- BAN MENU ---
     ban:
-      title: '<gradient:#ff416c:#ff4b2b><bold>Ban Details for <color:#ffffff>{target}</color></bold></gradient>'
+      title: '<gradient:#ff416c:#ff4b2b><bold>Ban Details for <color:#f88f20>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_BELL_USE:1.0:1.0'
       items:
@@ -146,7 +146,7 @@ menu:
 
     # --- MUTE MENU ---
     mute:
-      title: '<gradient:#f7971e:#ffd200><bold>Mute Details for <color:#ffffff>{target}</color></bold></gradient>'
+      title: '<gradient:#f7971e:#ffd200><bold>Mute Details for <color:#f88f20>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_HAT:1.0:0.6'
       items:
@@ -259,7 +259,7 @@ menu:
 
     # --- SOFTBAN MENU ---
     softban:
-      title: '<gradient:#00c6ff:#0072ff><bold>SoftBan Details for <color:#ffffff>{target}</color></bold></gradient>'
+      title: '<gradient:#00c6ff:#0072ff><bold>SoftBan Details for <color:#f88f20>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_BEEHIVE_WORK:1.0:1.0'
       items:
@@ -331,11 +331,6 @@ menu:
           lore:
             - '<color:#b0b0b0>Click to remove softban</color>'
             - '<color:#b0b0b0>from <color:#00c6ff>{target}</color>.</color>'
-            - ''
-            - '<color:#ffffff>Current Status:</color>'
-            - '{target_softban_status}'
-            - '<color:#ffffff>Remaining Time:</color>'
-            - '<color:#ffea00>{target_softban_remaining_time}</color>'
           left_click_actions:
             - 'UN_SOFTBAN:'
           right_click_actions:
@@ -377,7 +372,7 @@ menu:
 
     # --- KICK MENU ---
     kick:
-      title: '<gradient:#3a7bd5:#3a6073><bold>Kick Details for <color:#ffffff>{target}</color></bold></gradient>'
+      title: '<gradient:#3a7bd5:#3a6073><bold>Kick Details for <color:#f88f20>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_WOODEN_DOOR_OPEN:1.0:1.0'
       items:
@@ -454,7 +449,7 @@ menu:
 
     # --- WARN MENU ---
     warn:
-      title: '<gradient:#f12711:#f5af19><bold>Warn Details for <color:#ffffff>{target}</color></bold></gradient>'
+      title: '<gradient:#f12711:#f5af19><bold>Warn Details for <color:#f88f20>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_NOTE_BLOCK_BASS:1.0:0.6'
       items:
@@ -553,7 +548,7 @@ menu:
 
     # --- FREEZE MENU ---
     freeze:
-      title: '<gradient:#8e2de2:#4a00e0><bold>Freeze Details for <color:#ffffff>{target}</color></bold></gradient>'
+      title: '<gradient:#8e2de2:#4a00e0><bold>Freeze Details for <color:#f88f20>{target}</color></bold></gradient>'
       open_actions:
         - 'PLAY_SOUND:BLOCK_AMETHYST_BLOCK_BREAK:1.0:0.6'
       items:

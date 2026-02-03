@@ -50,6 +50,7 @@ menu:
         - '<color:#b0b0b0>Duration: <color:#ffea00>{duration}</color></color>'
         - ''
         - '<color:#00e676>Click to check details.</color>'
+        - ''
       left_click_actions:
         - 'CLOSE_MENU'
         - 'PLAY_SOUND:UI_BUTTON_CLICK:1.0:1.2'
@@ -138,12 +139,12 @@ menu:
       lore:
         - "<color:#b0b0b0>Total and Active Punishments for <color:#00c6ff>{target}</color>:</color>"
         - ""
-        - "<color:#ff5555>Bans: <color:#ffea00>{ban_count}</color> <color:#00e676>({active_ban_count})</color></color>"
-        - "<color:#ffea00>Mutes: <color:#ffea00>{mute_count}</color> <color:#00e676>({active_mute_count})</color></color>"
-        - "<color:#3a7bd5>Kicks: <color:#ffea00>{kick_count}</color> <color:#00e676>({active_kick_count})</color></color>"
-        - "<color:#00c6ff>Softbans: <color:#ffea00>{softban_count}</color> <color:#00e676>({active_softban_count})</color></color>"
-        - "<color:#f5af19>Warns: <color:#ffea00>{warn_count}</color> <color:#00e676>({active_warn_count})</color></color>"
-        - "<color:#8e2de2>Freezes: <color:#ffea00>{freeze_count}</color> <color:#00e676>({active_freeze_count})</color></color>"
+        - "<color:#ff5555>Bans: <color:#ffea00>{ban_count}</color> <color:#00e676>(Active: {active_ban_count})</color></color>"
+        - "<color:#ffea00>Mutes: <color:#ffea00>{mute_count}</color> <color:#00e676>(Active: {active_mute_count})</color></color>"
+        - "<color:#3a7bd5>Kicks: <color:#ffea00>{kick_count}</color> <color:#00e676>(Active: {active_kick_count})</color></color>"
+        - "<color:#00c6ff>Softbans: <color:#ffea00>{softban_count}</color> <color:#00e676>(Active: {active_softban_count})</color></color>"
+        - "<color:#f5af19>Warns: <color:#ffea00>{warn_count}</color> <color:#00e676>(Active: {active_warn_count})</color></color>"
+        - "<color:#8e2de2>Freezes: <color:#ffea00>{freeze_count}</color> <color:#00e676>(Active: {active_freeze_count})</color></color>"
         - ""
 
     background_fill:

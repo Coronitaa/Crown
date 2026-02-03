@@ -68,6 +68,7 @@ menu:
         - '<color:#b0b0b0>IP: <color:#00c6ff>{target_ip}</color></color>'
         - '<color:#b0b0b0>Coords: <color:#00c6ff>{target_coords}</color></color>'
         - '<color:#b0b0b0>World: <color:#00c6ff>{target_world}</color></color>'
+        - '<color:#b0b0b0>UUID: <color:#00c6ff>{target_uuid}</color></color>'
         - ''
         - ''
         - '<color:#ffea00>Left-Click to change target.</color>'
@@ -168,12 +169,12 @@ menu:
         - '<color:#b0b0b0>history for <color:#00c6ff>{target}</color>.</color>'
         - ""
         - "<color:#b0b0b0>Punishment Summary:</color>"
-        - "<color:#ff5555> Bans: <color:#ffea00>{ban_count}</color></color>"
-        - "<color:#ffea00> Mutes: <color:#ffea00>{mute_count}</color></color>"
-        - "<color:#3a7bd5> Kicks: <color:#ffea00>{kick_count}</color></color>"
-        - "<color:#00c6ff> Softbans: <color:#ffea00>{softban_count}</color></color>"
-        - "<color:#f5af19> Warns: <color:#ffea00>{warn_count}</color></color>"
-        - "<color:#8e2de2> Freezes: <color:#ffea00>{freeze_count}</color></color>"
+        - "<color:#ff5555> Bans: <color:#ffea00>{ban_count}</color> <color:#00e676>(Active: {active_ban_count})</color></color>"
+        - "<color:#ffea00> Mutes: <color:#ffea00>{mute_count}</color> <color:#00e676>(Active: {active_mute_count})</color></color>"
+        - "<color:#3a7bd5> Kicks: <color:#ffea00>{kick_count}</color> <color:#00e676>(Active: {active_kick_count})</color></color>"
+        - "<color:#00c6ff> Softbans: <color:#ffea00>{softban_count}</color> <color:#00e676>(Active: {active_softban_count})</color></color>"
+        - "<color:#f5af19> Warns: <color:#ffea00>{warn_count}</color> <color:#00e676>(Active: {active_warn_count})</color></color>"
+        - "<color:#8e2de2> Freezes: <color:#ffea00>{freeze_count}</color> <color:#00e676>(Active: {active_freeze_count})</color></color>"
         - ""
 
       left_click_actions:

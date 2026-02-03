@@ -63,6 +63,7 @@ menu:
         - ''
         - '<color:#b0b0b0>Kills: <color:#00e676>{player_kills}</color></color>'
         - '<color:#b0b0b0>Deaths: <color:#ff1744>{deaths}</color></color>'
+        - '<color:#b0b0b0>UUID: <color:#00c6ff>{target_uuid}</color></color>'
         - ''
         - '<color:#ffea00>Left-Click to change target.</color>'
       left_click_actions:

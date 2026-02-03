@@ -780,6 +780,7 @@ public class MainConfigManager {
 
         text = text
                 .replace("{target}", targetName)
+                .replace("{target_uuid}", target.getUniqueId().toString())
                 .replace("{target_online}", target.isOnline() ? displayYes : displayNo)
                 .replace("{support_link}", getSupportLink());
 
