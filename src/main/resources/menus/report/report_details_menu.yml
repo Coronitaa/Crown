@@ -48,6 +48,30 @@ menu:
       left_click_actions:
         - 'OPEN_PROFILE_TARGET'
         -
+    
+    # --- Non-Player Target Items ---
+    # These items will be displayed instead of target_info when the report type is not PLAYER.
+    
+    clan_target_info:
+      material: 'SHIELD'
+      slot: 11
+      name: '<color:#ff5555>Clan Info: <color:#00c6ff>{target}</color></color>'
+      lore:
+        - '<color:#b0b0b0>Reported Clan: <color:#ffffff>{target}</color></color>'
+        - '<color:#b0b0b0>Category: <color:#ffffff>{category}</color></color>'
+      left_click_actions:
+        - 'NO_ACTION'
+
+    server_target_info:
+      material: 'COMMAND_BLOCK'
+      slot: 11
+      name: '<color:#ff5555>Server Report</color>'
+      lore:
+        - '<color:#b0b0b0>Issue Type: <color:#ffffff>{category}</color></color>'
+        - '<color:#b0b0b0>Target: <color:#ffffff>Server</color></color>'
+      left_click_actions:
+        - 'NO_ACTION'
+
     background_fill:
       material: 'GRAY_STAINED_GLASS_PANE'
       name: ' '

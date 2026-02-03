@@ -102,6 +102,7 @@ public class ReportDetailsMenu implements InventoryHolder {
         ReportStatus status = reportEntry.getStatus();
         boolean isAssignedToViewer = viewer.getUniqueId().equals(reportEntry.getModeratorUUID());
         boolean isClosed = (status == ReportStatus.RESOLVED || status == ReportStatus.REJECTED);
+        String reportType = reportEntry.getReportType();
 
         for (String key : plugin.getConfigManager().getReportDetailsMenuItemKeys()) {
             MenuItem itemConfig = plugin.getConfigManager().getReportDetailsMenuItemConfig(key);
@@ -120,9 +121,23 @@ public class ReportDetailsMenu implements InventoryHolder {
             if (key.equals("mark_as_pending_button") && status == ReportStatus.PENDING) {
                 continue;
             }
-            if ((key.equals("punish_target") || key.equals("target_info") || key.equals("target_summary")) && target == null) {
+            
+            // Target Info Logic
+            if (key.equals("target_info")) {
+                if (!"PLAYER".equalsIgnoreCase(reportType)) continue;
+            }
+            if (key.equals("clan_target_info")) {
+                if (!"CLAN".equalsIgnoreCase(reportType)) continue;
+            }
+            if (key.equals("server_target_info")) {
+                if (!"SERVER".equalsIgnoreCase(reportType)) continue;
+            }
+
+            // Target Summary & Punish Logic (Only for players)
+            if ((key.equals("target_summary") || key.equals("punish_target")) && !"PLAYER".equalsIgnoreCase(reportType)) {
                 continue;
             }
+
             if (key.equals("moderator_info") && moderator == null) {
                 continue;
             }
