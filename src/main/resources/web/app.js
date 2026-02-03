@@ -11,51 +11,7 @@ let currentPage = 'dashboard';
 document.addEventListener('DOMContentLoaded', () => {
     updateAdminProfile();
     showPage('dashboard');
-    createToastContainer();
 });
-
-// Toast Notification System
-function createToastContainer() {
-    if (!document.getElementById('toast-container')) {
-        const container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'fixed top-4 right-4 z-50 space-y-2';
-        document.body.appendChild(container);
-    }
-}
-
-function showToast(message, type = 'info', duration = 4000) {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-
-    const colors = {
-        success: 'bg-green-600 border-green-500',
-        error: 'bg-red-600 border-red-500',
-        warning: 'bg-yellow-600 border-yellow-500',
-        info: 'bg-blue-600 border-blue-500'
-    };
-
-    const icons = {
-        success: 'check-circle',
-        error: 'x-circle',
-        warning: 'alert-triangle',
-        info: 'info'
-    };
-
-    toast.className = `${colors[type]} border-l-4 p-4 rounded-lg shadow-lg flex items-center space-x-3 min-w-[300px] animate-slide-in`;
-    toast.innerHTML = `
-        <i data-lucide="${icons[type]}" class="w-5 h-5 text-white"></i>
-        <span class="text-white text-sm font-medium">${message}</span>
-    `;
-
-    container.appendChild(toast);
-    lucide.createIcons();
-
-    setTimeout(() => {
-        toast.classList.add('animate-fade-out');
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
-}
 
 function updateAdminProfile() {
     const profileContainer = document.querySelector('.sidebar .p-4');
@@ -250,7 +206,6 @@ async function renderPunishments() {
                         <th class="px-6 py-4">Reason</th>
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4">Duration</th>
-                        <th class="px-6 py-4">Method</th>
                         <th class="px-6 py-4">Moderator</th>
                         <th class="px-6 py-4">Date</th>
                         <th class="px-6 py-4 text-right">Action</th>
@@ -272,16 +227,11 @@ async function renderPunishments() {
                             </td>
                             <td class="px-6 py-4 text-sm text-slate-400 max-w-xs truncate">${p.reason}</td>
                             <td class="px-6 py-4">
-                                <span class="px-2 py-1 rounded text-[10px] font-bold ${getStatusColorForType(p.type, p.status, p.active)}">
-                                    ${getStatusForType(p.type, p.status, p.active)}
+                                <span class="px-2 py-1 rounded text-[10px] font-bold ${getStatusColor(p.status)}">
+                                    ${p.status || (p.active ? 'Active' : 'Removed')}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-slate-400">${p.durationString || 'N/A'}</td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${p.byIp ? 'bg-purple-500/20 text-purple-400' : 'bg-slate-500/20 text-slate-400'}">
-                                    ${p.byIp ? 'IP' : 'Local'}
-                                </span>
-                            </td>
                             <td class="px-6 py-4 text-sm">${p.punisherName}</td>
                             <td class="px-6 py-4 text-xs text-slate-500">${new Date(p.timestamp).toLocaleDateString()}</td>
                             <td class="px-6 py-4 text-right">
@@ -290,7 +240,7 @@ async function renderPunishments() {
                                 </button>
                             </td>
                         </tr>
-                    `).join('') || '<tr><td colspan="9" class="px-6 py-10 text-center text-slate-500">No punishments found</td></tr>'}
+                    `).join('') || '<tr><td colspan="8" class="px-6 py-10 text-center text-slate-500">No punishments found</td></tr>'}
                 </tbody>
             </table>
         </div>
@@ -316,25 +266,8 @@ function getStatusColor(status) {
         case 'active': return 'bg-green-500/20 text-green-500';
         case 'expired': return 'bg-gray-500/20 text-gray-400';
         case 'removed': return 'bg-red-500/20 text-red-500';
-        case 'n/a': return 'bg-slate-500/20 text-slate-400';
         default: return 'bg-slate-500/20 text-slate-400';
     }
-}
-
-function getStatusForType(type, status, active) {
-    const lowerType = type.toLowerCase();
-    if (lowerType === 'kick' || lowerType === 'freeze') {
-        return 'N/A';
-    }
-    return status || (active ? 'Active' : 'Removed');
-}
-
-function getStatusColorForType(type, status, active) {
-    const lowerType = type.toLowerCase();
-    if (lowerType === 'kick' || lowerType === 'freeze') {
-        return 'bg-slate-500/20 text-slate-400';
-    }
-    return getStatusColor(status || (active ? 'active' : 'removed'));
 }
 
 async function renderReports() {
@@ -403,7 +336,7 @@ async function viewPunishmentDetails(id) {
                 <div class="text-center">
                     <p class="text-xs font-bold text-red-500 uppercase mb-2 tracking-widest">Target</p>
                     <img src="https://mc-heads.net/body/${p.playerUUID}/200" class="h-64 object-contain mb-2 drop-shadow-2xl">
-                    <p class="font-bold text-lg">${p.playerName || 'Unknown'}</p>
+                    <p class="font-bold text-lg">Target Player</p>
                 </div>
                 <div class="w-full h-px bg-slate-700 my-4"></div>
                 <div class="text-center">
@@ -441,7 +374,7 @@ async function viewPunishmentDetails(id) {
                     </div>
                     <div class="card p-4 rounded-xl bg-slate-800/30">
                         <p class="text-xs text-slate-500 uppercase font-bold mb-1">Status</p>
-                        <p class="text-sm font-medium ${getStatusColorForType(p.type, p.status, p.active).replace('/20', '')}">${getStatusForType(p.type, p.status, p.active)}</p>
+                        <p class="text-sm font-medium ${p.active ? 'text-green-500' : 'text-red-500'}">${p.active ? 'Active' : 'Expired/Removed'}</p>
                     </div>
                 </div>
 
@@ -511,7 +444,7 @@ function openNewPunishmentModal() {
                             <option value="freeze">Freeze</option>
                         </select>
                     </div>
-                    <div id="duration-container">
+                    <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Duration</label>
                         <input type="text" id="p-duration" placeholder="e.g. 1d, 2h, perm" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm outline-none">
                     </div>
@@ -520,7 +453,7 @@ function openNewPunishmentModal() {
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Reason</label>
                     <textarea id="p-reason" rows="3" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm outline-none"></textarea>
                 </div>
-                <div id="byip-container" class="flex items-center space-x-2">
+                <div class="flex items-center space-x-2">
                     <input type="checkbox" id="p-byip" class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-orange-500 focus:ring-orange-500">
                     <label for="p-byip" class="text-sm text-slate-400">Apply to IP Address</label>
                 </div>
@@ -533,47 +466,14 @@ function openNewPunishmentModal() {
     `;
     lucide.createIcons();
 
-    // Type change listener to enable/disable fields
-    const typeSelect = document.getElementById('p-type');
-    const durationInput = document.getElementById('p-duration');
-    const durationContainer = document.getElementById('duration-container');
-    const byIpCheckbox = document.getElementById('p-byip');
-    const byIpContainer = document.getElementById('byip-container');
-
-    function updateFieldStates() {
-        const type = typeSelect.value.toLowerCase();
-        const noDuration = ['kick', 'freeze', 'warn'].includes(type);
-        const noByIp = ['freeze', 'warn'].includes(type);
-
-        durationInput.disabled = noDuration;
-        durationInput.value = noDuration ? '' : durationInput.value;
-        durationContainer.classList.toggle('opacity-50', noDuration);
-        if (noDuration) {
-            durationInput.placeholder = 'N/A for this type';
-        } else {
-            durationInput.placeholder = 'e.g. 1d, 2h, perm';
-        }
-
-        byIpCheckbox.disabled = noByIp;
-        byIpCheckbox.checked = noByIp ? false : byIpCheckbox.checked;
-        byIpContainer.classList.toggle('opacity-50', noByIp);
-    }
-
-    typeSelect.addEventListener('change', updateFieldStates);
-    updateFieldStates(); // Initial state
-
     document.getElementById('punishment-form').onsubmit = async (e) => {
         e.preventDefault();
-        const type = document.getElementById('p-type').value;
-        const noDuration = ['kick', 'freeze', 'warn'].includes(type.toLowerCase());
-        const noByIp = ['freeze', 'warn'].includes(type.toLowerCase());
-
         const body = {
             target: document.getElementById('p-target').value,
-            type: type,
+            type: document.getElementById('p-type').value,
             reason: document.getElementById('p-reason').value,
-            duration: noDuration ? '' : document.getElementById('p-duration').value,
-            byIp: noByIp ? false : document.getElementById('p-byip').checked,
+            duration: document.getElementById('p-duration').value,
+            byIp: document.getElementById('p-byip').checked,
             adminName: ADMIN_NAME
         };
 
@@ -582,12 +482,11 @@ function openNewPunishmentModal() {
             body: JSON.stringify(body)
         });
 
-        if (result?.success) {
+        if (result?.id) {
             closeModal();
-            showToast(`Punishment executed successfully: ${result.type.toUpperCase()} on ${result.target}`, 'success');
-            renderPunishments();
+            showPage('punishments');
         } else {
-            showToast(result?.message || 'Failed to create punishment. Ensure player exists.', 'error');
+            alert('Failed to create punishment. Ensure player exists and you have permission.');
         }
     };
 }

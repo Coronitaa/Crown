@@ -51,8 +51,7 @@ public class CrownWebServer {
 
             app.start(port);
             plugin.getLogger().info("Web Manager started on port " + port);
-            Bukkit.getConsoleSender()
-                    .sendMessage("§a[CROWN] Web Manager is available at: §bhttp://" + host + ":" + port);
+            Bukkit.getConsoleSender().sendMessage("§a[CROWN] Web Manager is available at: §bhttp://" + host + ":" + port);
         } catch (Throwable t) {
             plugin.getLogger().log(Level.SEVERE, "Could not start Web Manager: " + t.getMessage(), t);
         }
@@ -82,11 +81,11 @@ public class CrownWebServer {
                 ctx.status(404).result("Punishment not found");
                 return;
             }
-
+            
             Map<String, Object> details = new HashMap<>();
             details.put("punishment", entry);
             details.put("playerInfo", plugin.getSoftBanDatabaseManager().getPlayerInfo(id));
-
+            
             ctx.json(details);
         });
 
@@ -96,27 +95,23 @@ public class CrownWebServer {
         app.get("/api/moderators", ctx -> {
             // This is a bit tricky, maybe get from preferences table
             // For now, let's just return a placeholder or implement it properly
-            ctx.json(new String[] { "Implement listing" });
+            ctx.json(new String[]{"Implement listing"});
         });
 
         app.get("/api/moderators/{uuid}", ctx -> {
             UUID uuid = UUID.fromString(ctx.pathParam("uuid"));
             Map<String, Object> stats = new HashMap<>();
-
-            CompletableFuture<List<DatabaseManager.ModeratorSession>> sessionsFuture = plugin
-                    .getSoftBanDatabaseManager().getModeratorSessions(uuid);
-            CompletableFuture<List<DatabaseManager.AuditLogEntry>> logsFuture = plugin.getSoftBanDatabaseManager()
-                    .getModeratorAuditLogs(uuid);
-            CompletableFuture<List<DatabaseManager.PunishmentEntry>> punishmentsFuture = plugin
-                    .getSoftBanDatabaseManager().getAllPunishments(100, null, null, uuid.toString());
+            
+            CompletableFuture<List<DatabaseManager.ModeratorSession>> sessionsFuture = plugin.getSoftBanDatabaseManager().getModeratorSessions(uuid);
+            CompletableFuture<List<DatabaseManager.AuditLogEntry>> logsFuture = plugin.getSoftBanDatabaseManager().getModeratorAuditLogs(uuid);
+            CompletableFuture<List<DatabaseManager.PunishmentEntry>> punishmentsFuture = plugin.getSoftBanDatabaseManager().getAllPunishments(100, null, null, uuid.toString());
 
             stats.put("sessions", sessionsFuture.join());
             stats.put("auditLogs", logsFuture.join());
             stats.put("punishments", punishmentsFuture.join());
-
+            
             // Calculate playtime average
-            List<DatabaseManager.ModeratorSession> sessions = (List<DatabaseManager.ModeratorSession>) stats
-                    .get("sessions");
+            List<DatabaseManager.ModeratorSession> sessions = (List<DatabaseManager.ModeratorSession>) stats.get("sessions");
             long totalPlaytime = 0;
             int count = 0;
             for (DatabaseManager.ModeratorSession s : sessions) {
@@ -126,14 +121,14 @@ public class CrownWebServer {
                 }
             }
             stats.put("averagePlaytime", count > 0 ? totalPlaytime / count : 0);
-            stats.put("totalPunishments", ((List<?>) stats.get("punishments")).size());
+            stats.put("totalPunishments", ((List<?>)stats.get("punishments")).size());
 
             ctx.json(stats);
         });
-
+        
         app.get("/api/moderators/{uuid}/locker", ctx -> {
-            UUID uuid = UUID.fromString(ctx.pathParam("uuid"));
-            ctx.json(plugin.getSoftBanDatabaseManager().getConfiscatedItems(uuid, 1, 100).join());
+             UUID uuid = UUID.fromString(ctx.pathParam("uuid"));
+             ctx.json(plugin.getSoftBanDatabaseManager().getConfiscatedItems(uuid, 1, 100).join());
         });
 
         // Reports
@@ -148,12 +143,10 @@ public class CrownWebServer {
             if (status != null && !status.isEmpty()) {
                 try {
                     filterStatus = cp.corona.report.ReportStatus.valueOf(status.toUpperCase());
-                } catch (IllegalArgumentException ignored) {
-                }
+                } catch (IllegalArgumentException ignored) {}
             }
 
-            ctx.json(plugin.getSoftBanDatabaseManager().getReports(page, limit, filterStatus, target, false, null, type)
-                    .join());
+            ctx.json(plugin.getSoftBanDatabaseManager().getReports(page, limit, filterStatus, target, false, null, type).join());
         });
 
         app.get("/api/reports/{id}", ctx -> {
@@ -164,12 +157,11 @@ public class CrownWebServer {
             Map<String, String> body = ctx.bodyAsClass(Map.class);
             String statusStr = body.get("status");
             String moderatorUuidStr = body.get("moderatorUuid");
-
+            
             cp.corona.report.ReportStatus status = cp.corona.report.ReportStatus.valueOf(statusStr.toUpperCase());
             UUID moderatorUuid = moderatorUuidStr != null ? UUID.fromString(moderatorUuidStr) : null;
-
-            ctx.json(Map.of("success", plugin.getSoftBanDatabaseManager()
-                    .updateReportStatus(ctx.pathParam("id"), status, moderatorUuid).join()));
+            
+            ctx.json(Map.of("success", plugin.getSoftBanDatabaseManager().updateReportStatus(ctx.pathParam("id"), status, moderatorUuid).join()));
         });
 
         // Stats for dashboard
@@ -204,33 +196,14 @@ public class CrownWebServer {
                 type,
                 duration,
                 reason,
-                byIp).thenAccept(id -> {
-                    if (id != null) {
-                        plugin.getLogger().info("[WebManager] Punishment created successfully: ID=" + id + ", Type="
-                                + type + ", Target=" + targetName + ", By=" + adminName);
-                        ctx.status(201).json(Map.of(
-                                "success", true,
-                                "id", id,
-                                "message", "Punishment created successfully",
-                                "type", type,
-                                "target", targetName));
-                    } else {
-                        plugin.getLogger()
-                                .warning("[WebManager] Failed to create punishment: Type=" + type + ", Target="
-                                        + targetName + ", By=" + adminName + " (target may have bypass or invalid)");
-                        ctx.status(400).json(Map.of(
-                                "success", false,
-                                "message",
-                                "Failed to create punishment. Target may have bypass permission or be invalid."));
-                    }
-                }).exceptionally(ex -> {
-                    plugin.getLogger().severe("[WebManager] Error creating punishment: Type=" + type + ", Target="
-                            + targetName + ", Error=" + ex.getMessage());
-                    ctx.status(500).json(Map.of(
-                            "success", false,
-                            "message", "Server error: " + ex.getMessage()));
-                    return null;
-                });
+                byIp
+        ).thenAccept(id -> {
+            if (id != null) {
+                ctx.status(201).json(Map.of("id", id));
+            } else {
+                ctx.status(500).result("Failed to create punishment or target bypassed");
+            }
+        });
     }
 
     private static class WebAdminSender implements org.bukkit.command.CommandSender {
@@ -240,104 +213,26 @@ public class CrownWebServer {
             this.name = name;
         }
 
-        @Override
-        public void sendMessage(String message) {
-        }
-
-        @Override
-        public void sendMessage(String[] messages) {
-        }
-
-        @Override
-        public void sendMessage(UUID uuid, String s) {
-        }
-
-        @Override
-        public void sendMessage(UUID uuid, String[] strings) {
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public org.bukkit.command.CommandSender.Spigot spigot() {
-            return null;
-        }
-
-        @Override
-        public net.kyori.adventure.text.Component name() {
-            return net.kyori.adventure.text.Component.text(name);
-        }
-
-        @Override
-        public boolean isPermissionSet(String name) {
-            return true;
-        }
-
-        @Override
-        public boolean isPermissionSet(org.bukkit.permissions.Permission perm) {
-            return true;
-        }
-
-        @Override
-        public boolean hasPermission(String name) {
-            return true;
-        }
-
-        @Override
-        public boolean hasPermission(org.bukkit.permissions.Permission perm) {
-            return true;
-        }
-
-        @Override
-        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, String name,
-                boolean value) {
-            return null;
-        }
-
-        @Override
-        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin) {
-            return null;
-        }
-
-        @Override
-        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, String name,
-                boolean value, int ticks) {
-            return null;
-        }
-
-        @Override
-        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, int ticks) {
-            return null;
-        }
-
-        @Override
-        public void removeAttachment(org.bukkit.permissions.PermissionAttachment attachment) {
-        }
-
-        @Override
-        public void recalculatePermissions() {
-        }
-
-        @Override
-        public java.util.Set<org.bukkit.permissions.PermissionAttachmentInfo> getEffectivePermissions() {
-            return java.util.Collections.emptySet();
-        }
-
-        @Override
-        public boolean isOp() {
-            return true;
-        }
-
-        @Override
-        public void setOp(boolean value) {
-        }
-
-        @Override
-        public org.bukkit.Server getServer() {
-            return org.bukkit.Bukkit.getServer();
-        }
+        @Override public void sendMessage(String message) {}
+        @Override public void sendMessage(String[] messages) {}
+        @Override public void sendMessage(UUID uuid, String s) {}
+        @Override public void sendMessage(UUID uuid, String[] strings) {}
+        @Override public String getName() { return name; }
+        @Override public org.bukkit.command.CommandSender.Spigot spigot() { return null; }
+        @Override public net.kyori.adventure.text.Component name() { return net.kyori.adventure.text.Component.text(name); }
+        @Override public boolean isPermissionSet(String name) { return true; }
+        @Override public boolean isPermissionSet(org.bukkit.permissions.Permission perm) { return true; }
+        @Override public boolean hasPermission(String name) { return true; }
+        @Override public boolean hasPermission(org.bukkit.permissions.Permission perm) { return true; }
+        @Override public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, String name, boolean value) { return null; }
+        @Override public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin) { return null; }
+        @Override public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, String name, boolean value, int ticks) { return null; }
+        @Override public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, int ticks) { return null; }
+        @Override public void removeAttachment(org.bukkit.permissions.PermissionAttachment attachment) {}
+        @Override public void recalculatePermissions() {}
+        @Override public java.util.Set<org.bukkit.permissions.PermissionAttachmentInfo> getEffectivePermissions() { return java.util.Collections.emptySet(); }
+        @Override public boolean isOp() { return true; }
+        @Override public void setOp(boolean value) {}
+        @Override public org.bukkit.Server getServer() { return org.bukkit.Bukkit.getServer(); }
     }
 }
