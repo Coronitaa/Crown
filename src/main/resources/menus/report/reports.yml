@@ -79,6 +79,15 @@ report-menu:
         - text: "<color:#00c6ff>X-Ray / Resource Cheats</color>"
           hover: "<color:#b0b0b0>Seeing through blocks to find resources.</color>"
           action: "SELECT_REASON:X-Ray"
+        - text: "<color:#00c6ff>Auto Clicker / Macro</color>"
+          hover: "<color:#b0b0b0>Using external software to click automatically.</color>"
+          action: "SELECT_REASON:Auto Clicker"
+        - text: "<color:#00c6ff>Reach / Hitbox</color>"
+          hover: "<color:#b0b0b0>Hitting players from impossible distances.</color>"
+          action: "SELECT_REASON:Reach / Hitbox"
+        - text: "<color:#00c6ff>NoFall / AntiKnockback</color>"
+          hover: "<color:#b0b0b0>Taking no fall damage or knockback.</color>"
+          action: "SELECT_REASON:NoFall / AntiKnockback"
 
     verbal_reasons:
       title: "<color:#ff9100><bold>Bad Behavior</bold></color>"
@@ -92,6 +101,12 @@ report-menu:
         - text: "<color:#00c6ff>Inappropriate Content</color>"
           hover: "<color:#b0b0b0>Links, language, or topics that are not allowed.</color>"
           action: "SELECT_REASON:Inappropriate Content"
+        - text: "<color:#00c6ff>Discrimination / Hate Speech</color>"
+          hover: "<color:#b0b0b0>Racism, sexism, or other forms of hate speech.</color>"
+          action: "SELECT_REASON:Hate Speech"
+        - text: "<color:#00c6ff>Advertising</color>"
+          hover: "<color:#b0b0b0>Promoting other servers or websites.</color>"
+          action: "SELECT_REASON:Advertising"
 
     abusive_reasons:
       title: "<color:#ffea00><bold>Abusive Gameplay</bold></color>"
@@ -105,6 +120,52 @@ report-menu:
         - text: "<color:#00c6ff>Spawnkilling / Trapping</color>"
           hover: "<color:#b0b0b0>Repeatedly killing a player at their spawn or trapping them.</color>"
           action: "SELECT_REASON:Trapping"
+        - text: "<color:#00c6ff>Teaming in Solo Modes</color>"
+          hover: "<color:#b0b0b0>Working with other players in solo game modes.</color>"
+          action: "SELECT_REASON:Teaming"
+        - text: "<color:#00c6ff>Bug Exploiting</color>"
+          hover: "<color:#b0b0b0>Abusing server bugs for personal gain.</color>"
+          action: "SELECT_REASON:Bug Exploiting"
+
+    # --- Clan-Related Categories & Reasons ---
+    clan_categories:
+      title: "<color:#00c6ff><bold>Select a Clan Category</bold></color>"
+      options:
+        - text: "<color:#ff5555>Clan Misconduct</color>"
+          hover: "<color:#b0b0b0>Inappropriate clan behavior.</color>"
+          action: "GOTO:clan_misconduct_reasons;SET_CATEGORY:Clan Misconduct"
+        - text: "<color:#ff9100>Clan Name/Tag</color>"
+          hover: "<color:#b0b0b0>Inappropriate clan name or tag.</color>"
+          action: "GOTO:clan_name_reasons;SET_CATEGORY:Clan Name/Tag"
+        - text: "<color:#d500f9>Other</color>"
+          hover: "<color:#b0b0b0>If none of the above fit.</color>"
+          action: "REQUEST_INPUT:CUSTOM_REASON"
+
+    clan_misconduct_reasons:
+      title: "<color:#ff5555><bold>Clan Misconduct</bold></color>"
+      options:
+        - text: "<color:#00c6ff>Mass Teaming / Cross-Teaming</color>"
+          hover: "<color:#b0b0b0>Clans teaming up illegally.</color>"
+          action: "SELECT_REASON:Mass Teaming"
+        - text: "<color:#00c6ff>Targeting / Harassment</color>"
+          hover: "<color:#b0b0b0>Clan targeting specific players.</color>"
+          action: "SELECT_REASON:Clan Targeting"
+        - text: "<color:#00c6ff>Boosting</color>"
+          hover: "<color:#b0b0b0>Using alts or other means to boost clan stats.</color>"
+          action: "SELECT_REASON:Clan Boosting"
+
+    clan_name_reasons:
+      title: "<color:#ff9100><bold>Clan Name/Tag Issues</bold></color>"
+      options:
+        - text: "<color:#00c6ff>Inappropriate Name</color>"
+          hover: "<color:#b0b0b0>Offensive or disallowed clan name.</color>"
+          action: "SELECT_REASON:Inappropriate Clan Name"
+        - text: "<color:#00c6ff>Inappropriate Tag</color>"
+          hover: "<color:#b0b0b0>Offensive or disallowed clan tag.</color>"
+          action: "SELECT_REASON:Inappropriate Clan Tag"
+        - text: "<color:#00c6ff>Impersonation</color>"
+          hover: "<color:#b0b0b0>Impersonating staff or another clan.</color>"
+          action: "SELECT_REASON:Clan Impersonation"
 
     # --- Server-Related Categories & Reasons ---
     server_categories:
@@ -126,6 +187,12 @@ report-menu:
         - text: "<color:#00c6ff>Map Exploit</color>"
           hover: "<color:#b0b0b0>Getting into areas you shouldn't be able to.</color>"
           action: "SELECT_REASON:Map Exploit"
+        - text: "<color:#00c6ff>Plugin Error</color>"
+          hover: "<color:#b0b0b0>A plugin is not working as intended.</color>"
+          action: "SELECT_REASON:Plugin Error"
+        - text: "<color:#00c6ff>Visual Glitch</color>"
+          hover: "<color:#b0b0b0>Textures or blocks looking wrong.</color>"
+          action: "SELECT_REASON:Visual Glitch"
 
     performance_reasons:
       title: "<color:#8e2de2><bold>Server Performance</bold></color>"
@@ -136,3 +203,9 @@ report-menu:
         - text: "<color:#00c6ff>Server Crash</color>"
           hover: "<color:#b0b0b0>An action that crashed the server.</color>"
           action: "SELECT_REASON:Server Crash"
+        - text: "<color:#00c6ff>TPS Drop</color>"
+          hover: "<color:#b0b0b0>Server running slowly.</color>"
+          action: "SELECT_REASON:TPS Drop"
+        - text: "<color:#00c6ff>Connection Issues</color>"
+          hover: "<color:#b0b0b0>Frequent disconnects or high ping.</color>"
+          action: "SELECT_REASON:Connection Issues"
