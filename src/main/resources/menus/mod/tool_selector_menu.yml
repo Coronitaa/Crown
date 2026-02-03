@@ -3,10 +3,6 @@
 # Configuration for the tool selection GUI.
 # Access: /mod tools or via the Tool Selector item.
 
-# --- Available Click Actions ---
-# - EQUIP_TOOL:<tool_id> (Equips the specified tool)
-# - CLOSE_MENU (Closes the menu)
-
 # --- Player Interactions ---
 # - Left-Click: Equip tool.
 # - Right-Click: Favorite/Unfavorite tool (if applicable).
@@ -28,9 +24,6 @@ menu:
       lore:
         - '<color:#b0b0b0>The essential tool for targeting.</color>'
         - '<color:#757575>(Cannot be removed or favorited)</color>'
-      left_click_actions:
-        - 'EQUIP_TOOL:player_selector_tool'
-        - 'CLOSE_MENU'
 
     vanish-tool:
       tool-id: 'vanish_spectator_tool'
@@ -42,9 +35,6 @@ menu:
         - ''
         - '<color:#ffea00>Shift+R-Click: <color:#ffffff>Toggle Vanish</color></color>'
         - '<color:#ffea00>R-Click: <color:#ffffff>Enter/Exit Spectator</color></color>'
-      left_click_actions:
-        - 'EQUIP_TOOL:vanish_spectator_tool'
-        - 'CLOSE_MENU'
 
     settings-tool:
       tool-id: 'settings_tool'
@@ -55,9 +45,6 @@ menu:
         - '<color:#b0b0b0>Access your personal configurations.</color>'
         - ''
         - '<color:#ffea00>R-Click: <color:#ffffff>Open Settings Menu</color></color>'
-      left_click_actions:
-        - 'EQUIP_TOOL:settings_tool'
-        - 'CLOSE_MENU'
 
     freeze-tool:
       tool-id: 'freeze_player_tool'
@@ -70,9 +57,6 @@ menu:
         - '<color:#ffea00>L-Click on Player: <color:#ffffff>Unfreeze</color></color>'
         - '<color:#ffea00>R-Click on Player: <color:#ffffff>Freeze</color></color>'
         - '<color:#ffea00>L/R-Click in Air: <color:#ffffff>Act on selected/looked-at player</color></color>'
-      left_click_actions:
-        - 'EQUIP_TOOL:freeze_player_tool'
-        - 'CLOSE_MENU'
 
     invsee-tool:
       tool-id: 'invsee_tool'
@@ -84,9 +68,6 @@ menu:
         - ''
         - '<color:#ffea00>R-Click on Player: <color:#ffffff>Open Profile</color></color>'
         - '<color:#ffea00>R-Click in Air: <color:#ffffff>Open profile of selected player</color></color>'
-      left_click_actions:
-        - 'EQUIP_TOOL:invsee_tool'
-        - 'CLOSE_MENU'
 
     teleport-tool:
       tool-id: 'teleport_tool'
@@ -98,9 +79,6 @@ menu:
         - ''
         - '<color:#ffea00>L-Click: <color:#ffffff>Teleport to surface</color></color>'
         - '<color:#ffea00>R-Click: <color:#ffffff>Boost forward</color></color>'
-      left_click_actions:
-        - 'EQUIP_TOOL:teleport_tool'
-        - 'CLOSE_MENU'
 
     random-tp-tool:
       tool-id: 'random_tp_tool'
@@ -112,6 +90,3 @@ menu:
         - ''
         - '<color:#ffea00>R-Click: <color:#ffffff>TP to selected player (or random)</color></color>'
         - '<color:#ffea00>Shift+R-Click: <color:#ffffff>TP to a random player</color></color>'
-      left_click_actions:
-        - 'EQUIP_TOOL:random_tp_tool'
-        - 'CLOSE_MENU'

@@ -3,13 +3,6 @@
 # Configuration for the personal settings GUI
 # Access: /mod settings or via the Settings Tool.
 
-# --- Available Click Actions ---
-# - TOGGLE_SETTING:<setting> (Toggles a boolean setting)
-# - ADJUST_SPEED:<walk|fly>:<amount> (Adjusts walk or fly speed)
-# - RESET_SPEED:<walk|fly> (Resets speed to default)
-# - ADJUST_JUMP:<amount> (Adjusts jump boost multiplier)
-# - RESET_JUMP (Resets jump boost to default)
-
 # Supported settings for "TOGGLE_SETTING":
 # - interactions: Toggles physical interactions.
 # - container-spy: Toggles silent container inspection.
@@ -52,8 +45,6 @@ menu:
         - '<color:#b0b0b0>Status: {status}</color>'
         - ''
         - '<color:#ffea00>Click to toggle.</color>'
-      left_click_actions:
-        - 'TOGGLE_SETTING:interactions'
 
     fly:
       slot: 12
@@ -67,8 +58,6 @@ menu:
         - '<color:#b0b0b0>Status: {status}</color>'
         - ''
         - '<color:#ffea00>Click to toggle.</color>'
-      left_click_actions:
-        - 'TOGGLE_SETTING:fly'
 
     container-spy:
       slot: 14
@@ -82,8 +71,6 @@ menu:
         - '<color:#b0b0b0>Status: {status}</color>'
         - ''
         - '<color:#ffea00>Click to toggle.</color>'
-      left_click_actions:
-        - 'TOGGLE_SETTING:container_spy'
 
     mod-on-join:
       slot: 16
@@ -97,8 +84,6 @@ menu:
         - '<color:#b0b0b0>Status: {status}</color>'
         - ''
         - '<color:#ffea00>Click to toggle.</color>'
-      left_click_actions:
-        - 'TOGGLE_SETTING:mod_on_join'
 
     silent:
       slot: 22
@@ -113,8 +98,6 @@ menu:
         - '<color:#b0b0b0>Status: {status}</color>'
         - ''
         - '<color:#ffea00>Click to toggle.</color>'
-      left_click_actions:
-        - 'TOGGLE_SETTING:silent'
 
     glowing:
       slot: 24
@@ -128,8 +111,6 @@ menu:
         - '<color:#b0b0b0>Status: {status}</color>'
         - ''
         - '<color:#ffea00>Click to toggle.</color>'
-      left_click_actions:
-        - 'TOGGLE_SETTING:glowing'
 
     walk-speed:
       slot: 29
@@ -143,12 +124,6 @@ menu:
         - '<color:#ffea00>L-Click: <color:#00e676>+0.25</color></color>'
         - '<color:#ffea00>R-Click: <color:#ff1744>-0.25</color></color>'
         - '<color:#ffea00>Shift+L-Click: <color:#ffffff>Reset</color></color>'
-      left_click_actions:
-        - 'ADJUST_SPEED:walk:0.25'
-      right_click_actions:
-        - 'ADJUST_SPEED:walk:-0.25'
-      shift_left_click_actions:
-        - 'RESET_SPEED:walk'
 
     fly-speed:
       slot: 30
@@ -162,12 +137,6 @@ menu:
         - '<color:#ffea00>L-Click: <color:#00e676>+0.25</color></color>'
         - '<color:#ffea00>R-Click: <color:#ff1744>-0.25</color></color>'
         - '<color:#ffea00>Shift+L-Click: <color:#ffffff>Reset</color></color>'
-      left_click_actions:
-        - 'ADJUST_SPEED:fly:0.25'
-      right_click_actions:
-        - 'ADJUST_SPEED:fly:-0.25'
-      shift_left_click_actions:
-        - 'RESET_SPEED:fly'
 
     jump-boost:
       slot: 32
@@ -181,12 +150,6 @@ menu:
         - '<color:#ffea00>L-Click: <color:#00e676>+0.50</color></color>'
         - '<color:#ffea00>R-Click: <color:#ff1744>-0.50</color></color>'
         - '<color:#ffea00>Shift+L-Click: <color:#ffffff>Reset</color></color>'
-      left_click_actions:
-        - 'ADJUST_JUMP:0.5'
-      right_click_actions:
-        - 'ADJUST_JUMP:-0.5'
-      shift_left_click_actions:
-        - 'RESET_JUMP'
 
     night-vision:
       slot: 33
@@ -199,5 +162,3 @@ menu:
         - '<color:#b0b0b0>Status: {status}</color>'
         - ''
         - '<color:#ffea00>Click to toggle.</color>'
-      left_click_actions:
-        - 'TOGGLE_SETTING:night_vision'

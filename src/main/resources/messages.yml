@@ -263,6 +263,7 @@ messages:
   mod_mode_player_not_found: '{prefix}<color:#ff5555>Player ''{target}'' not found.</color>'
   mod_mode_target_set: '{prefix}<gradient:#56ab2f:#a8e063>Mod mode enabled and target set to <color:#ffffff>{target}</color>.</gradient>'
   mod_mode_target_self_error: '{prefix}<color:#ff5555>You cannot target yourself.</color>'
+  mod_mode_target_disconnected: '{prefix}<color:#ff5555>Target <color:#ffea00>{target}</color> has disconnected.</color>'
 
   # Interaction Tool (New)
   mod_mode_interactions_enabled: '{prefix}<gradient:#56ab2f:#a8e063>Interactions enabled. You are now in Survival mode.</gradient>'
