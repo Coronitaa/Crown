@@ -56,6 +56,9 @@ menu:
       slot: 4
       name: '<color:#00c6ff><bold>{target}''s Profile</bold></color>'
       lore:
+        - '<color:#b0b0b0>UUID: <color:#00c6ff>{target_uuid}</color></color>'
+        - '<color:#b0b0b0>IP: <color:#00c6ff>{target_ip}</color></color>'
+        - ''
         - '<color:#b0b0b0>Level: <color:#ffea00>{xp_level}</color></color>'
         - '<color:#b0b0b0>Playtime: <color:#ffea00>{play_time}</color></color>'
         - '<color:#b0b0b0>Health: <color:#ff1744>{health}</color></color>'
@@ -63,7 +66,8 @@ menu:
         - ''
         - '<color:#b0b0b0>Kills: <color:#00e676>{player_kills}</color></color>'
         - '<color:#b0b0b0>Deaths: <color:#ff1744>{deaths}</color></color>'
-        - '<color:#b0b0b0>UUID: <color:#00c6ff>{target_uuid}</color></color>'
+        - '<color:#b0b0b0>World: <color:#00c6ff>{target_world}</color></color>'
+        - '<color:#b0b0b0>Coords: <color:#00c6ff>{target_coords}</color></color>'
         - ''
         - '<color:#ffea00>Left-Click to change target.</color>'
       left_click_actions:
