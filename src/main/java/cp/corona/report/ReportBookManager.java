@@ -10,6 +10,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
@@ -212,14 +213,7 @@ public class ReportBookManager {
         String collectedData = "";
         if (target.isOnline()) {
             Player onlineTarget = target.getPlayer();
-            collectedData = String.format("HP:%.1f, HUNGER:%d, XP:%d, LOC:%s %d,%d,%d",
-                    onlineTarget.getHealth(),
-                    onlineTarget.getFoodLevel(),
-                    onlineTarget.getLevel(),
-                    onlineTarget.getWorld().getName(),
-                    onlineTarget.getLocation().getBlockX(),
-                    onlineTarget.getLocation().getBlockY(),
-                    onlineTarget.getLocation().getBlockZ());
+            collectedData = collectPlayerData(onlineTarget);
         }
 
         plugin.getSoftBanDatabaseManager().createReport(
@@ -251,14 +245,7 @@ public class ReportBookManager {
             OfflinePlayer target = Bukkit.getOfflinePlayer(builder.targetUUID);
             if (target.isOnline()) {
                 Player onlineTarget = target.getPlayer();
-                collectedData = String.format("HP:%.1f, HUNGER:%d, XP:%d, LOC:%s %d,%d,%d",
-                        onlineTarget.getHealth(),
-                        onlineTarget.getFoodLevel(),
-                        onlineTarget.getLevel(),
-                        onlineTarget.getWorld().getName(),
-                        onlineTarget.getLocation().getBlockX(),
-                        onlineTarget.getLocation().getBlockY(),
-                        onlineTarget.getLocation().getBlockZ());
+                collectedData = collectPlayerData(onlineTarget);
             }
         }
 
@@ -278,6 +265,23 @@ public class ReportBookManager {
                 MessageUtils.sendConfigMessage(plugin, player, "messages.report_submit_failed");
             }
         });
+    }
+
+    private String collectPlayerData(Player player) {
+        return String.format("HP:%.1f, HUNGER:%d, XP:%d, LOC:%s %d,%d,%d, IP:%s, PING:%d, GM:%s, KILLS:%d, DEATHS:%d",
+                player.getHealth(),
+                player.getFoodLevel(),
+                player.getLevel(),
+                player.getWorld().getName(),
+                player.getLocation().getBlockX(),
+                player.getLocation().getBlockY(),
+                player.getLocation().getBlockZ(),
+                player.getAddress() != null ? player.getAddress().getHostString() : "N/A",
+                player.getPing(),
+                player.getGameMode().toString(),
+                player.getStatistic(Statistic.PLAYER_KILLS),
+                player.getStatistic(Statistic.DEATHS)
+        );
     }
 
     public boolean isAwaitingInput(Player player) {

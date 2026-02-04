@@ -99,7 +99,7 @@ messages:
     <center><gradient:#ff512f:#feae01><bold>! ! CROWN ALERT ! !</bold></gradient>
     <center><gradient:#ff9a44:#ff3d77><bold>ACTIVE PUNISHMENTS DETECTED</bold></gradient>
   active_punishment_entry: |-
-    <color:#650501>●</color> <color:#db6055>#{id}</color> <color:#b0b0b0>|</color> <color:#fad001>{type}</color>
+    <color:#650501>●</color> <color:#db6055>#{id}</color> <color:#b0b0b0>|</color> <color:#fef46c>{type}</color> <color:#fea366>(Level {level})</color>
     <color:#b0b0b0>Time Left:</color> <color:#ffffff>{time_left}</color>
   active_punishments_footer: |
     
@@ -286,6 +286,7 @@ messages:
   report_staff_notification: '{prefix}<color:#ffea00>New report from <color:#00c6ff>{requester}</color> against <color:#ff5555>{target}</color> for <color:#ffffff>{reason}</color>.</color>'
   report_status_changed: '{prefix}<gradient:#56ab2f:#a8e063>Report <color:#ffea00>{report_id}</color> status changed to {status_color}{status}.</gradient>'
   report_assigned: '{prefix}<gradient:#56ab2f:#a8e063>Report <color:#ffea00>{report_id}</color> has been assigned to <color:#00c6ff>{moderator}</color>.</gradient>'
+  report_assign_no_permission: '{prefix}<color:#ff5555>Player <color:#ffea00>{moderator}</color> does not have permission to view reports.</color>'
   report_not_found: '{prefix}<color:#ff5555>Report with ID ''{id}'' could not be found.</color>'
   report_no_permission_view: '{prefix}<color:#ff5555>You do not have permission to view reports.</color>'
   report_no_permission_create: '{prefix}<color:#ff5555>You do not have permission to create reports.</color>'
