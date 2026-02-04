@@ -200,7 +200,7 @@ public class PunishmentListener implements Listener {
 
         for (DatabaseManager.PunishmentEntry punishment : standardPunishments) {
             String timeLeft = (punishment.getEndTime() == Long.MAX_VALUE) ? "Permanent" : TimeUtils.formatTime((int) ((punishment.getEndTime() - System.currentTimeMillis()) / 1000), plugin.getConfigManager());
-            String visibleText = plugin.getConfigManager().getMessage("messages.active_punishment_entry", "{id}", punishment.getPunishmentId(), "{type}", punishment.getType(), "{time_left}", timeLeft);
+            String visibleText = plugin.getConfigManager().getMessage("messages.active_punishment_entry", "{id}", punishment.getPunishmentId(), "{type}", punishment.getType(), "{time_left}", timeLeft, "{level}", "N/A");
             TextComponent messageComponent = new TextComponent(TextComponent.fromLegacyText(MessageUtils.getColorMessage(visibleText)));
             messageComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(buildHoverText(punishment)).create()));
             messages.add(messageComponent);

@@ -99,7 +99,7 @@ messages:
     <center><gradient:#ff512f:#feae01><bold>! ! CROWN ALERT ! !</bold></gradient>
     <center><gradient:#ff9a44:#ff3d77><bold>ACTIVE PUNISHMENTS DETECTED</bold></gradient>
   active_punishment_entry: |-
-    <color:#650501>●</color> <color:#db6055>#{id}</color> <color:#b0b0b0>|</color> <color:#fef46c>{type}</color> <color:#fea366>(Level {level})</color>
+    <color:#650501>●</color> <color:#db6055>#{id}</color> <color:#b0b0b0>|</color> <color:#fef46c>{type}</color>
     <color:#b0b0b0>Time Left:</color> <color:#ffffff>{time_left}</color>
   active_punishments_footer: |
     
