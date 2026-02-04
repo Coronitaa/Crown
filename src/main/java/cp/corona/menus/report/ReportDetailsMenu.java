@@ -104,6 +104,11 @@ public class ReportDetailsMenu implements InventoryHolder {
         boolean isClosed = (status == ReportStatus.RESOLVED || status == ReportStatus.REJECTED);
         String reportType = reportEntry.getReportType();
 
+        // Pre-calculate names for replacements
+        String targetName = (target != null && target.getName() != null) ? target.getName() : reportEntry.getTargetName();
+        String requesterName = (requester != null && requester.getName() != null) ? requester.getName() : reportEntry.getRequesterUUID().toString();
+        String moderatorName = (moderator != null && moderator.getName() != null) ? moderator.getName() : "None";
+
         for (String key : plugin.getConfigManager().getReportDetailsMenuItemKeys()) {
             MenuItem itemConfig = plugin.getConfigManager().getReportDetailsMenuItemConfig(key);
             if (itemConfig == null) continue;
@@ -142,7 +147,12 @@ public class ReportDetailsMenu implements InventoryHolder {
                 continue;
             }
 
-            ItemStack item = itemConfig.toItemStack(target, plugin.getConfigManager());
+            // Pass replacements to toItemStack to handle placeholders in player_head (e.g. {moderator})
+            ItemStack item = itemConfig.toItemStack(key.equals("moderator_info") ? moderator : target, plugin.getConfigManager(),
+                    "{moderator}", moderatorName,
+                    "{target}", targetName,
+                    "{requester}", requesterName
+            );
             if (item == null) continue;
 
             ItemMeta meta = item.getItemMeta();

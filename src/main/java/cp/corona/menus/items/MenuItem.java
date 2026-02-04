@@ -329,7 +329,8 @@ public class MenuItem {
 
             if (itemMaterial == Material.PLAYER_HEAD) {
                 SkullMeta skullMeta = (SkullMeta) meta;
-                this.applyPlayerHeadTexture(skullMeta, this.playerHead, target, configManager);
+                String processedHead = applyReplacements(this.playerHead, replacements);
+                this.applyPlayerHeadTexture(skullMeta, processedHead, target, configManager);
                 meta = skullMeta;
             }
             itemStack.setItemMeta(meta);
@@ -361,32 +362,35 @@ public class MenuItem {
     private void applyPlayerHeadTexture(final SkullMeta skullMeta, String headValue, final OfflinePlayer target, final MainConfigManager configManager) {
         if (headValue == null || headValue.isEmpty()) return;
 
+        // Process placeholders in headValue first (e.g. %player_name%)
+        String processedHeadValue = processText(headValue, target, configManager);
+
         PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID());
         PlayerTextures textures = profile.getTextures();
         boolean textureSet = false;
 
         // Unified playerHead config - can be username or URL
-        if (headValue.startsWith("http://") || headValue.startsWith("https://")) {
+        if (processedHeadValue.startsWith("http://") || processedHeadValue.startsWith("https://")) {
             // 1. Treat playerHead as texture URL
             try {
-                URL textureURL = new URL(headValue);
+                URL textureURL = new URL(processedHeadValue);
                 textures.setSkin(textureURL);
                 textureSet = true;
-                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player_head URL: " + headValue + " for item: " + this.name);
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player_head URL: " + processedHeadValue + " for item: " + this.name);
             } catch (MalformedURLException e) {
-                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Invalid player_head URL: " + headValue + " for item: " + this.name + ". Must be a direct texture URL from textures.minecraft.net.");
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Invalid player_head URL: " + processedHeadValue + " for item: " + this.name + ". Must be a direct texture URL from textures.minecraft.net.");
             }
         } else {
             // 2. Treat playerHead as username
-            final String playerName = processText(headValue, target, configManager);
-            PlayerProfile loadedProfile = Bukkit.getOfflinePlayer(playerName).getPlayerProfile(); // Synchronously fetch profile
+            // Use the processed name which might be the target's name
+            PlayerProfile loadedProfile = Bukkit.getOfflinePlayer(processedHeadValue).getPlayerProfile(); // Synchronously fetch profile
 
             if (loadedProfile != null && loadedProfile.getTextures() != null && loadedProfile.getTextures().getSkin() != null) {
                 skullMeta.setOwnerProfile(loadedProfile);
                 textureSet = true;
-                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player name (sync): " + playerName + " for item: " + this.name); // Log as sync now
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().log(Level.INFO, "[DEBUG] Successfully set skin from player name (sync): " + processedHeadValue + " for item: " + this.name); // Log as sync now
             } else {
-                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Failed to load skin for player: " + playerName + " (sync load failed) for item: " + this.name + ". Using default head."); // Log as sync load failed
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().warning("Failed to load skin for player: " + processedHeadValue + " (sync load failed) for item: " + this.name + ". Using default head."); // Log as sync load failed
             }
         }
 

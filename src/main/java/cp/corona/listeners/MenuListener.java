@@ -108,6 +108,7 @@ public class MenuListener implements Listener {
     private static final String PUNISH_FREEZE_PERMISSION = "crown.punish.freeze";
     private static final String UNPUNISH_FREEZE_PERMISSION = "crown.unpunish.freeze";
     private static final String REPORT_ASSIGN_PERMISSION = "crown.report.assign";
+    private static final String REPORT_VIEW_PERMISSION = "crown.report.view";
 
     private final Map<UUID, DropConfirmData> dropConfirmations = new HashMap<>();
     private record DropConfirmData(int slot, long timestamp) {}
@@ -735,7 +736,7 @@ public class MenuListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
-        
+
         // Close any open profile/inventory menus if the target disconnects
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             InventoryHolder holder = onlinePlayer.getOpenInventory().getTopInventory().getHolder();
@@ -1739,8 +1740,50 @@ public class MenuListener implements Listener {
                         Bukkit.getScheduler().runTask(plugin, () -> detailsMenu.open(player));
                         return;
                     }
-                    detailsMenu.assignTo(moderator.getUniqueId());
-                    sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
+                    
+                    // Check if the moderator has permission to view reports
+                    if (moderator.isOnline()) {
+                        if (!moderator.getPlayer().hasPermission(REPORT_VIEW_PERMISSION)) {
+                            sendConfigMessage(player, "messages.report_assign_no_permission", "{moderator}", moderator.getName());
+                            Bukkit.getScheduler().runTask(plugin, () -> detailsMenu.open(player));
+                            return;
+                        }
+                        // If online and has permission, proceed
+                        detailsMenu.assignTo(moderator.getUniqueId());
+                        sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
+                    } else {
+                        // If offline, check if they have ever opened the reports menu (or have reports assigned to them, which implies they are staff)
+                        // Since we don't track "opened reports menu", we can check if they have ever been assigned a report or resolved one.
+                        // Or check if they have confiscated items (locker check logic).
+                        // The prompt says: "si alguna vez abrió efectivamente reports menu". We don't log that.
+                        // But we can check if they have any reports assigned to them in the past or present.
+                        // Let's check if they have any reports where they are the moderator.
+                        plugin.getSoftBanDatabaseManager().countReports(null, null, false, moderator.getUniqueId(), null).thenAccept(count -> {
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                if (count > 0) {
+                                    // They have handled reports before, so they are likely staff.
+                                    detailsMenu.assignTo(moderator.getUniqueId());
+                                    sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
+                                } else {
+                                    // No history of handling reports. Fallback to checking confiscated items as a proxy for staff activity?
+                                    // Or just deny.
+                                    // Let's try checking confiscated items too, as that's another staff indicator.
+                                    plugin.getSoftBanDatabaseManager().hasConfiscatedItems(moderator.getUniqueId()).thenAccept(hasItems -> {
+                                        Bukkit.getScheduler().runTask(plugin, () -> {
+                                            if (hasItems) {
+                                                detailsMenu.assignTo(moderator.getUniqueId());
+                                                sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
+                                            } else {
+                                                // No evidence of staff activity.
+                                                sendConfigMessage(player, "messages.report_assign_no_permission", "{moderator}", moderator.getName());
+                                                detailsMenu.open(player);
+                                            }
+                                        });
+                                    });
+                                }
+                            });
+                        });
+                    }
                 }
                 break;
         }

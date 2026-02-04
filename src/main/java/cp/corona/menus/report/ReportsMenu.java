@@ -133,13 +133,14 @@ public class ReportsMenu implements InventoryHolder {
             DatabaseManager.ReportEntry entry = reports.get(i);
             int slot = REPORT_SLOTS.get(i);
 
-            ItemStack item = reportItemConfig.toItemStack(null, plugin.getConfigManager());
+            OfflinePlayer requester = Bukkit.getOfflinePlayer(entry.getRequesterUUID());
+            ItemStack item = reportItemConfig.toItemStack(requester, plugin.getConfigManager());
             ItemMeta meta = item.getItemMeta();
             if (meta == null) continue;
 
             String statusColor = entry.getStatus().getColor();
             String statusName = entry.getStatus().getDisplayName();
-            String requesterName = Bukkit.getOfflinePlayer(entry.getRequesterUUID()).getName();
+            String requesterName = requester.getName();
 
             String moderatorName = "N/A";
             if (entry.getModeratorUUID() != null) {
@@ -197,7 +198,9 @@ public class ReportsMenu implements InventoryHolder {
             if (key.equals("report_entry")) continue;
             MenuItem itemConfig = plugin.getConfigManager().getReportsMenuItemConfig(key);
             if (itemConfig != null) {
-                ItemStack item = itemConfig.toItemStack(null, plugin.getConfigManager());
+                // Pass viewer as target to resolve placeholders like %player_name% for the viewer
+                // Also pass {player} replacement explicitly for player_head resolution
+                ItemStack item = itemConfig.toItemStack(viewer, plugin.getConfigManager(), "{player}", viewer.getName());
                 ItemMeta meta = item.getItemMeta();
                 
                 String statusDisplay = filterStatus != null ? filterStatus.getColor() + filterStatus.getDisplayName() : "&bAll";

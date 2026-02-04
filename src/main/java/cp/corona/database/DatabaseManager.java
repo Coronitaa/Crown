@@ -527,6 +527,21 @@ public class DatabaseManager {
         });
     }
 
+    public CompletableFuture<Boolean> hasConfiscatedItems(UUID ownerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT 1 FROM confiscated_items WHERE confiscated_by = ? LIMIT 1";
+            try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, ownerUUID.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error checking if player has confiscated items: " + ownerUUID, e);
+            }
+            return false;
+        });
+    }
+
     public static class ConfiscatedItemEntry {
         private final int id;
         private final String itemData;
