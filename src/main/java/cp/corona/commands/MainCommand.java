@@ -28,6 +28,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -581,6 +582,24 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     sendConfigMessage(sender, "messages.check_info_first_joined", "{first_joined}", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(playerInfo.getFirstJoined())));
                     sendConfigMessage(sender, "messages.check_info_last_joined", "{last_joined}", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(playerInfo.getLastJoined())));
                 }
+
+                // Potion Effects
+                if (target.isOnline()) {
+                    Player onlineTarget = target.getPlayer();
+                    if (onlineTarget != null) {
+                        Collection<PotionEffect> effects = onlineTarget.getActivePotionEffects();
+                        if (!effects.isEmpty()) {
+                            sender.sendMessage(MessageUtils.getColorMessage("&8» &d🧪 &7Potion Effects:"));
+                            for (PotionEffect effect : effects) {
+                                String effectName = effect.getType().getName().toLowerCase().replace("_", " ");
+                                effectName = effectName.substring(0, 1).toUpperCase() + effectName.substring(1);
+                                String timeLeftEffect = TimeUtils.formatTime(effect.getDuration() / 20, plugin.getConfigManager());
+                                sender.sendMessage(MessageUtils.getColorMessage("  &8- &f" + effectName + " " + (effect.getAmplifier() + 1) + " &7(" + timeLeftEffect + ")"));
+                            }
+                        }
+                    }
+                }
+
                 List<String> chatHistory = plugin.getSoftBanDatabaseManager().getChatHistory(target.getUniqueId(), 10);
                 if (!chatHistory.isEmpty()) {
                     sendConfigMessage(sender, "messages.check_info_chat_history_header");
