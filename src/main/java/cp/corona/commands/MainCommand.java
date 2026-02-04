@@ -532,8 +532,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
                 sendConfigMessage(sender, "messages.check_info_header", "{id}", punishmentId);
                 sendConfigMessage(sender, "messages.check_info_player", "{player}", target.getName(), "{uuid}", target.getUniqueId().toString());
-                sendConfigMessage(sender, "messages.check_info_type", "{type}", entry.getType(), "{method}", method);
-                sendConfigMessage(sender, "messages.check_info_status", "{status}", status);
+                
+                // Grouped Type and Status
+                sender.sendMessage(MessageUtils.getColorMessage("&8» &7Type: &f" + entry.getType() + " &8| &7Status: " + status + " &8| &7Method: &f" + method));
+                
                 sendConfigMessage(sender, "messages.check_info_reason", "{reason}", entry.getReason());
                 sendConfigMessage(sender, "messages.check_info_punisher", "{punisher}", entry.getPunisherName());
                 sendConfigMessage(sender, "messages.check_info_date", "{date}", dateFormat.format(entry.getTimestamp()));
@@ -543,14 +545,39 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
                 if (playerInfo != null) {
                     sendConfigMessage(sender, "messages.check_info_extra_header");
-                    sendConfigMessage(sender, "messages.check_info_ip", "{ip}", playerInfo.getIp());
-                    sendConfigMessage(sender, "messages.check_info_location", "{location}", playerInfo.getLocation());
+                    
+                    // Grouped IP and Ping
+                    sender.sendMessage(MessageUtils.getColorMessage("&8» &7IP: &f" + playerInfo.getIp() + " &8| &7Ping: &f" + playerInfo.getPing() + "ms"));
+                    
+                    // Formatted Location
+                    String locationStr = playerInfo.getLocation();
+                    String formattedLocation = "N/A";
+                    if (locationStr != null && locationStr.contains(",")) {
+                        try {
+                            String[] parts = locationStr.split(",");
+                            if (parts.length >= 4) {
+                                formattedLocation = String.format("%s, %.1f, %.1f, %.1f",
+                                    parts[0],
+                                    Double.parseDouble(parts[1]),
+                                    Double.parseDouble(parts[2]),
+                                    Double.parseDouble(parts[3]));
+                            }
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    sender.sendMessage(MessageUtils.getColorMessage("&8» &7Location: &f" + formattedLocation));
+                    
                     sendConfigMessage(sender, "messages.check_info_gamemode", "{gamemode}", playerInfo.getGamemode());
-                    sendConfigMessage(sender, "messages.check_info_health", "{health}", String.valueOf(playerInfo.getHealth()));
-                    sendConfigMessage(sender, "messages.check_info_hunger", "{hunger}", String.valueOf(playerInfo.getHunger()));
-                    sendConfigMessage(sender, "messages.check_info_exp_level", "{exp_level}", String.valueOf(playerInfo.getExpLevel()));
+                    
+                    // Grouped Health and Hunger with Emojis and Rounding
+                    String healthFormatted = String.format("%.1f", playerInfo.getHealth());
+                    String hungerFormatted = String.format("%.1f", (double) playerInfo.getHunger());
+                    sender.sendMessage(MessageUtils.getColorMessage("&8» &c❤ &7Health: &f" + healthFormatted + " &8| &6🍖 &7Hunger: &f" + hungerFormatted));
+                    
+                    // XP Level Rounded
+                    String xpFormatted = String.format("%.1f", (double) playerInfo.getExpLevel());
+                    sender.sendMessage(MessageUtils.getColorMessage("&8» &a✳ &7XP Level: &f" + xpFormatted));
+                    
                     sendConfigMessage(sender, "messages.check_info_playtime", "{playtime}", TimeUtils.formatTime((int) (playerInfo.getPlaytime() / 20), plugin.getConfigManager()));
-                    sendConfigMessage(sender, "messages.check_info_ping", "{ping}", String.valueOf(playerInfo.getPing()));
                     sendConfigMessage(sender, "messages.check_info_first_joined", "{first_joined}", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(playerInfo.getFirstJoined())));
                     sendConfigMessage(sender, "messages.check_info_last_joined", "{last_joined}", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(playerInfo.getLastJoined())));
                 }
