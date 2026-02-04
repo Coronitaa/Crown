@@ -980,6 +980,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
             InetSocketAddress playerAddress = onlinePlayer.getAddress();
             if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
+                plugin.getSoftBanDatabaseManager().updatePlayerLastState(onlinePlayer);
 
                 switch (lowerCasePunishType) {
                     case "ban", "kick" -> {

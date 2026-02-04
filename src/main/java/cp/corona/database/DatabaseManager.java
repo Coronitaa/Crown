@@ -2100,15 +2100,48 @@ public class DatabaseManager {
 
     public List<String> getPlayersByIp(String ip) {
         List<String> players = new ArrayList<>();
-        String sql = "SELECT DISTINCT ph.player_uuid FROM punishment_history ph JOIN player_info pi ON ph.punishment_id = pi.punishment_id WHERE pi.ip = ?";
-        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, ip);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    UUID playerUUID = UUID.fromString(rs.getString("player_uuid"));
-                    String name = Bukkit.getOfflinePlayer(playerUUID).getName();
-                    if (name != null && !players.contains(name)) {
-                        players.add(name);
+
+        if (Bukkit.isPrimaryThread()) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getAddress() != null && player.getAddress().getAddress() != null &&
+                        player.getAddress().getAddress().getHostAddress().equals(ip)) {
+                    if (!players.contains(player.getName())) {
+                        players.add(player.getName());
+                    }
+                }
+            }
+        }
+
+        String sqlHistory = "SELECT DISTINCT ph.player_uuid FROM punishment_history ph JOIN player_info pi ON ph.punishment_id = pi.punishment_id WHERE pi.ip = ?";
+        String sqlLastState = "SELECT uuid FROM player_last_state WHERE ip = ?";
+
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement ps = connection.prepareStatement(sqlHistory)) {
+                ps.setString(1, ip);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        try {
+                            UUID playerUUID = UUID.fromString(rs.getString("player_uuid"));
+                            String name = Bukkit.getOfflinePlayer(playerUUID).getName();
+                            if (name != null && !players.contains(name)) {
+                                players.add(name);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+
+            try (PreparedStatement ps = connection.prepareStatement(sqlLastState)) {
+                ps.setString(1, ip);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        try {
+                            UUID playerUUID = UUID.fromString(rs.getString("uuid"));
+                            String name = Bukkit.getOfflinePlayer(playerUUID).getName();
+                            if (name != null && !players.contains(name)) {
+                                players.add(name);
+                            }
+                        } catch (Exception ignored) {}
                     }
                 }
             }
