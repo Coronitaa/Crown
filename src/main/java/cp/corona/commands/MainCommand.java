@@ -554,39 +554,72 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 String ip = na, ping = na, location = na, gamemode = na;
                 String health = na, hunger = na, expLevel = na;
                 String playtime = na, firstJoined = na, lastJoined = na;
-                String potionEffects = plugin.getConfigManager().getPunishInfoMessage("info.potion_effects_none");
-                if (potionEffects == null || potionEffects.isEmpty())
-                    potionEffects = "None";
+                String potionEffects = na;
+                String offlineNotice = "";
+
+                // Check if player was online at punishment time by checking gamemode (null when
+                // offline)
+                boolean wasOnlineAtPunishment = false;
 
                 if (playerInfo != null) {
                     ip = playerInfo.getIp() != null ? playerInfo.getIp() : na;
-                    ping = String.valueOf(playerInfo.getPing());
 
-                    String loc = playerInfo.getLocation();
-                    if (loc != null && loc.contains(",")) {
-                        try {
-                            String[] parts = loc.split(",");
-                            if (parts.length >= 4) {
-                                location = String.format("%s, %.1f, %.1f, %.1f",
-                                        parts[0], Double.parseDouble(parts[1]),
-                                        Double.parseDouble(parts[2]), Double.parseDouble(parts[3]));
+                    // Detect if player was online at punishment time - gamemode is only set for
+                    // online players
+                    wasOnlineAtPunishment = playerInfo.getGamemode() != null && !playerInfo.getGamemode().isEmpty();
+
+                    if (wasOnlineAtPunishment) {
+                        // Player was ONLINE - show all data normally
+                        ping = playerInfo.getPing() + "ms";
+
+                        String loc = playerInfo.getLocation();
+                        if (loc != null && loc.contains(",")) {
+                            try {
+                                String[] parts = loc.split(",");
+                                if (parts.length >= 4) {
+                                    location = String.format("%s, %.1f, %.1f, %.1f",
+                                            parts[0], Double.parseDouble(parts[1]),
+                                            Double.parseDouble(parts[2]), Double.parseDouble(parts[3]));
+                                }
+                            } catch (NumberFormatException ignored) {
                             }
-                        } catch (NumberFormatException ignored) {
+                        }
+
+                        gamemode = playerInfo.getGamemode();
+                        health = String.format("%.1f", playerInfo.getHealth());
+                        hunger = String.valueOf(playerInfo.getHunger());
+                        expLevel = String.valueOf(playerInfo.getExpLevel());
+                        playtime = TimeUtils.formatTime((int) (playerInfo.getPlaytime() / 20),
+                                plugin.getConfigManager());
+
+                        // Potion effects - "None" if online but no effects
+                        String effectsJson = playerInfo.getPotionEffects();
+                        if (effectsJson != null && !effectsJson.isEmpty()) {
+                            potionEffects = parsePotionEffectsToString(effectsJson, plugin);
+                        } else {
+                            String noneText = plugin.getConfigManager()
+                                    .getPunishInfoMessage("info.potion_effects_none");
+                            potionEffects = (noneText != null && !noneText.isEmpty()) ? noneText : "None";
+                        }
+                    } else {
+                        // Player was OFFLINE - show N/A for runtime-only data
+                        offlineNotice = plugin.getConfigManager().getPunishInfoMessage("info.offline_notice");
+                        if (offlineNotice == null)
+                            offlineNotice = "";
+
+                        // Playtime might still be available from server stats
+                        if (playerInfo.getPlaytime() > 0) {
+                            playtime = TimeUtils.formatTime((int) (playerInfo.getPlaytime() / 20),
+                                    plugin.getConfigManager());
                         }
                     }
 
-                    gamemode = playerInfo.getGamemode() != null ? playerInfo.getGamemode() : na;
-                    health = String.format("%.1f", playerInfo.getHealth());
-                    hunger = String.valueOf(playerInfo.getHunger());
-                    expLevel = String.valueOf(playerInfo.getExpLevel());
-                    playtime = TimeUtils.formatTime((int) (playerInfo.getPlaytime() / 20), plugin.getConfigManager());
-                    firstJoined = dateFormat.format(new Date(playerInfo.getFirstJoined()));
-                    lastJoined = dateFormat.format(new Date(playerInfo.getLastJoined()));
-
-                    // Parse potion effects
-                    String effectsJson = playerInfo.getPotionEffects();
-                    if (effectsJson != null && !effectsJson.isEmpty()) {
-                        potionEffects = parsePotionEffectsToString(effectsJson, plugin);
+                    // First/last joined are always available from OfflinePlayer
+                    if (playerInfo.getFirstJoined() > 0) {
+                        firstJoined = dateFormat.format(new Date(playerInfo.getFirstJoined()));
+                    }
+                    if (playerInfo.getLastJoined() > 0) {
+                        lastJoined = dateFormat.format(new Date(playerInfo.getLastJoined()));
                     }
                 }
 
@@ -660,6 +693,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         "{playtime}", playtime,
                         "{first_joined}", firstJoined,
                         "{last_joined}", lastJoined,
+                        "{offline_notice}", offlineNotice,
                         "{chat_history_section}", chatHistorySection.toString(),
                         "{associated_accounts_section}", associatedSection.toString());
 

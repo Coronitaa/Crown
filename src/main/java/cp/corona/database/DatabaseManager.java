@@ -1811,8 +1811,17 @@ public class DatabaseManager {
 
                 Player onlineTarget = target.isOnline() ? target.getPlayer() : null;
 
+                // Always try to get IP from online player if not provided
+                String finalIp = ipAddress;
+                if (finalIp == null && onlineTarget != null) {
+                    java.net.InetSocketAddress address = onlineTarget.getAddress();
+                    if (address != null && address.getAddress() != null) {
+                        finalIp = address.getAddress().getHostAddress();
+                    }
+                }
+
                 ps.setString(1, punishmentId);
-                ps.setString(2, ipAddress);
+                ps.setString(2, finalIp);
 
                 if (onlineTarget != null) {
                     ps.setString(3, onlineTarget.getWorld().getName() + "," + onlineTarget.getLocation().getX() + ","

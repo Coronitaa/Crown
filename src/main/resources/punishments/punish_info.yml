@@ -30,6 +30,7 @@
 # {first_joined}    - First join date
 # {last_joined}     - Last join date
 # {potion_effects}  - Active potion effects list
+# {offline_notice}  - Notice shown when player was offline at punishment time
 #
 # --- Removal Info (if removed) ---
 # {remover}         - Who removed the punishment
@@ -45,7 +46,7 @@ info:
   message: |
     <gradient:#f7971e:#ffd200><bold>━━━━━━━━ Punishment Info ━━━━━━━━</bold></gradient>
     
-    <color:#555555>»</color> <color:#b0b0b0>ID:</color> <color:#ffffff>{id}</color>
+    <color:#555555>»</color> <color:#b0b0b0>ID:</color> <color:#ffffff>#{id}</color>
     <color:#555555>»</color> <color:#b0b0b0>Player:</color> <color:#00c6ff>{player}</color> <color:#757575>({uuid})</color>
     <color:#555555>»</color> <color:#b0b0b0>Type:</color> <color:#ffffff>{type}</color> <color:#b0b0b0>|</color> <color:#b0b0b0>Status:</color> {status} <color:#b0b0b0>|</color> <color:#b0b0b0>Method:</color> <color:#ffffff>{method}</color>
     <color:#555555>»</color> <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>
@@ -56,8 +57,8 @@ info:
     {removed_line}
     
     <gradient:#f7971e:#ffd200><bold>━━━━━━ Player Info at Time ━━━━━━</bold></gradient>
-    
-    <color:#555555>»</color> <color:#b0b0b0>IP:</color> <color:#ffffff>{ip}</color> <color:#b0b0b0>|</color> <color:#b0b0b0>Ping:</color> <color:#ffffff>{ping}ms</color>
+    {offline_notice}
+    <color:#555555>»</color> <color:#b0b0b0>IP:</color> <color:#ffffff>{ip}</color> <color:#b0b0b0>|</color> <color:#b0b0b0>Ping:</color> <color:#ffffff>{ping}</color>
     <color:#555555>»</color> <color:#b0b0b0>Location:</color> <color:#ffffff>{location}</color>
     <color:#555555>»</color> <color:#b0b0b0>Gamemode:</color> <color:#00c6ff>{gamemode}</color>
     <color:#555555>»</color> <color:#ff5555>❤</color> <color:#ffffff>{health}</color> <color:#b0b0b0>|</color> <color:#ffaa00>🍖</color> <color:#ffffff>{hunger}</color> <color:#b0b0b0>|</color> <color:#55ff55>✳</color> <color:#ffffff>{exp_level}</color>
@@ -67,10 +68,14 @@ info:
     
     {chat_history_section}
     {associated_accounts_section}
+    <color:#ffffff></color>
 
   # Conditional lines (shown only when applicable)
   warn_level_line: '<color:#555555>»</color> <color:#b0b0b0>Warn Level:</color> <color:#fea366>{warn_level}</color>'
   removed_line: '<color:#555555>»</color> <color:#b0b0b0>Removed by:</color> <color:#00c6ff>{remover}</color> <color:#b0b0b0>at</color> <color:#00c6ff>{remove_date}</color> <color:#b0b0b0>-</color> <color:#ffffff>{remove_reason}</color>'
+  
+  # Notice shown when player was offline at the time of punishment
+  offline_notice: '<color:#ff6b6b>⚠ Player was offline when punished - some data may be unavailable</color>'
   
   # Chat history section (shown only if chat history exists)
   chat_history_header: '<gradient:#f7971e:#ffd200><bold>━━━━━━━ Last 10 Messages ━━━━━━━</bold></gradient>'
@@ -86,6 +91,7 @@ info:
   # Potion effects display format
   potion_effect_format: '{name} {level} ({duration})'
   potion_effects_separator: ', '
+  # Shown when player was ONLINE but had no active potion effects
   potion_effects_none: 'None'
 
   # Interactive buttons (for players only)
