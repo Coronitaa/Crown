@@ -1,106 +1,94 @@
 # punish_info.yml
 # Configuration file for /check #ID info command display.
-# This file contains the format and internal placeholders for the punishment info view.
+# 
+# This file uses a SINGLE MESSAGE TEMPLATE with placeholders.
+# All placeholders are replaced at runtime. If data is unavailable, "N/A" is shown.
+#
+# --- Available Placeholders ---
+# {id}              - Punishment ID
+# {player}          - Player name
+# {uuid}            - Player UUID
+# {type}            - Punishment type (Ban, Mute, Kick, etc.)
+# {status}          - Status (Active, Expired, Removed)
+# {method}          - Punishment method (IP/Local)
+# {reason}          - Punishment reason
+# {punisher}        - Name of the punisher
+# {date}            - Date of punishment
+# {duration}        - Duration string (1d, Permanent, etc.)
+# {time_left}       - Time remaining
+# {warn_level}      - Warning level (for warns only)
+#
+# --- Player Info at Punishment Time ---
+# {ip}              - Player IP address
+# {ping}            - Player ping (ms)
+# {location}        - Player location (world, x, y, z)
+# {gamemode}        - Player gamemode
+# {health}          - Player health
+# {hunger}          - Player hunger
+# {exp_level}       - Player XP level
+# {playtime}        - Player playtime
+# {first_joined}    - First join date
+# {last_joined}     - Last join date
+# {potion_effects}  - Active potion effects list
+#
+# --- Removal Info (if removed) ---
+# {remover}         - Who removed the punishment
+# {remove_date}     - When it was removed
+# {remove_reason}   - Why it was removed
+#
+# --- Chat & Accounts ---
+# {chat_history}    - Last 10 chat messages
+# {associated_accounts} - Accounts with same IP
 
-# --- DYNAMIC LAYOUT ---
-# The layout section allows you to customize the ORDER of information displayed.
-# Reorder, remove, or add custom lines by editing this list.
-# Each item references a message key below (e.g., "header" uses info.header message).
-#
-# Available layout items:
-#   header, player, type_status_method, reason, punisher, date, duration, expires,
-#   warn_level, extra_header, ip_ping, location, gamemode, health_hunger, exp_level,
-#   playtime, first_joined, last_joined, potion_effects, chat_history, associated_accounts,
-#   removed, buttons
-#
-# You can also add custom text directly (will be color-formatted):
-#   - "&8&m                    &r"  # Separator line
-#   - "&e✦ Custom Section ✦"       # Custom header
+# The main check info message - fully customizable with placeholders
 info:
-  layout:
-    - "header"
-    - "player"
-    - "type_status_method"
-    - "reason"
-    - "punisher"
-    - "date"
-    - "duration"
-    - "expires"
-    - "warn_level"
-    - "extra_header"
-    - "ip_ping"
-    - "location"
-    - "gamemode"
-    - "health_hunger"
-    - "exp_level"
-    - "potion_effects"
-    - "playtime"
-    - "first_joined"
-    - "last_joined"
-    - "chat_history"
-    - "associated_accounts"
-    - "removed"
-    - "buttons"
+  message: |
+    <gradient:#f7971e:#ffd200><bold>━━━━━━━━ Punishment Info ━━━━━━━━</bold></gradient>
+    
+    <color:#555555>»</color> <color:#b0b0b0>ID:</color> <color:#ffffff>{id}</color>
+    <color:#555555>»</color> <color:#b0b0b0>Player:</color> <color:#00c6ff>{player}</color> <color:#757575>({uuid})</color>
+    <color:#555555>»</color> <color:#b0b0b0>Type:</color> <color:#ffffff>{type}</color> <color:#b0b0b0>|</color> <color:#b0b0b0>Status:</color> {status} <color:#b0b0b0>|</color> <color:#b0b0b0>Method:</color> <color:#ffffff>{method}</color>
+    <color:#555555>»</color> <color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>
+    <color:#555555>»</color> <color:#b0b0b0>Punisher:</color> <color:#00c6ff>{punisher}</color>
+    <color:#555555>»</color> <color:#b0b0b0>Date:</color> <color:#00c6ff>{date}</color>
+    <color:#555555>»</color> <color:#b0b0b0>Duration:</color> <color:#ffea00>{duration}</color> <color:#b0b0b0>|</color> <color:#b0b0b0>Expires:</color> <color:#ffea00>{time_left}</color>
+    {warn_level_line}
+    {removed_line}
+    
+    <gradient:#f7971e:#ffd200><bold>━━━━━━ Player Info at Time ━━━━━━</bold></gradient>
+    
+    <color:#555555>»</color> <color:#b0b0b0>IP:</color> <color:#ffffff>{ip}</color> <color:#b0b0b0>|</color> <color:#b0b0b0>Ping:</color> <color:#ffffff>{ping}ms</color>
+    <color:#555555>»</color> <color:#b0b0b0>Location:</color> <color:#ffffff>{location}</color>
+    <color:#555555>»</color> <color:#b0b0b0>Gamemode:</color> <color:#00c6ff>{gamemode}</color>
+    <color:#555555>»</color> <color:#ff5555>❤</color> <color:#ffffff>{health}</color> <color:#b0b0b0>|</color> <color:#ffaa00>🍖</color> <color:#ffffff>{hunger}</color> <color:#b0b0b0>|</color> <color:#55ff55>✳</color> <color:#ffffff>{exp_level}</color>
+    <color:#555555>»</color> <color:#d500f9>🧪</color> <color:#b0b0b0>Effects:</color> <color:#ffffff>{potion_effects}</color>
+    <color:#555555>»</color> <color:#b0b0b0>Playtime:</color> <color:#00c6ff>{playtime}</color>
+    <color:#555555>»</color> <color:#b0b0b0>First Join:</color> <color:#00c6ff>{first_joined}</color> <color:#b0b0b0>|</color> <color:#b0b0b0>Last:</color> <color:#00c6ff>{last_joined}</color>
+    
+    {chat_history_section}
+    {associated_accounts_section}
 
-  # --- Message Definitions ---
-  # These define the format for each layout item above.
+  # Conditional lines (shown only when applicable)
+  warn_level_line: '<color:#555555>»</color> <color:#b0b0b0>Warn Level:</color> <color:#fea366>{warn_level}</color>'
+  removed_line: '<color:#555555>»</color> <color:#b0b0b0>Removed by:</color> <color:#00c6ff>{remover}</color> <color:#b0b0b0>at</color> <color:#00c6ff>{remove_date}</color> <color:#b0b0b0>-</color> <color:#ffffff>{remove_reason}</color>'
   
-  header: '<gradient:#f7971e:#ffd200><bold>Punishment Information for ID: <color:#ffffff>{id}</color></bold></gradient>'
+  # Chat history section (shown only if chat history exists)
+  chat_history_header: '<gradient:#f7971e:#ffd200><bold>━━━━━━━ Last 10 Messages ━━━━━━━</bold></gradient>'
+  chat_history_entry: '<color:#757575>{message}</color>'
   
-  player: '<color:#b0b0b0>Player: <color:#00c6ff>{player}</color> <color:#757575>({uuid})</color></color>'
-  
-  type_status_method: '<color:#555555>» <color:#b0b0b0>Type: <color:#ffffff>{type}</color> | Status: {status} | Method: <color:#ffffff>{method}</color></color></color>'
-  
-  reason: '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
-  punisher: '<color:#b0b0b0>Punisher: <color:#00c6ff>{punisher}</color></color>'
-  date: '<color:#b0b0b0>Date: <color:#00c6ff>{date}</color></color>'
-  duration: '<color:#b0b0b0>Duration: <color:#ffea00>{duration}</color></color>'
-  expires: '<color:#b0b0b0>Expires in: <color:#ffea00>{time_left}</color></color>'
-  
-  # Shown only for warnings
-  warn_level: '<color:#b0b0b0>Warn Level: <color:#00c6ff>{level}</color></color>'
+  # Associated accounts section (shown only if there are associated accounts)
+  associated_accounts_header: '<gradient:#f7971e:#ffd200><bold>━━━━━━ Associated Accounts ━━━━━━</bold></gradient>'
+  associated_accounts_entry: '<color:#00c6ff>{accounts}</color>'
 
-  # Player info section header
-  extra_header: '<gradient:#f7971e:#ffd200><bold>Player Information at time of punishment:</bold></gradient>'
+  # Placeholder for unavailable data
+  not_available: 'N/A'
   
-  # Grouped IP and Ping
-  ip_ping: '<color:#555555>» <color:#b0b0b0>IP: <color:#ffffff>{ip}</color> | Ping: <color:#ffffff>{ping}ms</color></color></color>'
-  
-  location: '<color:#555555>» <color:#b0b0b0>Location: <color:#ffffff>{location}</color></color></color>'
-  
-  gamemode: '<color:#b0b0b0>Gamemode: <color:#00c6ff>{gamemode}</color></color>'
-  
-  # Health and Hunger with Emojis
-  health_hunger: '<color:#555555>» <color:#ff5555>❤ <color:#b0b0b0>Health: <color:#ffffff>{health}</color> | <color:#ffaa00>🍖 <color:#b0b0b0>Hunger: <color:#ffffff>{hunger}</color></color></color></color></color></color></color>'
-  
-  # XP Level
-  exp_level: '<color:#555555>» <color:#55ff55>✳ <color:#b0b0b0>XP Level: <color:#ffffff>{exp_level}</color></color></color></color>'
-  
-  playtime: '<color:#b0b0b0>Playtime: <color:#00c6ff>{playtime}</color></color>'
-  first_joined: '<color:#b0b0b0>First Joined: <color:#00c6ff>{first_joined}</color></color>'
-  last_joined: '<color:#b0b0b0>Last Joined: <color:#00c6ff>{last_joined}</color></color>'
-  
-  # --- Potion Effects Section ---
-  # {potion_effects} is now stored in the database and available for offline players.
-  # Header displayed before the list of effects
-  potion_effects_header: '<color:#555555>» <color:#d500f9>🧪 <color:#b0b0b0>Potion Effects:</color></color></color>'
-  # Each effect entry format (uses {effect_name}, {effect_level}, {effect_duration})
-  potion_effects_entry: '  <color:#555555>- <color:#ffffff>{effect_name} {effect_level}</color> <color:#b0b0b0>({effect_duration})</color></color>'
-  # Shown when player has no potion effects
-  potion_effects_none: '<color:#555555>» <color:#d500f9>🧪 <color:#b0b0b0>Potion Effects: <color:#757575>None</color></color></color></color>'
+  # Potion effects display format
+  potion_effect_format: '{name} {level} ({duration})'
+  potion_effects_separator: ', '
+  potion_effects_none: 'None'
 
-  # Chat history section
-  chat_history_header: '<gradient:#f7971e:#ffd200><bold>Last 10 Messages:</bold></gradient>'
-  chat_history_entry: '<color:#b0b0b0>- <color:#ffffff>{message}</color></color>'
-  
-  # Associated accounts section
-  associated_accounts_header: '<gradient:#f7971e:#ffd200><bold>Associated Accounts:</bold></gradient>'
-  associated_accounts_entry: '<color:#b0b0b0>- <color:#ffffff>{accounts}</color></color>'
-  
-  # Removal info (shown only if punishment was manually removed)
-  removed: '<color:#b0b0b0>Removed by: <color:#00c6ff>{remover}</color> at <color:#00c6ff>{remove_date}</color> Reason: <color:#ffffff>{remove_reason}</color></color>'
-
-  # Interactive buttons
+  # Interactive buttons (for players only)
   repunish_button: '<gradient:#56ab2f:#a8e063><bold>[Repunish]</bold></gradient>'
   repunish_hover: '<color:#00e676>Click to repunish with the same details.</color>'
   unpunish_button: '<gradient:#ff416c:#ff4b2b><bold>[Unpunish]</bold></gradient>'

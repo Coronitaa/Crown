@@ -476,9 +476,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 String type = entry.getType().toLowerCase();
                 String status;
                 String timeLeft = "N/A";
+                String warnLevel = "";
                 boolean isInternal = plugin.getConfigManager().isPunishmentInternal(type);
+                String na = plugin.getConfigManager().getPunishInfoMessage("info.not_available");
+                if (na == null || na.isEmpty())
+                    na = "N/A";
 
-                // --- STATUS LOGIC REWORK ---
+                // --- STATUS LOGIC ---
                 if (!entry.isActive()) {
                     boolean isSystemExpired = "System".equals(entry.getRemovedByName())
                             && ("Expired".equalsIgnoreCase(entry.getRemovedReason())
@@ -497,31 +501,27 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     status = plugin.getConfigManager().getMessage("placeholders.status_active");
                 }
 
+                // --- TIMELEFT & WARN LEVEL LOGIC ---
                 if (isInternal) {
-                    // --- INTERNAL PUNISHMENT TIMELEFT LOGIC ---
                     if (type.equals("warn")) {
                         ActiveWarningEntry activeWarning = plugin.getSoftBanDatabaseManager()
                                 .getActiveWarningByPunishmentId(punishmentId);
                         if (activeWarning != null) {
-                            MessageUtils.sendPunishInfoMessage(plugin, sender, "info.warn_level", "{level}",
-                                    String.valueOf(activeWarning.getWarnLevel()));
+                            warnLevel = String.valueOf(activeWarning.getWarnLevel());
                             if (activeWarning.isPaused()) {
                                 timeLeft = TimeUtils.formatTime((int) (activeWarning.getRemainingTimeOnPause() / 1000),
                                         plugin.getConfigManager());
+                            } else if (activeWarning.getEndTime() != -1) {
+                                timeLeft = TimeUtils.formatTime(
+                                        (int) ((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000),
+                                        plugin.getConfigManager());
                             } else {
-                                if (activeWarning.getEndTime() != -1) {
-                                    timeLeft = TimeUtils.formatTime(
-                                            (int) ((activeWarning.getEndTime() - System.currentTimeMillis()) / 1000),
-                                            plugin.getConfigManager());
-                                } else {
-                                    timeLeft = plugin.getConfigManager()
-                                            .getMessage("placeholders.permanent_time_display");
-                                }
+                                timeLeft = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
                             }
                         }
-                    } else if (type.equals("kick")) {
-                        timeLeft = "N/A";
-                    } else { // For internal ban, mute, softban, freeze
+                    } else if (type.equals("kick") || type.equals("freeze")) {
+                        timeLeft = na;
+                    } else {
                         if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_active"))) {
                             if (entry.getEndTime() != Long.MAX_VALUE) {
                                 timeLeft = TimeUtils.formatTime(
@@ -533,18 +533,15 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         }
                     }
                 } else {
-                    // --- EXTERNAL PUNISHMENT TIMELEFT LOGIC ---
-                    if (type.equals("kick") || type.equals("warn")) {
-                        timeLeft = "N/A";
-                    } else { // For ban, mute, softban, freeze
-                        if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_active"))) {
-                            if (entry.getEndTime() != Long.MAX_VALUE) {
-                                timeLeft = TimeUtils.formatTime(
-                                        (int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000),
-                                        plugin.getConfigManager());
-                            } else {
-                                timeLeft = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
-                            }
+                    if (type.equals("kick") || type.equals("warn") || type.equals("freeze")) {
+                        timeLeft = na;
+                    } else if (status.equals(plugin.getConfigManager().getMessage("placeholders.status_active"))) {
+                        if (entry.getEndTime() != Long.MAX_VALUE) {
+                            timeLeft = TimeUtils.formatTime(
+                                    (int) ((entry.getEndTime() - System.currentTimeMillis()) / 1000),
+                                    plugin.getConfigManager());
+                        } else {
+                            timeLeft = plugin.getConfigManager().getMessage("placeholders.permanent_time_display");
                         }
                     }
                 }
@@ -552,168 +549,128 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 String method = entry.wasByIp() ? plugin.getConfigManager().getMessage("placeholders.by_ip")
                         : plugin.getConfigManager().getMessage("placeholders.by_local");
 
-                // Send messages from punish_info.yml
-                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.header", "{id}", punishmentId);
-                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.player", "{player}", target.getName(),
-                        "{uuid}",
-                        target.getUniqueId().toString());
-
-                // Grouped Type, Status, and Method using punish_info.yml
-                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.type_status_method", "{type}", entry.getType(),
-                        "{status}", status, "{method}", method);
-
-                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.reason", "{reason}", entry.getReason());
-                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.punisher", "{punisher}",
-                        entry.getPunisherName());
-                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.date", "{date}",
-                        dateFormat.format(entry.getTimestamp()));
-                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.duration", "{duration}",
-                        entry.getDurationString());
-                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.expires", "{time_left}", timeLeft);
-
+                // --- GET PLAYER INFO ---
                 DatabaseManager.PlayerInfo playerInfo = plugin.getSoftBanDatabaseManager().getPlayerInfo(punishmentId);
+                String ip = na, ping = na, location = na, gamemode = na;
+                String health = na, hunger = na, expLevel = na;
+                String playtime = na, firstJoined = na, lastJoined = na;
+                String potionEffects = plugin.getConfigManager().getPunishInfoMessage("info.potion_effects_none");
+                if (potionEffects == null || potionEffects.isEmpty())
+                    potionEffects = "None";
+
                 if (playerInfo != null) {
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.extra_header");
+                    ip = playerInfo.getIp() != null ? playerInfo.getIp() : na;
+                    ping = String.valueOf(playerInfo.getPing());
 
-                    // Grouped IP and Ping
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.ip_ping", "{ip}", playerInfo.getIp(),
-                            "{ping}", String.valueOf(playerInfo.getPing()));
-
-                    // Formatted Location
-                    String locationStr = playerInfo.getLocation();
-                    String formattedLocation = "N/A";
-                    if (locationStr != null && locationStr.contains(",")) {
+                    String loc = playerInfo.getLocation();
+                    if (loc != null && loc.contains(",")) {
                         try {
-                            String[] parts = locationStr.split(",");
+                            String[] parts = loc.split(",");
                             if (parts.length >= 4) {
-                                formattedLocation = String.format("%s, %.1f, %.1f, %.1f",
-                                        parts[0],
-                                        Double.parseDouble(parts[1]),
-                                        Double.parseDouble(parts[2]),
-                                        Double.parseDouble(parts[3]));
+                                location = String.format("%s, %.1f, %.1f, %.1f",
+                                        parts[0], Double.parseDouble(parts[1]),
+                                        Double.parseDouble(parts[2]), Double.parseDouble(parts[3]));
                             }
                         } catch (NumberFormatException ignored) {
                         }
                     }
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.location", "{location}",
-                            formattedLocation);
 
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.gamemode", "{gamemode}",
-                            playerInfo.getGamemode());
+                    gamemode = playerInfo.getGamemode() != null ? playerInfo.getGamemode() : na;
+                    health = String.format("%.1f", playerInfo.getHealth());
+                    hunger = String.valueOf(playerInfo.getHunger());
+                    expLevel = String.valueOf(playerInfo.getExpLevel());
+                    playtime = TimeUtils.formatTime((int) (playerInfo.getPlaytime() / 20), plugin.getConfigManager());
+                    firstJoined = dateFormat.format(new Date(playerInfo.getFirstJoined()));
+                    lastJoined = dateFormat.format(new Date(playerInfo.getLastJoined()));
 
-                    // Grouped Health and Hunger with Emojis and Rounding
-                    String healthFormatted = String.format("%.1f", playerInfo.getHealth());
-                    String hungerFormatted = String.format("%.1f", (double) playerInfo.getHunger());
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.health_hunger", "{health}",
-                            healthFormatted, "{hunger}", hungerFormatted);
-
-                    // XP Level Rounded
-                    String xpFormatted = String.format("%.1f", (double) playerInfo.getExpLevel());
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.exp_level", "{exp_level}", xpFormatted);
-
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.playtime", "{playtime}",
-                            TimeUtils.formatTime((int) (playerInfo.getPlaytime() / 20), plugin.getConfigManager()));
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.first_joined", "{first_joined}",
-                            new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(playerInfo.getFirstJoined())));
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.last_joined", "{last_joined}",
-                            new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(playerInfo.getLastJoined())));
-                }
-
-                // Potion Effects - read from stored database data or online player
-                String potionEffectsJson = (playerInfo != null) ? playerInfo.getPotionEffects() : null;
-                if (potionEffectsJson != null && !potionEffectsJson.isEmpty()) {
-                    // Parse stored potion effects from database (JSON format)
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.potion_effects_header");
-                    // Simple JSON parsing for format:
-                    // [{"name":"speed","amplifier":1,"duration":120},...]
-                    try {
-                        String jsonArray = potionEffectsJson.trim();
-                        if (jsonArray.startsWith("[") && jsonArray.endsWith("]")) {
-                            jsonArray = jsonArray.substring(1, jsonArray.length() - 1);
-                            if (!jsonArray.isEmpty()) {
-                                String[] effects = jsonArray.split("\\},\\{");
-                                for (String effect : effects) {
-                                    effect = effect.replace("{", "").replace("}", "");
-                                    String effectName = "";
-                                    int amplifier = 0;
-                                    int duration = 0;
-
-                                    String[] pairs = effect.split(",");
-                                    for (String pair : pairs) {
-                                        String[] kv = pair.split(":");
-                                        if (kv.length == 2) {
-                                            String key = kv[0].replace("\"", "").trim();
-                                            String value = kv[1].replace("\"", "").trim();
-                                            if ("name".equals(key)) {
-                                                effectName = value.toLowerCase().replace("_", " ");
-                                                effectName = effectName.substring(0, 1).toUpperCase()
-                                                        + effectName.substring(1);
-                                            } else if ("amplifier".equals(key)) {
-                                                amplifier = Integer.parseInt(value);
-                                            } else if ("duration".equals(key)) {
-                                                duration = Integer.parseInt(value);
-                                            }
-                                        }
-                                    }
-
-                                    String timeLeftEffect = TimeUtils.formatTime(duration, plugin.getConfigManager());
-                                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.potion_effects_entry",
-                                            "{effect_name}", effectName,
-                                            "{effect_level}", String.valueOf(amplifier + 1),
-                                            "{effect_duration}", timeLeftEffect);
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        plugin.getLogger().warning("Failed to parse stored potion effects: " + e.getMessage());
-                    }
-                } else if (target.isOnline()) {
-                    // Fallback: read from online player if no stored data
-                    Player onlineTarget = target.getPlayer();
-                    if (onlineTarget != null) {
-                        Collection<PotionEffect> effects = onlineTarget.getActivePotionEffects();
-                        if (!effects.isEmpty()) {
-                            MessageUtils.sendPunishInfoMessage(plugin, sender, "info.potion_effects_header");
-                            for (PotionEffect effect : effects) {
-                                String effectName = effect.getType().getName().toLowerCase().replace("_", " ");
-                                effectName = effectName.substring(0, 1).toUpperCase() + effectName.substring(1);
-                                String timeLeftEffect = TimeUtils.formatTime(effect.getDuration() / 20,
-                                        plugin.getConfigManager());
-                                MessageUtils.sendPunishInfoMessage(plugin, sender, "info.potion_effects_entry",
-                                        "{effect_name}", effectName,
-                                        "{effect_level}", String.valueOf(effect.getAmplifier() + 1),
-                                        "{effect_duration}", timeLeftEffect);
-                            }
-                        }
+                    // Parse potion effects
+                    String effectsJson = playerInfo.getPotionEffects();
+                    if (effectsJson != null && !effectsJson.isEmpty()) {
+                        potionEffects = parsePotionEffectsToString(effectsJson, plugin);
                     }
                 }
 
-                List<String> chatHistory = plugin.getSoftBanDatabaseManager().getChatHistory(target.getUniqueId(), 10);
-                if (!chatHistory.isEmpty()) {
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.chat_history_header");
-                    for (String msg : chatHistory) {
-                        MessageUtils.sendPunishInfoMessage(plugin, sender, "info.chat_history_entry", "{message}", msg);
-                    }
+                // --- BUILD CONDITIONAL LINES ---
+                String warnLevelLine = "";
+                if (!warnLevel.isEmpty()) {
+                    warnLevelLine = plugin.getConfigManager().getPunishInfoMessage("info.warn_level_line",
+                            "{warn_level}", warnLevel);
                 }
 
-                if (playerInfo != null) {
-                    List<String> associatedAccounts = plugin.getSoftBanDatabaseManager()
-                            .getPlayersByIp(playerInfo.getIp());
-                    if (!associatedAccounts.isEmpty()) {
-                        MessageUtils.sendPunishInfoMessage(plugin, sender, "info.associated_accounts_header");
-                        MessageUtils.sendPunishInfoMessage(plugin, sender, "info.associated_accounts_entry",
-                                "{accounts}", String.join(", ", associatedAccounts));
-                    }
-                }
-
+                String removedLine = "";
                 boolean isManuallyRemoved = !entry.isActive() && !("System".equals(entry.getRemovedByName())
                         && "Expired".equalsIgnoreCase(entry.getRemovedReason()));
-                if (isManuallyRemoved) {
-                    MessageUtils.sendPunishInfoMessage(plugin, sender, "info.removed", "{remover}",
-                            entry.getRemovedByName(), "{remove_date}", dateFormat.format(entry.getRemovedAt()),
-                            "{remove_reason}", entry.getRemovedReason());
+                if (isManuallyRemoved && entry.getRemovedByName() != null) {
+                    removedLine = plugin.getConfigManager().getPunishInfoMessage("info.removed_line",
+                            "{remover}", entry.getRemovedByName(),
+                            "{remove_date}",
+                            entry.getRemovedAt() != null ? dateFormat.format(entry.getRemovedAt()) : na,
+                            "{remove_reason}", entry.getRemovedReason() != null ? entry.getRemovedReason() : na);
                 }
 
+                // --- BUILD CHAT HISTORY SECTION ---
+                StringBuilder chatHistorySection = new StringBuilder();
+                List<String> chatHistory = plugin.getSoftBanDatabaseManager().getChatHistory(target.getUniqueId(), 10);
+                if (!chatHistory.isEmpty()) {
+                    chatHistorySection
+                            .append(plugin.getConfigManager().getPunishInfoMessage("info.chat_history_header"))
+                            .append("\n");
+                    for (String msg : chatHistory) {
+                        chatHistorySection.append(plugin.getConfigManager()
+                                .getPunishInfoMessage("info.chat_history_entry", "{message}", msg)).append("\n");
+                    }
+                }
+
+                // --- BUILD ASSOCIATED ACCOUNTS SECTION ---
+                StringBuilder associatedSection = new StringBuilder();
+                if (playerInfo != null && playerInfo.getIp() != null) {
+                    List<String> associated = plugin.getSoftBanDatabaseManager().getPlayersByIp(playerInfo.getIp());
+                    if (!associated.isEmpty()) {
+                        associatedSection.append(
+                                plugin.getConfigManager().getPunishInfoMessage("info.associated_accounts_header"))
+                                .append("\n");
+                        associatedSection.append(plugin.getConfigManager().getPunishInfoMessage(
+                                "info.associated_accounts_entry", "{accounts}", String.join(", ", associated)));
+                    }
+                }
+
+                // --- GET AND REPLACE ALL PLACEHOLDERS IN MAIN MESSAGE ---
+                String message = plugin.getConfigManager().getPunishInfoMessage("info.message",
+                        "{id}", punishmentId,
+                        "{player}", target.getName() != null ? target.getName() : na,
+                        "{uuid}", target.getUniqueId().toString(),
+                        "{type}", entry.getType(),
+                        "{status}", status,
+                        "{method}", method,
+                        "{reason}", entry.getReason() != null ? entry.getReason() : na,
+                        "{punisher}", entry.getPunisherName() != null ? entry.getPunisherName() : na,
+                        "{date}", dateFormat.format(entry.getTimestamp()),
+                        "{duration}", entry.getDurationString() != null ? entry.getDurationString() : na,
+                        "{time_left}", timeLeft,
+                        "{warn_level_line}", warnLevelLine,
+                        "{removed_line}", removedLine,
+                        "{ip}", ip,
+                        "{ping}", ping,
+                        "{location}", location,
+                        "{gamemode}", gamemode,
+                        "{health}", health,
+                        "{hunger}", hunger,
+                        "{exp_level}", expLevel,
+                        "{potion_effects}", potionEffects,
+                        "{playtime}", playtime,
+                        "{first_joined}", firstJoined,
+                        "{last_joined}", lastJoined,
+                        "{chat_history_section}", chatHistorySection.toString(),
+                        "{associated_accounts_section}", associatedSection.toString());
+
+                // Send the formatted message
+                for (String line : message.split("\n")) {
+                    if (!line.trim().isEmpty()) {
+                        sender.sendMessage(MessageUtils.getColorComponent(line));
+                    }
+                }
+
+                // Send buttons for players
                 if (sender instanceof Player) {
                     Component repunishButton = MessageUtils
                             .getColorComponent(plugin.getConfigManager().getPunishInfoMessage("info.repunish_button"))
@@ -776,6 +733,76 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
 
         return true;
+    }
+
+    /**
+     * Parses JSON potion effects string and returns formatted display string.
+     * Format: "Speed 2 (1m 30s), Strength 1 (2m)"
+     */
+    private String parsePotionEffectsToString(String effectsJson, Crown plugin) {
+        if (effectsJson == null || effectsJson.isEmpty()) {
+            String none = plugin.getConfigManager().getPunishInfoMessage("info.potion_effects_none");
+            return (none != null && !none.isEmpty()) ? none : "None";
+        }
+
+        StringBuilder result = new StringBuilder();
+        String separator = plugin.getConfigManager().getPunishInfoMessage("info.potion_effects_separator");
+        if (separator == null || separator.isEmpty())
+            separator = ", ";
+        String format = plugin.getConfigManager().getPunishInfoMessage("info.potion_effect_format");
+        if (format == null || format.isEmpty())
+            format = "{name} {level} ({duration})";
+
+        try {
+            String jsonArray = effectsJson.trim();
+            if (jsonArray.startsWith("[") && jsonArray.endsWith("]")) {
+                jsonArray = jsonArray.substring(1, jsonArray.length() - 1);
+                if (!jsonArray.isEmpty()) {
+                    String[] effects = jsonArray.split("\\},\\{");
+                    boolean first = true;
+                    for (String effect : effects) {
+                        effect = effect.replace("{", "").replace("}", "");
+                        String effectName = "";
+                        int amplifier = 0;
+                        int duration = 0;
+
+                        String[] pairs = effect.split(",");
+                        for (String pair : pairs) {
+                            String[] kv = pair.split(":");
+                            if (kv.length == 2) {
+                                String key = kv[0].replace("\"", "").trim();
+                                String value = kv[1].replace("\"", "").trim();
+                                if ("name".equals(key)) {
+                                    effectName = value.toLowerCase().replace("_", " ");
+                                    effectName = effectName.substring(0, 1).toUpperCase() + effectName.substring(1);
+                                } else if ("amplifier".equals(key)) {
+                                    amplifier = Integer.parseInt(value);
+                                } else if ("duration".equals(key)) {
+                                    duration = Integer.parseInt(value);
+                                }
+                            }
+                        }
+
+                        if (!first)
+                            result.append(separator);
+                        first = false;
+
+                        String timeFormatted = TimeUtils.formatTime(duration, plugin.getConfigManager());
+                        String entry = format
+                                .replace("{name}", effectName)
+                                .replace("{level}", String.valueOf(amplifier + 1))
+                                .replace("{duration}", timeFormatted);
+                        result.append(entry);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to parse potion effects: " + e.getMessage());
+            return "Error parsing effects";
+        }
+
+        String none = plugin.getConfigManager().getPunishInfoMessage("info.potion_effects_none");
+        return result.length() > 0 ? result.toString() : ((none != null && !none.isEmpty()) ? none : "None");
     }
 
     private boolean handlePunishCommand(CommandSender sender, String[] args) {

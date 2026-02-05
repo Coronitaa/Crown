@@ -1026,16 +1026,6 @@ public class MainConfigManager {
         return punishInfoConfig;
     }
 
-    /**
-     * Gets the layout list from punish_info.yml for dynamic ordering of /check info
-     * output.
-     * 
-     * @return List of layout keys (e.g., "header", "player", "reason", etc.)
-     */
-    public List<String> getPunishInfoLayout() {
-        return punishInfoConfig.getConfig().getStringList("info.layout");
-    }
-
     private MenuItem loadMenuItemFromConfig(FileConfiguration config, String configPath) {
         if (config == null || configPath == null || !config.isConfigurationSection(configPath)) {
             return null;
