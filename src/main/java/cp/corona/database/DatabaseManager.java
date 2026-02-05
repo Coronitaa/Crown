@@ -43,7 +43,8 @@ public class DatabaseManager {
             try {
                 Class.forName("org.sqlite.JDBC");
             } catch (ClassNotFoundException e) {
-                plugin.getLogger().log(Level.SEVERE, "SQLite JDBC driver not found! The plugin will not be able to connect to the database.", e);
+                plugin.getLogger().log(Level.SEVERE,
+                        "SQLite JDBC driver not found! The plugin will not be able to connect to the database.", e);
             }
         }
 
@@ -56,7 +57,8 @@ public class DatabaseManager {
         HikariConfig config = new HikariConfig();
 
         if ("mysql".equalsIgnoreCase(dbType)) {
-            config.setJdbcUrl(String.format("jdbc:mysql://%s:%s/%s?autoReconnect=true&useSSL=false", dbAddress, dbPort, dbName));
+            config.setJdbcUrl(
+                    String.format("jdbc:mysql://%s:%s/%s?autoReconnect=true&useSSL=false", dbAddress, dbPort, dbName));
             config.setUsername(this.dbUsername);
             config.setPassword(this.dbPassword);
             config.addDataSourceProperty("cachePrepStmts", "true");
@@ -102,7 +104,7 @@ public class DatabaseManager {
 
     private void initializeDatabase() {
         try (Connection connection = getConnection();
-             Statement statement = connection.createStatement()) {
+                Statement statement = connection.createStatement()) {
 
             String createSoftbansTableSQL = "CREATE TABLE IF NOT EXISTS softbans (" +
                     "uuid VARCHAR(36) PRIMARY KEY," +
@@ -166,6 +168,7 @@ public class DatabaseManager {
                     "ping INT," +
                     "first_joined BIGINT," +
                     "last_joined BIGINT," +
+                    "potion_effects TEXT," +
                     "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
 
             if ("sqlite".equalsIgnoreCase(dbType)) {
@@ -181,6 +184,7 @@ public class DatabaseManager {
                         "ping INT," +
                         "first_joined BIGINT," +
                         "last_joined BIGINT," +
+                        "potion_effects TEXT," +
                         "FOREIGN KEY(punishment_id) REFERENCES punishment_history(punishment_id))";
             }
             statement.execute(createPlayerInfoTableSQL);
@@ -311,7 +315,7 @@ public class DatabaseManager {
                     "confiscated_at BIGINT NOT NULL," +
                     "confiscated_by VARCHAR(36)," +
                     "original_type VARCHAR(50))";
-            
+
             if ("sqlite".equalsIgnoreCase(dbType)) {
                 createConfiscatedItemsSQL = "CREATE TABLE IF NOT EXISTS confiscated_items (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -444,7 +448,8 @@ public class DatabaseManager {
         });
     }
 
-    public CompletableFuture<List<ConfiscatedItemEntry>> getConfiscatedItems(UUID ownerUUID, int page, int itemsPerPage) {
+    public CompletableFuture<List<ConfiscatedItemEntry>> getConfiscatedItems(UUID ownerUUID, int page,
+            int itemsPerPage) {
         return CompletableFuture.supplyAsync(() -> {
             List<ConfiscatedItemEntry> items = new ArrayList<>();
             int offset = (page - 1) * itemsPerPage;
@@ -461,8 +466,7 @@ public class DatabaseManager {
                             rs.getString("item_data"),
                             rs.getLong("confiscated_at"),
                             rs.getString("confiscated_by"),
-                            rs.getString("original_type")
-                    ));
+                            rs.getString("original_type")));
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Error fetching confiscated items for " + ownerUUID, e);
@@ -477,7 +481,8 @@ public class DatabaseManager {
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, ownerUUID.toString());
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) return rs.getInt(1);
+                    if (rs.next())
+                        return rs.getInt(1);
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Error counting confiscated items for " + ownerUUID, e);
@@ -502,8 +507,7 @@ public class DatabaseManager {
                             rs.getString("item_data"),
                             rs.getLong("confiscated_at"),
                             rs.getString("confiscated_by"),
-                            rs.getString("original_type")
-                    ));
+                            rs.getString("original_type")));
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Error fetching all confiscated items", e);
@@ -518,7 +522,8 @@ public class DatabaseManager {
             String sql = "SELECT COUNT(*) FROM confiscated_items";
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) return rs.getInt(1);
+                    if (rs.next())
+                        return rs.getInt(1);
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "Error counting all confiscated items", e);
@@ -549,7 +554,8 @@ public class DatabaseManager {
         private final String confiscatedBy;
         private final String originalType;
 
-        public ConfiscatedItemEntry(int id, String itemData, long confiscatedAt, String confiscatedBy, String originalType) {
+        public ConfiscatedItemEntry(int id, String itemData, long confiscatedAt, String confiscatedBy,
+                String originalType) {
             this.id = id;
             this.itemData = itemData;
             this.confiscatedAt = confiscatedAt;
@@ -557,21 +563,38 @@ public class DatabaseManager {
             this.originalType = originalType;
         }
 
-        public int getId() { return id; }
-        public String getItemData() { return itemData; }
-        public long getConfiscatedAt() { return confiscatedAt; }
-        public String getConfiscatedBy() { return confiscatedBy; }
-        public String getOriginalType() { return originalType; }
+        public int getId() {
+            return id;
+        }
+
+        public String getItemData() {
+            return itemData;
+        }
+
+        public long getConfiscatedAt() {
+            return confiscatedAt;
+        }
+
+        public String getConfiscatedBy() {
+            return confiscatedBy;
+        }
+
+        public String getOriginalType() {
+            return originalType;
+        }
     }
 
-    // NEW: Methods for Moderator Preferences with 'silent' and 'favorite_tools' support
+    // NEW: Methods for Moderator Preferences with 'silent' and 'favorite_tools'
+    // support
 
-    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision, boolean glowingEnabled) {
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy,
+            boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed,
+            float flySpeed, float jumpMultiplier, boolean nightVision, boolean glowingEnabled) {
         return CompletableFuture.runAsync(() -> {
-            String sql = "mysql".equalsIgnoreCase(dbType) ?
-                    "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision, glowing_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent), favorite_tools = VALUES(favorite_tools), walk_speed = VALUES(walk_speed), fly_speed = VALUES(fly_speed), jump_multiplier = VALUES(jump_multiplier), night_vision = VALUES(night_vision), glowing_enabled = VALUES(glowing_enabled)" :
-                    "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision, glowing_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "mysql".equalsIgnoreCase(
+                    dbType) ? "INSERT INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision, glowing_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                            "ON DUPLICATE KEY UPDATE interactions = VALUES(interactions), container_spy = VALUES(container_spy), fly_enabled = VALUES(fly_enabled), mod_on_join = VALUES(mod_on_join), silent = VALUES(silent), favorite_tools = VALUES(favorite_tools), walk_speed = VALUES(walk_speed), fly_speed = VALUES(fly_speed), jump_multiplier = VALUES(jump_multiplier), night_vision = VALUES(night_vision), glowing_enabled = VALUES(glowing_enabled)"
+                            : "INSERT OR REPLACE INTO moderator_preferences (uuid, interactions, container_spy, fly_enabled, mod_on_join, silent, favorite_tools, walk_speed, fly_speed, jump_multiplier, night_vision, glowing_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, uuid.toString());
@@ -592,10 +615,13 @@ public class DatabaseManager {
             }
         });
     }
-    
+
     // Overload for backward compatibility if needed, but better to update calls
-    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision) {
-        return saveModPreferences(uuid, interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools, walkSpeed, flySpeed, jumpMultiplier, nightVision, false);
+    public CompletableFuture<Void> saveModPreferences(UUID uuid, boolean interactions, boolean containerSpy,
+            boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed,
+            float flySpeed, float jumpMultiplier, boolean nightVision) {
+        return saveModPreferences(uuid, interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools,
+                walkSpeed, flySpeed, jumpMultiplier, nightVision, false);
     }
 
     public CompletableFuture<ModPreferences> getModPreferences(UUID uuid) {
@@ -607,7 +633,7 @@ public class DatabaseManager {
                     if (rs.next()) {
                         String favToolsRaw = rs.getString("favorite_tools");
                         List<String> favoriteTools;
-                        
+
                         if (favToolsRaw == null) {
                             favoriteTools = null; // Indicates never set (use defaults)
                         } else if (favToolsRaw.isEmpty()) {
@@ -630,10 +656,13 @@ public class DatabaseManager {
                         } catch (SQLException ignored) {
                             // Columns might not exist yet
                         }
-                        
-                        if (walkSpeed == 0.0f) walkSpeed = 1.0f;
-                        if (flySpeed == 0.0f) flySpeed = 1.0f;
-                        if (jumpMultiplier == 0.0f) jumpMultiplier = 1.0f;
+
+                        if (walkSpeed == 0.0f)
+                            walkSpeed = 1.0f;
+                        if (flySpeed == 0.0f)
+                            flySpeed = 1.0f;
+                        if (jumpMultiplier == 0.0f)
+                            jumpMultiplier = 1.0f;
 
                         return new ModPreferences(
                                 rs.getBoolean("interactions"),
@@ -646,8 +675,7 @@ public class DatabaseManager {
                                 flySpeed,
                                 jumpMultiplier,
                                 nightVision,
-                                glowingEnabled
-                        );
+                                glowingEnabled);
                     }
                 }
             } catch (SQLException e) {
@@ -672,11 +700,15 @@ public class DatabaseManager {
         private final boolean nightVision;
         private final boolean glowingEnabled;
 
-        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools) {
-            this(interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools, 1.0f, 1.0f, 1.0f, false, false);
+        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin,
+                boolean silent, List<String> favoriteTools) {
+            this(interactions, containerSpy, flyEnabled, modOnJoin, silent, favoriteTools, 1.0f, 1.0f, 1.0f, false,
+                    false);
         }
 
-        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin, boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier, boolean nightVision, boolean glowingEnabled) {
+        public ModPreferences(boolean interactions, boolean containerSpy, boolean flyEnabled, boolean modOnJoin,
+                boolean silent, List<String> favoriteTools, float walkSpeed, float flySpeed, float jumpMultiplier,
+                boolean nightVision, boolean glowingEnabled) {
             this.interactions = interactions;
             this.containerSpy = containerSpy;
             this.flyEnabled = flyEnabled;
@@ -690,20 +722,53 @@ public class DatabaseManager {
             this.glowingEnabled = glowingEnabled;
         }
 
-        public boolean isInteractions() { return interactions; }
-        public boolean isContainerSpy() { return containerSpy; }
-        public boolean isFlyEnabled() { return flyEnabled; }
-        public boolean isModOnJoin() { return modOnJoin; }
-        public boolean isSilent() { return silent; }
-        public List<String> getFavoriteTools() { return favoriteTools; }
-        public float getWalkSpeed() { return walkSpeed; }
-        public float getFlySpeed() { return flySpeed; }
-        public float getJumpMultiplier() { return jumpMultiplier; }
-        public boolean isNightVision() { return nightVision; }
-        public boolean isGlowingEnabled() { return glowingEnabled; }
+        public boolean isInteractions() {
+            return interactions;
+        }
+
+        public boolean isContainerSpy() {
+            return containerSpy;
+        }
+
+        public boolean isFlyEnabled() {
+            return flyEnabled;
+        }
+
+        public boolean isModOnJoin() {
+            return modOnJoin;
+        }
+
+        public boolean isSilent() {
+            return silent;
+        }
+
+        public List<String> getFavoriteTools() {
+            return favoriteTools;
+        }
+
+        public float getWalkSpeed() {
+            return walkSpeed;
+        }
+
+        public float getFlySpeed() {
+            return flySpeed;
+        }
+
+        public float getJumpMultiplier() {
+            return jumpMultiplier;
+        }
+
+        public boolean isNightVision() {
+            return nightVision;
+        }
+
+        public boolean isGlowingEnabled() {
+            return glowingEnabled;
+        }
     }
 
-    // ... (rest of the class remains identical, just ensuring all other methods are kept)
+    // ... (rest of the class remains identical, just ensuring all other methods are
+    // kept)
     // NEW: Methods for Operator Audit Log
     public void logOperatorAction(UUID targetUUID, UUID executorUUID, String actionType, String details) {
         CompletableFuture.runAsync(() -> {
@@ -734,8 +799,7 @@ public class DatabaseManager {
                                 UUID.fromString(rs.getString("executor_uuid")),
                                 rs.getTimestamp("timestamp"),
                                 rs.getString("action_type"),
-                                rs.getString("details")
-                        ));
+                                rs.getString("details")));
                     }
                 }
             } catch (SQLException e) {
@@ -745,22 +809,31 @@ public class DatabaseManager {
         });
     }
 
-    public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, List<String> customCommands) {
-        return executePunishmentAsync(targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, customCommands, 0);
+    public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason,
+            String punisherName, long punishmentEndTime, String durationString, boolean byIp,
+            List<String> customCommands) {
+        return executePunishmentAsync(targetUUID, punishmentType, reason, punisherName, punishmentEndTime,
+                durationString, byIp, customCommands, 0);
     }
 
-    public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, List<String> customCommands, int warnLevel) {
+    public CompletableFuture<String> executePunishmentAsync(UUID targetUUID, String punishmentType, String reason,
+            String punisherName, long punishmentEndTime, String durationString, boolean byIp,
+            List<String> customCommands, int warnLevel) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection()) {
                 boolean isInternal = plugin.getConfigManager().isPunishmentInternal(punishmentType);
                 if (isInternal && !"warn".equalsIgnoreCase(punishmentType)) {
-                    PunishmentEntry activePunishment = getLatestActivePunishment(connection, targetUUID, punishmentType);
-                    if (activePunishment != null && (activePunishment.getEndTime() > System.currentTimeMillis() || activePunishment.getEndTime() == Long.MAX_VALUE)) {
-                        updatePunishmentAsRemoved(connection, activePunishment.getPunishmentId(), "System", "Superseded by new punishment.");
+                    PunishmentEntry activePunishment = getLatestActivePunishment(connection, targetUUID,
+                            punishmentType);
+                    if (activePunishment != null && (activePunishment.getEndTime() > System.currentTimeMillis()
+                            || activePunishment.getEndTime() == Long.MAX_VALUE)) {
+                        updatePunishmentAsRemoved(connection, activePunishment.getPunishmentId(), "System",
+                                "Superseded by new punishment.");
                     }
                 }
 
-                String punishmentId = logPunishment(connection, targetUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel);
+                String punishmentId = logPunishment(connection, targetUUID, punishmentType, reason, punisherName,
+                        punishmentEndTime, durationString, byIp, warnLevel);
 
                 if (isInternal) {
                     switch (punishmentType.toLowerCase()) {
@@ -782,7 +855,8 @@ public class DatabaseManager {
         });
     }
 
-    public CompletableFuture<String> executeUnpunishmentAsync(UUID targetUUID, String punishmentType, String punisherName, String reason, String punishmentIdToUpdate) {
+    public CompletableFuture<String> executeUnpunishmentAsync(UUID targetUUID, String punishmentType,
+            String punisherName, String reason, String punishmentIdToUpdate) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection()) {
                 String punishmentId = punishmentIdToUpdate;
@@ -840,8 +914,7 @@ public class DatabaseManager {
                                 rs.getLong("end_time"),
                                 rs.getBoolean("is_paused"),
                                 rs.getLong("remaining_time_on_pause"),
-                                rs.getString("associated_punishment_ids")
-                        ));
+                                rs.getString("associated_punishment_ids")));
                     }
                 } catch (SQLException e) {
                     plugin.getLogger().log(Level.SEVERE, "Error fetching expired warnings", e);
@@ -867,7 +940,8 @@ public class DatabaseManager {
         if (levelConfig != null) {
             List<MenuItem.ClickActionData> actions = levelConfig.getOnExpireActions();
             if (plugin.getMenuListener() != null) {
-                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-expire", "N/A", "Expired", true, actions, warning);
+                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, "warn-expire", "N/A",
+                        "Expired", true, actions, warning);
             }
         }
         removeActiveWarning(warning.getPlayerUUID(), warning.getPunishmentId(), "System", "Expired");
@@ -883,10 +957,13 @@ public class DatabaseManager {
                         Bukkit.getScheduler().runTask(plugin, () -> {
                             WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(latest.getWarnLevel());
                             if (levelConfig != null && plugin.getMenuListener() != null) {
-                                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), Bukkit.getOfflinePlayer(playerUUID), "warn-expire", "N/A", "Superseded", true, levelConfig.getOnExpireActions(), latest);
+                                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(),
+                                        Bukkit.getOfflinePlayer(playerUUID), "warn-expire", "N/A", "Superseded", true,
+                                        levelConfig.getOnExpireActions(), latest);
                             }
                         });
-                        removeActiveWarning(connection, playerUUID, latest.getPunishmentId(), "System", "Superseded by new warning.");
+                        removeActiveWarning(connection, playerUUID, latest.getPunishmentId(), "System",
+                                "Superseded by new warning.");
                     }
                 } else if ("incremental".equals(mode)) {
                     pauseLatestActiveWarning(connection, playerUUID);
@@ -910,15 +987,17 @@ public class DatabaseManager {
 
     public void removeActiveWarning(UUID playerUUID, String punishmentId, String removerName, String reason) {
         CompletableFuture.runAsync(() -> {
-            try(Connection connection = getConnection()){
+            try (Connection connection = getConnection()) {
                 removeActiveWarning(connection, playerUUID, punishmentId, removerName, reason);
-            } catch(SQLException e){
-                plugin.getLogger().log(Level.SEVERE, "Could not remove active warning for punishmentId: " + punishmentId, e);
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE,
+                        "Could not remove active warning for punishmentId: " + punishmentId, e);
             }
         });
     }
 
-    private void removeActiveWarning(Connection connection, UUID playerUUID, String punishmentId, String removerName, String reason) throws SQLException {
+    private void removeActiveWarning(Connection connection, UUID playerUUID, String punishmentId, String removerName,
+            String reason) throws SQLException {
         ActiveWarningEntry warningToRemove = getActiveWarningByPunishmentId(connection, punishmentId);
 
         if (warningToRemove != null && warningToRemove.getAssociatedPunishmentIds() != null) {
@@ -989,8 +1068,7 @@ public class DatabaseManager {
                         rs.getInt("warn_level"),
                         rs.getLong("end_time"),
                         false, 0,
-                        rs.getString("associated_punishment_ids")
-                );
+                        rs.getString("associated_punishment_ids"));
             }
         }
         return null;
@@ -998,7 +1076,8 @@ public class DatabaseManager {
 
     private void pauseLatestActiveWarning(Connection connection, UUID playerUUID) throws SQLException {
         ActiveWarningEntry latest = getLatestActiveWarning(connection, playerUUID);
-        if (latest == null) return;
+        if (latest == null)
+            return;
 
         pauseAssociatedPunishments(connection, latest);
 
@@ -1029,8 +1108,7 @@ public class DatabaseManager {
                         rs.getInt("id"), playerUUID, rs.getString("punishment_id"),
                         rs.getInt("warn_level"), rs.getLong("end_time"), true,
                         rs.getLong("remaining_time_on_pause"),
-                        rs.getString("associated_punishment_ids")
-                );
+                        rs.getString("associated_punishment_ids"));
 
                 long remainingMillis = warningToResume.getRemainingTimeOnPause();
                 long newEndTime = (remainingMillis == -1) ? -1 : System.currentTimeMillis() + remainingMillis;
@@ -1050,11 +1128,13 @@ public class DatabaseManager {
 
     private void pauseAssociatedPunishments(Connection connection, ActiveWarningEntry warning) throws SQLException {
         String associatedIds = warning.getAssociatedPunishmentIds();
-        if (associatedIds == null || associatedIds.isEmpty()) return;
+        if (associatedIds == null || associatedIds.isEmpty())
+            return;
 
         for (String pair : associatedIds.split(";")) {
             String[] parts = pair.split(":");
-            if (parts.length != 2) continue;
+            if (parts.length != 2)
+                continue;
             String type = parts[0];
             String punishmentId = parts[1];
 
@@ -1068,17 +1148,21 @@ public class DatabaseManager {
                 case "mute":
                     unmutePlayer(connection, warning.getPlayerUUID());
                     if (wasByIp && ipAddress != null && menuListener != null) {
-                        Bukkit.getScheduler().runTask(plugin, () -> menuListener.applyIpUnpunishmentToOnlinePlayers("mute", ipAddress, warning.getPlayerUUID()));
+                        Bukkit.getScheduler().runTask(plugin, () -> menuListener
+                                .applyIpUnpunishmentToOnlinePlayers("mute", ipAddress, warning.getPlayerUUID()));
                     } else if (wasByIp) {
-                        plugin.getLogger().warning("Missing IP for by-ip mute pause on warning " + warning.getPunishmentId());
+                        plugin.getLogger()
+                                .warning("Missing IP for by-ip mute pause on warning " + warning.getPunishmentId());
                     }
                     break;
                 case "softban":
                     unSoftBanPlayer(connection, warning.getPlayerUUID());
                     if (wasByIp && ipAddress != null && menuListener != null) {
-                        Bukkit.getScheduler().runTask(plugin, () -> menuListener.applyIpUnpunishmentToOnlinePlayers("softban", ipAddress, warning.getPlayerUUID()));
+                        Bukkit.getScheduler().runTask(plugin, () -> menuListener
+                                .applyIpUnpunishmentToOnlinePlayers("softban", ipAddress, warning.getPlayerUUID()));
                     } else if (wasByIp) {
-                        plugin.getLogger().warning("Missing IP for by-ip softban pause on warning " + warning.getPunishmentId());
+                        plugin.getLogger()
+                                .warning("Missing IP for by-ip softban pause on warning " + warning.getPunishmentId());
                     }
                     break;
                 case "ban":
@@ -1088,9 +1172,11 @@ public class DatabaseManager {
                             if (ipAddress != null && Bukkit.getBanList(BanList.Type.IP).isBanned(ipAddress)) {
                                 Bukkit.getBanList(BanList.Type.IP).pardon(ipAddress);
                             } else if (ipAddress == null) {
-                                plugin.getLogger().warning("Missing IP for by-ip ban pause on warning " + warning.getPunishmentId());
+                                plugin.getLogger().warning(
+                                        "Missing IP for by-ip ban pause on warning " + warning.getPunishmentId());
                             }
-                        } else if (target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
+                        } else if (target.getName() != null
+                                && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
                             Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
                         }
                     });
@@ -1099,10 +1185,11 @@ public class DatabaseManager {
         }
     }
 
-    private void reactivatePunishment(Connection connection, String punishmentId, long newEndTime, long remainingMillis) throws SQLException {
-        String durationString = (remainingMillis == -1 || newEndTime == Long.MAX_VALUE) ?
-                plugin.getConfigManager().getMessage("placeholders.permanent_time_display") :
-                TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
+    private void reactivatePunishment(Connection connection, String punishmentId, long newEndTime, long remainingMillis)
+            throws SQLException {
+        String durationString = (remainingMillis == -1 || newEndTime == Long.MAX_VALUE)
+                ? plugin.getConfigManager().getMessage("placeholders.permanent_time_display")
+                : TimeUtils.formatTime((int) (remainingMillis / 1000), plugin.getConfigManager());
 
         String sql = "UPDATE punishment_history SET active = 1, punishment_time = ?, duration_string = ?, removed_by_name = NULL, removed_reason = NULL, removed_at = NULL WHERE punishment_id = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -1115,7 +1202,8 @@ public class DatabaseManager {
 
     private void resumeAssociatedPunishments(Connection connection, ActiveWarningEntry warning) throws SQLException {
         String associatedIds = warning.getAssociatedPunishmentIds();
-        if (associatedIds == null || associatedIds.isEmpty()) return;
+        if (associatedIds == null || associatedIds.isEmpty())
+            return;
 
         OfflinePlayer target = Bukkit.getOfflinePlayer(warning.getPlayerUUID());
         String punisherName = "Console";
@@ -1124,7 +1212,8 @@ public class DatabaseManager {
 
         for (String pair : associatedIds.split(";")) {
             String[] parts = pair.split(":");
-            if (parts.length != 2) continue;
+            if (parts.length != 2)
+                continue;
             String type = parts[0];
             String originalPunishmentId = parts[1];
 
@@ -1140,16 +1229,20 @@ public class DatabaseManager {
             boolean wasByIp = originalPunishment.wasByIp();
             String ipAddress = wasByIp ? resolvePunishmentIp(originalPunishmentId, warning.getPlayerUUID()) : null;
             if (wasByIp && ipAddress == null) {
-                plugin.getLogger().warning("Missing IP for by-ip " + type + " resume on warning " + warning.getPunishmentId());
+                plugin.getLogger()
+                        .warning("Missing IP for by-ip " + type + " resume on warning " + warning.getPunishmentId());
             }
 
             reactivatePunishment(connection, originalPunishmentId, newEndTime, remainingMillis);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
                 PunishmentEntry resumedPunishment = getPunishmentById(originalPunishmentId);
-                if (resumedPunishment == null) return;
+                if (resumedPunishment == null)
+                    return;
 
-                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, type, resumedPunishment.getDurationString(), resumedPunishment.getReason(), false, Collections.emptyList());
+                plugin.getMenuListener().executeHookActions(Bukkit.getConsoleSender(), target, type,
+                        resumedPunishment.getDurationString(), resumedPunishment.getReason(), false,
+                        Collections.emptyList());
 
                 switch (type.toLowerCase()) {
                     case "mute":
@@ -1160,27 +1253,39 @@ public class DatabaseManager {
                         }
                         plugin.getMutedPlayersCache().put(target.getUniqueId(), newEndTime);
                         if (target.isOnline()) {
-                            String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", resumedPunishment.getDurationString(), "{reason}", resumedPunishment.getReason(), "{punishment_id}", originalPunishmentId);
+                            String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted",
+                                    "{time}", resumedPunishment.getDurationString(), "{reason}",
+                                    resumedPunishment.getReason(), "{punishment_id}", originalPunishmentId);
                             target.getPlayer().sendMessage(MessageUtils.getColorMessage(muteMessage));
                         }
                         if (wasByIp && ipAddress != null && plugin.getMenuListener() != null) {
-                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("mute", ipAddress, newEndTime, resumedPunishment.getReason(), resumedPunishment.getDurationString(), originalPunishmentId, target.getUniqueId());
+                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("mute", ipAddress, newEndTime,
+                                    resumedPunishment.getReason(), resumedPunishment.getDurationString(),
+                                    originalPunishmentId, target.getUniqueId());
                         }
                         break;
                     case "softban":
                         try (Connection conn = getConnection()) {
                             WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(warning.getWarnLevel());
-                            List<String> customCommands = (levelConfig != null) ? levelConfig.getSoftbanBlockedCommands() : null;
-                            softBanPlayer(conn, target.getUniqueId(), newEndTime, resumedPunishment.getReason(), customCommands);
+                            List<String> customCommands = (levelConfig != null)
+                                    ? levelConfig.getSoftbanBlockedCommands()
+                                    : null;
+                            softBanPlayer(conn, target.getUniqueId(), newEndTime, resumedPunishment.getReason(),
+                                    customCommands);
                         } catch (SQLException e) {
                             plugin.getLogger().log(Level.SEVERE, "Failed to re-apply softban on resume", e);
                         }
                         WarnLevel levelConfig = plugin.getConfigManager().getWarnLevel(warning.getWarnLevel());
-                        List<String> customCommands = (levelConfig != null) ? levelConfig.getSoftbanBlockedCommands() : Collections.emptyList();
+                        List<String> customCommands = (levelConfig != null) ? levelConfig.getSoftbanBlockedCommands()
+                                : Collections.emptyList();
                         plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), newEndTime);
-                        plugin.getSoftbannedCommandsCache().put(target.getUniqueId(), customCommands.isEmpty() ? plugin.getConfigManager().getBlockedCommands() : customCommands);
+                        plugin.getSoftbannedCommandsCache().put(target.getUniqueId(),
+                                customCommands.isEmpty() ? plugin.getConfigManager().getBlockedCommands()
+                                        : customCommands);
                         if (wasByIp && ipAddress != null && plugin.getMenuListener() != null) {
-                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("softban", ipAddress, newEndTime, resumedPunishment.getReason(), resumedPunishment.getDurationString(), originalPunishmentId, target.getUniqueId());
+                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("softban", ipAddress, newEndTime,
+                                    resumedPunishment.getReason(), resumedPunishment.getDurationString(),
+                                    originalPunishmentId, target.getUniqueId());
                         }
                         break;
                     case "ban":
@@ -1189,16 +1294,22 @@ public class DatabaseManager {
                             if (ipAddress == null) {
                                 return;
                             }
-                            Bukkit.getBanList(BanList.Type.IP).addBan(ipAddress, resumedPunishment.getReason(), expiration, punisherName);
+                            Bukkit.getBanList(BanList.Type.IP).addBan(ipAddress, resumedPunishment.getReason(),
+                                    expiration, punisherName);
                         } else if (target.getName() != null) {
-                            Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), resumedPunishment.getReason(), expiration, punisherName);
+                            Bukkit.getBanList(BanList.Type.NAME).addBan(target.getName(), resumedPunishment.getReason(),
+                                    expiration, punisherName);
                         }
                         if (target.isOnline()) {
-                            String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getBanScreen(), resumedPunishment.getReason(), resumedPunishment.getDurationString(), originalPunishmentId, expiration, plugin.getConfigManager());
+                            String kickMessage = MessageUtils.getKickMessage(plugin.getConfigManager().getBanScreen(),
+                                    resumedPunishment.getReason(), resumedPunishment.getDurationString(),
+                                    originalPunishmentId, expiration, plugin.getConfigManager());
                             target.getPlayer().kickPlayer(kickMessage);
                         }
                         if (wasByIp && ipAddress != null && plugin.getMenuListener() != null) {
-                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("ban", ipAddress, newEndTime, resumedPunishment.getReason(), resumedPunishment.getDurationString(), originalPunishmentId, target.getUniqueId());
+                            plugin.getMenuListener().applyIpPunishmentToOnlinePlayers("ban", ipAddress, newEndTime,
+                                    resumedPunishment.getReason(), resumedPunishment.getDurationString(),
+                                    originalPunishmentId, target.getUniqueId());
                         }
                         break;
                 }
@@ -1206,12 +1317,14 @@ public class DatabaseManager {
         }
     }
 
-    private void handleAssociatedPunishmentRemoval(Connection connection, UUID targetUUID, PunishmentEntry entry) throws SQLException {
+    private void handleAssociatedPunishmentRemoval(Connection connection, UUID targetUUID, PunishmentEntry entry)
+            throws SQLException {
         String type = entry.getType().toLowerCase();
         boolean wasByIp = entry.wasByIp();
         String ipAddress = wasByIp ? resolvePunishmentIp(entry.getPunishmentId(), targetUUID) : null;
         if (wasByIp && ipAddress == null) {
-            plugin.getLogger().warning("Missing IP for by-ip " + type + " removal on punishment " + entry.getPunishmentId());
+            plugin.getLogger()
+                    .warning("Missing IP for by-ip " + type + " removal on punishment " + entry.getPunishmentId());
         }
         MenuListener menuListener = plugin.getMenuListener();
 
@@ -1219,13 +1332,15 @@ public class DatabaseManager {
             case "mute":
                 unmutePlayer(connection, targetUUID);
                 if (wasByIp && ipAddress != null && menuListener != null) {
-                    Bukkit.getScheduler().runTask(plugin, () -> menuListener.applyIpUnpunishmentToOnlinePlayers("mute", ipAddress, targetUUID));
+                    Bukkit.getScheduler().runTask(plugin,
+                            () -> menuListener.applyIpUnpunishmentToOnlinePlayers("mute", ipAddress, targetUUID));
                 }
                 break;
             case "softban":
                 unSoftBanPlayer(connection, targetUUID);
                 if (wasByIp && ipAddress != null && menuListener != null) {
-                    Bukkit.getScheduler().runTask(plugin, () -> menuListener.applyIpUnpunishmentToOnlinePlayers("softban", ipAddress, targetUUID));
+                    Bukkit.getScheduler().runTask(plugin,
+                            () -> menuListener.applyIpUnpunishmentToOnlinePlayers("softban", ipAddress, targetUUID));
                 }
                 break;
             case "ban":
@@ -1235,7 +1350,8 @@ public class DatabaseManager {
                         if (ipAddress != null && Bukkit.getBanList(BanList.Type.IP).isBanned(ipAddress)) {
                             Bukkit.getBanList(BanList.Type.IP).pardon(ipAddress);
                         }
-                    } else if (target.getName() != null && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
+                    } else if (target.getName() != null
+                            && Bukkit.getBanList(BanList.Type.NAME).isBanned(target.getName())) {
                         Bukkit.getBanList(BanList.Type.NAME).pardon(target.getName());
                     }
                 });
@@ -1250,7 +1366,6 @@ public class DatabaseManager {
         }
         return getLastKnownIp(playerUUID);
     }
-
 
     public List<ActiveWarningEntry> getAllActiveAndPausedWarnings(UUID playerUUID) {
         List<ActiveWarningEntry> warnings = new ArrayList<>();
@@ -1267,8 +1382,7 @@ public class DatabaseManager {
                         rs.getLong("end_time"),
                         rs.getBoolean("is_paused"),
                         rs.getLong("remaining_time_on_pause"),
-                        rs.getString("associated_punishment_ids")
-                ));
+                        rs.getString("associated_punishment_ids")));
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not get all active/paused warnings for " + playerUUID, e);
@@ -1285,7 +1399,8 @@ public class DatabaseManager {
         return null;
     }
 
-    private ActiveWarningEntry getActiveWarningByPunishmentId(Connection connection, String punishmentId) throws SQLException {
+    private ActiveWarningEntry getActiveWarningByPunishmentId(Connection connection, String punishmentId)
+            throws SQLException {
         String sql = "SELECT * FROM active_warnings WHERE punishment_id = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
@@ -1299,14 +1414,14 @@ public class DatabaseManager {
                         rs.getLong("end_time"),
                         rs.getBoolean("is_paused"),
                         rs.getLong("remaining_time_on_pause"),
-                        rs.getString("associated_punishment_ids")
-                );
+                        rs.getString("associated_punishment_ids"));
             }
         }
         return null;
     }
 
-    public void addAssociatedPunishmentId(String warningPunishmentId, String associatedPunishmentType, String associatedPunishmentId) {
+    public void addAssociatedPunishmentId(String warningPunishmentId, String associatedPunishmentType,
+            String associatedPunishmentId) {
         CompletableFuture.runAsync(() -> {
             String newEntry = associatedPunishmentType + ":" + associatedPunishmentId;
             String sqlUpdate = "sqlite".equalsIgnoreCase(dbType)
@@ -1317,7 +1432,7 @@ public class DatabaseManager {
             int maxAttempts = "sqlite".equalsIgnoreCase(dbType) ? 5 : 1;
             while (true) {
                 try (Connection connection = getConnection();
-                     PreparedStatement psUpdate = connection.prepareStatement(sqlUpdate)) {
+                        PreparedStatement psUpdate = connection.prepareStatement(sqlUpdate)) {
                     psUpdate.setString(1, newEntry);
                     psUpdate.setString(2, newEntry);
                     psUpdate.setString(3, warningPunishmentId);
@@ -1334,7 +1449,8 @@ public class DatabaseManager {
                         }
                         continue;
                     }
-                    plugin.getLogger().log(Level.SEVERE, "Could not add associated punishment ID for warning " + warningPunishmentId, e);
+                    plugin.getLogger().log(Level.SEVERE,
+                            "Could not add associated punishment ID for warning " + warningPunishmentId, e);
                     break;
                 }
             }
@@ -1349,7 +1465,8 @@ public class DatabaseManager {
             return true;
         }
         String message = e.getMessage();
-        return message != null && (message.contains("SQLITE_BUSY") || message.toLowerCase(Locale.ROOT).contains("database is locked"));
+        return message != null
+                && (message.contains("SQLITE_BUSY") || message.toLowerCase(Locale.ROOT).contains("database is locked"));
     }
 
     public List<PunishmentEntry> getAllActivePunishments(UUID playerUUID, String playerIP) {
@@ -1378,8 +1495,7 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
-                    ));
+                            rs.getInt("warn_level")));
                 }
             }
         } catch (SQLException e) {
@@ -1392,7 +1508,8 @@ public class DatabaseManager {
         List<UUID> expiredUuids = new ArrayList<>();
         String selectSql = "SELECT uuid FROM " + tableName + " WHERE endTime <= ? AND endTime != ?";
 
-        try (Connection connection = getConnection(); PreparedStatement psSelect = connection.prepareStatement(selectSql)) {
+        try (Connection connection = getConnection();
+                PreparedStatement psSelect = connection.prepareStatement(selectSql)) {
             long currentTime = System.currentTimeMillis();
             psSelect.setLong(1, currentTime);
             psSelect.setLong(2, Long.MAX_VALUE);
@@ -1407,7 +1524,8 @@ public class DatabaseManager {
 
         if (!expiredUuids.isEmpty()) {
             String deleteSql = "DELETE FROM " + tableName + " WHERE uuid = ?";
-            try (Connection connection = getConnection(); PreparedStatement psDelete = connection.prepareStatement(deleteSql)) {
+            try (Connection connection = getConnection();
+                    PreparedStatement psDelete = connection.prepareStatement(deleteSql)) {
                 for (UUID uuid : expiredUuids) {
                     psDelete.setString(1, uuid.toString());
                     psDelete.addBatch();
@@ -1452,7 +1570,8 @@ public class DatabaseManager {
 
                     int updatedRows = ps.executeUpdate();
                     if (updatedRows > 0 && plugin.getConfigManager().isDebugEnabled()) {
-                        plugin.getLogger().info("[DatabaseManager] Marked " + updatedRows + " expired ban(s) as inactive.");
+                        plugin.getLogger()
+                                .info("[DatabaseManager] Marked " + updatedRows + " expired ban(s) as inactive.");
                     }
                 } catch (SQLException e) {
                     plugin.getLogger().log(Level.SEVERE, "Error checking for expired internal bans", e);
@@ -1461,24 +1580,27 @@ public class DatabaseManager {
         }.runTaskTimerAsynchronously(plugin, 20L * 60 * 5, 20L * 60 * 5);
     }
 
-
     public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp) {
         return executePunishmentAsync(uuid, "softban", reason, punisherName, endTime, "...", byIp, null).join();
     }
 
-    public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp, List<String> customCommands) {
-        return executePunishmentAsync(uuid, "softban", reason, punisherName, endTime, "...", byIp, customCommands).join();
+    public String softBanPlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp,
+            List<String> customCommands) {
+        return executePunishmentAsync(uuid, "softban", reason, punisherName, endTime, "...", byIp, customCommands)
+                .join();
     }
 
-    private void softBanPlayer(Connection connection, UUID uuid, long endTime, String reason, List<String> customCommands) throws SQLException {
+    private void softBanPlayer(Connection connection, UUID uuid, long endTime, String reason,
+            List<String> customCommands) throws SQLException {
         long currentEndTime = getSoftBanEndTime(connection, uuid);
-        long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis() || currentEndTime == Long.MAX_VALUE)
-                ? endTime
-                : currentEndTime + (endTime - System.currentTimeMillis());
+        long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis()
+                || currentEndTime == Long.MAX_VALUE)
+                        ? endTime
+                        : currentEndTime + (endTime - System.currentTimeMillis());
 
-        String sql = "mysql".equalsIgnoreCase(dbType) ?
-                "REPLACE INTO softbans (uuid, endTime, reason, custom_commands) VALUES (?, ?, ?, ?)" :
-                "INSERT OR REPLACE INTO softbans (uuid, endTime, reason, custom_commands) VALUES (?, ?, ?, ?)";
+        String sql = "mysql".equalsIgnoreCase(dbType)
+                ? "REPLACE INTO softbans (uuid, endTime, reason, custom_commands) VALUES (?, ?, ?, ?)"
+                : "INSERT OR REPLACE INTO softbans (uuid, endTime, reason, custom_commands) VALUES (?, ?, ?, ?)";
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, uuid.toString());
@@ -1492,7 +1614,6 @@ public class DatabaseManager {
             ps.executeUpdate();
         }
     }
-
 
     public String unSoftBanPlayer(UUID uuid, String punisherName, String reason) {
         return executeUnpunishmentAsync(uuid, "softban", punisherName, reason, null).join();
@@ -1555,18 +1676,19 @@ public class DatabaseManager {
         return getPunishmentEndTime(connection, "softbans", uuid);
     }
 
-
     public String mutePlayer(UUID uuid, long endTime, String reason, String punisherName, boolean byIp) {
         return executePunishmentAsync(uuid, "mute", reason, punisherName, endTime, "...", byIp, null).join();
     }
 
     private void mutePlayer(Connection connection, UUID uuid, long endTime, String reason) throws SQLException {
         long currentEndTime = getMuteEndTime(connection, uuid);
-        long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis() || currentEndTime == Long.MAX_VALUE)
-                ? endTime
-                : currentEndTime + (endTime - System.currentTimeMillis());
+        long finalEndTime = (endTime == Long.MAX_VALUE || currentEndTime <= System.currentTimeMillis()
+                || currentEndTime == Long.MAX_VALUE)
+                        ? endTime
+                        : currentEndTime + (endTime - System.currentTimeMillis());
 
-        String sql = "mysql".equalsIgnoreCase(dbType) ? "REPLACE INTO mutes (uuid, endTime, reason) VALUES (?, ?, ?)" : "INSERT OR REPLACE INTO mutes (uuid, endTime, reason) VALUES (?, ?, ?)";
+        String sql = "mysql".equalsIgnoreCase(dbType) ? "REPLACE INTO mutes (uuid, endTime, reason) VALUES (?, ?, ?)"
+                : "INSERT OR REPLACE INTO mutes (uuid, endTime, reason) VALUES (?, ?, ?)";
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, uuid.toString());
@@ -1575,7 +1697,6 @@ public class DatabaseManager {
             ps.executeUpdate();
         }
     }
-
 
     public String unmutePlayer(UUID uuid, String punisherName, String reason) {
         return executeUnpunishmentAsync(uuid, "mute", punisherName, reason, null).join();
@@ -1590,7 +1711,6 @@ public class DatabaseManager {
         }
     }
 
-
     public long getMuteEndTime(UUID uuid) {
         if (plugin.getMutedPlayersCache().containsKey(uuid)) {
             return plugin.getMutedPlayersCache().get(uuid);
@@ -1604,7 +1724,7 @@ public class DatabaseManager {
 
     private String getPunishmentReason(String table, UUID uuid) {
         try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement("SELECT reason FROM " + table + " WHERE uuid = ?")) {
+                PreparedStatement ps = connection.prepareStatement("SELECT reason FROM " + table + " WHERE uuid = ?")) {
             ps.setString(1, uuid.toString());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -1638,21 +1758,26 @@ public class DatabaseManager {
         return 0;
     }
 
-
-    public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp) {
-        return logPunishment(playerUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, 0);
+    public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName,
+            long punishmentEndTime, String durationString, boolean byIp) {
+        return logPunishment(playerUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp,
+                0);
     }
 
-    public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, int warnLevel) {
+    public String logPunishment(UUID playerUUID, String punishmentType, String reason, String punisherName,
+            long punishmentEndTime, String durationString, boolean byIp, int warnLevel) {
         try (Connection connection = getConnection()) {
-            return logPunishment(connection, playerUUID, punishmentType, reason, punisherName, punishmentEndTime, durationString, byIp, warnLevel);
+            return logPunishment(connection, playerUUID, punishmentType, reason, punisherName, punishmentEndTime,
+                    durationString, byIp, warnLevel);
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error logging punishment!", e);
             return null;
         }
     }
 
-    private String logPunishment(Connection connection, UUID playerUUID, String punishmentType, String reason, String punisherName, long punishmentEndTime, String durationString, boolean byIp, int warnLevel) throws SQLException {
+    private String logPunishment(Connection connection, UUID playerUUID, String punishmentType, String reason,
+            String punisherName, long punishmentEndTime, String durationString, boolean byIp, int warnLevel)
+            throws SQLException {
         String punishmentId = generatePunishmentId();
         String sql = "INSERT INTO punishment_history (punishment_id, player_uuid, punishment_type, reason, punisher_name, punishment_time, duration_string, active, by_ip, warn_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -1672,15 +1797,16 @@ public class DatabaseManager {
         }
     }
 
-
     public void logPlayerInfo(String punishmentId, Player player) {
-        String ipAddress = (player != null && player.getAddress() != null) ? player.getAddress().getAddress().getHostAddress() : null;
+        String ipAddress = (player != null && player.getAddress() != null)
+                ? player.getAddress().getAddress().getHostAddress()
+                : null;
         logPlayerInfoAsync(punishmentId, player, ipAddress);
     }
 
     public void logPlayerInfoAsync(String punishmentId, OfflinePlayer target, String ipAddress) {
         CompletableFuture.runAsync(() -> {
-            String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level, playtime, ping, first_joined, last_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO player_info (punishment_id, ip, location, gamemode, health, hunger, exp_level, playtime, ping, first_joined, last_joined, potion_effects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
 
                 Player onlineTarget = target.isOnline() ? target.getPlayer() : null;
@@ -1689,13 +1815,18 @@ public class DatabaseManager {
                 ps.setString(2, ipAddress);
 
                 if (onlineTarget != null) {
-                    ps.setString(3, onlineTarget.getWorld().getName() + "," + onlineTarget.getLocation().getX() + "," + onlineTarget.getLocation().getY() + "," + onlineTarget.getLocation().getZ());
+                    ps.setString(3, onlineTarget.getWorld().getName() + "," + onlineTarget.getLocation().getX() + ","
+                            + onlineTarget.getLocation().getY() + "," + onlineTarget.getLocation().getZ());
                     ps.setString(4, onlineTarget.getGameMode().toString());
                     ps.setDouble(5, onlineTarget.getHealth());
                     ps.setInt(6, onlineTarget.getFoodLevel());
                     ps.setInt(7, onlineTarget.getLevel());
                     ps.setLong(8, onlineTarget.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE));
                     ps.setInt(9, onlineTarget.getPing());
+
+                    // Serialize potion effects to JSON
+                    String potionEffectsJson = serializePotionEffects(onlineTarget);
+                    ps.setString(12, potionEffectsJson);
                 } else {
                     ps.setNull(3, Types.VARCHAR);
                     ps.setNull(4, Types.VARCHAR);
@@ -1704,6 +1835,7 @@ public class DatabaseManager {
                     ps.setNull(7, Types.INTEGER);
                     ps.setNull(8, Types.BIGINT);
                     ps.setNull(9, Types.INTEGER);
+                    ps.setNull(12, Types.VARCHAR);
                 }
 
                 ps.setLong(10, target.getFirstPlayed());
@@ -1711,16 +1843,44 @@ public class DatabaseManager {
 
                 ps.executeUpdate();
             } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Database error logging player info for punishment ID: " + punishmentId, e);
+                plugin.getLogger().log(Level.SEVERE,
+                        "Database error logging player info for punishment ID: " + punishmentId, e);
             }
         });
     }
 
+    /**
+     * Serializes a player's active potion effects to JSON format.
+     * Format: [{"name":"speed","amplifier":1,"duration":120},...]
+     */
+    private String serializePotionEffects(Player player) {
+        if (player == null)
+            return null;
+        Collection<org.bukkit.potion.PotionEffect> effects = player.getActivePotionEffects();
+        if (effects.isEmpty())
+            return null;
+
+        StringBuilder json = new StringBuilder("[");
+        boolean first = true;
+        for (org.bukkit.potion.PotionEffect effect : effects) {
+            if (!first)
+                json.append(",");
+            first = false;
+            json.append(String.format(
+                    "{\"name\":\"%s\",\"amplifier\":%d,\"duration\":%d}",
+                    effect.getType().getName(),
+                    effect.getAmplifier(),
+                    effect.getDuration() / 20 // Convert ticks to seconds
+            ));
+        }
+        json.append("]");
+        return json.toString();
+    }
 
     public PlayerInfo getPlayerInfo(String punishmentId) {
         String sql = "SELECT * FROM player_info WHERE punishment_id = ?";
         try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+                PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -1735,8 +1895,8 @@ public class DatabaseManager {
                             rs.getLong("playtime"),
                             rs.getInt("ping"),
                             rs.getLong("first_joined"),
-                            rs.getLong("last_joined")
-                    );
+                            rs.getLong("last_joined"),
+                            rs.getString("potion_effects"));
                 }
             }
         } catch (SQLException e) {
@@ -1769,8 +1929,7 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
-                    ));
+                            rs.getInt("warn_level")));
                 }
             }
         } catch (SQLException e) {
@@ -1778,10 +1937,11 @@ public class DatabaseManager {
         }
         return history;
     }
+
     public PunishmentEntry getPunishmentById(String punishmentId) {
         String sql = "SELECT * FROM punishment_history WHERE punishment_id = ?";
         try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+                PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, punishmentId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -1799,8 +1959,7 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
-                    );
+                            rs.getInt("warn_level"));
                 }
             }
         } catch (SQLException e) {
@@ -1808,7 +1967,6 @@ public class DatabaseManager {
         }
         return null;
     }
-
 
     public int getPunishmentHistoryCount(UUID playerUUID) {
         int count = 0;
@@ -1837,7 +1995,8 @@ public class DatabaseManager {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Database error retrieving punishment counts for UUID: " + playerUUID, e);
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving punishment counts for UUID: " + playerUUID,
+                    e);
         }
         return counts;
     }
@@ -1853,13 +2012,13 @@ public class DatabaseManager {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Database error retrieving active punishment counts for UUID: " + playerUUID, e);
+            plugin.getLogger().log(Level.SEVERE,
+                    "Database error retrieving active punishment counts for UUID: " + playerUUID, e);
         }
 
         counts.put("warn", getActiveWarningCount(playerUUID));
         return counts;
     }
-
 
     private String generatePunishmentId() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -1871,14 +2030,16 @@ public class DatabaseManager {
     }
 
     public String getLatestActivePunishmentId(UUID playerUUID, String punishmentType) {
-        try(Connection connection = getConnection()) {
+        try (Connection connection = getConnection()) {
             return getLatestActivePunishmentId(connection, playerUUID, punishmentType);
-        } catch(SQLException e){
+        } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment ID!", e);
         }
         return null;
     }
-    private String getLatestActivePunishmentId(Connection connection, UUID playerUUID, String punishmentType) throws SQLException {
+
+    private String getLatestActivePunishmentId(Connection connection, UUID playerUUID, String punishmentType)
+            throws SQLException {
         String sql = "SELECT punishment_id FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 ORDER BY timestamp DESC LIMIT 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
@@ -1893,15 +2054,16 @@ public class DatabaseManager {
     }
 
     public PunishmentEntry getLatestActivePunishment(UUID playerUUID, String punishmentType) {
-        try(Connection connection = getConnection()){
+        try (Connection connection = getConnection()) {
             return getLatestActivePunishment(connection, playerUUID, punishmentType);
-        } catch(SQLException e){
+        } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Database error retrieving latest active punishment!", e);
         }
         return null;
     }
 
-    private PunishmentEntry getLatestActivePunishment(Connection connection, UUID playerUUID, String punishmentType) throws SQLException {
+    private PunishmentEntry getLatestActivePunishment(Connection connection, UUID playerUUID, String punishmentType)
+            throws SQLException {
         String sql = "SELECT * FROM punishment_history WHERE player_uuid = ? AND punishment_type = ? AND active = 1 ORDER BY timestamp DESC LIMIT 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
@@ -1922,8 +2084,7 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
-                    );
+                            rs.getInt("warn_level"));
                 }
             }
         }
@@ -1933,7 +2094,7 @@ public class DatabaseManager {
     public String getLastKnownIp(UUID playerUUID) {
         String sql = "SELECT ip FROM player_last_state WHERE uuid = ?";
         try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+                PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -1952,7 +2113,7 @@ public class DatabaseManager {
                 "WHERE pi.ip = ? AND ph.punishment_type = ? AND ph.active = 1 " +
                 "ORDER BY ph.timestamp DESC LIMIT 1";
         try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+                PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, ip);
             ps.setString(2, punishmentType);
             try (ResultSet rs = ps.executeQuery()) {
@@ -1971,8 +2132,7 @@ public class DatabaseManager {
                             rs.getTimestamp("removed_at"),
                             rs.getString("removed_reason"),
                             rs.getBoolean("by_ip"),
-                            rs.getInt("warn_level")
-                    );
+                            rs.getInt("warn_level"));
                 }
             }
         } catch (SQLException e) {
@@ -1982,14 +2142,16 @@ public class DatabaseManager {
     }
 
     public boolean updatePunishmentAsRemoved(String punishmentId, String removedByName, String removedReason) {
-        try(Connection connection = getConnection()){
+        try (Connection connection = getConnection()) {
             return updatePunishmentAsRemoved(connection, punishmentId, removedByName, removedReason);
-        } catch (SQLException e){
+        } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to update punishment status", e);
             return false;
         }
     }
-    private boolean updatePunishmentAsRemoved(Connection connection, String punishmentId, String removedByName, String removedReason) throws SQLException {
+
+    private boolean updatePunishmentAsRemoved(Connection connection, String punishmentId, String removedByName,
+            String removedReason) throws SQLException {
         String sql = "UPDATE punishment_history SET active = 0, removed_by_name = ?, removed_reason = ?, removed_at = ? WHERE punishment_id = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, removedByName);
@@ -2002,7 +2164,8 @@ public class DatabaseManager {
 
     private void scheduleExpiryNotification(UUID uuid, long endTime, String punishmentType, String punishmentId) {
         long durationMillis = endTime - System.currentTimeMillis();
-        if (durationMillis <= 0) return;
+        if (durationMillis <= 0)
+            return;
         long durationTicks = durationMillis / 50;
 
         new BukkitRunnable() {
@@ -2021,7 +2184,8 @@ public class DatabaseManager {
 
                 boolean removed = false;
                 try (Connection connection = getConnection();
-                     PreparedStatement ps = connection.prepareStatement("DELETE FROM " + table + " WHERE uuid = ?")) {
+                        PreparedStatement ps = connection
+                                .prepareStatement("DELETE FROM " + table + " WHERE uuid = ?")) {
                     ps.setString(1, uuid.toString());
                     if (ps.executeUpdate() > 0) {
                         removed = true;
@@ -2039,7 +2203,8 @@ public class DatabaseManager {
                             if (entry.wasByIp()) {
                                 PlayerInfo pInfo = getPlayerInfo(punishmentId);
                                 if (pInfo != null && pInfo.getIp() != null) {
-                                    plugin.getPunishmentListener().applyIpExpiryToOnlinePlayers(punishmentType, pInfo.getIp());
+                                    plugin.getPunishmentListener().applyIpExpiryToOnlinePlayers(punishmentType,
+                                            pInfo.getIp());
                                 }
                             } else {
                                 sendRemovalNotification(uuid, punishmentType, true);
@@ -2068,8 +2233,9 @@ public class DatabaseManager {
             if (offlinePlayer.isOnline()) {
                 Player player = offlinePlayer.getPlayer();
                 if (player != null) {
-                    String messageKey = isExpiry ? "messages." + punishmentType + "_expired" :
-                            "messages." + (punishmentType.equals("mute") ? "unmute_notification" : "unsoftban_notification");
+                    String messageKey = isExpiry ? "messages." + punishmentType + "_expired"
+                            : "messages." + (punishmentType.equals("mute") ? "unmute_notification"
+                                    : "unsoftban_notification");
                     String message = plugin.getConfigManager().getMessage(messageKey);
                     player.sendMessage(MessageUtils.getColorMessage(message));
 
@@ -2084,12 +2250,13 @@ public class DatabaseManager {
         List<String> chatHistory = new ArrayList<>();
         String sql = "SELECT message, timestamp FROM player_chat_history WHERE player_uuid = ? ORDER BY timestamp DESC LIMIT ?";
         try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+                PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID.toString());
             ps.setInt(2, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    chatHistory.add(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(rs.getTimestamp("timestamp")) + " - " + rs.getString("message"));
+                    chatHistory.add(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(rs.getTimestamp("timestamp"))
+                            + " - " + rs.getString("message"));
                 }
             }
         } catch (SQLException e) {
@@ -2126,7 +2293,8 @@ public class DatabaseManager {
                             if (name != null && !players.contains(name)) {
                                 players.add(name);
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
             }
@@ -2141,7 +2309,8 @@ public class DatabaseManager {
                             if (name != null && !players.contains(name)) {
                                 players.add(name);
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
             }
@@ -2155,8 +2324,8 @@ public class DatabaseManager {
         List<String> ids = new ArrayList<>();
         String sql = "SELECT punishment_id FROM punishment_history WHERE active = 1";
         try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = connection.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 ids.add("#" + rs.getString("punishment_id"));
             }
@@ -2168,15 +2337,16 @@ public class DatabaseManager {
 
     public void updatePlayerLastState(Player player) {
         CompletableFuture.runAsync(() -> {
-            String sql = "mysql".equalsIgnoreCase(dbType) ?
-                    "INSERT INTO player_last_state (uuid, last_seen, ip, location, world) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE last_seen = VALUES(last_seen), ip = VALUES(ip), location = VALUES(location), world = VALUES(world)" :
-                    "INSERT OR REPLACE INTO player_last_state (uuid, last_seen, ip, location, world) VALUES (?, ?, ?, ?, ?)";
+            String sql = "mysql".equalsIgnoreCase(dbType)
+                    ? "INSERT INTO player_last_state (uuid, last_seen, ip, location, world) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE last_seen = VALUES(last_seen), ip = VALUES(ip), location = VALUES(location), world = VALUES(world)"
+                    : "INSERT OR REPLACE INTO player_last_state (uuid, last_seen, ip, location, world) VALUES (?, ?, ?, ?, ?)";
 
             try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, player.getUniqueId().toString());
                 ps.setLong(2, System.currentTimeMillis());
                 ps.setString(3, player.getAddress().getAddress().getHostAddress());
-                ps.setString(4, String.format("%d, %d, %d", player.getLocation().getBlockX(), player.getLocation().getBlockY(), player.getLocation().getBlockZ()));
+                ps.setString(4, String.format("%d, %d, %d", player.getLocation().getBlockX(),
+                        player.getLocation().getBlockY(), player.getLocation().getBlockZ()));
                 ps.setString(5, player.getLocation().getWorld().getName());
                 ps.executeUpdate();
             } catch (SQLException e) {
@@ -2196,8 +2366,7 @@ public class DatabaseManager {
                         rs.getLong("last_seen"),
                         rs.getString("ip"),
                         rs.getString("location"),
-                        rs.getString("world")
-                );
+                        rs.getString("world"));
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not retrieve player last state for " + uuid.toString(), e);
@@ -2220,7 +2389,7 @@ public class DatabaseManager {
     private boolean reportIdExists(String reportId) {
         String sql = "SELECT 1 FROM reports WHERE report_id = ?";
         try (Connection connection = getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+                PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, reportId);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -2231,12 +2400,13 @@ public class DatabaseManager {
         }
     }
 
-    public CompletableFuture<String> createReport(UUID requesterUUID, UUID targetUUID, String targetName, String reportType, String category, String reason, String details, String collectedData) {
+    public CompletableFuture<String> createReport(UUID requesterUUID, UUID targetUUID, String targetName,
+            String reportType, String category, String reason, String details, String collectedData) {
         return CompletableFuture.supplyAsync(() -> {
             String reportId = generateReportId();
             String sql = "INSERT INTO reports (report_id, requester_uuid, target_uuid, target_name, report_type, category, reason, details, status, collected_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (Connection connection = getConnection();
-                 PreparedStatement ps = connection.prepareStatement(sql)) {
+                    PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, reportId);
                 ps.setString(2, requesterUUID.toString());
                 ps.setString(3, targetUUID != null ? targetUUID.toString() : null);
@@ -2260,7 +2430,7 @@ public class DatabaseManager {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "SELECT * FROM reports WHERE report_id = ?";
             try (Connection connection = getConnection();
-                 PreparedStatement ps = connection.prepareStatement(sql)) {
+                    PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, reportId);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -2278,7 +2448,8 @@ public class DatabaseManager {
         });
     }
 
-    public CompletableFuture<List<ReportEntry>> getReports(int page, int entriesPerPage, ReportStatus filterStatus, String filterName, boolean filterAsRequester, UUID assignedTo, String reportType) {
+    public CompletableFuture<List<ReportEntry>> getReports(int page, int entriesPerPage, ReportStatus filterStatus,
+            String filterName, boolean filterAsRequester, UUID assignedTo, String reportType) {
         return CompletableFuture.supplyAsync(() -> {
             List<ReportEntry> reports = new ArrayList<>();
             int offset = (page - 1) * entriesPerPage;
@@ -2324,7 +2495,7 @@ public class DatabaseManager {
             params.add(offset);
 
             try (Connection connection = getConnection();
-                 PreparedStatement ps = connection.prepareStatement(sqlBuilder.toString())) {
+                    PreparedStatement ps = connection.prepareStatement(sqlBuilder.toString())) {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
                 }
@@ -2340,7 +2511,8 @@ public class DatabaseManager {
         });
     }
 
-    public CompletableFuture<Integer> countReports(ReportStatus filterStatus, String filterName, boolean filterAsRequester, UUID assignedTo, String reportType) {
+    public CompletableFuture<Integer> countReports(ReportStatus filterStatus, String filterName,
+            boolean filterAsRequester, UUID assignedTo, String reportType) {
         return CompletableFuture.supplyAsync(() -> {
             StringBuilder sqlBuilder = new StringBuilder("SELECT COUNT(*) FROM reports ");
             List<Object> params = new ArrayList<>();
@@ -2379,7 +2551,7 @@ public class DatabaseManager {
             }
 
             try (Connection connection = getConnection();
-                 PreparedStatement ps = connection.prepareStatement(sqlBuilder.toString())) {
+                    PreparedStatement ps = connection.prepareStatement(sqlBuilder.toString())) {
                 for (int i = 0; i < params.size(); i++) {
                     ps.setObject(i + 1, params.get(i));
                 }
@@ -2402,7 +2574,7 @@ public class DatabaseManager {
                     (isResolution ? ", resolved_at = CURRENT_TIMESTAMP, resolver_uuid = ?" : "") +
                     " WHERE report_id = ?";
             try (Connection connection = getConnection();
-                 PreparedStatement ps = connection.prepareStatement(sql)) {
+                    PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, status.name());
                 ps.setString(2, moderatorUUID != null ? moderatorUUID.toString() : null);
                 if (isResolution) {
@@ -2468,7 +2640,9 @@ public class DatabaseManager {
         private final boolean byIp;
         private final int warnLevel;
 
-        public PunishmentEntry(String punishmentId, UUID playerUUID, String type, String reason, Timestamp timestamp, String punisherName, long punishmentTime, String durationString, boolean active, String removedByName, Timestamp removedAt, String removedReason, boolean byIp, int warnLevel) {
+        public PunishmentEntry(String punishmentId, UUID playerUUID, String type, String reason, Timestamp timestamp,
+                String punisherName, long punishmentTime, String durationString, boolean active, String removedByName,
+                Timestamp removedAt, String removedReason, boolean byIp, int warnLevel) {
             this.punishmentId = punishmentId;
             this.playerUUID = playerUUID;
             this.type = type;
@@ -2485,24 +2659,75 @@ public class DatabaseManager {
             this.warnLevel = warnLevel;
         }
 
-        public String getPunishmentId() { return punishmentId; }
-        public String getType() { return type; }
-        public String getReason() { return reason; }
-        public Timestamp getTimestamp() { return timestamp; }
-        public UUID getPlayerUUID() { return playerUUID; }
-        public String getPunisherName() { return punisherName; }
-        public long getPunishmentTime() { return punishmentTime; }
-        public String getDurationString() { return durationString; }
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-        public long getEndTime() { return punishmentTime; }
-        public boolean isActive() { return active; }
-        public String getRemovedByName() { return removedByName; }
-        public Timestamp getRemovedAt() { return removedAt; }
-        public String getRemovedReason() { return removedReason; }
-        public boolean wasByIp() { return byIp; }
-        public int getWarnLevel() { return warnLevel; }
+        public String getPunishmentId() {
+            return punishmentId;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public Timestamp getTimestamp() {
+            return timestamp;
+        }
+
+        public UUID getPlayerUUID() {
+            return playerUUID;
+        }
+
+        public String getPunisherName() {
+            return punisherName;
+        }
+
+        public long getPunishmentTime() {
+            return punishmentTime;
+        }
+
+        public String getDurationString() {
+            return durationString;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public long getEndTime() {
+            return punishmentTime;
+        }
+
+        public boolean isActive() {
+            return active;
+        }
+
+        public String getRemovedByName() {
+            return removedByName;
+        }
+
+        public Timestamp getRemovedAt() {
+            return removedAt;
+        }
+
+        public String getRemovedReason() {
+            return removedReason;
+        }
+
+        public boolean wasByIp() {
+            return byIp;
+        }
+
+        public int getWarnLevel() {
+            return warnLevel;
+        }
     }
+
     public static class PlayerInfo {
         private final String punishmentId;
         private final String ip;
@@ -2515,9 +2740,10 @@ public class DatabaseManager {
         private final int ping;
         private final long firstJoined;
         private final long lastJoined;
+        private final String potionEffects; // JSON: [{"name":"speed","amplifier":1,"duration":120},...]
 
-
-        public PlayerInfo(String punishmentId, String ip, String location, String gamemode, double health, int hunger, int expLevel, long playtime, int ping, long firstJoined, long lastJoined) {
+        public PlayerInfo(String punishmentId, String ip, String location, String gamemode, double health, int hunger,
+                int expLevel, long playtime, int ping, long firstJoined, long lastJoined, String potionEffects) {
             this.punishmentId = punishmentId;
             this.ip = ip;
             this.location = location;
@@ -2529,6 +2755,7 @@ public class DatabaseManager {
             this.ping = ping;
             this.firstJoined = firstJoined;
             this.lastJoined = lastJoined;
+            this.potionEffects = potionEffects;
         }
 
         public String getPunishmentId() {
@@ -2574,7 +2801,12 @@ public class DatabaseManager {
         public long getLastJoined() {
             return lastJoined;
         }
+
+        public String getPotionEffects() {
+            return potionEffects;
+        }
     }
+
     public static class PlayerLastState {
         private final UUID uuid;
         private final long lastSeen;
@@ -2590,11 +2822,25 @@ public class DatabaseManager {
             this.world = world;
         }
 
-        public UUID getUuid() { return uuid; }
-        public long getLastSeen() { return lastSeen; }
-        public String getIp() { return ip; }
-        public String getLocation() { return location; }
-        public String getWorld() { return world; }
+        public UUID getUuid() {
+            return uuid;
+        }
+
+        public long getLastSeen() {
+            return lastSeen;
+        }
+
+        public String getIp() {
+            return ip;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public String getWorld() {
+            return world;
+        }
     }
 
     public static class AuditLogEntry {
@@ -2605,7 +2851,8 @@ public class DatabaseManager {
         private final String actionType;
         private final String details;
 
-        public AuditLogEntry(int id, UUID targetUUID, UUID executorUUID, Timestamp timestamp, String actionType, String details) {
+        public AuditLogEntry(int id, UUID targetUUID, UUID executorUUID, Timestamp timestamp, String actionType,
+                String details) {
             this.id = id;
             this.targetUUID = targetUUID;
             this.executorUUID = executorUUID;
@@ -2614,12 +2861,29 @@ public class DatabaseManager {
             this.details = details;
         }
 
-        public int getId() { return id; }
-        public UUID getTargetUUID() { return targetUUID; }
-        public UUID getExecutorUUID() { return executorUUID; }
-        public Timestamp getTimestamp() { return timestamp; }
-        public String getActionType() { return actionType; }
-        public String getDetails() { return details; }
+        public int getId() {
+            return id;
+        }
+
+        public UUID getTargetUUID() {
+            return targetUUID;
+        }
+
+        public UUID getExecutorUUID() {
+            return executorUUID;
+        }
+
+        public Timestamp getTimestamp() {
+            return timestamp;
+        }
+
+        public String getActionType() {
+            return actionType;
+        }
+
+        public String getDetails() {
+            return details;
+        }
     }
 
     public static class ReportEntry {
@@ -2658,19 +2922,60 @@ public class DatabaseManager {
             this.resolverUUID = (resolverUUIDString != null) ? UUID.fromString(resolverUUIDString) : null;
         }
 
-        public String getReportId() { return reportId; }
-        public UUID getRequesterUUID() { return requesterUUID; }
-        public UUID getTargetUUID() { return targetUUID; }
-        public String getTargetName() { return targetName; }
-        public String getReportType() { return reportType; }
-        public String getCategory() { return category; }
-        public String getReason() { return reason; }
-        public String getDetails() { return details; }
-        public ReportStatus getStatus() { return status; }
-        public Timestamp getTimestamp() { return timestamp; }
-        public UUID getModeratorUUID() { return moderatorUUID; }
-        public String getCollectedData() { return collectedData; }
-        public Timestamp getResolvedAt() { return resolvedAt; }
-        public UUID getResolverUUID() { return resolverUUID; }
+        public String getReportId() {
+            return reportId;
+        }
+
+        public UUID getRequesterUUID() {
+            return requesterUUID;
+        }
+
+        public UUID getTargetUUID() {
+            return targetUUID;
+        }
+
+        public String getTargetName() {
+            return targetName;
+        }
+
+        public String getReportType() {
+            return reportType;
+        }
+
+        public String getCategory() {
+            return category;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public String getDetails() {
+            return details;
+        }
+
+        public ReportStatus getStatus() {
+            return status;
+        }
+
+        public Timestamp getTimestamp() {
+            return timestamp;
+        }
+
+        public UUID getModeratorUUID() {
+            return moderatorUUID;
+        }
+
+        public String getCollectedData() {
+            return collectedData;
+        }
+
+        public Timestamp getResolvedAt() {
+            return resolvedAt;
+        }
+
+        public UUID getResolverUUID() {
+            return resolverUUID;
+        }
     }
 }

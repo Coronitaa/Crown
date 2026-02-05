@@ -41,6 +41,7 @@ public class MainConfigManager {
     private final CustomConfig reportDetailsMenuConfig;
     private final CustomConfig reportsConfig;
     private final Map<String, CustomConfig> punishmentConfigs = new HashMap<>();
+    private final CustomConfig punishInfoConfig;
     private final CustomConfig modModeConfig;
     private final CustomConfig lockerMenuConfig;
     private final CustomConfig toolSelectorMenuConfig;
@@ -61,43 +62,45 @@ public class MainConfigManager {
     private int rateLimitPeriod;
     private boolean reportRequiresPermission;
 
-    public record ReportOption(String text, String hover, String action) {}
-    public record ReportPage(String title, List<ReportOption> options) {}
+    public record ReportOption(String text, String hover, String action) {
+    }
 
+    public record ReportPage(String title, List<ReportOption> options) {
+    }
 
     public MainConfigManager(Crown plugin) {
         this.plugin = plugin;
 
         messagesConfig = new CustomConfig("messages.yml", null, plugin, false);
         pluginConfig = new CustomConfig("config.yml", null, plugin, false);
-        
+
         // Punish Menus
         punishMenuConfig = new CustomConfig("punish_menu.yml", "menus/punish", plugin, false);
         punishDetailsMenuConfig = new CustomConfig("punish_details_menu.yml", "menus/punish", plugin, false);
         timeSelectorMenuConfig = new CustomConfig("time_selector_menu.yml", "menus/punish", plugin, false);
         historyMenuConfig = new CustomConfig("history_menu.yml", "menus/punish", plugin, false);
-        
+
         // Profile Menus
         profileMenuConfig = new CustomConfig("profile_menu.yml", "menus/profile", plugin, false);
         fullInventoryMenuConfig = new CustomConfig("full_inventory_menu.yml", "menus/profile", plugin, false);
         enderChestMenuConfig = new CustomConfig("enderchest_menu.yml", "menus/profile", plugin, false);
         auditLogConfig = new CustomConfig("audit_log.yml", "menus/profile", plugin, false);
-        
+
         // Report Menus
         reportsMenuConfig = new CustomConfig("reports_menu.yml", "menus/report", plugin, false);
         reportDetailsMenuConfig = new CustomConfig("report_details_menu.yml", "menus/report", plugin, false);
         reportsConfig = new CustomConfig("reports.yml", "menus/report", plugin, false);
-        
+
         // Mod Menus
         lockerMenuConfig = new CustomConfig("locker_menu.yml", "menus/mod", plugin, false);
         toolSelectorMenuConfig = new CustomConfig("tool_selector_menu.yml", "menus/mod", plugin, false);
         settingsMenuConfig = new CustomConfig("settings_menu.yml", "menus/mod", plugin, false);
-        
+
         modModeConfig = new CustomConfig("mod_mode.yml", null, plugin, false);
 
-        Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment ->
-                punishmentConfigs.put(punishment, new CustomConfig(punishment + ".yml", "punishments", plugin, false))
-        );
+        Arrays.asList("ban", "mute", "kick", "warn", "softban", "freeze").forEach(punishment -> punishmentConfigs
+                .put(punishment, new CustomConfig(punishment + ".yml", "punishments", plugin, false)));
+        punishInfoConfig = new CustomConfig("punish_info.yml", "punishments", plugin, false);
 
         messagesConfig.registerConfig();
         pluginConfig.registerConfig();
@@ -114,6 +117,7 @@ public class MainConfigManager {
         reportDetailsMenuConfig.registerConfig();
         reportsConfig.registerConfig();
         punishmentConfigs.values().forEach(CustomConfig::registerConfig);
+        punishInfoConfig.registerConfig();
         lockerMenuConfig.registerConfig();
         toolSelectorMenuConfig.registerConfig();
         settingsMenuConfig.registerConfig();
@@ -141,6 +145,7 @@ public class MainConfigManager {
         reportDetailsMenuConfig.reloadConfig();
         reportsConfig.reloadConfig();
         punishmentConfigs.values().forEach(CustomConfig::reloadConfig);
+        punishInfoConfig.reloadConfig();
         lockerMenuConfig.reloadConfig();
         toolSelectorMenuConfig.reloadConfig();
         settingsMenuConfig.reloadConfig();
@@ -153,7 +158,8 @@ public class MainConfigManager {
         this.reportRequiresPermission = pluginConfig.getConfig().getBoolean("report-system.require-permission", false);
 
         if (isDebugEnabled()) {
-            plugin.getLogger().log(Level.INFO, "[MainConfigManager] Configurations reloaded and debug mode is " + (isDebugEnabled() ? "enabled" : "disabled"));
+            plugin.getLogger().log(Level.INFO, "[MainConfigManager] Configurations reloaded and debug mode is "
+                    + (isDebugEnabled() ? "enabled" : "disabled"));
         }
 
         loadWarnLevels();
@@ -205,6 +211,7 @@ public class MainConfigManager {
     public boolean isReportPermissionRequired() {
         return reportRequiresPermission;
     }
+
     public int getReportRateLimitAmount() {
         return rateLimitAmount;
     }
@@ -222,7 +229,8 @@ public class MainConfigManager {
     }
 
     public ReportPage getReportPage(String key) {
-        ConfigurationSection pageSection = reportsConfig.getConfig().getConfigurationSection("report-menu.pages." + key);
+        ConfigurationSection pageSection = reportsConfig.getConfig()
+                .getConfigurationSection("report-menu.pages." + key);
         if (pageSection == null) {
             return null;
         }
@@ -266,14 +274,17 @@ public class MainConfigManager {
                     List<String> onWarnActions = levelSection.getStringList("on-warn-actions");
                     List<String> onExpireActions = levelSection.getStringList("on-expire-actions");
                     List<String> softbanBlockedCommands = levelSection.getStringList("softban-blocked-commands");
-                    warnLevels.put(level, new WarnLevel(expiration, onWarnActions, onExpireActions, softbanBlockedCommands));
+                    warnLevels.put(level,
+                            new WarnLevel(expiration, onWarnActions, onExpireActions, softbanBlockedCommands));
                 }
             } catch (NumberFormatException e) {
-                plugin.getLogger().warning("[MainConfigManager] Invalid warn level key in warn.yml: " + key + ". It must be a number.");
+                plugin.getLogger().warning(
+                        "[MainConfigManager] Invalid warn level key in warn.yml: " + key + ". It must be a number.");
             }
         }
         if (isDebugEnabled())
-            plugin.getLogger().info("[MainConfigManager] Loaded " + warnLevels.size() + " warning levels. Mode: " + this.warnExpirationMode);
+            plugin.getLogger().info("[MainConfigManager] Loaded " + warnLevels.size() + " warning levels. Mode: "
+                    + this.warnExpirationMode);
     }
 
     public String getWarnExpirationMode() {
@@ -303,86 +314,100 @@ public class MainConfigManager {
     public String getJoinAlertSound() {
         return pluginConfig.getConfig().getString("on-join-alert.sound", "BLOCK_NOTE_BLOCK_PLING");
     }
+
     public CustomConfig getModModeConfig() {
         return modModeConfig;
     }
+
     public List<String> getBanScreen() {
         CustomConfig config = punishmentConfigs.get("ban");
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         return config.getConfig().getStringList("ban-screen");
     }
 
     public boolean isIpPunishmentSupported(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
-        if (config == null) return false;
+        if (config == null)
+            return false;
         return config.getConfig().contains("punish-by-ip");
     }
 
     public boolean isPunishmentByIp(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
-        if (config == null) return false;
+        if (config == null)
+            return false;
         return config.getConfig().getBoolean("punish-by-ip", false);
     }
 
     public List<String> getKickScreen() {
         CustomConfig config = punishmentConfigs.get("kick");
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         return config.getConfig().getStringList("kick-screen");
     }
 
     public boolean isPunishmentInternal(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
-        if (config == null) return false;
+        if (config == null)
+            return false;
         return config.getConfig().getBoolean("use-internal", false);
     }
 
-
     public String getPunishmentCommand(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
-        if (config == null) return "";
+        if (config == null)
+            return "";
         return config.getConfig().getString("punish-command", "");
     }
 
     public String getUnpunishCommand(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
-        if (config == null) return "";
+        if (config == null)
+            return "";
         return config.getConfig().getString("unpunish-command", "");
     }
 
     public List<String> getBlockedCommands() {
         CustomConfig config = punishmentConfigs.get("softban");
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         return config.getConfig().getStringList("blocked_commands");
     }
 
     public List<String> getBlockedMuteCommands() {
         CustomConfig config = punishmentConfigs.get("mute");
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         return config.getConfig().getStringList("blocked_commands");
     }
 
     // ADDED: Getter for freeze allowed commands
     public List<String> getFreezeAllowedCommands() {
         CustomConfig config = punishmentConfigs.get("freeze");
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         return config.getConfig().getStringList("allowed_commands");
     }
 
     public List<String> getFreezeDisconnectCommands() {
         CustomConfig config = punishmentConfigs.get("freeze");
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         return config.getConfig().getStringList("disconnect_commands");
     }
 
     public int getFreezeActionsInterval() {
         CustomConfig config = punishmentConfigs.get("freeze");
-        if (config == null) return 40;
+        if (config == null)
+            return 40;
         return config.getConfig().getInt("freeze_actions.interval", 40);
     }
 
     public List<MenuItem.ClickActionData> loadFreezeActions() {
         CustomConfig config = punishmentConfigs.get("freeze");
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         List<String> actionConfigs = config.getConfig().getStringList("freeze_actions.actions");
         if (actionConfigs != null && !actionConfigs.isEmpty()) {
             return actionConfigs.stream()
@@ -395,19 +420,22 @@ public class MainConfigManager {
 
     public boolean isFreezeChatPrivate() {
         CustomConfig config = punishmentConfigs.get("freeze");
-        if (config == null) return false;
+        if (config == null)
+            return false;
         return config.getConfig().getBoolean("freeze_chat.private", false);
     }
 
     public List<ClickActionData> getOnPunishActions(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         return loadActionsFromPath(config.getConfig(), "hooks.on-punish");
     }
 
     public List<ClickActionData> getOnUnpunishActions(String punishmentType) {
         CustomConfig config = punishmentConfigs.get(punishmentType.toLowerCase());
-        if (config == null) return Collections.emptyList();
+        if (config == null)
+            return Collections.emptyList();
         return loadActionsFromPath(config.getConfig(), "hooks.on-unpunish");
     }
 
@@ -441,23 +469,25 @@ public class MainConfigManager {
         return getMessage("messages.default_reasons.un" + punishmentType.toLowerCase());
     }
 
-
     public String getMenuText(String path, OfflinePlayer target) {
         String text = punishMenuConfig.getConfig().getString("menu." + path, "");
-        if (text == null) return "";
+        if (text == null)
+            return "";
         return MessageUtils.getColorMessage(processPlaceholders(text, target));
     }
 
     public String getDetailsMenuText(String path, OfflinePlayer target, String punishmentType) {
         String fullPath = "menu.punish_details." + punishmentType + "." + path;
         String text = punishDetailsMenuConfig.getConfig().getString(fullPath, "");
-        if (text == null) return "";
+        if (text == null)
+            return "";
         return MessageUtils.getColorMessage(processPlaceholders(text, target));
     }
 
     public String getHistoryMenuText(String path, OfflinePlayer target) {
         String text = historyMenuConfig.getConfig().getString("menu." + path, "");
-        if (text == null) return "";
+        if (text == null)
+            return "";
         return MessageUtils.getColorMessage(processPlaceholders(text, target));
     }
 
@@ -524,14 +554,17 @@ public class MainConfigManager {
     }
 
     public String getTimeSelectorMenuTitle(OfflinePlayer target) {
-        String title = timeSelectorMenuConfig.getConfig().getString("menu.time_selector_title", "&9&lSelect Punishment Time");
-        if (title == null) return "";
+        String title = timeSelectorMenuConfig.getConfig().getString("menu.time_selector_title",
+                "&9&lSelect Punishment Time");
+        if (title == null)
+            return "";
         return MessageUtils.getColorMessage(processPlaceholders(title, target));
     }
 
     public String getHistoryMenuTitle(OfflinePlayer target) {
         String title = historyMenuConfig.getConfig().getString("menu.title", "&7&lPunishment History");
-        if (title == null) return "";
+        if (title == null)
+            return "";
         return MessageUtils.getColorMessage(processPlaceholders(title, target));
     }
 
@@ -590,9 +623,13 @@ public class MainConfigManager {
         return reportDetailsMenuConfig;
     }
 
-    public List<String> getDetailsMenuItemLore(String punishmentType, String itemKey, OfflinePlayer target, String... replacements) {
+    public List<String> getDetailsMenuItemLore(String punishmentType, String itemKey, OfflinePlayer target,
+            String... replacements) {
         if (isDebugEnabled()) {
-            plugin.getLogger().log(Level.INFO, "[MainConfigManager] getDetailsMenuItemLore called for punishmentType=" + punishmentType + ", itemKey=" + itemKey + ", target=" + (target != null ? target.getName() : "null") + ", replacements=" + Arrays.toString(replacements));
+            plugin.getLogger().log(Level.INFO,
+                    "[MainConfigManager] getDetailsMenuItemLore called for punishmentType=" + punishmentType
+                            + ", itemKey=" + itemKey + ", target=" + (target != null ? target.getName() : "null")
+                            + ", replacements=" + Arrays.toString(replacements));
         }
 
         List<String> lore = new ArrayList<>();
@@ -600,17 +637,21 @@ public class MainConfigManager {
         List<String> configLore = punishDetailsMenuConfig.getConfig().getStringList(lorePath);
 
         if (configLore == null || configLore.isEmpty()) {
-            if (isDebugEnabled() && !itemKey.equals(PunishDetailsMenu.UNSOFTBAN_BUTTON_KEY) && !itemKey.equals(PunishDetailsMenu.UNFREEZE_BUTTON_KEY)) {
-                plugin.getLogger().warning("[MainConfigManager] Lore config list is null or empty for path: " + lorePath);
+            if (isDebugEnabled() && !itemKey.equals(PunishDetailsMenu.UNSOFTBAN_BUTTON_KEY)
+                    && !itemKey.equals(PunishDetailsMenu.UNFREEZE_BUTTON_KEY)) {
+                plugin.getLogger()
+                        .warning("[MainConfigManager] Lore config list is null or empty for path: " + lorePath);
             }
             return lore;
         }
 
         for (String line : configLore) {
-            if (line == null) continue;
+            if (line == null)
+                continue;
             String processedLine = processPlaceholders(line, target);
             for (int i = 0; i < replacements.length; i += 2) {
-                if (i + 1 >= replacements.length) break;
+                if (i + 1 >= replacements.length)
+                    break;
                 String placeholder = replacements[i];
                 String replacementValue = replacements[i + 1] != null ? replacements[i + 1] : "";
                 processedLine = processedLine.replace(placeholder, replacementValue);
@@ -626,7 +667,10 @@ public class MainConfigManager {
 
     public List<String> getHistoryMenuItemLore(String itemKey, OfflinePlayer target, String... replacements) {
         if (isDebugEnabled()) {
-            plugin.getLogger().log(Level.INFO, "[MainConfigManager] getHistoryMenuItemLore called for itemKey=" + itemKey + ", target=" + (target != null ? target.getName() : "null") + ", replacements=" + Arrays.toString(replacements));
+            plugin.getLogger().log(Level.INFO,
+                    "[MainConfigManager] getHistoryMenuItemLore called for itemKey=" + itemKey + ", target="
+                            + (target != null ? target.getName() : "null") + ", replacements="
+                            + Arrays.toString(replacements));
         }
 
         List<String> lore = new ArrayList<>();
@@ -635,22 +679,26 @@ public class MainConfigManager {
 
         if (configLore == null || configLore.isEmpty()) {
             if (isDebugEnabled()) {
-                plugin.getLogger().warning("[MainConfigManager] Lore config list is null or empty for path: " + lorePath);
+                plugin.getLogger()
+                        .warning("[MainConfigManager] Lore config list is null or empty for path: " + lorePath);
             }
             return lore;
         }
 
         for (String line : configLore) {
-            if (line == null) continue;
+            if (line == null)
+                continue;
             String processedLine = processPlaceholders(line, target);
             for (int i = 0; i < replacements.length; i += 2) {
-                if (i + 1 >= replacements.length) break;
+                if (i + 1 >= replacements.length)
+                    break;
                 String placeholder = replacements[i];
                 String replacementValue = replacements[i + 1];
                 if (replacementValue == null) {
                     replacementValue = "N/A";
                     if (isDebugEnabled())
-                        plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + placeholder + " in history menu lore. Using 'N/A'.");
+                        plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder "
+                                + placeholder + " in history menu lore. Using 'N/A'.");
                 }
                 processedLine = processedLine.replace(placeholder, replacementValue);
             }
@@ -665,7 +713,10 @@ public class MainConfigManager {
 
     public List<String> getPunishMenuItemLore(String itemKey, OfflinePlayer target, String... replacements) {
         if (isDebugEnabled()) {
-            plugin.getLogger().log(Level.INFO, "[MainConfigManager] getPunishMenuItemLore called for itemKey=" + itemKey + ", target=" + (target != null ? target.getName() : "null") + ", replacements=" + Arrays.toString(replacements));
+            plugin.getLogger().log(Level.INFO,
+                    "[MainConfigManager] getPunishMenuItemLore called for itemKey=" + itemKey + ", target="
+                            + (target != null ? target.getName() : "null") + ", replacements="
+                            + Arrays.toString(replacements));
         }
 
         List<String> lore = new ArrayList<>();
@@ -674,22 +725,26 @@ public class MainConfigManager {
 
         if (configLore == null || configLore.isEmpty()) {
             if (isDebugEnabled()) {
-                plugin.getLogger().warning("[MainConfigManager] Lore config list is null or empty for path: " + lorePath);
+                plugin.getLogger()
+                        .warning("[MainConfigManager] Lore config list is null or empty for path: " + lorePath);
             }
             return lore;
         }
 
         for (String line : configLore) {
-            if (line == null) continue;
+            if (line == null)
+                continue;
             String processedLine = processPlaceholders(line, target);
             for (int i = 0; i < replacements.length; i += 2) {
-                if (i + 1 >= replacements.length) break;
+                if (i + 1 >= replacements.length)
+                    break;
                 String placeholder = replacements[i];
                 String replacementValue = replacements[i + 1];
                 if (replacementValue == null) {
                     replacementValue = "N/A";
                     if (isDebugEnabled())
-                        plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder " + placeholder + " in punish menu lore. Using 'N/A'.");
+                        plugin.getLogger().warning("[MainConfigManager] Null replacement value for placeholder "
+                                + placeholder + " in punish menu lore. Using 'N/A'.");
                 }
                 processedLine = processedLine.replace(placeholder, replacementValue);
             }
@@ -704,7 +759,8 @@ public class MainConfigManager {
 
     public ItemMetaBuilder getProfileMenuItemBuilder(String itemKey, OfflinePlayer target) {
         MenuItem menuItem = getProfileMenuItemConfig(itemKey);
-        if (menuItem == null) return new ItemMetaBuilder(new ItemStack(Material.AIR));
+        if (menuItem == null)
+            return new ItemMetaBuilder(new ItemStack(Material.AIR));
         return new ItemMetaBuilder(menuItem.toItemStack(target, this));
     }
 
@@ -714,7 +770,8 @@ public class MainConfigManager {
 
         public ItemMetaBuilder(ItemStack itemStack) {
             this.itemStack = itemStack.clone();
-            this.itemMeta = itemStack.hasItemMeta() ? itemStack.getItemMeta().clone() : Bukkit.getItemFactory().getItemMeta(itemStack.getType());
+            this.itemMeta = itemStack.hasItemMeta() ? itemStack.getItemMeta().clone()
+                    : Bukkit.getItemFactory().getItemMeta(itemStack.getType());
         }
 
         public ItemMetaBuilder withPlaceholder(String placeholder, String value) {
@@ -753,16 +810,20 @@ public class MainConfigManager {
             if (!placeholders.isRegistered()) {
                 boolean registered = placeholders.register();
                 if (registered) {
-                    plugin.getLogger().log(Level.INFO, "[MainConfigManager] PlaceholderAPI placeholders registered successfully.");
+                    plugin.getLogger().log(Level.INFO,
+                            "[MainConfigManager] PlaceholderAPI placeholders registered successfully.");
                 } else {
-                    plugin.getLogger().log(Level.WARNING, "[MainConfigManager] PlaceholderAPI placeholders failed to register. Check for errors or conflicts.");
+                    plugin.getLogger().log(Level.WARNING,
+                            "[MainConfigManager] PlaceholderAPI placeholders failed to register. Check for errors or conflicts.");
                 }
             } else {
                 if (isDebugEnabled())
-                    plugin.getLogger().log(Level.INFO, "[MainConfigManager] PlaceholderAPI placeholders already registered.");
+                    plugin.getLogger().log(Level.INFO,
+                            "[MainConfigManager] PlaceholderAPI placeholders already registered.");
             }
         } else {
-            plugin.getLogger().log(Level.INFO, "[MainConfigManager] PlaceholderAPI not found, placeholders will not be registered.");
+            plugin.getLogger().log(Level.INFO,
+                    "[MainConfigManager] PlaceholderAPI not found, placeholders will not be registered.");
         }
     }
 
@@ -770,7 +831,8 @@ public class MainConfigManager {
         String prefix = pluginConfig.getConfig().getString("prefix", "&8[&6C&cP&8] &r");
         text = text.replace("{prefix}", prefix);
 
-        if (target == null) return text;
+        if (target == null)
+            return text;
 
         String displayYes = messagesConfig.getConfig().getString("placeholders.display_yes", "&a✔");
         String displayNo = messagesConfig.getConfig().getString("placeholders.display_no", "&c❌");
@@ -786,24 +848,29 @@ public class MainConfigManager {
 
         if (onlineTarget != null) {
             text = text
-                    .replace("{target_ip}", onlineTarget.getAddress() != null ? onlineTarget.getAddress().getHostString() : "-")
+                    .replace("{target_ip}",
+                            onlineTarget.getAddress() != null ? onlineTarget.getAddress().getHostString() : "-")
                     .replace("{target_coords}", String.format("%d %d %d",
                             onlineTarget.getLocation().getBlockX(),
                             onlineTarget.getLocation().getBlockY(),
                             onlineTarget.getLocation().getBlockZ()))
                     .replace("{target_world}", onlineTarget.getWorld().getName())
                     .replace("{xp_level}", String.valueOf(onlineTarget.getLevel()))
-                    .replace("{play_time}", TimeUtils.formatTime(onlineTarget.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20, this))
-                    .replace("{health}", String.format("%.1f/%.1f", onlineTarget.getHealth(), onlineTarget.getMaxHealth()))
+                    .replace("{play_time}",
+                            TimeUtils.formatTime(onlineTarget.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20, this))
+                    .replace("{health}",
+                            String.format("%.1f/%.1f", onlineTarget.getHealth(), onlineTarget.getMaxHealth()))
                     .replace("{food_level}", String.valueOf(onlineTarget.getFoodLevel()))
                     .replace("{player_kills}", String.valueOf(onlineTarget.getStatistic(Statistic.PLAYER_KILLS)))
                     .replace("{deaths}", String.valueOf(onlineTarget.getStatistic(Statistic.DEATHS)));
         } else {
-            DatabaseManager.PlayerLastState lastState = plugin.getSoftBanDatabaseManager().getPlayerLastState(target.getUniqueId());
+            DatabaseManager.PlayerLastState lastState = plugin.getSoftBanDatabaseManager()
+                    .getPlayerLastState(target.getUniqueId());
             if (lastState != null) {
                 text = text
                         .replace("{target_ip}", lastState.getIp() != null ? lastState.getIp() : "-")
-                        .replace("{target_coords}", lastState.getLocation() != null ? lastState.getLocation().replace(", ", " ") : "-")
+                        .replace("{target_coords}",
+                                lastState.getLocation() != null ? lastState.getLocation().replace(", ", " ") : "-")
                         .replace("{target_world}", lastState.getWorld() != null ? lastState.getWorld() : "-");
             } else {
                 text = text
@@ -818,7 +885,6 @@ public class MainConfigManager {
                     .replace("{player_kills}", "N/A")
                     .replace("{deaths}", "N/A");
         }
-
 
         boolean isSoftBanned = plugin.getSoftBanDatabaseManager().isSoftBanned(target.getUniqueId());
         String softbanStatus = isSoftBanned ? displayYes : displayNo;
@@ -849,7 +915,8 @@ public class MainConfigManager {
         text = text.replace("{punish_count}", String.valueOf(totalPunishments));
 
         // Active punishment counts
-        HashMap<String, Integer> activeCounts = plugin.getSoftBanDatabaseManager().getActivePunishmentCounts(target.getUniqueId());
+        HashMap<String, Integer> activeCounts = plugin.getSoftBanDatabaseManager()
+                .getActivePunishmentCounts(target.getUniqueId());
         text = text.replace("{active_ban_count}", String.valueOf(activeCounts.getOrDefault("ban", 0)));
         text = text.replace("{active_mute_count}", String.valueOf(activeCounts.getOrDefault("mute", 0)));
         text = text.replace("{active_kick_count}", String.valueOf(activeCounts.getOrDefault("kick", 0)));
@@ -907,12 +974,14 @@ public class MainConfigManager {
 
     public String getMessage(String path, String... replacements) {
         String message = messagesConfig.getConfig().getString(path, "");
-        if (message == null || message.isEmpty()) return "";
+        if (message == null || message.isEmpty())
+            return "";
 
         message = processPlaceholders(message, null);
 
         for (int i = 0; i < replacements.length; i += 2) {
-            if (i + 1 >= replacements.length) break;
+            if (i + 1 >= replacements.length)
+                break;
             String placeholderKey = replacements[i];
             String replacementValue = replacements[i + 1] != null ? replacements[i + 1] : "";
 
@@ -922,6 +991,49 @@ public class MainConfigManager {
             message = message.replace(placeholderKey, replacementValue);
         }
         return MessageUtils.getColorMessage(message);
+    }
+
+    /**
+     * Gets a message from punish_info.yml for /check #ID info display.
+     * 
+     * @param path         The path to the message (e.g., "info.header")
+     * @param replacements Key-value pairs for placeholder replacements
+     * @return The formatted message
+     */
+    public String getPunishInfoMessage(String path, String... replacements) {
+        String message = punishInfoConfig.getConfig().getString(path, "");
+        if (message == null || message.isEmpty())
+            return "";
+
+        message = processPlaceholders(message, null);
+
+        for (int i = 0; i < replacements.length; i += 2) {
+            if (i + 1 >= replacements.length)
+                break;
+            String placeholderKey = replacements[i];
+            String replacementValue = replacements[i + 1] != null ? replacements[i + 1] : "";
+            message = message.replace(placeholderKey, replacementValue);
+        }
+        return MessageUtils.getColorMessage(message);
+    }
+
+    /**
+     * Gets the punish info configuration.
+     * 
+     * @return The CustomConfig for punish_info.yml
+     */
+    public CustomConfig getPunishInfoConfig() {
+        return punishInfoConfig;
+    }
+
+    /**
+     * Gets the layout list from punish_info.yml for dynamic ordering of /check info
+     * output.
+     * 
+     * @return List of layout keys (e.g., "header", "player", "reason", etc.)
+     */
+    public List<String> getPunishInfoLayout() {
+        return punishInfoConfig.getConfig().getStringList("info.layout");
     }
 
     private MenuItem loadMenuItemFromConfig(FileConfiguration config, String configPath) {
@@ -966,7 +1078,7 @@ public class MainConfigManager {
         }
         menuItem.setQuantity(config.getInt(configPath + ".quantity", 1));
         menuItem.setSlots(parseSlots(config.getString(configPath + ".slot")));
-        
+
         // Load material_on and material_off if present (for toggle items)
         if (config.contains(configPath + ".material_on")) {
             menuItem.setMaterialOn(config.getString(configPath + ".material_on"));
@@ -974,7 +1086,7 @@ public class MainConfigManager {
         if (config.contains(configPath + ".material_off")) {
             menuItem.setMaterialOff(config.getString(configPath + ".material_off"));
         }
-        
+
         // Load player_head_on and player_head_off
         if (config.contains(configPath + ".player_head_on")) {
             menuItem.setPlayerHeadOn(config.getString(configPath + ".player_head_on"));
@@ -982,7 +1094,7 @@ public class MainConfigManager {
         if (config.contains(configPath + ".player_head_off")) {
             menuItem.setPlayerHeadOff(config.getString(configPath + ".player_head_off"));
         }
-        
+
         // Load custom_model_data_on and custom_model_data_off
         if (config.contains(configPath + ".custom_model_data_on")) {
             menuItem.setCustomModelDataOn(config.getInt(configPath + ".custom_model_data_on"));
@@ -1006,7 +1118,7 @@ public class MainConfigManager {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList()));
         }
-        
+
         List<String> shiftLeftClickActionConfigs = config.getStringList(configPath + ".shift_left_click_actions");
         if (!shiftLeftClickActionConfigs.isEmpty()) {
             menuItem.setShiftLeftClickActions(shiftLeftClickActionConfigs.stream()
@@ -1039,7 +1151,8 @@ public class MainConfigManager {
         String[] parts = slotConfig.split(",");
         for (String part : parts) {
             part = part.trim();
-            if (part.isEmpty()) continue;
+            if (part.isEmpty())
+                continue;
 
             if (part.contains("-")) {
                 String[] range = part.split("-", 2);
@@ -1049,7 +1162,8 @@ public class MainConfigManager {
                         int end = Integer.parseInt(range[1].trim());
                         if (start > end) {
                             if (isDebugEnabled())
-                                plugin.getLogger().warning("Invalid slot range (start > end): '" + part + "' in '" + slotConfig + "'. Skipping range.");
+                                plugin.getLogger().warning("Invalid slot range (start > end): '" + part + "' in '"
+                                        + slotConfig + "'. Skipping range.");
                             continue;
                         }
                         for (int i = start; i <= end; i++) {
@@ -1057,12 +1171,14 @@ public class MainConfigManager {
                         }
                     } catch (NumberFormatException e) {
                         if (isDebugEnabled()) {
-                            plugin.getLogger().warning("Invalid slot range format (non-numeric): '" + part + "' in '" + slotConfig + "'");
+                            plugin.getLogger().warning(
+                                    "Invalid slot range format (non-numeric): '" + part + "' in '" + slotConfig + "'");
                         }
                     }
                 } else {
                     if (isDebugEnabled()) {
-                        plugin.getLogger().warning("Invalid slot range format (incorrect parts): '" + part + "' in '" + slotConfig + "'");
+                        plugin.getLogger().warning(
+                                "Invalid slot range format (incorrect parts): '" + part + "' in '" + slotConfig + "'");
                     }
                 }
             } else {
@@ -1152,12 +1268,14 @@ public class MainConfigManager {
 
     public String getAuditLogText(String path, String... replacements) {
         String message = auditLogConfig.getConfig().getString(path, "");
-        if (message == null || message.isEmpty()) return "";
+        if (message == null || message.isEmpty())
+            return "";
 
         message = processPlaceholders(message, null);
 
         for (int i = 0; i < replacements.length; i += 2) {
-            if (i + 1 >= replacements.length) break;
+            if (i + 1 >= replacements.length)
+                break;
             String placeholderKey = replacements[i];
             String replacementValue = replacements[i + 1] != null ? replacements[i + 1] : "";
             message = message.replace(placeholderKey, replacementValue);
@@ -1217,12 +1335,15 @@ public class MainConfigManager {
 
             // Ban
             if (params.equalsIgnoreCase("is_banned")) {
-                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(player.getUniqueId(), "ban");
-                boolean isBanned = entry != null && entry.isActive() && (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE);
+                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager()
+                        .getLatestActivePunishment(player.getUniqueId(), "ban");
+                boolean isBanned = entry != null && entry.isActive()
+                        && (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == Long.MAX_VALUE);
                 return String.valueOf(isBanned);
             }
             if (params.equalsIgnoreCase("ban_time_left")) {
-                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(player.getUniqueId(), "ban");
+                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager()
+                        .getLatestActivePunishment(player.getUniqueId(), "ban");
                 if (entry != null && entry.isActive()) {
                     return formatTimeLeft(entry.getEndTime());
                 }
@@ -1231,12 +1352,15 @@ public class MainConfigManager {
 
             // Warn
             if (params.equalsIgnoreCase("is_warned")) {
-                ActiveWarningEntry entry = plugin.getSoftBanDatabaseManager().getLatestActiveWarning(player.getUniqueId());
-                boolean isWarned = entry != null && (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == -1);
+                ActiveWarningEntry entry = plugin.getSoftBanDatabaseManager()
+                        .getLatestActiveWarning(player.getUniqueId());
+                boolean isWarned = entry != null
+                        && (entry.getEndTime() > System.currentTimeMillis() || entry.getEndTime() == -1);
                 return String.valueOf(isWarned);
             }
             if (params.equalsIgnoreCase("warn_time_left")) {
-                ActiveWarningEntry entry = plugin.getSoftBanDatabaseManager().getLatestActiveWarning(player.getUniqueId());
+                ActiveWarningEntry entry = plugin.getSoftBanDatabaseManager()
+                        .getLatestActiveWarning(player.getUniqueId());
                 if (entry != null) {
                     return formatTimeLeft(entry.getEndTime());
                 }
@@ -1248,7 +1372,8 @@ public class MainConfigManager {
                 return String.valueOf(plugin.getPluginFrozenPlayers().containsKey(player.getUniqueId()));
             }
             if (params.equalsIgnoreCase("freeze_time_left")) {
-                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager().getLatestActivePunishment(player.getUniqueId(), "freeze");
+                DatabaseManager.PunishmentEntry entry = plugin.getSoftBanDatabaseManager()
+                        .getLatestActivePunishment(player.getUniqueId(), "freeze");
                 if (entry != null && entry.isActive()) {
                     return formatTimeLeft(entry.getEndTime());
                 }
@@ -1256,15 +1381,22 @@ public class MainConfigManager {
             }
 
             if (params.endsWith("_count")) {
-                HashMap<String, Integer> counts = plugin.getSoftBanDatabaseManager().getPunishmentCounts(player.getUniqueId());
+                HashMap<String, Integer> counts = plugin.getSoftBanDatabaseManager()
+                        .getPunishmentCounts(player.getUniqueId());
                 String punishmentType = params.substring(0, params.length() - "_count".length());
 
-                if (params.equalsIgnoreCase("ban_count")) return String.valueOf(counts.getOrDefault("ban", 0));
-                if (params.equalsIgnoreCase("mute_count")) return String.valueOf(counts.getOrDefault("mute", 0));
-                if (params.equalsIgnoreCase("warn_count")) return String.valueOf(counts.getOrDefault("warn", 0));
-                if (params.equalsIgnoreCase("softban_count")) return String.valueOf(counts.getOrDefault("softban", 0));
-                if (params.equalsIgnoreCase("kick_count")) return String.valueOf(counts.getOrDefault("kick", 0));
-                if (params.equalsIgnoreCase("freeze_count")) return String.valueOf(counts.getOrDefault("freeze", 0));
+                if (params.equalsIgnoreCase("ban_count"))
+                    return String.valueOf(counts.getOrDefault("ban", 0));
+                if (params.equalsIgnoreCase("mute_count"))
+                    return String.valueOf(counts.getOrDefault("mute", 0));
+                if (params.equalsIgnoreCase("warn_count"))
+                    return String.valueOf(counts.getOrDefault("warn", 0));
+                if (params.equalsIgnoreCase("softban_count"))
+                    return String.valueOf(counts.getOrDefault("softban", 0));
+                if (params.equalsIgnoreCase("kick_count"))
+                    return String.valueOf(counts.getOrDefault("kick", 0));
+                if (params.equalsIgnoreCase("freeze_count"))
+                    return String.valueOf(counts.getOrDefault("freeze", 0));
 
                 if (params.equalsIgnoreCase("punish_count")) {
                     int totalPunishments = counts.values().stream().mapToInt(Integer::intValue).sum();

@@ -23,7 +23,7 @@ public class MessageUtils {
      * @param message The message to format with colors.
      * @return The color formatted message.
      */
-    public static String getColorMessage(String message){
+    public static String getColorMessage(String message) {
         if (message == null || message.isEmpty()) {
             return message; // Return original message if null or empty
         }
@@ -53,17 +53,23 @@ public class MessageUtils {
     }
 
     /**
-     * Sends a message from the configuration to the command sender, with optional replacements.
-     * @param plugin Instance of the main plugin class to access config manager.
-     * @param sender Command sender.
-     * @param path Path to the message in messages.yml.
+     * Sends a message from the configuration to the command sender, with optional
+     * replacements.
+     * 
+     * @param plugin       Instance of the main plugin class to access config
+     *                     manager.
+     * @param sender       Command sender.
+     * @param path         Path to the message in messages.yml.
      * @param replacements Placeholders to replace in the message.
      */
     public static void sendConfigMessage(Crown plugin, CommandSender sender, String path, String... replacements) {
         String message = plugin.getConfigManager().getMessage(path, replacements);
-        // The message is already colored in getMessage, but we ensure it here just in case
-        // However, getMessage calls getColorMessage at the end, so calling it again might be redundant but safe.
-        // Actually, getMessage does replacements BEFORE coloring. Wait, let's check MainConfigManager.
+        // The message is already colored in getMessage, but we ensure it here just in
+        // case
+        // However, getMessage calls getColorMessage at the end, so calling it again
+        // might be redundant but safe.
+        // Actually, getMessage does replacements BEFORE coloring. Wait, let's check
+        // MainConfigManager.
         // MainConfigManager.getMessage calls processPlaceholders -> getColorMessage.
         // Then it does replacements.
         // Then it calls getColorMessage AGAIN at the end.
@@ -72,24 +78,46 @@ public class MessageUtils {
     }
 
     /**
+     * Sends a message from the punish_info.yml configuration to the command sender,
+     * with optional replacements.
+     * 
+     * @param plugin       Instance of the main plugin class to access config
+     *                     manager.
+     * @param sender       Command sender.
+     * @param path         Path to the message in punish_info.yml (e.g.,
+     *                     "info.header").
+     * @param replacements Placeholders to replace in the message.
+     */
+    public static void sendPunishInfoMessage(Crown plugin, CommandSender sender, String path, String... replacements) {
+        String message = plugin.getConfigManager().getPunishInfoMessage(path, replacements);
+        if (message != null && !message.isEmpty()) {
+            sender.sendMessage(message);
+        }
+    }
+
+    /**
      * Generates a formatted kick/ban message from a list of strings.
-     * @param lines The list of lines from the configuration.
-     * @param reason The reason for the punishment.
-     * @param timeLeft The formatted time remaining.
-     * @param punishmentId The ID of the punishment.
-     * @param expiration The expiration date, or null if permanent.
+     * 
+     * @param lines         The list of lines from the configuration.
+     * @param reason        The reason for the punishment.
+     * @param timeLeft      The formatted time remaining.
+     * @param punishmentId  The ID of the punishment.
+     * @param expiration    The expiration date, or null if permanent.
      * @param configManager The configuration manager to get the support link.
      * @return A single formatted string ready to be used as a kick message.
      */
-    public static String getKickMessage(List<String> lines, String reason, String timeLeft, String punishmentId, Date expiration, MainConfigManager configManager) {
+    public static String getKickMessage(List<String> lines, String reason, String timeLeft, String punishmentId,
+            Date expiration, MainConfigManager configManager) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String date = dateFormat.format(new Date());
         String dateUntil = expiration != null ? dateFormat.format(expiration) : "Never";
 
-        // We need to replace placeholders BEFORE coloring, because placeholders might contain colors or affect structure.
+        // We need to replace placeholders BEFORE coloring, because placeholders might
+        // contain colors or affect structure.
         // However, the original code was coloring each line individually.
-        // To support gradients across lines or within lines properly with placeholders, we should replace first.
-        
+        // To support gradients across lines or within lines properly with placeholders,
+        // we should replace first.
+
         return lines.stream()
                 .map(line -> line.replace("{reason}", reason))
                 .map(line -> line.replace("{time_left}", timeLeft))

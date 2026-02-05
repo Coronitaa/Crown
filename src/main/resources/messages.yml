@@ -169,33 +169,6 @@ messages:
   profile_usage: '{prefix}<color:#ff5555>Usage: /profile <player></color>'
   log_usage: '{prefix}<color:#ff5555>Usage: /crown log <player></color>'
 
-  check_info_header: '<gradient:#f7971e:#ffd200><bold>Punishment Information for ID: <color:#ffffff>{id}</color></bold></gradient>'
-  check_info_player: '<color:#b0b0b0>Player: <color:#00c6ff>{player}</color> <color:#757575>({uuid})</color></color>'
-  check_info_type: '<color:#b0b0b0>Type: <color:#00c6ff>{type}</color> <color:#757575>({method})</color></color>'
-  check_info_status: '<color:#b0b0b0>Status: {status}</color>'
-  check_info_reason: '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
-  check_info_punisher: '<color:#b0b0b0>Punisher: <color:#00c6ff>{punisher}</color></color>'
-  check_info_date: '<color:#b0b0b0>Date: <color:#00c6ff>{date}</color></color>'
-  check_info_duration: '<color:#b0b0b0>Duration: <color:#ffea00>{duration}</color></color>'
-  check_info_expires: '<color:#b0b0b0>Expires in: <color:#ffea00>{time_left}</color></color>'
-  check_info_extra_header: '<gradient:#f7971e:#ffd200><bold>Player Information at time of punishment:</bold></gradient>'
-  check_info_ip: '<color:#b0b0b0>IP: <color:#00c6ff>{ip}</color></color>'
-  check_info_location: '<color:#b0b0b0>Location: <color:#00c6ff>{location}</color></color>'
-  check_info_gamemode: '<color:#b0b0b0>Gamemode: <color:#00c6ff>{gamemode}</color></color>'
-  check_info_health: '<color:#b0b0b0>Health: <color:#00c6ff>{health}</color></color>'
-  check_info_hunger: '<color:#b0b0b0>Hunger: <color:#00c6ff>{hunger}</color></color>'
-  check_info_exp_level: '<color:#b0b0b0>EXP Level: <color:#00c6ff>{exp_level}</color></color>'
-  check_info_playtime: '<color:#b0b0b0>Playtime: <color:#00c6ff>{playtime}</color></color>'
-  check_info_ping: '<color:#b0b0b0>Ping: <color:#00c6ff>{ping}</color></color>'
-  check_info_first_joined: '<color:#b0b0b0>First Joined: <color:#00c6ff>{first_joined}</color></color>'
-  check_info_last_joined: '<color:#b0b0b0>Last Joined: <color:#00c6ff>{last_joined}</color></color>'
-  check_info_chat_history_header: '<gradient:#f7971e:#ffd200><bold>Last 10 Messages:</bold></gradient>'
-  check_info_chat_history_entry: '<color:#b0b0b0>- <color:#ffffff>{message}</color></color>'
-  check_info_associated_accounts_header: '<gradient:#f7971e:#ffd200><bold>Associated Accounts:</bold></gradient>'
-  check_info_associated_accounts_entry: '<color:#b0b0b0>- <color:#ffffff>{accounts}</color></color>'
-  check_info_removed: '<color:#b0b0b0>Removed by: <color:#00c6ff>{remover}</color> at <color:#00c6ff>{remove_date}</color> Reason: <color:#ffffff>{remove_reason}</color></color>'
-  check_info_repunish_button: '<gradient:#56ab2f:#a8e063><bold>[Repunish]</bold></gradient>'
-  check_info_unpunish_button: '<gradient:#ff416c:#ff4b2b><bold>[Unpunish]</bold></gradient>'
   direct_unpunishment_confirmed: '{prefix}<gradient:#56ab2f:#a8e063>Removed {punishment_type} from <bold>{target}</bold>.</gradient>'
 
   you_are_frozen: |
@@ -307,7 +280,6 @@ messages:
   unsoftban_notification: '{prefix}<gradient:#56ab2f:#a8e063>Your softban has been removed.</gradient>'
 
   no_warn_level_configured: '{prefix}<color:#ff5555>No warn level is configured for level {level}. Action cancelled.</color>'
-  check_info_warn_level: '<color:#b0b0b0>Warn Level: <color:#00c6ff>{level}</color></color>'
   active_warning_entry: |-
     <color:#650501>●</color> <color:#db6055>#{id}</color> <color:#b0b0b0>|</color> <color:#fef46c>{type}</color> <color:#fea366>(Level {level})</color>
     <color:#b0b0b0>Time Left:</color> <color:#ffffff>{time_left}</color>
@@ -317,8 +289,6 @@ messages:
   command_dispatch_error: '{prefix}<color:#ff5555>The command ''{command}'' could not be executed. Please check the console for errors.</color>'
   command_not_found: '{prefix}<color:#ff5555>The command ''{command}'' was not found. Please check your configuration.</color>'
 
-  check_info_repunish_hover: '<color:#00e676>Click to repunish with the same details.</color>'
-  check_info_unpunish_hover: '<color:#ff1744>Click to remove this punishment.</color>'
   support_link_hover: '<color:#00c6ff>Click to open the support link.</color>'
 
   default_reasons:
