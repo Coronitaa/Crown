@@ -2785,7 +2785,7 @@ public class MenuListener implements Listener {
     }
 
     private List<Player> getMods() {
-        return Bukkit.getOnlinePlayers().stream().filter(p -> p.hasPermission(MOD_PERMISSION)).collect(Collectors.toList());
+        return Bukkit.getOnlinePlayers().stream().filter(p -> p.hasPermission(USE_PERMISSION)).collect(Collectors.toList());
     }
 
     @SuppressWarnings("deprecation")
