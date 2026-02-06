@@ -27,6 +27,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -159,14 +160,17 @@ public class MenuListener implements Listener {
         return new String[0];
     }
 
-    private boolean checkAndHandleConfirmation(Player player, InventoryHolder holder, MenuItem item, int slot, InventoryClickEvent event) {
+    private boolean isActionBlockedByConfirmation(Player player, InventoryHolder holder, MenuItem item, int slot, InventoryClickEvent event) {
+        Inventory clickedInv = event.getClickedInventory();
+        if (clickedInv == null) return false;
+
         boolean isButton = !item.getLeftClickActions().isEmpty() || !item.getRightClickActions().isEmpty() || !item.getShiftLeftClickActions().isEmpty();
 
         ConfirmationContext context = pendingConfirmations.get(player.getUniqueId());
 
-        if (context != null && context.inventory.equals(event.getClickedInventory()) && context.slot == slot) {
+        if (context != null && context.inventory.equals(clickedInv) && context.slot == slot) {
             cancelExistingConfirmation(player);
-            return true;
+            return false;
         }
 
         if (isButton || item.getConfirmState() != null) {
@@ -174,7 +178,7 @@ public class MenuListener implements Listener {
         }
 
         if (item.getConfirmState() == null) {
-            return true;
+            return false;
         }
 
         // Special handling for ReportDetailsMenu take_report to skip confirmation if not needed
@@ -183,7 +187,7 @@ public class MenuListener implements Listener {
                 if (action.getAction() == ClickAction.SET_REPORT_STATUS_TAKE) {
                     DatabaseManager.ReportEntry report = menu.getReportEntry();
                     if (report != null && (report.getModeratorUUID() == null || report.getModeratorUUID().equals(player.getUniqueId()))) {
-                        return true;
+                        return false;
                     }
                 }
             }
@@ -202,7 +206,7 @@ public class MenuListener implements Listener {
         ItemStack current = event.getCurrentItem();
         ItemStack original = current != null ? current.clone() : null;
 
-        event.getClickedInventory().setItem(slot, confirmStack);
+        clickedInv.setItem(slot, confirmStack);
         playSound(player, "confirm_again");
 
         BukkitTask task = new BukkitRunnable() {
@@ -212,8 +216,8 @@ public class MenuListener implements Listener {
             }
         }.runTaskLater(plugin, 40L); // 2 seconds
 
-        pendingConfirmations.put(player.getUniqueId(), new ConfirmationContext(event.getClickedInventory(), slot, original, task, "GENERIC"));
-        return false;
+        pendingConfirmations.put(player.getUniqueId(), new ConfirmationContext(clickedInv, slot, original, task, "GENERIC"));
+        return true;
     }
 
 
@@ -303,7 +307,7 @@ public class MenuListener implements Listener {
             // Controls logic (Pagination / Clear)
             MenuItem itemConfig = getMenuItemClicked(slot, menu);
             if (itemConfig != null) {
-                if (!checkAndHandleConfirmation(player, menu, itemConfig, slot, event)) {
+                if (isActionBlockedByConfirmation(player, menu, itemConfig, slot, event)) {
                     return;
                 }
 
@@ -508,9 +512,9 @@ public class MenuListener implements Listener {
         long diff = now - lastClick.timestamp();
         if (diff < 200) return;
 
-        if (diff <= 2000) {
-            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now, item.clone()));
+        confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now, item.clone()));
 
+        if (diff <= 2000) {
             String serialized = AuditLogBook.serialize(item);
 
             OfflinePlayer target = getTargetForAction(holder);
@@ -525,14 +529,14 @@ public class MenuListener implements Listener {
 
             plugin.getSoftBanDatabaseManager().addConfiscatedItem(serialized, playerUUID, source)
                     .thenRun(() -> Bukkit.getScheduler().runTask(plugin, () -> {
-                        player.getOpenInventory().getTopInventory().setItem(slot, null);
+                        Inventory topInv = player.getOpenInventory().getTopInventory();
+                        topInv.setItem(slot, null);
                         logItemAction(player.getUniqueId(), getTargetForAction(holder).getUniqueId(), null, item, holder);
-                        synchronizeInventory(holder, player.getOpenInventory().getTopInventory());
+                        synchronizeInventory(holder, topInv);
                         MessageUtils.sendConfigMessage(plugin, player, "messages.item_confiscated");
                         player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.5f);
                     }));
         } else {
-            confiscateConfirmations.put(playerUUID, new ConfiscateConfirmData(slot, now, item.clone()));
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 2f);
             MessageUtils.sendConfigMessage(plugin, player, "messages.confiscate_confirm");
         }
@@ -557,16 +561,12 @@ public class MenuListener implements Listener {
         }
 
         if (action != null) {
-            String inventoryType;
-            if (holder instanceof FullInventoryMenu) {
-                inventoryType = "_INVENTORY";
-            } else if (holder instanceof EnderChestMenu) {
-                inventoryType = "_ENDERCHEST";
-            } else if (holder instanceof ProfileMenu) {
-                inventoryType = "_PROFILE";
-            } else {
-                inventoryType = "";
-            }
+            String inventoryType = switch (holder) {
+                case FullInventoryMenu ignored -> "_INVENTORY";
+                case EnderChestMenu ignored -> "_ENDERCHEST";
+                case ProfileMenu ignored -> "_PROFILE";
+                default -> "";
+            };
 
             String actionType = action + inventoryType;
             String details = involvedItem.getAmount() + ":" + AuditLogBook.serialize(involvedItem);
@@ -635,11 +635,6 @@ public class MenuListener implements Listener {
     }
 
 
-    private void handleShiftClick(PlayerInventory playerInv, ItemStack itemToMove) {
-        if (itemToMove == null || itemToMove.getType() == Material.AIR) return;
-        playerInv.addItem(itemToMove.clone());
-    }
-
     private void handleStaticMenuClick(InventoryClickEvent event, Player player, InventoryHolder holder) {
         event.setCancelled(true);
 
@@ -654,7 +649,7 @@ public class MenuListener implements Listener {
 
         MenuItem clickedMenuItem = getMenuItemClicked(event.getRawSlot(), holder);
         if (clickedMenuItem != null) {
-            if (!checkAndHandleConfirmation(player, holder, clickedMenuItem, event.getRawSlot(), event)) {
+            if (isActionBlockedByConfirmation(player, holder, clickedMenuItem, event.getRawSlot(), event)) {
                 return;
             }
 
@@ -807,14 +802,14 @@ public class MenuListener implements Listener {
     }
 
     private void synchronizeInventory(InventoryHolder holder, Inventory guiInventory) {
-        UUID targetUUID;
-        if (holder instanceof ProfileMenu profileMenu) {
-            targetUUID = profileMenu.getTargetUUID();
-        } else if (holder instanceof FullInventoryMenu inventoryMenu) {
-            targetUUID = inventoryMenu.getTargetUUID();
-        } else if (holder instanceof EnderChestMenu enderChestMenu) {
-            targetUUID = enderChestMenu.getTargetUUID();
-        } else {
+        UUID targetUUID = switch (holder) {
+            case ProfileMenu profileMenu -> profileMenu.getTargetUUID();
+            case FullInventoryMenu inventoryMenu -> inventoryMenu.getTargetUUID();
+            case EnderChestMenu enderChestMenu -> enderChestMenu.getTargetUUID();
+            default -> null;
+        };
+
+        if (targetUUID == null) {
             return;
         }
 
@@ -913,26 +908,18 @@ public class MenuListener implements Listener {
             }
         }
 
-        boolean handledByMenuSpecific = false;
-        if (holder instanceof PunishMenu punishMenu) {
-            handledByMenuSpecific = handlePunishMenuActions(player, punishMenu, action, actionData);
-        } else if (holder instanceof PunishDetailsMenu punishDetailsMenu) {
-            handledByMenuSpecific = handlePunishDetailsMenuActions(player, punishDetailsMenu, action, actionData);
-        } else if (holder instanceof TimeSelectorMenu timeSelectorMenu) {
-            handledByMenuSpecific = handleTimeSelectorMenuActions(player, timeSelectorMenu, action, actionData);
-        } else if (holder instanceof HistoryMenu historyMenu) {
-            handledByMenuSpecific = handleHistoryMenuActions(player, historyMenu, action, actionData);
-        } else if (holder instanceof ProfileMenu profileMenu) {
-            handledByMenuSpecific = handleProfileMenuActions(player, profileMenu, action, actionData);
-        } else if (holder instanceof FullInventoryMenu fullInventoryMenu) {
-            handledByMenuSpecific = handleFullInventoryMenuActions(player, fullInventoryMenu, action, actionData);
-        } else if (holder instanceof EnderChestMenu enderChestMenu) {
-            handledByMenuSpecific = handleEnderChestMenuActions(player, enderChestMenu, action, actionData);
-        } else if (holder instanceof ReportsMenu reportsMenu) {
-            handledByMenuSpecific = handleReportsMenuActions(player, reportsMenu, action, actionData, event);
-        } else if (holder instanceof ReportDetailsMenu reportDetailsMenu) {
-            handledByMenuSpecific = handleReportDetailsMenuActions(player, reportDetailsMenu, action, actionData, event);
-        }
+        boolean handledByMenuSpecific = switch (holder) {
+            case PunishMenu m -> handlePunishMenuActions(player, m, action, actionData);
+            case PunishDetailsMenu m -> handlePunishDetailsMenuActions(player, m, action, actionData);
+            case TimeSelectorMenu m -> handleTimeSelectorMenuActions(player, m, action, actionData);
+            case HistoryMenu m -> handleHistoryMenuActions(player, m, action, actionData);
+            case ProfileMenu m -> handleProfileMenuActions(player, m, action, actionData);
+            case FullInventoryMenu m -> handleFullInventoryMenuActions(player, m, action, actionData);
+            case EnderChestMenu m -> handleEnderChestMenuActions(player, m, action, actionData);
+            case ReportsMenu m -> handleReportsMenuActions(player, m, action, actionData, event);
+            case ReportDetailsMenu m -> handleReportDetailsMenuActions(player, m, action, actionData);
+            default -> false;
+        };
 
         if (!handledByMenuSpecific) {
             switch (action) {
@@ -947,6 +934,7 @@ public class MenuListener implements Listener {
                 case TITLE_TARGET -> executeTitleTargetAction(player, holder, actionData);
                 case MESSAGE_TARGET -> executeMessageTargetAction(player, holder, actionData);
                 case ACTIONBAR_TARGET -> executeActionbarTargetAction(player, holder, actionData);
+                case ACTIONBAR_MODS -> executeActionbarModsAction(player, holder, actionData);
                 case GIVE_EFFECT_TARGET -> executeGiveEffectTargetAction(holder, actionData);
                 case PLAY_SOUND_MODS -> executePlaySoundModsAction(actionData);
                 case TITLE_MODS -> executeTitleModsAction(player, holder, actionData);
@@ -988,32 +976,24 @@ public class MenuListener implements Listener {
     }
 
     public void executeMenuOpenActions(Player player, InventoryHolder holder) {
-        List<MenuItem.ClickActionData> openActions;
         FileConfiguration config = null;
         String path = null;
 
-        if (holder instanceof PunishMenu) {
-            config = plugin.getConfigManager().getPunishMenuConfig().getConfig(); path = "menu";
-        } else if (holder instanceof PunishDetailsMenu detailsMenu) {
-            config = plugin.getConfigManager().getPunishDetailsMenuConfig().getConfig(); path = "menu.punish_details." + detailsMenu.getPunishmentType();
-        } else if (holder instanceof TimeSelectorMenu) {
-            config = plugin.getConfigManager().getTimeSelectorMenuConfig().getConfig(); path = "menu";
-        } else if (holder instanceof HistoryMenu) {
-            config = plugin.getConfigManager().getHistoryMenuConfig().getConfig(); path = "menu";
-        } else if (holder instanceof ProfileMenu) {
-            config = plugin.getConfigManager().getProfileMenuConfig().getConfig(); path = "menu";
-        } else if (holder instanceof FullInventoryMenu) {
-            config = plugin.getConfigManager().getFullInventoryMenuConfig().getConfig(); path = "menu";
-        } else if (holder instanceof EnderChestMenu) {
-            config = plugin.getConfigManager().getEnderChestMenuConfig().getConfig(); path = "menu";
-        } else if (holder instanceof ReportsMenu) {
-            config = plugin.getConfigManager().getReportsMenuConfig().getConfig(); path = "menu";
-        } else if (holder instanceof ReportDetailsMenu) {
-            config = plugin.getConfigManager().getReportDetailsMenuConfig().getConfig(); path = "menu";
+        switch (holder) {
+            case PunishMenu ignored -> { config = plugin.getConfigManager().getPunishMenuConfig().getConfig(); path = "menu"; }
+            case PunishDetailsMenu detailsMenu -> { config = plugin.getConfigManager().getPunishDetailsMenuConfig().getConfig(); path = "menu.punish_details." + detailsMenu.getPunishmentType(); }
+            case TimeSelectorMenu ignored -> { config = plugin.getConfigManager().getTimeSelectorMenuConfig().getConfig(); path = "menu"; }
+            case HistoryMenu ignored -> { config = plugin.getConfigManager().getHistoryMenuConfig().getConfig(); path = "menu"; }
+            case ProfileMenu ignored -> { config = plugin.getConfigManager().getProfileMenuConfig().getConfig(); path = "menu"; }
+            case FullInventoryMenu ignored -> { config = plugin.getConfigManager().getFullInventoryMenuConfig().getConfig(); path = "menu"; }
+            case EnderChestMenu ignored -> { config = plugin.getConfigManager().getEnderChestMenuConfig().getConfig(); path = "menu"; }
+            case ReportsMenu ignored -> { config = plugin.getConfigManager().getReportsMenuConfig().getConfig(); path = "menu"; }
+            case ReportDetailsMenu ignored -> { config = plugin.getConfigManager().getReportDetailsMenuConfig().getConfig(); path = "menu"; }
+            default -> {}
         }
 
         if (config != null) {
-            openActions = plugin.getConfigManager().loadMenuOpenActions(config, path);
+            List<MenuItem.ClickActionData> openActions = plugin.getConfigManager().loadMenuOpenActions(config, path);
             if (!openActions.isEmpty() && plugin.getConfigManager().isDebugEnabled()) {
                 plugin.getLogger().info("[DEBUG] Executing " + openActions.size() + " open actions for " + holder.getClass().getSimpleName());
             }
@@ -1025,7 +1005,6 @@ public class MenuListener implements Listener {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private void executePlaySoundAction(Player player, String[] soundArgs) {
         if (soundArgs == null || soundArgs.length == 0 || soundArgs[0] == null || soundArgs[0].isEmpty()) {
             plugin.getLogger().warning("PLAY_SOUND action requires a non-empty data string.");
@@ -1036,14 +1015,17 @@ public class MenuListener implements Listener {
             plugin.getLogger().warning("PLAY_SOUND action requires at least a sound name.");
             return;
         }
-        try {
-            Sound sound = Sound.valueOf(parts[0].toUpperCase());
-            float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
-            float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
-            player.playSound(player.getLocation(), sound, volume, pitch);
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND played '" + sound + "' for " + player.getName());
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND: " + Arrays.toString(parts));
-        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND: " + parts[0]); }
+        Sound sound = getSound(parts[0]);
+        if (sound != null) {
+            try {
+                float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
+                float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
+                player.playSound(player.getLocation(), sound, volume, pitch);
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND played '" + sound + "' for " + player.getName());
+            } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND: " + Arrays.toString(parts)); }
+        } else {
+            plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND: " + parts[0]);
+        }
     }
 
     private void executeTitleAction(Player player, String[] titleArgs, InventoryHolder holder) {
@@ -1090,7 +1072,6 @@ public class MenuListener implements Listener {
         if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] ACTIONBAR sent to " + player.getName() + ": " + messageText);
     }
 
-    @SuppressWarnings("deprecation")
     private void executePlaySoundTargetAction(InventoryHolder holder, String[] soundArgs) {
         OfflinePlayer target = getTargetForAction(holder);
         if (target == null || !target.isOnline()) { if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET skipped: Target offline or null."); return; }
@@ -1106,14 +1087,17 @@ public class MenuListener implements Listener {
             plugin.getLogger().warning("PLAY_SOUND_TARGET action requires at least a sound name.");
             return;
         }
-        try {
-            Sound sound = Sound.valueOf(parts[0].toUpperCase());
-            float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
-            float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
-            targetPlayer.playSound(targetPlayer.getLocation(), sound, volume, pitch);
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET played '" + sound + "' for " + targetPlayer.getName());
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_TARGET: " + Arrays.toString(parts));
-        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_TARGET: " + parts[0]); }
+        Sound sound = getSound(parts[0]);
+        if (sound != null) {
+            try {
+                float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
+                float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
+                targetPlayer.playSound(targetPlayer.getLocation(), sound, volume, pitch);
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_TARGET played '" + sound + "' for " + targetPlayer.getName());
+            } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_TARGET: " + Arrays.toString(parts)); }
+        } else {
+            plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_TARGET: " + parts[0]);
+        }
     }
 
     private void executeTitleTargetAction(Player player, InventoryHolder holder, String[] titleArgs) {
@@ -1201,7 +1185,6 @@ public class MenuListener implements Listener {
         } catch (IllegalArgumentException e) { plugin.getLogger().warning("IllegalArgumentException in GIVE_EFFECT_TARGET action: " + e.getMessage() + ", Args: " + Arrays.toString(parts)); }
     }
 
-    @SuppressWarnings("deprecation")
     private void executePlaySoundModsAction(String[] soundArgs) {
         if (soundArgs == null || soundArgs.length == 0 || soundArgs[0] == null || soundArgs[0].isEmpty()) {
             plugin.getLogger().warning("PLAY_SOUND_MODS action requires a non-empty data string.");
@@ -1213,14 +1196,17 @@ public class MenuListener implements Listener {
             plugin.getLogger().warning("PLAY_SOUND_MODS action requires at least a sound name.");
             return;
         }
-        try {
-            Sound sound = Sound.valueOf(parts[0].toUpperCase());
-            float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
-            float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
-            mods.forEach(mod -> mod.playSound(mod.getLocation(), sound, volume, pitch));
-            if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_MODS played sound '" + sound + "' for " + mods.size() + " mods.");
-        } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_MODS: " + Arrays.toString(parts));
-        } catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_MODS: " + parts[0]); }
+        Sound sound = getSound(parts[0]);
+        if (sound != null) {
+            try {
+                float volume = parts.length > 1 ? Float.parseFloat(parts[1]) : 1.0f;
+                float pitch = parts.length > 2 ? Float.parseFloat(parts[2]) : 1.0f;
+                mods.forEach(mod -> mod.playSound(mod.getLocation(), sound, volume, pitch));
+                if (plugin.getConfigManager().isDebugEnabled()) plugin.getLogger().info("[DEBUG] PLAY_SOUND_MODS played sound '" + sound + "' for " + mods.size() + " mods.");
+            } catch (NumberFormatException e) { plugin.getLogger().warning("Invalid volume or pitch format for PLAY_SOUND_MODS: " + Arrays.toString(parts)); }
+        } else {
+            plugin.getLogger().warning("Invalid sound name configured for PLAY_SOUND_MODS: " + parts[0]);
+        }
     }
 
     private void executeTitleModsAction(Player player, InventoryHolder holder, String[] titleArgs) {
@@ -1313,7 +1299,7 @@ public class MenuListener implements Listener {
     }
 
     private void executeOpenAuditLogAction(Player player, String[] args, InventoryHolder holder) {
-        OfflinePlayer target = null;
+        OfflinePlayer target;
         if (args != null && args.length > 0 && args[0] != null && !args[0].isEmpty()) {
             target = Bukkit.getOfflinePlayer(args[0]);
         } else {
@@ -1328,7 +1314,7 @@ public class MenuListener implements Listener {
     }
 
     private void executeOpenProfileTargetAction(Player player, String[] args, InventoryHolder holder) {
-        OfflinePlayer target = null;
+        OfflinePlayer target;
         if (args != null && args.length > 0 && args[0] != null && !args[0].isEmpty()) {
             target = Bukkit.getOfflinePlayer(args[0]);
         } else {
@@ -1343,7 +1329,7 @@ public class MenuListener implements Listener {
     }
 
     private void executeHistoryTargetAction(Player player, String[] args, InventoryHolder holder) {
-        OfflinePlayer target = null;
+        OfflinePlayer target;
         if (args != null && args.length > 0 && args[0] != null && !args[0].isEmpty()) {
             target = Bukkit.getOfflinePlayer(args[0]);
         } else {
@@ -1590,7 +1576,7 @@ public class MenuListener implements Listener {
         }
     }
 
-    private boolean handleReportDetailsMenuActions(Player player, ReportDetailsMenu menu, ClickAction action, String[] actionData, InventoryClickEvent event) {
+    private boolean handleReportDetailsMenuActions(Player player, ReportDetailsMenu menu, ClickAction action, String[] actionData) {
         DatabaseManager.ReportEntry report = menu.getReportEntry();
         if (report == null) return true;
 
@@ -1663,7 +1649,6 @@ public class MenuListener implements Listener {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private void executeReportStateChange(Player player, ReportDetailsMenu menu, ClickAction action) {
         String reportId = menu.getReportId();
 
@@ -1743,7 +1728,8 @@ public class MenuListener implements Listener {
                     
                     // Check if the moderator has permission to view reports
                     if (moderator.isOnline()) {
-                        if (!moderator.getPlayer().hasPermission(REPORT_VIEW_PERMISSION)) {
+                        Player modPlayer = moderator.getPlayer();
+                        if (modPlayer != null && !modPlayer.hasPermission(REPORT_VIEW_PERMISSION)) {
                             sendConfigMessage(player, "messages.report_assign_no_permission", "{moderator}", moderator.getName());
                             Bukkit.getScheduler().runTask(plugin, () -> detailsMenu.open(player));
                             return;
@@ -1753,36 +1739,25 @@ public class MenuListener implements Listener {
                         sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
                     } else {
                         // If offline, check if they have ever opened the reports menu (or have reports assigned to them, which implies they are staff)
-                        // Since we don't track "opened reports menu", we can check if they have ever been assigned a report or resolved one.
-                        // Or check if they have confiscated items (locker check logic).
-                        // The prompt says: "si alguna vez abrió efectivamente reports menu". We don't log that.
-                        // But we can check if they have any reports assigned to them in the past or present.
-                        // Let's check if they have any reports where they are the moderator.
-                        plugin.getSoftBanDatabaseManager().countReports(null, null, false, moderator.getUniqueId(), null).thenAccept(count -> {
-                            Bukkit.getScheduler().runTask(plugin, () -> {
-                                if (count > 0) {
-                                    // They have handled reports before, so they are likely staff.
-                                    detailsMenu.assignTo(moderator.getUniqueId());
-                                    sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
-                                } else {
-                                    // No history of handling reports. Fallback to checking confiscated items as a proxy for staff activity?
-                                    // Or just deny.
-                                    // Let's try checking confiscated items too, as that's another staff indicator.
-                                    plugin.getSoftBanDatabaseManager().hasConfiscatedItems(moderator.getUniqueId()).thenAccept(hasItems -> {
-                                        Bukkit.getScheduler().runTask(plugin, () -> {
-                                            if (hasItems) {
-                                                detailsMenu.assignTo(moderator.getUniqueId());
-                                                sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
-                                            } else {
-                                                // No evidence of staff activity.
-                                                sendConfigMessage(player, "messages.report_assign_no_permission", "{moderator}", moderator.getName());
-                                                detailsMenu.open(player);
-                                            }
-                                        });
-                                    });
-                                }
-                            });
-                        });
+                        plugin.getSoftBanDatabaseManager().countReports(null, null, false, moderator.getUniqueId(), null).thenAccept(count -> Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (count > 0) {
+                                // They have handled reports before, so they are likely staff.
+                                detailsMenu.assignTo(moderator.getUniqueId());
+                                sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
+                            } else {
+                                // No history of handling reports. Fallback to checking confiscated items as a proxy for staff activity?
+                                plugin.getSoftBanDatabaseManager().hasConfiscatedItems(moderator.getUniqueId()).thenAccept(hasItems -> Bukkit.getScheduler().runTask(plugin, () -> {
+                                    if (hasItems) {
+                                        detailsMenu.assignTo(moderator.getUniqueId());
+                                        sendConfigMessage(player, "messages.report_assigned", "{moderator}", moderator.getName(), "{report_id}", detailsMenu.getReportId());
+                                    } else {
+                                        // No evidence of staff activity.
+                                        sendConfigMessage(player, "messages.report_assign_no_permission", "{moderator}", moderator.getName());
+                                        detailsMenu.open(player);
+                                    }
+                                }));
+                            }
+                        }));
                     }
                 }
                 break;
@@ -2029,31 +2004,19 @@ public class MenuListener implements Listener {
         }
 
         switch (type) {
-            case BAN_PUNISHMENT_TYPE:
-            case MUTE_PUNISHMENT_TYPE:
-                confirmStandardPunishment(player, punishDetailsMenu);
-                break;
-            case SOFTBAN_PUNISHMENT_TYPE:
-                confirmSoftBan(player, punishDetailsMenu);
-                break;
-            case KICK_PUNISHMENT_TYPE:
-                confirmKick(player, punishDetailsMenu);
-                break;
-            case WARN_PUNISHMENT_TYPE:
-                confirmWarn(player, punishDetailsMenu);
-                break;
-            case FREEZE_PUNISHMENT_TYPE:
-                confirmFreeze(player, punishDetailsMenu);
-                break;
-            default:
+            case BAN_PUNISHMENT_TYPE, MUTE_PUNISHMENT_TYPE -> confirmStandardPunishment(player, punishDetailsMenu);
+            case SOFTBAN_PUNISHMENT_TYPE -> confirmSoftBan(player, punishDetailsMenu);
+            case KICK_PUNISHMENT_TYPE -> confirmKick(player, punishDetailsMenu);
+            case WARN_PUNISHMENT_TYPE -> confirmWarn(player, punishDetailsMenu);
+            case FREEZE_PUNISHMENT_TYPE -> confirmFreeze(player, punishDetailsMenu);
+            default -> {
                 plugin.getLogger().warning("Attempted to confirm unknown punishment type: " + type);
                 sendConfigMessage(player, "messages.invalid_punishment_type", "{types}", "Known Types");
                 playSound(player, "punish_error");
-                break;
+            }
         }
     }
 
-    @SuppressWarnings("deprecation")
     private void confirmStandardPunishment(Player player, PunishDetailsMenu detailsMenu) {
         UUID targetUUID = detailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
@@ -2272,7 +2235,7 @@ public class MenuListener implements Listener {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
                 }
 
-                if (byIp && finalIpAddress != null) {
+                if (byIp) {
                     applyIpPunishmentToOnlinePlayers(FREEZE_PUNISHMENT_TYPE, finalIpAddress, Long.MAX_VALUE, reason, permanentDisplay, punishmentId, targetUUID);
                 }
 
@@ -2284,7 +2247,6 @@ public class MenuListener implements Listener {
         });
     }
 
-    @SuppressWarnings("deprecation")
     private void confirmKick(Player player, PunishDetailsMenu punishDetailsMenu) {
         UUID targetUUID = punishDetailsMenu.getTargetUUID();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUUID);
@@ -2339,7 +2301,7 @@ public class MenuListener implements Listener {
                             onlineTarget.kickPlayer(kickMessage);
                         }
                     }
-                    if (byIp && ipForLog != null) {
+                    if (byIp) {
                         applyIpPunishmentToOnlinePlayers(KICK_PUNISHMENT_TYPE, ipForLog, 0, reason, "N/A", punishmentId, targetUUID);
                     }
                 } else {
@@ -2494,7 +2456,6 @@ public class MenuListener implements Listener {
     }
 
 
-    @SuppressWarnings("deprecation")
     private void executeUnbanAction(Player player, InventoryHolder holder, String reason) {
         PunishDetailsMenu detailsMenu = (PunishDetailsMenu) holder;
         UUID targetUUID = detailsMenu.getTargetUUID();
@@ -2613,22 +2574,20 @@ public class MenuListener implements Listener {
                 });
             } else {
                 plugin.getSoftBanDatabaseManager().executeUnpunishmentAsync(targetUUID, WARN_PUNISHMENT_TYPE, player.getName(), reason, null)
-                        .thenAccept(punishmentId -> {
-                            Bukkit.getScheduler().runTask(plugin, () -> {
-                                if(punishmentId == null) {
-                                    sendConfigMessage(player, "messages.no_active_warn", "{target}", target.getName());
-                                    return;
-                                }
-                                String commandTemplate = plugin.getConfigManager().getUnpunishCommand("warn");
-                                if (!commandTemplate.isEmpty()) {
-                                    String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
-                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
-                                }
-                                playSound(player, "punish_confirm");
-                                sendUnpunishConfirmation(player, target, WARN_PUNISHMENT_TYPE, punishmentId);
-                                executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", reason, true, Collections.emptyList());
-                            });
-                        });
+                        .thenAccept(punishmentId -> Bukkit.getScheduler().runTask(plugin, () -> {
+                            if(punishmentId == null) {
+                                sendConfigMessage(player, "messages.no_active_warn", "{target}", target.getName());
+                                return;
+                            }
+                            String commandTemplate = plugin.getConfigManager().getUnpunishCommand("warn");
+                            if (!commandTemplate.isEmpty()) {
+                                String processedCommand = commandTemplate.replace("{target}", target.getName() != null ? target.getName() : targetUUID.toString());
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+                            }
+                            playSound(player, "punish_confirm");
+                            sendUnpunishConfirmation(player, target, WARN_PUNISHMENT_TYPE, punishmentId);
+                            executeHookActions(player, target, WARN_PUNISHMENT_TYPE, "N/A", reason, true, Collections.emptyList());
+                        }));
             }
         });
     }
@@ -2765,21 +2724,21 @@ public class MenuListener implements Listener {
     private OfflinePlayer getTargetForAction(InventoryHolder holder) {
         if (holder == null) return null;
 
-        UUID targetUUID = null;
-        if (holder instanceof PunishMenu menu) targetUUID = menu.getTargetUUID();
-        else if (holder instanceof PunishDetailsMenu menu) targetUUID = menu.getTargetUUID();
-        else if (holder instanceof TimeSelectorMenu menu) targetUUID = menu.getPunishDetailsMenu().getTargetUUID();
-        else if (holder instanceof HistoryMenu menu) targetUUID = menu.getTargetUUID();
-        else if (holder instanceof ProfileMenu menu) targetUUID = menu.getTargetUUID();
-        else if (holder instanceof FullInventoryMenu menu) targetUUID = menu.getTargetUUID();
-        else if (holder instanceof EnderChestMenu menu) targetUUID = menu.getTargetUUID();
-        else if (holder instanceof ReportDetailsMenu menu) {
-            DatabaseManager.ReportEntry entry = menu.getReportEntry();
-            if (entry != null) {
-                targetUUID = entry.getTargetUUID();
+        UUID targetUUID = switch (holder) {
+            case PunishMenu menu -> menu.getTargetUUID();
+            case PunishDetailsMenu menu -> menu.getTargetUUID();
+            case TimeSelectorMenu menu -> menu.getPunishDetailsMenu().getTargetUUID();
+            case HistoryMenu menu -> menu.getTargetUUID();
+            case ProfileMenu menu -> menu.getTargetUUID();
+            case FullInventoryMenu menu -> menu.getTargetUUID();
+            case EnderChestMenu menu -> menu.getTargetUUID();
+            case ReportDetailsMenu menu -> {
+                DatabaseManager.ReportEntry entry = menu.getReportEntry();
+                yield (entry != null) ? entry.getTargetUUID() : null;
             }
-        }
-        else if (holder instanceof TempHolder temp) targetUUID = temp.getTargetUUID();
+            case TempHolder temp -> temp.getTargetUUID();
+            default -> null;
+        };
 
         return targetUUID != null ? Bukkit.getOfflinePlayer(targetUUID) : null;
     }
@@ -2788,12 +2747,15 @@ public class MenuListener implements Listener {
         return Bukkit.getOnlinePlayers().stream().filter(p -> p.hasPermission(USE_PERMISSION)).collect(Collectors.toList());
     }
 
-    @SuppressWarnings("deprecation")
     private void playSound(Player player, String soundKey) {
         String soundName = plugin.getConfigManager().getSoundName(soundKey);
         if (soundName != null && !soundName.isEmpty()) {
-            try { Sound sound = Sound.valueOf(soundName.toUpperCase()); player.playSound(player.getLocation(), sound, 1.0f, 1.0f); }
-            catch (IllegalArgumentException e) { plugin.getLogger().warning("Invalid sound configured for key '" + soundKey + "': " + soundName); }
+            Sound sound = getSound(soundName);
+            if (sound != null) {
+                player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+            } else {
+                plugin.getLogger().warning("Invalid sound configured for key '" + soundKey + "': " + soundName);
+            }
         }
     }
 
@@ -2935,7 +2897,6 @@ public class MenuListener implements Listener {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private void executeSpecificHookAction(CommandSender executor, OfflinePlayer target, ClickAction action, String[] actionArgs, Crown plugin, ActiveWarningEntry warningContext) {
         if (action == ClickAction.NO_ACTION) return;
 
@@ -3069,18 +3030,18 @@ public class MenuListener implements Listener {
                                         case "softban":
                                             plugin.getSoftBannedPlayersCache().put(target.getUniqueId(), finalEndTime);
                                             plugin.getSoftbannedCommandsCache().put(target.getUniqueId(), finalCustomCommands.isEmpty() ? plugin.getConfigManager().getBlockedCommands() : finalCustomCommands);
-                                            if (finalByIp && finalIpAddress != null) {
+                                            if (finalByIp) {
                                                 applyIpPunishmentToOnlinePlayers(finalType, finalIpAddress, finalEndTime, punishmentReason, finalDurationForLog, punishmentId, target.getUniqueId());
                                             }
                                             break;
                                         case "mute":
                                             plugin.getMutedPlayersCache().put(target.getUniqueId(), finalEndTime);
-                                            if (finalByIp && finalIpAddress != null) {
+                                            if (finalByIp) {
                                                 applyIpPunishmentToOnlinePlayers(finalType, finalIpAddress, finalEndTime, punishmentReason, finalDurationForLog, punishmentId, target.getUniqueId());
                                             }
                                             break;
                                         case "ban":
-                                            if (finalByIp && finalIpAddress != null) {
+                                            if (finalByIp) {
                                                 Bukkit.getBanList(org.bukkit.BanList.Type.IP).addBan(finalIpAddress, punishmentReason, finalEndTime == Long.MAX_VALUE ? null : new Date(finalEndTime), executorName);
                                             } else if (target.getName() != null) {
                                                 Bukkit.getBanList(org.bukkit.BanList.Type.NAME).addBan(target.getName(), punishmentReason, finalEndTime == Long.MAX_VALUE ? null : new Date(finalEndTime), executorName);
@@ -3091,7 +3052,7 @@ public class MenuListener implements Listener {
                                                     onlineTarget.kickPlayer(MessageUtils.getKickMessage(plugin.getConfigManager().getBanScreen(), punishmentReason, finalDurationForLog, punishmentId, finalEndTime == Long.MAX_VALUE ? null : new Date(finalEndTime), plugin.getConfigManager()));
                                                 }
                                             }
-                                            if (finalByIp && finalIpAddress != null) {
+                                            if (finalByIp) {
                                                 applyIpPunishmentToOnlinePlayers(finalType, finalIpAddress, finalEndTime, punishmentReason, finalDurationForLog, punishmentId, target.getUniqueId());
                                             }
                                             break;
@@ -3103,7 +3064,7 @@ public class MenuListener implements Listener {
                                                     onlineTarget.kickPlayer(kickMessage);
                                                 }
                                             }
-                                            if (finalByIp && finalIpAddress != null) {
+                                            if (finalByIp) {
                                                 applyIpPunishmentToOnlinePlayers(finalType, finalIpAddress, 0L, punishmentReason, finalDurationForLog, punishmentId, target.getUniqueId());
                                             }
                                             break;
@@ -3191,9 +3152,6 @@ public class MenuListener implements Listener {
             } else {
                 override = null;
             }
-            if (endIndex <= 1) {
-                return null;
-            }
             String reason = String.join(":", Arrays.copyOfRange(parts, 1, endIndex)).trim();
             if (reason.isEmpty()) {
                 return null;
@@ -3238,7 +3196,6 @@ public class MenuListener implements Listener {
         return plugin.getSoftBanDatabaseManager().getLastKnownIp(target.getUniqueId());
     }
 
-    @SuppressWarnings("deprecation")
     public void applyIpPunishmentToOnlinePlayers(String punishmentType, String ipAddress, long endTime, String reason, String durationForLog, String punishmentId, UUID originalTargetUUID) {
         String lowerCasePunishType = punishmentType.toLowerCase();
 
@@ -3251,32 +3208,28 @@ public class MenuListener implements Listener {
             if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
 
                 switch(lowerCasePunishType) {
-                    case "ban":
-                    case "kick":
+                    case "ban", "kick" -> {
                         Date expiration = (endTime == Long.MAX_VALUE || lowerCasePunishType.equals("kick")) ? null : new Date(endTime);
                         List<String> screenLines = lowerCasePunishType.equals("ban") ? plugin.getConfigManager().getBanScreen() : plugin.getConfigManager().getKickScreen();
                         String kickMessage = MessageUtils.getKickMessage(screenLines, reason, durationForLog, punishmentId, expiration, plugin.getConfigManager());
                         onlinePlayer.kickPlayer(kickMessage);
-                        break;
-
-                    case "mute":
+                    }
+                    case "mute" -> {
                         plugin.getMutedPlayersCache().put(onlinePlayer.getUniqueId(), endTime);
                         String muteMessage = plugin.getConfigManager().getMessage("messages.you_are_muted", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                         onlinePlayer.sendMessage(MessageUtils.getColorMessage(muteMessage));
-                        break;
-
-                    case "softban":
+                    }
+                    case "softban" -> {
                         plugin.getSoftBannedPlayersCache().put(onlinePlayer.getUniqueId(), endTime);
                         plugin.getSoftbannedCommandsCache().put(onlinePlayer.getUniqueId(), plugin.getConfigManager().getBlockedCommands());
                         String softbanMessage = plugin.getConfigManager().getMessage("messages.you_are_softbanned", "{time}", durationForLog, "{reason}", reason, "{punishment_id}", punishmentId);
                         onlinePlayer.sendMessage(MessageUtils.getColorMessage(softbanMessage));
-                        break;
-
-                    case "freeze":
+                    }
+                    case "freeze" -> {
                         plugin.getPluginFrozenPlayers().put(onlinePlayer.getUniqueId(), true);
                         plugin.getFreezeListener().startFreezeActionsTask(onlinePlayer);
                         onlinePlayer.sendMessage(MessageUtils.getColorMessage(plugin.getConfigManager().getMessage("messages.you_are_frozen")));
-                        break;
+                    }
                 }
             }
         }
@@ -3295,23 +3248,39 @@ public class MenuListener implements Listener {
             InetSocketAddress playerAddress = onlinePlayer.getAddress();
             if (playerAddress != null && playerAddress.getAddress() != null && playerAddress.getAddress().getHostAddress().equals(ipAddress)) {
                 switch (lowerCaseType) {
-                    case "mute":
+                    case "mute" -> {
                         plugin.getMutedPlayersCache().remove(onlinePlayer.getUniqueId());
                         sendConfigMessage(onlinePlayer, "messages.unmute_notification");
-                        break;
-                    case "softban":
+                    }
+                    case "softban" -> {
                         plugin.getSoftBannedPlayersCache().remove(onlinePlayer.getUniqueId());
                         plugin.getSoftbannedCommandsCache().remove(onlinePlayer.getUniqueId());
                         sendConfigMessage(onlinePlayer, "messages.unsoftban_notification");
-                        break;
-                    case "freeze":
+                    }
+                    case "freeze" -> {
                         if (plugin.getPluginFrozenPlayers().remove(onlinePlayer.getUniqueId()) != null) {
                             plugin.getFreezeListener().stopFreezeActionsTask(onlinePlayer.getUniqueId());
                             plugin.getFreezeListener().endFreezeChatSession(onlinePlayer.getUniqueId());
                             sendConfigMessage(onlinePlayer, "messages.you_are_unfrozen");
                         }
-                        break;
+                    }
                 }
+            }
+        }
+    }
+
+    private Sound getSound(String name) {
+        if (name == null || name.isEmpty()) return null;
+        String upperName = name.toUpperCase();
+        try {
+            // Try reflection for enum names (e.g. "BLOCK_BELL_USE")
+            return (Sound) Sound.class.getField(upperName).get(null);
+        } catch (Exception e) {
+            // Fallback to registry lookup for keys (e.g. "block.bell.use")
+            try {
+                return Registry.SOUNDS.get(NamespacedKey.fromString(name.toLowerCase()));
+            } catch (Exception ex) {
+                return null;
             }
         }
     }

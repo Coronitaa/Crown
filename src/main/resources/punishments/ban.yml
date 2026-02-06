@@ -46,7 +46,7 @@ ban-screen:
   - '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
   - '<color:#b0b0b0>Expires in: <color:#ffffff>{time_left}</color></color>'
   - '<color:#b0b0b0>Date: <color:#ffffff>{date}</color></color>'
-  - '<color:#b0b0b0>Punishment ID: <color:#ffffff>{punishment_id}</color></color>'
+  - '<color:#b0b0b0>Punishment ID: <color:#ffffff>#{punishment_id}</color></color>'
   - ''
   - '<color:#b0b0b0>Appeal at: <color:#00c6ff><u>{support_link}</u></color></color>'
 

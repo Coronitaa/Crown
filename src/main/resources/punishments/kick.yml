@@ -39,7 +39,7 @@ kick-screen:
   - '<gradient:#3a7bd5:#3a6073><bold>You have been kicked from the server.</bold></gradient>'
   - ''
   - '<color:#b0b0b0>Reason: <color:#ffffff>{reason}</color></color>'
-  - '<color:#b0b0b0>Punishment ID: <color:#ffffff>{punishment_id}</color></color>'
+  - '<color:#b0b0b0>Punishment ID: <color:#ffffff>#{punishment_id}</color></color>'
   - ''
   - '<color:#b0b0b0>Join back or contact us at: <color:#00c6ff><u>{support_link}</u></color></color>'
 
