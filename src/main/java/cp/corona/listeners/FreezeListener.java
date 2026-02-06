@@ -46,7 +46,7 @@ public class FreezeListener implements Listener {
     private final Map<UUID, FreezeChatSession> freezeChatSessions = new ConcurrentHashMap<>();
     private final Map<String, Set<UUID>> freezeChatIds = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> moderatorChatTargets = new ConcurrentHashMap<>();
-    private static final String FREEZE_CHAT_PERMISSION = "crown.mod";
+    private static final String FREEZE_CHAT_PERMISSION = "crown.fchat";
 
     private static class FreezeChatSession {
         private final UUID frozenId;

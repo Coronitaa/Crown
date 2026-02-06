@@ -112,7 +112,7 @@ permissions:
   crown.history:
     description: Allows player to view punishment history
     default: op
-  crown.mod:
+  crown.fchat:
     description: Allows player to receive frozen player messages
     default: op
   crown.admin:

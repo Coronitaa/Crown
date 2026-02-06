@@ -93,7 +93,7 @@ public class MenuListener implements Listener {
     private static final String WARN_PUNISHMENT_TYPE = "warn";
     private static final String FREEZE_PUNISHMENT_TYPE = "freeze";
 
-    private static final String MOD_PERMISSION = "crown.mod";
+    private static final String MOD_PERMISSION = "crown.fchat";
     private static final String USE_PERMISSION = "crown.use";
     private static final String EDIT_INVENTORY_PERMISSION = "crown.profile.editinventory";
     private static final String PUNISH_BAN_PERMISSION = "crown.punish.ban";

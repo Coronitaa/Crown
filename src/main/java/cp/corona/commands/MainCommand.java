@@ -96,7 +96,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String REPORT_CREATE_PERMISSION = "crown.report.create";
     private static final String REPORT_VIEW_PERMISSION = "crown.report.view";
     private static final String MOD_USE_PERMISSION = "crown.mod.use";
-    private static final String MOD_CHAT_PERMISSION = "crown.mod";
+    private static final String MOD_CHAT_PERMISSION = "crown.fchat";
     private static final String PROFILE_EDIT_INVENTORY_PERMISSION = "crown.profile.editinventory";
     private static final String LOCKER_ADMIN_PERMISSION = "crown.locker.admin";
 
