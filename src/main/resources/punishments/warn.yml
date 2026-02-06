@@ -9,6 +9,7 @@
 # - {reason}: Reason for the warning.
 # - {prefix}: Plugin prefix.
 # - {associated_punishment_id:<type>}: ID of a punishment (mute/softban/ban) created by a warning level.
+# - {punishment_id}: ID of the warning punishment.
 
 # --- Available Hook Actions ---
 # - APPLY_MUTE:<duration>:<reason>[:ip|local]
@@ -56,7 +57,7 @@ levels:
         <center><gradient:#f7971e:#ffd200><bold>YOU RECEIVED A WARNING</bold></gradient>
         <center><color:#b0b0b0>Level:</color> <color:#ffea00>1</color>
         <center><color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>
-      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #1 by <color:#ffea00>{player}</color>. Reason: <color:#ffffff>{reason}</color></color>'
+      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #1 by <color:#ffea00>{player}</color>. <color:#e5d4a3>[#{punishment_id}]</color> Reason: <color:#ffffff>{reason}</color></color>'
     on-expire-actions:
       - 'MESSAGE_TARGET:<color:#00e676>Your first warning has expired or been removed.</color>'
 
@@ -72,7 +73,7 @@ levels:
         <center><color:#b0b0b0>Level:</color> <color:#ffea00>2</color>
         <center><color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>
         <center><color:#ff5555>Penalty:</color> <color:#ffffff>Muted for 1 day</color>
-      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #2 by <color:#ffea00>{player}</color>. Muted for 1d.</color>'
+      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #2 by <color:#ffea00>{player}</color>. <color:#e5d4a3>[#{punishment_id}]</color> Muted for 1d.</color>'
     # Use the associated punishment ID to unmute the correct punishment upon expiration.
     # The placeholder {associated_punishment_id:mute} will be replaced with the ID of the mute created by this warning.
     on-expire-actions:
@@ -95,7 +96,7 @@ levels:
         <center><color:#b0b0b0>Level:</color> <color:#ffea00>3</color>
         <center><color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>
         <center><color:#ff5555>Penalty:</color> <color:#ffffff>Softbanned for 7 days</color>
-      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #3 by <color:#ffea00>{player}</color>. Softbanned for 7d.</color>'
+      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #3 by <color:#ffea00>{player}</color>. <color:#e5d4a3>[#{punishment_id}]</color> Softbanned for 7d.</color> '
     on-expire-actions:
       - 'CONSOLE_COMMAND:unpunish #{associated_punishment_id:softban} Warning level 3 expired.'
       - 'MESSAGE_TARGET:<color:#00e676>Your third warning has expired. Your softban has been lifted.</color>'
@@ -112,7 +113,7 @@ levels:
         <center><color:#b0b0b0>Level:</color> <color:#ffea00>4</color>
         <center><color:#b0b0b0>Reason:</color> <color:#ffffff>{reason}</color>
         <center><color:#ff5555>Penalty:</color> <color:#ffffff>Banned for 1 month</color>
-      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #4 by <color:#ffea00>{player}</color>. Banned for 1M.</color>'
+      - 'MESSAGE_MODS:{prefix}<color:#f5af19>{target}</color> <color:#b0b0b0>received warning #4 by <color:#ffea00>{player}</color>. <color:#e5d4a3>[#{punishment_id}]</color> Banned for 1M.</color>'
     on-expire-actions:
       # Note: This will only run if the player is online when the warn expires. If they are banned, this action may not be useful.
       # It's here to demonstrate the placeholder functionality. A manual unban would likely be required.

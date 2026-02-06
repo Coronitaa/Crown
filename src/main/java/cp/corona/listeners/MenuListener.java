@@ -2910,6 +2910,10 @@ public class MenuListener implements Listener {
                         currentArg = matcher.replaceAll(replacementId);
                     }
 
+                    if (warningContext != null) {
+                        currentArg = currentArg.replace("{punishment_id}", warningContext.getPunishmentId());
+                    }
+
                     if (target != null) {
                         currentArg = processAllPlaceholders(currentArg, executor, new TempHolder(target.getUniqueId()));
                     }
