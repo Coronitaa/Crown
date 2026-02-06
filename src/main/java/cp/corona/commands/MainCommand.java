@@ -1845,8 +1845,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             if (currentArg.isEmpty()) {
                 completions.addAll(ID_SUGGESTION);
             } else if (currentArg.startsWith("#")) {
-                List<String> activePunishmentIds = plugin.getSoftBanDatabaseManager().getAllActivePunishmentIds();
-                StringUtil.copyPartialMatches(currentArg, activePunishmentIds, completions);
+                List<String> recentPunishmentIds = plugin.getSoftBanDatabaseManager().getRecentPunishmentIds(20);
+                StringUtil.copyPartialMatches(currentArg, recentPunishmentIds, completions);
             } else {
                 if ("#".startsWith(currentArg.toLowerCase())) {
                     completions.add("#");
@@ -1893,8 +1893,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             if (currentArg.startsWith("#")) {
-                List<String> activePunishmentIds = plugin.getSoftBanDatabaseManager().getAllActivePunishmentIds();
-                StringUtil.copyPartialMatches(currentArg, activePunishmentIds, completions);
+                List<String> recentPunishmentIds = plugin.getSoftBanDatabaseManager().getRecentPunishmentIds(20);
+                StringUtil.copyPartialMatches(currentArg, recentPunishmentIds, completions);
             } else {
                 StringUtil.copyPartialMatches(currentArg, playerNames, completions);
                 if ("#".startsWith(currentArg.toLowerCase())) {

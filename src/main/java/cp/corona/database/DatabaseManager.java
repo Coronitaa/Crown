@@ -2344,6 +2344,23 @@ public class DatabaseManager {
         return ids;
     }
 
+    public List<String> getRecentPunishmentIds(int limit) {
+        List<String> ids = new ArrayList<>();
+        String sql = "SELECT punishment_id FROM punishment_history ORDER BY timestamp DESC LIMIT ?";
+        try (Connection connection = getConnection();
+                PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ids.add("#" + rs.getString("punishment_id"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database error retrieving recent punishment IDs!", e);
+        }
+        return ids;
+    }
+
     public void updatePlayerLastState(Player player) {
         CompletableFuture.runAsync(() -> {
             String sql = "mysql".equalsIgnoreCase(dbType)
